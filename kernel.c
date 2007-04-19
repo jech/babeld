@@ -1,0 +1,231 @@
+/*
+Copyright (c) 2007 by Juliusz Chroboczek
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <net/route.h>
+#include <net/if.h>
+
+#include "kernel.h"
+
+static int old_forwarding = -1;
+static int old_accept_redirects = -1;
+
+static int
+read_proc(char *filename)
+{
+    char buf[100];
+    int fd, rc;
+    fd = open(filename, O_RDONLY);
+    if(fd < 0)
+        return -1;
+    rc = read(fd, buf, 99);
+    if(rc < 0) {
+        int saved_errno = errno;
+        close(fd);
+        errno = saved_errno;
+        return -1;
+    }
+    close(fd);
+
+    if(rc == 0)
+        return -1;
+
+    buf[rc] = '\0';
+    return atoi(buf);
+}
+
+static int
+write_proc(char *filename, int value)
+{
+    char buf[100];
+    int fd, rc, n;
+    n = snprintf(buf, 100, "%d", value);
+
+    fd = open(filename, O_WRONLY);
+    if(fd < 0)
+        return -1;
+
+    rc = write(fd, buf, n);
+    if(rc < n) {
+        int saved_errno = errno;
+        close(fd);
+        errno = saved_errno;
+        return -1;
+    }
+
+    close(fd);
+    return 1;
+}
+
+int
+kernel_setup(int setup)
+{
+    int rc;
+
+    if(setup) {
+        old_forwarding = read_proc("/proc/sys/net/ipv6/conf/all/forwarding");
+        if(old_forwarding < 0) {
+            perror("Couldn't read forwarding knob.");
+            return -1;
+        }
+
+        rc = write_proc("/proc/sys/net/ipv6/conf/all/forwarding", 1);
+        if(rc < 0) {
+            perror("Couldn't write forwarding knob.");
+            return -1;
+        }
+
+        old_accept_redirects =
+            read_proc("/proc/sys/net/ipv6/conf/all/accept_redirects");
+        if(old_accept_redirects < 0) {
+            perror("Couldn't read accept_redirects knob.");
+            return -1;
+        }
+
+        rc = write_proc("/proc/sys/net/ipv6/conf/all/accept_redirects", 0);
+        if(rc < 0) {
+            perror("Couldn't write accept_redirects knob.");
+            return -1;
+        }
+        return 1;
+    } else {
+        if(old_forwarding >= 0) {
+            rc = write_proc("/proc/sys/net/ipv6/conf/all/forwarding",
+                            old_forwarding);
+            if(rc < 0) {
+                perror("Couldn't write accept_redirects knob.\n");
+                return -1;
+            }
+        }
+        if(old_accept_redirects >= 0) {
+            rc = write_proc("/proc/sys/net/ipv6/conf/all/accept_redirects",
+                            old_accept_redirects);
+            if(rc < 0) {
+                perror("Couldn't write accept_redirects knob.\n");
+                return -1;
+            }
+        }
+        return 1;
+    }
+}
+
+int
+kernel_setup_interface(int setup, const char *ifname, int ifindex)
+{
+    return 1;
+}
+
+int
+kernel_interface_mtu(const char *ifname, int ifindex)
+{
+    struct ifreq req;
+    int s, rc;
+
+    s = socket(PF_INET, SOCK_DGRAM, 0);
+    if(s < 0)
+        return -1;
+
+    memset(&req, 0, sizeof(req));
+    strncpy(req.ifr_name, ifname, sizeof(req.ifr_name));
+    rc = ioctl(s, SIOCGIFMTU, &req);
+    if(rc < 0) {
+        close(s);
+        return -1;
+    }
+
+    return req.ifr_mtu;
+}
+
+int
+kernel_interface_wireless(const char *ifname, int ifindex)
+{
+#ifndef SIOCGIWNAME
+#define SIOCGIWNAME 0x8B01
+#endif
+    struct ifreq req;
+    int s, rc;
+
+    s = socket(PF_INET, SOCK_DGRAM, 0);
+    if(s < 0)
+        return -1;
+
+    memset(&req, 0, sizeof(req));
+    strncpy(req.ifr_name, ifname, sizeof(req.ifr_name));
+    rc = ioctl(s, SIOCGIWNAME, &req);
+    if(rc < 0) {
+        if(errno == EOPNOTSUPP || errno == EINVAL)
+            rc = 0;
+        else {
+            perror("ioctl(SIOCGIWNAME)");
+            rc = -1;
+        }
+    } else {
+        rc = 1;
+    }
+    close(s);
+    return rc;
+}
+
+static int route_socket = -1;
+
+int
+kernel_route(int add, const unsigned char *dest, unsigned short plen,
+             const unsigned char *gate, int ifindex, int metric)
+{
+    struct in6_rtmsg msg;
+    int rc;
+
+    if(route_socket < 0) {
+        route_socket = socket(AF_INET6, SOCK_DGRAM, 0);
+        if(route_socket < 0)
+            return -1;
+    }
+
+    memset(&msg, 0, sizeof(msg));
+
+    msg.rtmsg_flags = RTF_UP;
+    if(plen < 128) {
+        msg.rtmsg_flags |= RTF_GATEWAY;
+    } else {
+        msg.rtmsg_flags |= RTF_HOST;
+        if(memcmp(dest, gate, 16) != 0)
+            msg.rtmsg_flags |= RTF_GATEWAY;
+    }
+    msg.rtmsg_metric = metric;
+    memcpy(&msg.rtmsg_dst, dest, sizeof(struct in6_addr));
+    msg.rtmsg_dst_len = plen;
+    memcpy(&msg.rtmsg_gateway, gate, sizeof(struct in6_addr));
+    msg.rtmsg_ifindex = ifindex;
+    rc = ioctl(route_socket, add ? SIOCADDRT : SIOCDELRT, &msg);
+        if(rc < 0)
+            return -1;
+    return 1;
+}

@@ -1,0 +1,167 @@
+.TH ARIADNE 1
+.SH NAME
+ariadne \- ad-hoc network routing daemon
+.SH SYNOPSIS
+.B ariadne
+[
+.B \-m
+.I multicast-address
+]
+[
+.B \-p
+.I port
+] [
+.B -S
+.I state-file
+] [
+.B \-h
+.I hello-interval
+] [
+.B \-H
+.I wired-hello-interval
+] [
+.B \-u
+.I update-interval
+] [
+.B \-k
+.I kernel-metric
+] [
+.B \-s
+] [
+.B \-b
+] [
+.B \-p
+] [
+.B \-d
+.I level
+ ] [
+.B \-n
+.I
+.I prefix cost
+]...
+.I address
+.IR interface ...
+.SH DESCRIPTION
+Ariadne is a loop-avoiding distance-vector routing protocol roughly
+based on HSDV and AODV, but with provisions for link cost estimation
+and injection of external routes.
+
+While it is optimised for wireless mesh networks, Ariadne will also
+work efficiently on classical wired networks.  In the worst case, it
+will generate roughly double the amount of traffic that RIPng would
+generate, while never counting to infinity.
+.SH OPTIONS
+.TP
+.BI \-m " multicast-address"
+Specify the link-local multicast address to be used by the protocol.
+.TP
+.BI \-p " port"
+Specify the UDP port number to be used by the Ariadne protocol.
+.TP
+.BI \-S " state-file"
+Set the name of the file used for preserving long-term information
+between invocations of the
+.B ariadne
+daemon.  If this file is deleted, the daemon will run in passive mode
+for 3 minutes when it is next invoked (see
+.B -P
+below), and other hosts might initially not accept to route to it.
+The default is
+.BR /var/lib/ariadne-state .
+.TP
+.BI \-h " hello-interval"
+Specify the interval in seconds at which periodic hello packets are
+sent on wireless interfaces.  The default is 8.
+.TP
+.BI \-H " wired-hello-interval"
+Specify the interval in seconds at which periodic hello packets are
+sent on wired interfaces.  The default is 30.
+.TP
+.BI \-u " update-interval"
+Specify the interval in seconds at which periodic routing table dumps
+are made on all interfaces.  The default is either the wired hello
+interval, or 150, whichever is less.
+.TP
+.BI \-k " kernel-metric"
+Specify a value that will be added to routes' metrics before
+installing them in the kernel; this is useful when a single node
+participates in multiple routing protocols.  The default is 0.
+.TP
+.B \-s
+Do not perform split-horizon processing on wired interfaces.
+Split-horizon is never performed on wireless interfaces.
+.TP
+.B \-b
+Generate messages for detecting bidirectional communication failures
+on wired interfaces.  By default, wired interfaces are assumed to be
+symmetric.
+.TP
+.B \-P
+Run in parasitic (passive) mode.  The daemon will not announce any
+routes except for itself.
+.TP
+.BI \-d " level"
+Debug level.  A value of 1 requests a routing table dump at every
+iteration through the daemon's main loop.  A value of 2 additionally
+requests tracing every message sent or received.  The default is 0.
+.TP
+.BI \-n " network cost"
+Advertise an external route for the given network with the given cost.
+We suggest a cost of 256 \[mu]
+.RI ( n
++ 1) for a network
+.I n
+hops away.
+.I Network
+should be either the string
+.BR default ,
+or a nework specification in CIDR notation
+.IB prefix / length.
+If
+.I length
+is omitted, it defaults to 128 (a host route).
+.TP
+.I address
+The IPv6 address that the node should advertise for itself.
+(Additional addresses can be advertised as external routes with a cost
+of 0.)
+.TP
+.IR interface ...
+The list of interfaces on which the protocol should operate.
+.SH WIRED INTERFACES
+By default, the daemon optimises traffic on wired interfaces by
+sending fewer periodic hello messages, performing split-horizon
+processing and not generating any reverse reachability information.
+These optimisations can be disabled using the
+.BR -H ,
+.B -s
+and
+.B -b
+options respectively.
+
+No link cost estimation is performed on wired interfaces: a wired
+adjacency is assumed to be up if at least one of the last three hello
+messages has been received, and down otherwise.
+.SH FILES
+.TP
+.B /var/lib/ariadne-state
+The default location of the file storing long-term state.
+.SH SECURITY
+Ariadne is a completely insecure protocol: any attacker able to
+inject IP packets with a link-local source address can disrupt the
+protocol's operation.
+
+Since Ariadne uses link-local addresses only, there is no need to
+update firewalls to allow forwarding of Ariadne protocol packets.  If
+ingress filtering is done on a host, the protocol port should be
+opened.  As Ariadne uses unicast packets in some cases, just allowing
+packets destined to the multicast address is not enough.
+.SH BUGS
+Plenty.  This is experimental software, run at your own risk.
+.SH SEE ALSO
+.BR routed (8),
+.BR route6d (8),
+.BR zebra (8),
+.BR ahcpd (8).
+.SH AUTHOR
+Juliusz Chroboczek.
