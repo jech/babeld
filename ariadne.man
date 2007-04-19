@@ -43,7 +43,7 @@ ariadne \- ad-hoc network routing daemon
 .IR interface ...
 .SH DESCRIPTION
 Ariadne is a loop-avoiding distance-vector routing protocol roughly
-based on HSDV and AODV, but with provisions for link cost estimation
+based on DSDV and AODV, but with provisions for link cost estimation
 and injection of external routes.
 
 While it is optimised for wireless mesh networks, Ariadne will also
