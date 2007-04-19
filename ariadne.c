@@ -309,7 +309,7 @@ main(int argc, char **argv)
                 maxmtu = MAX(maxmtu, mtu);
                 mtu = 32768;
             }
-            /* 40 for IPv6 header, 20 for UDP header. */
+            /* 40 for IPv6 header, 8 for UDP header, 12 for good luck. */
             mtu -= 60;
         }
         maxmtu = MAX(maxmtu, mtu);
