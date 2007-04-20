@@ -228,19 +228,11 @@ route_feasible(struct route *route)
 }
 
 int
-update_feasible(unsigned char seqno, unsigned short metric,
-                struct destination *dest, struct route *route)
+update_feasible(unsigned char seqno, unsigned short refmetric,
+                struct destination *dest)
 {
-    if(route) {
-        /* This allows us to keep unfeasible routes around in order to
-           keep statistics about their stability. */
-        if(seqno_compare(route->seqno, seqno) < 0 ||
-           (route->seqno == seqno && metric <= route->refmetric))
-            return 1;
-    }
-
     if(seqno_compare(dest->seqno, seqno) < 0 ||
-       (dest->seqno == seqno && metric < dest->metric))
+       (dest->seqno == seqno && refmetric < dest->metric))
         return 1;
 
     return 0;
@@ -340,10 +332,11 @@ update_route(const unsigned char *d, int seqno, int refmetric,
 
     route = find_route(d, nexthop);
 
-    if(!update_feasible(seqno, metric, dest, route))
+    if(!update_feasible(seqno, refmetric, dest)) {
+        debugf("Rejecting unfeasible update from %s.\n",
+               format_address(nexthop->address));
         return NULL;
-    else
-        debugf("Rejecting unfeasible update.\n");
+    }
 
     if(route) {
         int oldseqno;

@@ -45,8 +45,8 @@ unsigned int metric_to_kernel(int metric);
 void install_route(struct route *route);
 void uninstall_route(struct route *route);
 int route_feasible(struct route *route);
-int update_feasible(unsigned char seqno, unsigned short metric,
-                    struct destination *dest, struct route *route);
+int update_feasible(unsigned char seqno, unsigned short refmetric,
+                    struct destination *dest);
 struct route *find_best_route(struct destination *dest);
 void update_neighbour_metric(struct neighbour *neigh);
 void update_route_metric(struct route *route);
