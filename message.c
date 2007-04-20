@@ -553,7 +553,7 @@ send_txcost(struct neighbour *neigh, struct network *net)
 
         net = neigh->network;
 
-        debugf("Sending unicast txcost on %s to %s (%s).\n",
+        debugf("Sending txcost on %s to %s (%s).\n",
                neigh->network->ifname,
                format_address(neigh->id),
                format_address(neigh->address));
