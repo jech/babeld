@@ -544,6 +544,7 @@ send_txcost(struct neighbour *neigh, struct network *net)
                 }
             }
         }
+        net->txcost_time = now.tv_sec;
     } else {
         int cost;
 

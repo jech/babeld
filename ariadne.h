@@ -64,6 +64,7 @@ struct network {
     int hello_time;
     int self_update_time;
     int update_time;
+    int txcost_time;
     char ifname[IF_NAMESIZE];
     int buffered;
     struct timeval flush_time;
@@ -72,6 +73,7 @@ struct network {
     unsigned char hello_seqno;
     unsigned int hello_interval;
     unsigned int self_update_interval;
+    unsigned int txcost_interval;
 };
 
 extern struct timeval now;

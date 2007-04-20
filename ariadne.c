@@ -419,10 +419,10 @@ main(int argc, char **argv)
         for(i = 0; i < numnets; i++) {
             if(now.tv_sec >= nets[i].hello_time + nets[i].hello_interval)
                 send_hello(&nets[i]);
-            if(now.tv_sec >= nets[i].update_time + update_interval) {
+            if(now.tv_sec >= nets[i].update_time + update_interval)
                 send_update(NULL, &nets[i]);
+            if(now.tv_sec >= nets[i].txcost_time + nets[i].txcost_interval)
                 send_txcost(NULL, &nets[i]);
-            }
             if(now.tv_sec >=
                nets[i].self_update_time + nets[i].self_update_interval) {
                 send_self_update(&nets[i]);
@@ -577,7 +577,7 @@ add_network(char *ifname, int ifindex, int mtu,
     nets[numnets].hello_interval = hello_interval;
     nets[numnets].self_update_interval =
         MAX(15 + hello_interval / 2 , hello_interval);
-
+    nets[numnets].txcost_interval = MIN(42, 2 * hello_interval);
     nets[numnets].bufsize = mtu - sizeof(packet_header);
     strncpy(nets[numnets].ifname, ifname, IF_NAMESIZE);
     p = malloc(nets[numnets].bufsize);
