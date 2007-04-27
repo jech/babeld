@@ -546,8 +546,6 @@ send_txcost(struct neighbour *neigh, struct network *net)
         }
         net->txcost_time = now.tv_sec;
     } else {
-        int cost;
-
         if(net && neigh->network != net)
             return;
 
@@ -558,12 +556,10 @@ send_txcost(struct neighbour *neigh, struct network *net)
                format_address(neigh->id),
                format_address(neigh->address));
 
-        cost = neighbour_cost(neigh);
-
         start_message(net, 20);
         accumulate_byte(net, 3);
         accumulate_byte(net, 0);
-        accumulate_short(net, neighbour_cost(neigh));
+        accumulate_short(net, neighbour_rxcost(neigh));
         accumulate_data(net, neigh->id, 16);
         schedule_flush(net);
     }

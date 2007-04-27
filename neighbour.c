@@ -190,7 +190,7 @@ check_neighbour(struct neighbour *neigh)
 }
 
 int
-neighbour_cost(struct neighbour *neigh)
+neighbour_rxcost(struct neighbour *neigh)
 {
     update_neighbour(neigh, -1, 0);
     if(neigh->reach == 0)
@@ -215,7 +215,7 @@ neighbour_cost(struct neighbour *neigh)
 }
 
 int
-neighbour_symmetric_cost(struct neighbour *neigh)
+neighbour_cost(struct neighbour *neigh)
 {
     int c;
     /* (1/(alpha * beta) + 1/beta) / 2, which is half the expected
@@ -226,7 +226,7 @@ neighbour_symmetric_cost(struct neighbour *neigh)
     if(neigh->txcost >= INFINITY)
         return INFINITY;
 
-    c = neighbour_cost(neigh);
+    c = neighbour_rxcost(neigh);
     if(c >= INFINITY)
         return INFINITY;
 

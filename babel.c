@@ -437,11 +437,11 @@ main(int argc, char **argv)
             if(neighs[i].id[0] == 0)
                 continue;
             printf("Neighbour %s ", format_address(neighs[i].id));
-            printf("at %s dev %s reach %04x cost %d txcost %d.\n",
+            printf("at %s dev %s reach %04x rxcost %d txcost %d.\n",
                    format_address(neighs[i].address),
                    neighs[i].network->ifname,
                    neighs[i].reach,
-                   neighbour_cost(&neighs[i]),
+                   neighbour_rxcost(&neighs[i]),
                    neighs[i].txcost);
         }
         for(i = 0; i < numroutes; i++) {

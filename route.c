@@ -284,7 +284,7 @@ void
 update_route_metric(struct route *route)
 {
     int metric, oldmetric, install = 0;
-    metric = MIN(route->refmetric + neighbour_symmetric_cost(route->nexthop),
+    metric = MIN(route->refmetric + neighbour_cost(route->nexthop),
                  INFINITY);
     if(route->installed &&
        (metric >= INFINITY ||
@@ -328,7 +328,7 @@ update_route(const unsigned char *d, int seqno, int refmetric,
     if(dest == NULL)
         return NULL;
 
-    metric = MIN(refmetric + neighbour_symmetric_cost(nexthop), INFINITY);
+    metric = MIN(refmetric + neighbour_cost(nexthop), INFINITY);
 
     route = find_route(d, nexthop);
 

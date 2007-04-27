@@ -43,5 +43,5 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
               struct network *net);
 void update_neighbour(struct neighbour *neigh, int hello, int hello_interval);
 void check_neighbour(struct neighbour *neigh);
+int neighbour_rxcost(struct neighbour *neigh);
 int neighbour_cost(struct neighbour *neigh);
-int neighbour_symmetric_cost(struct neighbour *neigh);
