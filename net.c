@@ -31,7 +31,7 @@ THE SOFTWARE.
 #include "net.h"
 
 int
-ariadne_socket(int port)
+babel_socket(int port)
 {
     struct sockaddr_in6 sin6;
     int s, rc;
@@ -76,7 +76,7 @@ ariadne_socket(int port)
 }
 
 int
-ariadne_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen)
+babel_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen)
 {
     struct iovec iovec;
     struct msghdr msg;
@@ -95,9 +95,9 @@ ariadne_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen)
 }
 
 int
-ariadne_send(int s,
-             const void *buf1, int buflen1, const void *buf2, int buflen2,
-             const struct sockaddr *sin, int slen)
+babel_send(int s,
+           const void *buf1, int buflen1, const void *buf2, int buflen2,
+           const struct sockaddr *sin, int slen)
 {
     struct iovec iovec[2];
     struct msghdr msg;

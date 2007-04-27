@@ -24,7 +24,7 @@ THE SOFTWARE.
 #include <stdio.h>
 #include <string.h>
 
-#include "ariadne.h"
+#include "babel.h"
 #include "util.h"
 #include "destination.h"
 

@@ -27,7 +27,7 @@ THE SOFTWARE.
 
 #include <arpa/inet.h>
 
-#include "ariadne.h"
+#include "babel.h"
 #include "util.h"
 #include "net.h"
 #include "destination.h"
@@ -176,10 +176,10 @@ flushbuf(struct network *net)
         memcpy(&sin6.sin6_addr, protocol_group, 16);
         sin6.sin6_port = htons(protocol_port);
         sin6.sin6_scope_id = net->ifindex;
-        rc = ariadne_send(protocol_socket,
-                          packet_header, sizeof(packet_header),
-                          net->sendbuf, net->buffered,
-                          (struct sockaddr*)&sin6, sizeof(sin6));
+        rc = babel_send(protocol_socket,
+                        packet_header, sizeof(packet_header),
+                        net->sendbuf, net->buffered,
+                        (struct sockaddr*)&sin6, sizeof(sin6));
         if(rc < 0)
             perror("send");
     }
@@ -278,10 +278,10 @@ send_unicast_packet(struct neighbour *neigh, unsigned char *buf, int buflen)
     memcpy(&sin6.sin6_addr, neigh->address, 16);
     sin6.sin6_port = htons(protocol_port);
     sin6.sin6_scope_id = neigh->network->ifindex;
-    rc = ariadne_send(protocol_socket,
-                      packet_header, sizeof(packet_header),
-                      buf, buflen,
-                      (struct sockaddr*)&sin6, sizeof(sin6));
+    rc = babel_send(protocol_socket,
+                    packet_header, sizeof(packet_header),
+                    buf, buflen,
+                    (struct sockaddr*)&sin6, sizeof(sin6));
     if(rc < 0)
         perror("send(unicast)");
 }

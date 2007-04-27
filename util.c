@@ -31,7 +31,7 @@ THE SOFTWARE.
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-#include "ariadne.h"
+#include "babel.h"
 
 int
 seqno_compare(unsigned char s1, unsigned char s2)

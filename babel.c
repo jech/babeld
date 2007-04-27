@@ -38,7 +38,7 @@ THE SOFTWARE.
 #include <net/if.h>
 #include <arpa/inet.h>
 
-#include "ariadne.h"
+#include "babel.h"
 #include "util.h"
 #include "net.h"
 #include "kernel.h"
@@ -66,7 +66,7 @@ int numnets = 0;
 
 static const unsigned char zeroes[16] = {0};
 
-char *state_file = "/var/lib/ariadne-state";
+char *state_file = "/var/lib/babel-state";
 
 int protocol_port;
 unsigned char protocol_group[16];
@@ -201,10 +201,10 @@ main(int argc, char **argv)
 
     fd = open(state_file, O_RDONLY);
     if(fd < 0 && errno != ENOENT)
-        perror("open(ariadne-state)");
+        perror("open(babel-state)");
     rc = unlink(state_file);
     if(fd >= 0 && rc < 0) {
-        perror("unlink(ariadne-state)");
+        perror("unlink(babel-state)");
         /* If we couldn't unlink it, it might be stale. */
         close(fd);
         fd = -1;
@@ -214,17 +214,17 @@ main(int argc, char **argv)
         int s, t;
         rc = read(fd, buf, 99);
         if(rc < 0) {
-            perror("read(ariadne-state)");
+            perror("read(babel-state)");
         } else {
             buf[rc] = '\0';
             rc = sscanf(buf, "%d %d\n", &s, &t);
             if(rc == 2 && s > 0 && s <= 256 &&
                t >= 1176800000 && t <= now.tv_sec) {
-                debugf("Got %d %d from ariadne-state.\n", s, t);
+                debugf("Got %d %d from babel-state.\n", s, t);
                 seqno = ((s + 1) & 0xFF);
                 reboot_time = t;
             } else {
-                fprintf(stderr, "Couldn't parse ariadne-state.\n");
+                fprintf(stderr, "Couldn't parse babel-state.\n");
             }
         }
         close(fd);
@@ -251,7 +251,7 @@ main(int argc, char **argv)
         exit(1);
     }
 
-    protocol_socket = ariadne_socket(protocol_port);
+    protocol_socket = babel_socket(protocol_port);
     if(protocol_socket < 0) {
         perror("Couldn't create link local socket");
         goto fail;
@@ -392,7 +392,7 @@ main(int argc, char **argv)
             break;
 
         if(FD_ISSET(protocol_socket, &readfds)) {
-            rc = ariadne_recv(protocol_socket, buf, maxmtu,
+            rc = babel_recv(protocol_socket, buf, maxmtu,
                               (struct sockaddr*)&sin6, sizeof(sin6));
             if(rc < 0) {
                 if(errno != EAGAIN && errno != EINTR) {
@@ -496,13 +496,13 @@ main(int argc, char **argv)
 
     fd = open(state_file, O_WRONLY | O_TRUNC | O_CREAT, 0644);
     if(fd < 0) {
-        perror("creat(ariadne-state)");
+        perror("creat(babel-state)");
     } else {
         char buf[100];
         rc = snprintf(buf, 100, "%d %d\n", seqno, (int)now.tv_sec);
         rc = write(fd, buf, rc);
         if(rc < 0)
-            perror("write(ariadne-state)");
+            perror("write(babel-state)");
         close(fd);
     }
     debugf("Done.");

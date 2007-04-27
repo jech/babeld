@@ -1,7 +1,7 @@
-Ariadne
-*******
+Babel
+*****
 
-Ariadne is a loop-avoiding distance-vector routing protocol roughly
+Babel is a loop-avoiding distance-vector routing protocol roughly
 based on HSDV and AODV, but with provisions for link cost estimation
 and injection of external routes.
 
@@ -13,23 +13,23 @@ Installation
   $ su -c 'make install'
 
 
-Running Ariadne
-***************
+Running Babel
+*************
 
-In order to run Ariadne on a node (wireless or wired), just give it an
+In order to run Babel on a node (wireless or wired), just give it an
 IPv6 address, then run the routing daemon.  Assuming your wireless
 interface is eth1, and your IPv6 address is $IPv6, do
 
   # ip -6 addr add $IPv6 dev eth1
-  # ariadne $IPv6 eth1
+  # babel $IPv6 eth1
 
 If your node has multiple interfaces which you want to participate in
-the Ariadne netowk, just list them all:
+the Babel netowk, just list them all:
 
-  # ariadne $IPv6 eth0 eth1 sit1
+  # babel $IPv6 eth0 eth1 sit1
 
 On an access point, you'll probably want to inject external routes
-into the Ariadne network.  First check that you have a default route
+into the Babel network.  First check that you have a default route
 on your access point:
 
   $ ip -6 route show default
@@ -37,6 +37,6 @@ on your access point:
 
 Then run the routing daemon as so:
 
-  # ariadne -n default 256 $IPv6 eth1
+  # babel -n default 256 $IPv6 eth1
 
                                         Juliusz

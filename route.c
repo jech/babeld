@@ -26,7 +26,7 @@ THE SOFTWARE.
 #include <errno.h>
 #include <assert.h>
 
-#include "ariadne.h"
+#include "babel.h"
 #include "util.h"
 #include "kernel.h"
 #include "destination.h"

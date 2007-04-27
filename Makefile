@@ -6,31 +6,31 @@ DEFINES = $(PLATFORM_DEFINES)
 
 CFLAGS = $(CDEBUGFLAGS) $(DEFINES) $(EXTRA_DEFINES)
 
-SRCS = ariadne.c net.c kernel.c util.c destination.c neighbour.c \
+SRCS = babel.c net.c kernel.c util.c destination.c neighbour.c \
        route.c xroute.c message.c
 
-OBJS = ariadne.o net.o kernel.o util.o destination.o neighbour.o \
+OBJS = babel.o net.o kernel.o util.o destination.o neighbour.o \
        route.o xroute.o message.o
 
-ariadne: $(OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o ariadne $(OBJS) $(LDLIBS)
+babel: $(OBJS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o babel $(OBJS) $(LDLIBS)
 
-ariadne.html: ariadne.man
-	groff -man -Thtml ariadne.man > ariadne.html
+babel.html: babel.man
+	groff -man -Thtml babel.man > babel.html
 
 .PHONY: all install uninstall clean
 
-all: ariadne
+all: babel
 
-install: ariadne ariadne.man
-	-rm -f $(TARGET)$(PREFIX)/bin/ariadne
-	cp -f ariadne $(TARGET)$(PREFIX)/bin
+install: babel babel.man
+	-rm -f $(TARGET)$(PREFIX)/bin/babel
+	cp -f babel $(TARGET)$(PREFIX)/bin
 	mkdir -p $(TARGET)$(PREFIX)/man/man8
-	cp -f ariadne.man $(TARGET)$(PREFIX)/man/man8/ariadne.8
+	cp -f babel.man $(TARGET)$(PREFIX)/man/man8/babel.8
 
 uninstall:
-	-rm -f $(TARGET)$(PREFIX)/bin/ariadne
-	-rm -f $(TARGET)$(PREFIX)/man/man8/ariadne.8
+	-rm -f $(TARGET)$(PREFIX)/bin/babel
+	-rm -f $(TARGET)$(PREFIX)/man/man8/babel.8
 
 clean:
-	-rm -f ariadne ariadne.html *.o *~ core TAGS gmon.out
+	-rm -f babel babel.html *.o *~ core TAGS gmon.out

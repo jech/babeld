@@ -1,8 +1,8 @@
-.TH ARIADNE 1
+.TH BABEL 1
 .SH NAME
-ariadne \- ad-hoc network routing daemon
+babel \- ad-hoc network routing daemon
 .SH SYNOPSIS
-.B ariadne
+.B babel
 [
 .B \-m
 .I multicast-address
@@ -42,11 +42,11 @@ ariadne \- ad-hoc network routing daemon
 .I address
 .IR interface ...
 .SH DESCRIPTION
-Ariadne is a loop-avoiding distance-vector routing protocol roughly
+Babel is a loop-avoiding distance-vector routing protocol roughly
 based on DSDV and AODV, but with provisions for link cost estimation
 and injection of external routes.
 
-While it is optimised for wireless mesh networks, Ariadne will also
+While it is optimised for wireless mesh networks, Babel will also
 work efficiently on classical wired networks.  In the worst case, it
 will generate roughly double the amount of traffic that RIPng would
 generate, while never counting to infinity.
@@ -56,18 +56,18 @@ generate, while never counting to infinity.
 Specify the link-local multicast address to be used by the protocol.
 .TP
 .BI \-p " port"
-Specify the UDP port number to be used by the Ariadne protocol.
+Specify the UDP port number to be used by the Babel protocol.
 .TP
 .BI \-S " state-file"
 Set the name of the file used for preserving long-term information
 between invocations of the
-.B ariadne
+.B babel
 daemon.  If this file is deleted, the daemon will run in passive mode
 for 3 minutes when it is next invoked (see
 .B -P
 below), and other hosts might initially not accept to route to it.
 The default is
-.BR /var/lib/ariadne-state .
+.BR /var/lib/babel-state .
 .TP
 .BI \-h " hello-interval"
 Specify the interval in seconds at which periodic hello packets are
@@ -144,17 +144,17 @@ adjacency is assumed to be up if at least one of the last three hello
 messages has been received, and down otherwise.
 .SH FILES
 .TP
-.B /var/lib/ariadne-state
+.B /var/lib/babel-state
 The default location of the file storing long-term state.
 .SH SECURITY
-Ariadne is a completely insecure protocol: any attacker able to
+Babel is a completely insecure protocol: any attacker able to
 inject IP packets with a link-local source address can disrupt the
 protocol's operation.
 
-Since Ariadne uses link-local addresses only, there is no need to
-update firewalls to allow forwarding of Ariadne protocol packets.  If
+Since Babel uses link-local addresses only, there is no need to
+update firewalls to allow forwarding of Babel protocol packets.  If
 ingress filtering is done on a host, the protocol port should be
-opened.  As Ariadne uses unicast packets in some cases, just allowing
+opened.  As Babel uses unicast packets in some cases, just allowing
 packets destined to the multicast address is not enough.
 .SH BUGS
 Plenty.  This is experimental software, run at your own risk.

@@ -26,7 +26,7 @@ THE SOFTWARE.
 #include <sys/time.h>
 #include <time.h>
 
-#include "ariadne.h"
+#include "babel.h"
 #include "util.h"
 #include "neighbour.h"
 #include "route.h"

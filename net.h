@@ -20,8 +20,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-int ariadne_socket(int port);
-int ariadne_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen);
-int ariadne_send(int s,
-                 const void *buf1, int buflen1, const void *buf2, int buflen2,
-                 const struct sockaddr *sin, int slen);
+int babel_socket(int port);
+int babel_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen);
+int babel_send(int s,
+               const void *buf1, int buflen1, const void *buf2, int buflen2,
+               const struct sockaddr *sin, int slen);
