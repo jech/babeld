@@ -80,6 +80,7 @@ void expire_routes(void);
 
 static void sigexit(int signo);
 static void init_signals(void);
+static void dump_tables(FILE *out);
 
 int
 main(int argc, char **argv)
@@ -429,43 +430,8 @@ main(int argc, char **argv)
             }
         }
 
-        if(!debug)
-            continue;
-
-        printf("\n");
-        for(i = 0; i < numneighs; i++) {
-            if(neighs[i].id[0] == 0)
-                continue;
-            printf("Neighbour %s ", format_address(neighs[i].id));
-            printf("at %s dev %s reach %04x rxcost %d txcost %d.\n",
-                   format_address(neighs[i].address),
-                   neighs[i].network->ifname,
-                   neighs[i].reach,
-                   neighbour_rxcost(&neighs[i]),
-                   neighs[i].txcost);
-        }
-        for(i = 0; i < numroutes; i++) {
-            printf("%s metric %d refmetric %d seqno %d age %d ",
-                   format_address(routes[i].dest->address),
-                   routes[i].metric, routes[i].refmetric, routes[i].seqno,
-                   (int)(now.tv_sec - routes[i].time));
-            printf("via %s nexthop %s%s\n",
-                   routes[i].nexthop->network->ifname,
-                   format_address(routes[i].nexthop->address),
-                   routes[i].installed ? " (installed)" :
-                   route_feasible(&routes[i]) ? " (feasible)" : "");
-        }
-        for(i = 0; i < numxroutes; i++) {
-            printf("%s/%d gw %s cost %d metric %d age %d%s\n",
-                   format_address(xroutes[i].prefix),
-                   xroutes[i].plen,
-                   format_address(xroutes[i].gateway->address),
-                   xroutes[i].cost,
-                   xroutes[i].metric,
-                   (int)(now.tv_sec - xroutes[i].time),
-                   xroutes[i].installed ? " (installed)" : "");
-        }
-        fflush(stdout);
+        if(debug)
+            dump_tables(stdout);
     }
 
     debugf("Exiting...\n");
@@ -557,6 +523,47 @@ init_signals(void)
     sa.sa_mask = ss;
     sa.sa_flags = 0;
     sigaction(SIGINT, &sa, NULL);
+}
+
+static void
+dump_tables(FILE *out)
+{
+    int i;
+
+    fprintf(out, "\n");
+    for(i = 0; i < numneighs; i++) {
+        if(neighs[i].id[0] == 0)
+            continue;
+        fprintf(out, "Neighbour %s ", format_address(neighs[i].id));
+        fprintf(out, "at %s dev %s reach %04x rxcost %d txcost %d.\n",
+               format_address(neighs[i].address),
+               neighs[i].network->ifname,
+               neighs[i].reach,
+               neighbour_rxcost(&neighs[i]),
+               neighs[i].txcost);
+    }
+    for(i = 0; i < numroutes; i++) {
+        fprintf(out, "%s metric %d refmetric %d seqno %d age %d ",
+               format_address(routes[i].dest->address),
+               routes[i].metric, routes[i].refmetric, routes[i].seqno,
+               (int)(now.tv_sec - routes[i].time));
+        fprintf(out, "via %s nexthop %s%s\n",
+               routes[i].nexthop->network->ifname,
+               format_address(routes[i].nexthop->address),
+               routes[i].installed ? " (installed)" :
+               route_feasible(&routes[i]) ? " (feasible)" : "");
+    }
+    for(i = 0; i < numxroutes; i++) {
+        fprintf(out, "%s/%d gw %s cost %d metric %d age %d%s\n",
+               format_address(xroutes[i].prefix),
+               xroutes[i].plen,
+               format_address(xroutes[i].gateway->address),
+               xroutes[i].cost,
+               xroutes[i].metric,
+               (int)(now.tv_sec - xroutes[i].time),
+               xroutes[i].installed ? " (installed)" : "");
+    }
+    fflush(out);
 }
 
 struct network *
