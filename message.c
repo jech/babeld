@@ -45,7 +45,7 @@ unsigned int jitter;
 unsigned int update_jitter;
 int parasitic = 0;
 int silent_time = 30;
-int broadcast_txcost = 1;
+int broadcast_txcost = 0;
 int split_horizon = 1;
 
 unsigned char seqno = 0;
