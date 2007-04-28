@@ -72,13 +72,12 @@ int protocol_port;
 unsigned char protocol_group[16];
 int protocol_socket = -1;
 
-static volatile sig_atomic_t exiting = 0;
+static volatile sig_atomic_t exiting = 0, dumping = 0;
 
 struct network *add_network(char *ifname, int ifindex, int bufsize,
                             int wired, unsigned int cost, int hello_interval);
 void expire_routes(void);
 
-static void sigexit(int signo);
 static void init_signals(void);
 static void dump_tables(FILE *out);
 
@@ -430,8 +429,10 @@ main(int argc, char **argv)
             }
         }
 
-        if(debug)
+        if(debug || dumping) {
             dump_tables(stdout);
+            dumping = 0;
+        }
     }
 
     debugf("Exiting...\n");
@@ -501,6 +502,12 @@ sigexit(int signo)
 }
 
 static void
+sigdump(int signo)
+{
+    dumping = 1;
+}
+
+static void
 init_signals(void)
 {
     struct sigaction sa;
@@ -523,6 +530,12 @@ init_signals(void)
     sa.sa_mask = ss;
     sa.sa_flags = 0;
     sigaction(SIGINT, &sa, NULL);
+
+    sigemptyset(&ss);
+    sa.sa_handler = sigdump;
+    sa.sa_mask = ss;
+    sa.sa_flags = 0;
+    sigaction(SIGUSR1, &sa, NULL);
 }
 
 static void
