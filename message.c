@@ -157,6 +157,28 @@ parse_packet(const unsigned char *from, struct network *net,
     return;
 }
 
+/* Under normal circumstances, there are enough moderation mechanisms
+   elsewhere in the protocol to make sure that this last-ditch check
+   should never trigger.  But I'm superstitious. */
+
+static int
+check_bucket(struct network *net)
+{
+    if(net->bucket > 0 && now.tv_sec > net->bucket_time) {
+        net->bucket =
+            MAX(0, net->bucket - 40 * (now.tv_sec - net->bucket_time));
+    }
+
+    net->bucket_time = now.tv_sec;
+
+    if(net->bucket < 400) {
+        net->bucket++;
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 void
 flushbuf(struct network *net)
 {
@@ -171,17 +193,22 @@ flushbuf(struct network *net)
     if(net->buffered > 0) {
         debugf("  (flushing %d buffered bytes on %s)\n",
                net->buffered, net->ifname);
-        memset(&sin6, 0, sizeof(sin6));
-        sin6.sin6_family = AF_INET6;
-        memcpy(&sin6.sin6_addr, protocol_group, 16);
-        sin6.sin6_port = htons(protocol_port);
-        sin6.sin6_scope_id = net->ifindex;
-        rc = babel_send(protocol_socket,
-                        packet_header, sizeof(packet_header),
-                        net->sendbuf, net->buffered,
-                        (struct sockaddr*)&sin6, sizeof(sin6));
-        if(rc < 0)
-            perror("send");
+        if(check_bucket(net)) {
+            memset(&sin6, 0, sizeof(sin6));
+            sin6.sin6_family = AF_INET6;
+            memcpy(&sin6.sin6_addr, protocol_group, 16);
+            sin6.sin6_port = htons(protocol_port);
+            sin6.sin6_scope_id = net->ifindex;
+            rc = babel_send(protocol_socket,
+                            packet_header, sizeof(packet_header),
+                            net->sendbuf, net->buffered,
+                            (struct sockaddr*)&sin6, sizeof(sin6));
+            if(rc < 0)
+                perror("send");
+        } else {
+            fprintf(stderr, "Warning: bucket full, dropping packet to %s.\n",
+                    net->ifname);
+        }
     }
     VALGRIND_MAKE_MEM_UNDEFINED(net->sendbuf, net->bufsize);
     net->buffered = 0;
@@ -273,17 +300,22 @@ send_unicast_packet(struct neighbour *neigh, unsigned char *buf, int buflen)
     struct sockaddr_in6 sin6;
     int rc;
 
-    memset(&sin6, 0, sizeof(sin6));
-    sin6.sin6_family = AF_INET6;
-    memcpy(&sin6.sin6_addr, neigh->address, 16);
-    sin6.sin6_port = htons(protocol_port);
-    sin6.sin6_scope_id = neigh->network->ifindex;
-    rc = babel_send(protocol_socket,
-                    packet_header, sizeof(packet_header),
-                    buf, buflen,
-                    (struct sockaddr*)&sin6, sizeof(sin6));
-    if(rc < 0)
-        perror("send(unicast)");
+    if(check_bucket(neigh->network)) {
+        memset(&sin6, 0, sizeof(sin6));
+        sin6.sin6_family = AF_INET6;
+        memcpy(&sin6.sin6_addr, neigh->address, 16);
+        sin6.sin6_port = htons(protocol_port);
+        sin6.sin6_scope_id = neigh->network->ifindex;
+        rc = babel_send(protocol_socket,
+                        packet_header, sizeof(packet_header),
+                        buf, buflen,
+                        (struct sockaddr*)&sin6, sizeof(sin6));
+        if(rc < 0)
+            perror("send(unicast)");
+    } else {
+        fprintf(stderr, "Warning: bucket full, dropping packet to %s.\n",
+                neigh->network->ifname);
+    }
 }
 
 

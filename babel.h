@@ -70,6 +70,8 @@ struct network {
     struct timeval flush_time;
     int bufsize;
     unsigned char *sendbuf;
+    int bucket_time;
+    unsigned int bucket;
     unsigned char hello_seqno;
     unsigned int hello_interval;
     unsigned int self_update_interval;

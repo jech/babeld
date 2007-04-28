@@ -607,6 +607,8 @@ add_network(char *ifname, int ifindex, int mtu,
     }
     nets[numnets].sendbuf = p;
     nets[numnets].buffered = 0;
+    nets[numnets].bucket_time = now.tv_sec;
+    nets[numnets].bucket = 0;
     numnets++;
     return &nets[numnets - 1];
 }
