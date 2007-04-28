@@ -156,6 +156,10 @@ messages has been received, and down otherwise.
 .TP
 .B /var/lib/babel-state
 The default location of the file storing long-term state.
+.SH SIGNALS
+.TP
+.B SIGUSR1
+Dump Babel's routing tables to standard output.
 .SH SECURITY
 Babel is a completely insecure protocol: any attacker able to
 inject IP packets with a link-local source address can disrupt the
