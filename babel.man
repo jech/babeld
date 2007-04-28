@@ -92,13 +92,16 @@ Do not perform split-horizon processing on wired interfaces.
 Split-horizon is never performed on wireless interfaces.
 .TP
 .B \-b
-Generate messages for detecting bidirectional communication failures
-on wired interfaces.  By default, wired interfaces are assumed to be
-symmetric.
+Use a single broadcast message for reverse reachability information on
+wired interfaces rather then messages specific to each peer.  This
+will slightly reduce traffic on interfaces with many neighbours, but
+will disable detection of asymmetric links, and is therefore not
+recommended.  Messages specific to each peer are always sent on
+wireless interfaces.
 .TP
 .B \-P
 Run in parasitic (passive) mode.  The daemon will not announce any
-routes except for itself.
+routes except to itself.
 .TP
 .BI \-d " level"
 Debug level.  A value of 1 requests a routing table dump at every
@@ -132,14 +135,21 @@ The list of interfaces on which the protocol should operate.
 By default, the daemon optimises traffic on wired interfaces by
 sending fewer periodic hello messages, performing split-horizon
 processing and not generating any reverse reachability information.
-These optimisations can be disabled using the
-.BR -H ,
-.B -s
+These optimisations can be disabled by using the
+.B -H
 and
-.B -b
+.B -s
 options respectively.
 
-No link cost estimation is performed on wired interfaces: a wired
+By default, detection of asymmetric links is performed on wired
+interfaces just like on wireless ones.  By specifying the
+.B -b
+option, reverse reachability information will not be sent on wired
+links, which will disable detection of asymmetric links for all wired
+peers, at the benefit of a very slight decrease in traffic.  This is
+not recommended.
+
+No link cost estimation is ever performed on wired interfaces: a wired
 adjacency is assumed to be up if at least one of the last three hello
 messages has been received, and down otherwise.
 .SH FILES
