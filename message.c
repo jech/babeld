@@ -166,7 +166,7 @@ check_bucket(struct network *net)
 {
     if(net->bucket > 0 && now.tv_sec > net->bucket_time) {
         net->bucket =
-            MAX(0, net->bucket - 40 * (now.tv_sec - net->bucket_time));
+            MAX(0, (int)net->bucket - 40 * (now.tv_sec - net->bucket_time));
     }
 
     net->bucket_time = now.tv_sec;
