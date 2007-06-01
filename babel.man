@@ -56,7 +56,7 @@ generate, while never counting to infinity.
 Specify the link-local multicast address to be used by the protocol.
 .TP
 .BI \-p " port"
-Specify the UDP port number to be used by the Babel protocol.
+Specify the UDP port number to be used by the protocol.
 .TP
 .BI \-S " state-file"
 Set the name of the file used for preserving long-term information
@@ -109,8 +109,8 @@ iteration through the daemon's main loop.  A value of 2 additionally
 requests tracing every message sent or received.  The default is 0.
 .TP
 .BI \-n " network cost"
-Advertise an external route for the given network with the given cost.
-We suggest a cost of 256 \[mu]
+Advertise an external route for the given network or host with the
+given cost.  We suggest a cost of 256 \[mu]
 .RI ( n
 + 1) for a network
 .I n
@@ -133,9 +133,8 @@ of 0.)
 The list of interfaces on which the protocol should operate.
 .SH WIRED INTERFACES
 By default, the daemon optimises traffic on wired interfaces by
-sending fewer periodic hello messages, performing split-horizon
-processing and not generating any reverse reachability information.
-These optimisations can be disabled by using the
+sending fewer periodic hello messages and performing split-horizon
+processing.  These optimisations can be disabled by using the
 .B -H
 and
 .B -s
@@ -165,9 +164,9 @@ Babel is a completely insecure protocol: any attacker able to
 inject IP packets with a link-local source address can disrupt the
 protocol's operation.
 
-Since Babel uses link-local addresses only, there is no need to
-update firewalls to allow forwarding of Babel protocol packets.  If
-ingress filtering is done on a host, the protocol port should be
+Since Babel uses link-local addresses only, there is no need to update
+firewalls to allow forwarding of Babel protocol packets.  If filtering
+is done on a host, UDP datagrams to the protocol port should be
 opened.  As Babel uses unicast packets in some cases, just allowing
 packets destined to the multicast address is not enough.
 .SH BUGS
