@@ -138,7 +138,7 @@ main(int argc, char **argv)
                 goto syntax;
             SHIFTE();
             myxroutes[nummyxroutes].cost = atoi(*arg);
-            if(myxroutes[nummyxroutes].cost <= 0 ||
+            if(myxroutes[nummyxroutes].cost < 0 ||
                myxroutes[nummyxroutes].cost >= 128 * 256)
                 goto syntax;
             nummyxroutes++;
