@@ -157,7 +157,7 @@ main(int argc, char **argv)
         } else if(strcmp(*arg, "-k") == 0) {
             SHIFTE();
             kernel_metric = atoi(*arg);
-            if(kernel_metric < 0)
+            if(kernel_metric < 0 || kernel_metric > 0xFFFF)
                 goto syntax;
         } else if(strcmp(*arg, "-P") == 0) {
             parasitic = 1;
