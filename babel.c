@@ -96,7 +96,7 @@ main(int argc, char **argv)
     parse_address("ff02::cca6:c0f9:e182:5373", protocol_group);
     protocol_port = 8475;
 
-#define SHIFT() do { arg++; } while(0);
+#define SHIFT() do { arg++; } while(0)
 #define SHIFTE() do { arg++; if(*arg == NULL) goto syntax; } while(0)
 
     arg = argv;
