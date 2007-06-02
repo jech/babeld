@@ -37,6 +37,7 @@ THE SOFTWARE.
 
 static int old_forwarding = -1;
 static int old_accept_redirects = -1;
+static int ifindex_lo = -1;
 
 static int
 read_proc(char *filename)
@@ -198,7 +199,7 @@ static int route_socket = -1;
 
 int
 kernel_route(int add, const unsigned char *dest, unsigned short plen,
-             const unsigned char *gate, int ifindex, int metric)
+             const unsigned char *gate, int ifindex, unsigned int metric)
 {
     struct in6_rtmsg msg;
     int rc;
@@ -209,21 +210,32 @@ kernel_route(int add, const unsigned char *dest, unsigned short plen,
             return -1;
     }
 
+    if(ifindex_lo < 0) {
+        ifindex_lo = if_nametoindex("lo");
+        if(ifindex_lo < 0)
+            return -1;
+    }
+
     memset(&msg, 0, sizeof(msg));
 
     msg.rtmsg_flags = RTF_UP;
-    if(plen < 128) {
-        msg.rtmsg_flags |= RTF_GATEWAY;
-    } else {
-        msg.rtmsg_flags |= RTF_HOST;
-        if(memcmp(dest, gate, 16) != 0)
-            msg.rtmsg_flags |= RTF_GATEWAY;
-    }
-    msg.rtmsg_metric = metric;
     memcpy(&msg.rtmsg_dst, dest, sizeof(struct in6_addr));
     msg.rtmsg_dst_len = plen;
+    msg.rtmsg_metric = metric;
+
+    if(plen >= 128)
+        msg.rtmsg_flags |= RTF_HOST;
+
+    if(metric >= KERNEL_INFINITY) {
+        msg.rtmsg_ifindex = ifindex_lo;
+    } else {
+        msg.rtmsg_ifindex = ifindex;
+        if(plen < 128 || memcmp(dest, gate, 16) != 0)
+            msg.rtmsg_flags |= RTF_GATEWAY;
+    }
+
     memcpy(&msg.rtmsg_gateway, gate, sizeof(struct in6_addr));
-    msg.rtmsg_ifindex = ifindex;
+
     rc = ioctl(route_socket, add ? SIOCADDRT : SIOCDELRT, &msg);
         if(rc < 0)
             return -1;

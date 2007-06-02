@@ -20,9 +20,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#define KERNEL_INFINITY 0xFFFF
+
 int kernel_setup(int setup);
 int kernel_setup_interface(int setup, const char *ifname, int ifindex);
 int kernel_interface_mtu(const char *ifname, int ifindex);
 int kernel_interface_wireless(const char *ifname, int ifindex);
 int kernel_route(int add, const unsigned char *dest, unsigned short plen,
-                 const unsigned char *gate, int ifindex, int metric);
+                 const unsigned char *gate, int ifindex, unsigned int metric);
