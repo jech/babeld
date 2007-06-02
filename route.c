@@ -114,12 +114,13 @@ flush_neighbour_routes(struct neighbour *neigh)
 {
     int i;
 
- again:
-    for(i = 0; i < numroutes; i++) {
+    i = 0;
+    while(i < numroutes) {
         if(routes[i].nexthop == neigh) {
             flush_route(routes + i);
-            goto again;
+            continue;
         }
+        i++;
     }
 }
 
