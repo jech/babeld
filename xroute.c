@@ -257,7 +257,7 @@ update_xroute(const unsigned char *prefix, unsigned short plen,
     numxroutes++;
 
     if(gwroute)
-        install_xroute(xroute);
+        consider_xroute(xroute);
     return xroute;
 }
 
