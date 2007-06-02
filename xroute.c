@@ -78,9 +78,6 @@ install_xroute(struct xroute *xroute)
     if(xroute->installed)
         return;
 
-    if(xroute->metric >= INFINITY)
-        return;
-
     if(xroute->plen >= 8 &&
        (xroute->prefix[0] == 0 || xroute->prefix[0] == 0xFF)) {
         fprintf(stderr, "Attempted to install martian xroute.\n");
@@ -143,9 +140,6 @@ consider_xroute(struct xroute *xroute)
     struct xroute *installed;
 
     if(xroute->installed)
-        return;
-
-    if(xroute->metric >= INFINITY)
         return;
 
     if(find_installed_route(xroute->gateway) == NULL)
