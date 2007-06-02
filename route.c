@@ -155,9 +155,12 @@ reinstall_route(struct route *route)
 unsigned int
 metric_to_kernel(int metric)
 {
-    assert(metric >= 0 && metric < INFINITY);
+    assert(metric >= 0);
 
-    return (metric + 255) / 256 + kernel_metric;
+    if(metric >= INFINITY)
+        return KERNEL_INFINITY;
+    else
+        return MIN((metric + 255) / 256 + kernel_metric, KERNEL_INFINITY);
 }
 
 void
