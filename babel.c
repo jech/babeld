@@ -161,6 +161,11 @@ main(int argc, char **argv)
                 goto syntax;
         } else if(strcmp(*arg, "-P") == 0) {
             parasitic = 1;
+        } else if(strcmp(*arg, "-c") == 0) {
+            SHIFTE();
+            add_cost = atoi(*arg);
+            if(add_cost < 0 || add_cost > INFINITY)
+                goto syntax;
         } else if(strcmp(*arg, "-s") == 0) {
             split_horizon = 0;
         } else if(strcmp(*arg, "-b") == 0) {
@@ -485,9 +490,9 @@ main(int argc, char **argv)
             "                "
             "[-h hello_interval] [-H wired_hello_interval]\n"
             "                "
-            "[-u update_interval] [-k metric] [-s] [-P] [-d level]\n"
+            "[-u update_interval] [-k metric] [-s] [-P] [-c cost]\n"
             "                "
-            "[-n net cost]... address interface...\n",
+            "[-d level] [-n net cost]... address interface...\n",
             argv[0]);
     exit(1);
 

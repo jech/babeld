@@ -43,6 +43,7 @@ const unsigned char packet_header[4] = {42, 0, 0, 0};
 
 unsigned int jitter;
 unsigned int update_jitter;
+int add_cost = 0;
 int parasitic = 0;
 int silent_time = 30;
 int broadcast_txcost = 0;
@@ -384,7 +385,7 @@ flushupdates(void)
                        route->nexthop->network == net)
                         continue;
                     seqno = route->seqno;
-                    metric = route->metric;
+                    metric = MIN(route->metric + add_cost, INFINITY);
                 } else {
                     seqno = buffered_updates[i]->seqno;
                     metric = INFINITY;

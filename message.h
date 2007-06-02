@@ -26,6 +26,7 @@ extern int seqno_interval;
 
 extern unsigned int jitter;
 extern unsigned int update_jitter;
+extern int add_cost;
 extern int parasitic;
 extern int silent_time;
 extern int broadcast_txcost;
