@@ -596,7 +596,7 @@ add_network(char *ifname, int ifindex, int mtu,
     nets[numnets].cost = cost;
     nets[numnets].hello_interval = hello_interval;
     nets[numnets].self_update_interval =
-        MAX(15 + hello_interval / 2 , hello_interval);
+        MAX(15 + hello_interval / 2, hello_interval);
     nets[numnets].txcost_interval = MIN(42, 2 * hello_interval);
     nets[numnets].bufsize = mtu - sizeof(packet_header);
     strncpy(nets[numnets].ifname, ifname, IF_NAMESIZE);
