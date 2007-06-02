@@ -292,13 +292,13 @@ main(int argc, char **argv)
         if(mtu < 0) {
             fprintf(stderr, "Warning: couldn't get MTU of interface %s (%d).\n",
                     *arg, ifindex);
-            mtu = 1004;
+            mtu = 1204;
             maxmtu = MAX(maxmtu, 16384);
-        } else if(mtu < 400) {
+        } else if(mtu < 1280) {
             fprintf(stderr,
                     "Warning: suspiciously low MTU %d on interface %s (%d).\n",
                     mtu, *arg, ifindex);
-            mtu = 1004;
+            mtu = 1204;
             maxmtu = MAX(maxmtu, 16384);
         } else {
             if(mtu >= 0x10000) {
@@ -311,8 +311,8 @@ main(int argc, char **argv)
             }
             /* 40 for IPv6 header, 8 for UDP header, 12 for good luck. */
             mtu -= 60;
+            maxmtu = MAX(maxmtu, mtu);
         }
-        maxmtu = MAX(maxmtu, mtu);
 
         rc = kernel_interface_wireless(*arg, ifindex);
         if(rc < 0) {
