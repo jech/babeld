@@ -139,7 +139,7 @@ main(int argc, char **argv)
             SHIFTE();
             myxroutes[nummyxroutes].cost = atoi(*arg);
             if(myxroutes[nummyxroutes].cost < 0 ||
-               myxroutes[nummyxroutes].cost >= 128 * 256)
+               myxroutes[nummyxroutes].cost > INFINITY)
                 goto syntax;
             nummyxroutes++;
         } else if(strcmp(*arg, "-h") == 0) {
