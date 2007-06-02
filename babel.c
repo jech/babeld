@@ -137,7 +137,10 @@ main(int argc, char **argv)
             if(rc < 0)
                 goto syntax;
             SHIFTE();
-            myxroutes[nummyxroutes].cost = atoi(*arg);
+            if(strcmp(*arg, "infinity") == 0)
+                myxroutes[nummyxroutes].cost = INFINITY;
+            else
+                myxroutes[nummyxroutes].cost = atoi(*arg);
             if(myxroutes[nummyxroutes].cost < 0 ||
                myxroutes[nummyxroutes].cost > INFINITY)
                 goto syntax;
