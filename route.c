@@ -67,13 +67,14 @@ flush_route(struct route *route)
 {
     int n;
     unsigned char dest[16];
-    int install = 0, oldmetric = INFINITY;
+    int install = 0, oldmetric;
 
     n = route - routes;
     assert(n >= 0 && n < numroutes);
 
+    oldmetric = route->metric;
+
     if(route->installed) {
-        oldmetric = route->metric;
         uninstall_route(route);
         install = 1;
     }
