@@ -218,7 +218,7 @@ main(int argc, char **argv)
         } else {
             buf[rc] = '\0';
             rc = sscanf(buf, "%d %d\n", &s, &t);
-            if(rc == 2 && s > 0 && s <= 256 &&
+            if(rc == 2 && s >= 0 && s < 256 &&
                t >= 1176800000 && t <= now.tv_sec) {
                 debugf("Got %d %d from babel-state.\n", s, t);
                 seqno = ((s + 1) & 0xFF);
