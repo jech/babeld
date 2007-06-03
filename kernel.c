@@ -212,7 +212,7 @@ kernel_route(int add, const unsigned char *dest, unsigned short plen,
 
     if(ifindex_lo < 0) {
         ifindex_lo = if_nametoindex("lo");
-        if(ifindex_lo < 0)
+        if(ifindex_lo <= 0)
             return -1;
     }
 

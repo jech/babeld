@@ -273,8 +273,8 @@ main(int argc, char **argv)
         int mtu;
 
         ifindex = if_nametoindex(*arg);
-        if(ifindex < 0) {
-            perror("if_nametoindex");
+        if(ifindex <= 0) {
+            fprintf(stderr, "Unknown interface %s.\n", *arg);
             goto fail;
         }
 
