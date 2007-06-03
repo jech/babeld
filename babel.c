@@ -463,8 +463,9 @@ main(int argc, char **argv)
     }
     usleep(5000 + random() % 10000);
     for(i = 0; i < numnets; i++) {
-        /* They're not listening... */
+        /* Make sure they got it. */
         send_hello(&nets[i]);
+        flushbuf(&nets[i]);
         kernel_setup_interface(0, nets[i].ifname, nets[i].ifindex);
     }
     kernel_setup(0);
