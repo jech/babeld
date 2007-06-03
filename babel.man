@@ -1,9 +1,12 @@
-.TH BABEL 1
+.TH BABEL 8
 .SH NAME
 babel \- ad-hoc network routing daemon
 .SH SYNOPSIS
 .B babel
 .IR option ...
+[
+.B \-\-
+]
 .I address
 .IR interface ...
 .SH DESCRIPTION
