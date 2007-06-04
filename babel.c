@@ -385,9 +385,9 @@ main(int argc, char **argv)
             timeval_min_sec(&tv, nets[i].update_time + update_interval);
         }
         timeval_min(&tv, &update_flush_time);
+        FD_ZERO(&readfds);
         if(timeval_compare(&tv, &now) > 0) {
             timeval_minus(&tv, &tv, &now);
-            FD_ZERO(&readfds);
             FD_SET(protocol_socket, &readfds);
             rc = select(protocol_socket + 1, &readfds, NULL, NULL, &tv);
             if(rc < 0 && errno != EINTR) {
