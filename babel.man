@@ -83,13 +83,13 @@ Debug level.  A value of 1 requests a routing table dump at every
 iteration through the daemon's main loop.  A value of 2 additionally
 requests tracing every message sent or received.  The default is 0.
 .TP
-.BI \-n " network cost"
-Advertise an external route for the given network or host with the
-given cost.
+.BI \-x " network cost"
+Redistribute a route for the given network or host with the given
+cost.
 .I Network
 should be either the string
 .BR default ,
-or a nework specification in CIDR notation
+or a network specification in CIDR notation
 .IB prefix / length.
 If
 .I length
@@ -103,6 +103,11 @@ We suggest a cost of 256 \[mu]
 for a network
 .I n
 hops away.
+.TP
+.BI \-X " network cost"
+Advertise a route for the given network or host with the given cost,
+even if it is not currently installed.  Use of this option is
+discouraged, as it can cause persistent routing loops.
 .TP
 .I address
 The IPv6 address that the node should advertise for itself.
