@@ -33,7 +33,9 @@ THE SOFTWARE.
 #include <net/route.h>
 #include <net/if.h>
 
+#include "babel.h"
 #include "kernel.h"
+#include "util.h"
 
 static int old_forwarding = -1;
 static int old_accept_redirects = -1;
@@ -240,4 +242,52 @@ kernel_route(int add, const unsigned char *dest, unsigned short plen,
         if(rc < 0)
             return -1;
     return 1;
+}
+
+/* This function should not return routes installed by us.  It currently
+   does, which could lead to routing loops in some cases. */
+int
+kernel_routes(int maxplen, struct kernel_route *routes, int maxroutes)
+{
+    FILE *f;
+    char dst[33], src[33], gw[33], iface[IF_NAMESIZE];
+    unsigned int dst_plen, src_plen, metric, use, refcnt, flags;
+    int n, rc;
+
+    f = fopen("/proc/net/ipv6_route", "r");
+    if(f == NULL)
+        return -1;
+
+    n = 0;
+
+    while(n < maxroutes) {
+        rc = fscanf(f, "%32s %02x %32s %02x %32s %08x %08x %08x %08x %s",
+                     dst, &dst_plen, src, &src_plen, gw,
+                     &metric, &use, &refcnt, &flags, iface);
+        if(rc != 10)
+            break;
+
+        if(!(flags & RTF_UP) || dst_plen > maxplen || src_plen != 0)
+            goto skip;
+
+        rc = parse_address(dst, routes[n].prefix);
+        if(rc < 0)
+            goto skip;
+
+        routes[n].plen = dst_plen;
+        routes[n].metric = MIN(metric, (unsigned)KERNEL_INFINITY);
+        routes[n].ifindex = if_nametoindex(iface);
+        if(routes[n].ifindex < 0)
+            goto skip;
+
+        if(flags & RTF_GATEWAY)
+            rc = parse_address(gw, routes[n].gw);
+        else
+            memset(routes[n].gw, 0, 16);
+    skip:
+        n++;
+    }
+
+    fclose(f);
+    return n;
 }

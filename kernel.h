@@ -22,9 +22,18 @@ THE SOFTWARE.
 
 #define KERNEL_INFINITY 0xFFFF
 
+struct kernel_route {
+    unsigned char prefix[16];
+    int plen;
+    int metric;
+    int ifindex;
+    unsigned char gw[16];
+};
+
 int kernel_setup(int setup);
 int kernel_setup_interface(int setup, const char *ifname, int ifindex);
 int kernel_interface_mtu(const char *ifname, int ifindex);
 int kernel_interface_wireless(const char *ifname, int ifindex);
 int kernel_route(int add, const unsigned char *dest, unsigned short plen,
                  const unsigned char *gate, int ifindex, unsigned int metric);
+int kernel_routes(int maxplen, struct kernel_route *routes, int maxroutes);
