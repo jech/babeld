@@ -556,6 +556,17 @@ dump_tables(FILE *out)
     int i;
 
     fprintf(out, "\n");
+
+    for(i = 0; i < nummyxroutes; i++) {
+        fprintf(out, "External %s/%d cost %d%s\n",
+                format_address(myxroutes[i].prefix),
+                myxroutes[i].plen,
+                myxroutes[i].cost,
+                myxroutes[i].installed ?
+                (myxroutes[i].installed >= 2 ? " (forced)" : " (installed)") :
+                "");
+    }
+
     for(i = 0; i < numneighs; i++) {
         if(neighs[i].id[0] == 0)
             continue;
