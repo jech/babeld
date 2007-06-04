@@ -359,6 +359,8 @@ flushupdates(void)
             if(buffered_updates[i] == NULL) {
                 start_message(net, MIN(20 + 20 * nummyxroutes, 1000));
                 for(j = 0; j < nummyxroutes; j++) {
+                    if(!myxroutes[j].installed)
+                        continue;
                     if(net->bufsize - net->buffered < 40)
                         /* We cannot just call start_message, as this would
                            split the xroutes from the update.  Bail out

@@ -47,3 +47,4 @@ void flush_xroutes(struct destination *gateway,
 struct xroute * update_xroute(const unsigned char *prefix, unsigned short plen,
                               struct destination *gateway, int cost);
 void update_xroute_metric(struct xroute *xroute, int cost);
+int check_myxroutes(void);

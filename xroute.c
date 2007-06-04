@@ -53,6 +53,20 @@ find_installed_xroute(unsigned char *prefix, unsigned short plen)
 }
 
 static struct xroute *
+find_installed_myxroute(unsigned char *prefix, unsigned short plen)
+{
+    int i;
+    for(i = 0; i < nummyxroutes; i++) {
+        if(myxroutes[i].installed &&
+           myxroutes[i].plen == plen &&
+           memcmp(myxroutes[i].prefix, prefix, 16) == 0) {
+            return &xroutes[i];
+        }
+    }
+    return NULL;
+}
+
+static struct xroute *
 find_best_xroute(unsigned char *prefix, unsigned short plen)
 {
     struct xroute *xroute = NULL;
@@ -146,9 +160,12 @@ consider_xroute(struct xroute *xroute)
     if(find_installed_route(xroute->gateway) == NULL)
         return;
 
-    installed = find_installed_xroute(xroute->prefix, xroute->plen);
-    if(!installed || installed->metric >= xroute->metric)
-        install_xroute(xroute);
+    installed = find_installed_myxroute(xroute->prefix, xroute->plen);
+    if(!installed) {
+        installed = find_installed_xroute(xroute->prefix, xroute->plen);
+        if(!installed || installed->metric >= xroute->metric)
+            install_xroute(xroute);
+    }
 }
 
 void
@@ -282,4 +299,42 @@ update_xroute_metric(struct xroute *xroute, int cost)
                 install_xroute(best);
         }
     }
+}
+int
+check_myxroutes()
+{
+    int i, j, n, change;
+    struct kernel_route routes[120];
+
+    n = -1;
+    for(i = 0; i < nummyxroutes; i++)
+        if(myxroutes[i].installed < 2)
+            n = MAX(n, myxroutes[i].plen);
+
+    if(n < 0)
+        return 0;
+
+    n = kernel_routes(n, routes, 120);
+    if(n < 0)
+        return -1;
+
+    change = 0;
+    for(i = 0; i < nummyxroutes; i++) {
+        int installed;
+        if(myxroutes[i].installed == 2)
+            continue;
+        installed = 0;
+        for(j = 0; j < n; j++) {
+            if(routes[j].plen == myxroutes[i].plen &&
+               memcmp(routes[j].prefix, myxroutes[i].prefix, 16) == 0) {
+                installed = 1;
+                break;
+            }
+        }
+        if(myxroutes[i].installed != installed) {
+            myxroutes[i].installed = installed;
+            change = 1;
+        }
+    }
+    return change;
 }

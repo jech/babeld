@@ -125,7 +125,8 @@ main(int argc, char **argv)
         } else if(strcmp(*arg, "-p") == 0) {
             SHIFTE();
             protocol_port = atoi(*arg);
-        } else if(strcmp(*arg, "-n") == 0) {
+        } else if(strcmp(*arg, "-x") == 0 || strcmp(*arg, "-X") == 0) {
+            int force = (strcmp(*arg, "-X") == 0);
             if(nummyxroutes >= MAXMYXROUTES) {
                 fprintf(stderr, "Too many network routes.\n");
                 exit(1);
@@ -144,6 +145,7 @@ main(int argc, char **argv)
             if(myxroutes[nummyxroutes].cost < 0 ||
                myxroutes[nummyxroutes].cost > INFINITY)
                 goto syntax;
+            myxroutes[nummyxroutes].installed = force ? 0 : 2;
             nummyxroutes++;
         } else if(strcmp(*arg, "-h") == 0) {
             SHIFTE();
@@ -346,6 +348,7 @@ main(int argc, char **argv)
     }
 
     init_signals();
+    check_myxroutes();
 
     for(i = 0; i < numnets; i++) {
         send_hello(&nets[i]);
@@ -493,7 +496,7 @@ main(int argc, char **argv)
             "                "
             "[-u update_interval] [-k metric] [-s] [-P] [-c cost]\n"
             "                "
-            "[-d level] [-n net cost]... address interface...\n",
+            "[-d level] [-x net cost] [-X net cost]... address interface...\n",
             argv[0]);
     exit(1);
 
@@ -625,7 +628,13 @@ add_network(char *ifname, int ifindex, int mtu,
 void
 expire_routes(void)
 {
-    int i;
+    int rc, i;
+
+    rc = check_myxroutes();
+    if(rc > 0)
+        send_self_update(NULL);
+    else if(rc < 0)
+        fprintf(stderr, "Warning: couldn't check installed routes.\n");
 
     for(i = 0; i < numneighs; i++) {
         if(neighs[i].id[0] == 0)
