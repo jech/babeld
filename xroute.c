@@ -43,7 +43,8 @@ find_installed_xroute(unsigned char *prefix, unsigned short plen)
 {
     int i;
     for(i = 0; i < numxroutes; i++) {
-        if(xroutes[i].plen == plen &&
+        if(xroutes[i].installed &&
+           xroutes[i].plen == plen &&
            memcmp(xroutes[i].prefix, prefix, 16) == 0) {
             return &xroutes[i];
         }
