@@ -145,7 +145,7 @@ main(int argc, char **argv)
             if(myxroutes[nummyxroutes].cost < 0 ||
                myxroutes[nummyxroutes].cost > INFINITY)
                 goto syntax;
-            myxroutes[nummyxroutes].installed = force ? 0 : 2;
+            myxroutes[nummyxroutes].installed = force ? 2 : 0;
             nummyxroutes++;
         } else if(strcmp(*arg, "-h") == 0) {
             SHIFTE();
