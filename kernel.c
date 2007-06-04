@@ -239,8 +239,8 @@ kernel_route(int add, const unsigned char *dest, unsigned short plen,
     memcpy(&msg.rtmsg_gateway, gate, sizeof(struct in6_addr));
 
     rc = ioctl(route_socket, add ? SIOCADDRT : SIOCDELRT, &msg);
-        if(rc < 0)
-            return -1;
+    if(rc < 0)
+        return -1;
     return 1;
 }
 
