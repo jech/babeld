@@ -165,7 +165,7 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
             send_self_update(neigh->network);
             send_neighbour_update(neigh, NULL);
         } else {
-            if((neigh->reach & 0xF000) != 0 && (neigh->reach & 0x0F000) == 0)
+            if((neigh->reach & 0xF000) != 0 && (neigh->reach & 0x0F00) == 0)
                 send_txcost(neigh, NULL);
         }
     }
