@@ -565,6 +565,8 @@ dump_tables(FILE *out)
 
     fprintf(out, "\n");
 
+    fprintf(out, "My id %s\n", format_address(myid));
+
     for(i = 0; i < nummyxroutes; i++) {
         fprintf(out, "External %s/%d cost %d%s\n",
                 format_address(myxroutes[i].prefix),
