@@ -28,6 +28,12 @@ the Babel netowk, just list them all:
 
   # babel $IPv6 eth0 eth1 sit1
 
+If your node has multiple addresses and you want all of them to
+participate in the routing protocol, inject the other addresses as
+zero-cost external routes:
+
+  # babel -X $IPv6-2 0 -X $IPv6-3 0 $IPv6 eth1
+
 On an access point, you'll probably want to inject external routes
 into the Babel network.  First check that you have a default route
 on your access point:
@@ -37,6 +43,11 @@ on your access point:
 
 Then run the routing daemon as so:
 
-  # babel -n default 256 $IPv6 eth1
+  # babel -x default 256 $IPv6 eth1
 
-                                        Juliusz
+If you find all of this too complicated and error-prone (as I do), you
+may want to consider autoconfiguring your routing domain using AHCP:
+
+  http://www.pps.jussieu.fr/~jch/software/ahcp/
+
+                                        Juliusz Chroboczek
