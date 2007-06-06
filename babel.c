@@ -199,7 +199,7 @@ main(int argc, char **argv)
         seqno_interval = MAX(2 * wireless_hello_interval - 1, 0);
 
     jitter = MIN(wireless_hello_interval * 1000 / 4, 2000);
-    update_jitter = MIN(update_interval * 1000 / 4, 3000);
+    update_jitter = 2 * jitter;
 
     rc = parse_address(*arg, myid);
     if(rc < 0)
