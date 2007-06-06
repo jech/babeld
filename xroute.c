@@ -163,7 +163,7 @@ consider_xroute(struct xroute *xroute)
     installed = find_installed_myxroute(xroute->prefix, xroute->plen);
     if(!installed) {
         installed = find_installed_xroute(xroute->prefix, xroute->plen);
-        if(!installed || installed->metric >= xroute->metric)
+        if(!installed || installed->metric > xroute->metric + 64)
             install_xroute(xroute);
     }
 }
