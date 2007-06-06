@@ -548,6 +548,14 @@ init_signals(void)
     sa.sa_mask = ss;
     sa.sa_flags = 0;
     sigaction(SIGUSR1, &sa, NULL);
+
+#ifdef SIGINFO
+    sigemptyset(&ss);
+    sa.sa_handler = sigdump;
+    sa.sa_mask = ss;
+    sa.sa_flags = 0;
+    sigaction(SIGINFO, &sa, NULL);
+#endif
 }
 
 static void
