@@ -73,12 +73,14 @@ find_best_xroute(unsigned char *prefix, unsigned short plen)
     int i;
 
     for(i = 0; i < numxroutes; i++) {
-        if(xroutes[i].plen == plen &&
-           memcmp(xroutes[i].prefix, prefix, 16) == 0) {
-            if((!xroute || xroutes[i].metric < xroute->metric) &&
-               find_installed_route(xroutes[i].gateway) != NULL)
-                xroute = &xroutes[i];
-        }
+        if(xroutes[i].metric >= INFINITY && xroutes[i].cost < INFINITY)
+            continue;
+        if(xroutes[i].plen != plen ||
+           memcmp(xroutes[i].prefix, prefix, 16) != 0)
+            continue;
+        if((!xroute || xroutes[i].metric < xroute->metric) &&
+           find_installed_route(xroutes[i].gateway) != NULL)
+            xroute = &xroutes[i];
     }
     return xroute;
 }
@@ -91,6 +93,9 @@ install_xroute(struct xroute *xroute)
     int rc;
 
     if(xroute->installed)
+        return;
+
+    if(xroute->metric >= INFINITY && xroute->cost < INFINITY)
         return;
 
     if(xroute->plen >= 8 &&
