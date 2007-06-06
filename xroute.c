@@ -280,8 +280,6 @@ update_xroute_metric(struct xroute *xroute, int cost)
 
     gwroute = find_installed_route(xroute->gateway);
     if(!gwroute)
-        gwroute = find_best_route(xroute->gateway);
-    if(!gwroute)
         return;
 
     if(xroute->cost != cost || xroute->metric != gwroute->metric + cost) {
