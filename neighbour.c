@@ -218,10 +218,6 @@ int
 neighbour_cost(struct neighbour *neigh)
 {
     int c;
-    /* (1/(alpha * beta) + 1/beta) / 2, which is half the expected
-       number of transmissions, in both directions.
-       ETX uses 1/(alpha * beta), which is the expected number of
-       transmissions in the forward direction. */
 
     if(neigh->txcost >= INFINITY)
         return INFINITY;
@@ -230,5 +226,18 @@ neighbour_cost(struct neighbour *neigh)
     if(c >= INFINITY)
         return INFINITY;
 
-    return (c + ((c * neigh->txcost + 128) >> 8) + 1) / 2;
+    if(neigh->network->wired) {
+        /* On a wired interface, only the txcost is significant.
+           However, a low txcost with a large rxcost probably indicates
+           a malfunctioning interface, so penalise it.  This doesn't
+           matter much, as we usually don't perform link quality estimation
+           on wired interfaces. */
+        return MIN(INFINITY, MAX(neigh->txcost, c / 4));
+    } else {
+        /* (1/(alpha * beta) + 1/beta) / 2, which is half the expected
+           number of transmissions, in both directions.
+           ETX uses 1/(alpha * beta), which is the expected number of
+           transmissions in the forward direction. */
+        return (c + ((c * neigh->txcost + 128) >> 8) + 1) / 2;
+    }
 }
