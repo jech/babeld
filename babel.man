@@ -116,6 +116,31 @@ of 0.)
 .TP
 .IR interface ...
 The list of interfaces on which the protocol should operate.
+.SH EXAMPLES
+Let
+.B $IPv6
+be one of your node's IPv6 addresses, and suppose that
+.B eth1
+is a wireless interface.  You can participate in a Babel mesh network
+by simply running
+.IP
+# babel $IPv6 eth1
+.PP
+
+In order to gateway between multiple interfaces, just list them all on
+the command line:
+.IP
+# babel $IPv6 eth1 eth0 sit1
+.PP
+If you wish to be reachable by all of your IPv6 addresses, just inject
+them into the routing domain as zero-cost external routes:
+.IP
+# babel -X $otherIPv6 0 $IPv6 eth1
+.PP
+On an access point, you'll probably want to redistribute the default route:
+.IP
+# babel -x ::/0 256 $IPv6 eth1
+.PP
 .SH WIRED INTERFACES
 By default, the daemon optimises traffic on wired interfaces by
 sending fewer scheduled hello messages and performing split-horizon
@@ -145,9 +170,10 @@ The default location of the file storing long-term state.
 .B SIGUSR1
 Dump Babel's routing tables to standard output.
 .SH SECURITY
-Babel is a completely insecure protocol: any attacker able to
-inject IP packets with a link-local source address can disrupt the
-protocol's operation.
+Babel is a completely insecure protocol: any attacker able to inject
+IP packets with a link-local source address can disrupt the protocol's
+operation.  This is no different from unsecured neighbour discovery
+(ARP in IPv4).
 
 Since Babel uses link-local addresses only, there is no need to update
 firewalls to allow forwarding of Babel protocol packets.  If filtering
