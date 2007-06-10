@@ -196,19 +196,21 @@ neighbour_rxcost(struct neighbour *neigh)
     if(neigh->reach == 0)
         return INFINITY;
     else if(neigh->network->wired) {
-        if((neigh->reach & 0xE000) != 0)
-            return neigh->network->cost;
-        else
+        if((neigh->reach & 0xE000) != 0) {
+            int c = neigh->network->cost;
+            int d = now.tv_sec - neigh->hello_time;
+            if(d >= 60)
+                c *= (d - 40) / 20.0;
+            return MIN(c, INFINITY);
+        } else {
             return INFINITY;
+        }
     } else {
         int r = (neigh->reach & 0x7FFF) + ((neigh->reach & 0x8000) >> 1);
         double c = (((double)0xC000 * 0x100) / r);
-
-        /* Avoid neighbours that give poor feedback */
-        if(neigh->hello_interval == 0)
-            c += 256 + (now.tv_sec - neigh->hello_time) * 10;
-        else if(neigh->hello_interval >= 20)
-            c *= (neigh->hello_interval / 20.0);
+        int d = now.tv_sec - neigh->hello_time;
+        if(d >= 40)
+            c *= (d - 20) / 20.0;
 
         return MIN((int)(c + neigh->network->cost + 0.5), INFINITY);
     }
