@@ -97,12 +97,9 @@ is omitted, it defaults to 128 (a host route).
 .I Cost
 should either be a 16-bit unsigned integer, or the string
 .B infinity
-which specifies a blackhole route.
-We suggest a cost of 256 \[mu]
-.I n
-for a network
-.I n
-hops away.
+which specifies a blackhole route.  Babel itself uses a cost of 256
+for a lossless wireless link, and a cost of 128 for a functioning
+wired link.
 .TP
 .BI \-X " network cost"
 Advertise a route for the given network or host with the given cost,
