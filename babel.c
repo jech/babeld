@@ -196,7 +196,7 @@ main(int argc, char **argv)
                 150);
 
     if(seqno_interval <= 0)
-        seqno_interval = MAX(2 * wireless_hello_interval - 1, 0);
+        seqno_interval = MAX(2 * wireless_hello_interval - 1, 2);
 
     jitter = MIN(wireless_hello_interval * 1000 / 4, 2000);
     update_jitter = 2 * jitter;
