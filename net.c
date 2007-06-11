@@ -42,14 +42,11 @@ babel_socket(int port)
     if(s < 0)
         return -1;
 
-    rc = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+    rc = setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));
     if(rc < 0)
         goto fail;
 
-    memset(&sin6, 0, sizeof(sin6));
-    sin6.sin6_family = AF_INET6;
-    sin6.sin6_port = htons(port);
-    rc = bind(s, (struct sockaddr*)&sin6, sizeof(sin6));
+    rc = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
     if(rc < 0)
         goto fail;
 
@@ -73,6 +70,13 @@ babel_socket(int port)
         goto fail;
 
     rc = fcntl(s, F_SETFL, (rc | O_NONBLOCK));
+    if(rc < 0)
+        goto fail;
+
+    memset(&sin6, 0, sizeof(sin6));
+    sin6.sin6_family = AF_INET6;
+    sin6.sin6_port = htons(port);
+    rc = bind(s, (struct sockaddr*)&sin6, sizeof(sin6));
     if(rc < 0)
         goto fail;
 
