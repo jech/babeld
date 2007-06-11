@@ -292,8 +292,7 @@ update_route_metric(struct route *route)
     metric = MIN(route->refmetric + neighbour_cost(route->nexthop),
                  INFINITY);
     if(route->installed &&
-       (metric >= INFINITY ||
-        metric_to_kernel(route->metric) != metric_to_kernel(metric))) {
+       metric_to_kernel(route->metric) != metric_to_kernel(metric)) {
         uninstall_route(route);
         install = 1;
     }
