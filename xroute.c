@@ -282,24 +282,32 @@ void
 update_xroute_metric(struct xroute *xroute, int cost)
 {
     struct route *gwroute;
+    int oldmetric, newmetric;
 
     gwroute = find_installed_route(xroute->gateway);
     if(!gwroute)
         return;
 
-    if(xroute->cost != cost || xroute->metric != gwroute->metric + cost) {
+    oldmetric = xroute->metric;
+    newmetric = gwroute->metric + cost;
+
+    if(xroute->cost != cost || oldmetric != newmetric) {
         int install = 0;
-        if(xroute->installed) {
+        if(xroute->installed &&
+           metric_to_kernel(oldmetric) != metric_to_kernel(newmetric)) {
             uninstall_xroute(xroute);
             install = 1;
         }
         xroute->cost = cost;
-        xroute->metric = gwroute->metric + cost;
-        if(install) {
+        xroute->metric = newmetric;
+
+        if(newmetric > oldmetric) {
             struct xroute *best;
             best = find_best_xroute(xroute->prefix, xroute->plen);
             if(best)
-                install_xroute(best);
+                consider_xroute(best);
+        } else if(install) {
+            install_xroute(xroute);
         }
     }
 }
