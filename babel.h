@@ -30,6 +30,10 @@ THE SOFTWARE.
 
 #define INFINITY ((unsigned short)(~0))
 
+#ifndef RTPROT_BABEL
+#define RTPROT_BABEL 42
+#endif
+
 #undef MAX
 #undef MIN
 
@@ -90,3 +94,4 @@ extern int numnets;
 extern int protocol_port;
 extern unsigned char protocol_group[16];
 extern int protocol_socket;
+extern int kernel_socket;

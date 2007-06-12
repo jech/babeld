@@ -71,6 +71,7 @@ char *state_file = "/var/lib/babel-state";
 int protocol_port;
 unsigned char protocol_group[16];
 int protocol_socket = -1;
+int kernel_socket = -1;
 
 static volatile sig_atomic_t exiting = 0, dumping = 0;
 
@@ -389,7 +390,10 @@ main(int argc, char **argv)
         if(timeval_compare(&tv, &now) > 0) {
             timeval_minus(&tv, &tv, &now);
             FD_SET(protocol_socket, &readfds);
-            rc = select(protocol_socket + 1, &readfds, NULL, NULL, &tv);
+            if(kernel_socket >= 0)
+                FD_SET(kernel_socket, &readfds);
+            rc = select(MAX(protocol_socket, kernel_socket) + 1,
+                        &readfds, NULL, NULL, &tv);
             if(rc < 0 && errno != EINTR) {
                 perror("select");
                 sleep(1);
@@ -401,6 +405,10 @@ main(int argc, char **argv)
 
         if(exiting)
             break;
+
+        if(kernel_socket >= 0 && FD_ISSET(kernel_socket, &readfds)) {
+            kernel_callback();
+        }
 
         if(FD_ISSET(protocol_socket, &readfds)) {
             rc = babel_recv(protocol_socket, buf, maxmtu,
