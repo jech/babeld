@@ -291,3 +291,9 @@ kernel_routes(int maxplen, struct kernel_route *routes, int maxroutes)
     fclose(f);
     return n;
 }
+
+int
+kernel_callback()
+{
+    return 0;
+}

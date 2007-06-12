@@ -37,3 +37,4 @@ int kernel_interface_wireless(const char *ifname, int ifindex);
 int kernel_route(int add, const unsigned char *dest, unsigned short plen,
                  const unsigned char *gate, int ifindex, unsigned int metric);
 int kernel_routes(int maxplen, struct kernel_route *routes, int maxroutes);
+int kernel_callback(void);
