@@ -119,7 +119,7 @@ install_xroute(struct xroute *xroute)
     rc = kernel_route(ROUTE_ADD, xroute->prefix, xroute->plen,
                       gwroute->nexthop->address,
                       gwroute->nexthop->network->ifindex,
-                      metric_to_kernel(xroute->metric));
+                      metric_to_kernel(xroute->metric), 0);
     if(rc < 0) {
         perror("kernel_route(ADD)");
         if(errno != EEXIST)
@@ -148,7 +148,7 @@ uninstall_xroute(struct xroute *xroute)
     rc = kernel_route(ROUTE_FLUSH, xroute->prefix, xroute->plen,
                       gwroute->nexthop->address,
                       gwroute->nexthop->network->ifindex,
-                      metric_to_kernel(xroute->metric));
+                      metric_to_kernel(xroute->metric), 0);
     if(rc < 0)
         perror("kernel_route(FLUSH)");
     xroute->installed = 0;
