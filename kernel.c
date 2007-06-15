@@ -554,9 +554,21 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     struct rtmsg *rtm;
     struct rtattr *rta;
     int len = sizeof(buf.raw);
+    int rc;
+
+    if(operation == ROUTE_MODIFY) {
+        if(newmetric == metric)
+            return 0;
+        rc = kernel_route(ROUTE_ADD, dest, plen, gate, ifindex, newmetric, 0);
+        if(rc < 0)
+            return rc;
+        rc = kernel_route(ROUTE_FLUSH, dest, plen, gate, ifindex, metric, 0);
+        return rc;
+    }
 
     debugf("kernel_route: %s %s/%d metric %d via %d nexthop %s\n",
-           operation == ROUTE_ADD ? "add" : "flush",
+           operation == ROUTE_ADD ? "add" :
+           operation == ROUTE_FLUSH ? "flush" : "???",
            format_address(dest), plen, metric, ifindex,
            format_address(gate));
 
