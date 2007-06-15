@@ -283,6 +283,7 @@ update_xroute_metric(struct xroute *xroute, int cost)
 {
     struct route *gwroute;
     int oldmetric, newmetric;
+    int rc;
 
     gwroute = find_installed_route(xroute->gateway);
     if(!gwroute)
@@ -292,22 +293,29 @@ update_xroute_metric(struct xroute *xroute, int cost)
     newmetric = gwroute->metric + cost;
 
     if(xroute->cost != cost || oldmetric != newmetric) {
-        int install = 0;
-        if(xroute->installed &&
-           metric_to_kernel(oldmetric) != metric_to_kernel(newmetric)) {
-            uninstall_xroute(xroute);
-            install = 1;
-        }
         xroute->cost = cost;
+        if(xroute->installed) {
+            struct route *gwroute = find_installed_route(xroute->gateway);
+            if(gwroute == NULL) {
+                fprintf(stderr, "Found installed blackhole xroute!.\n");
+                return;
+            }
+            rc = kernel_route(ROUTE_MODIFY, xroute->prefix, xroute->plen,
+                              gwroute->nexthop->address,
+                              gwroute->nexthop->network->ifindex,
+                              metric_to_kernel(oldmetric),
+                              metric_to_kernel(newmetric));
+            if(rc < 0) {
+                perror("kernel_route(MODIFY)");
+                return;
+            }
+        }
         xroute->metric = newmetric;
-
         if(newmetric > oldmetric) {
             struct xroute *best;
             best = find_best_xroute(xroute->prefix, xroute->plen);
             if(best)
                 consider_xroute(best);
-        } else if(install) {
-            install_xroute(xroute);
         }
     }
 }
