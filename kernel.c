@@ -545,7 +545,7 @@ kernel_interface_wireless(const char *ifname, int ifindex)
 }
 
 int
-kernel_route(int add, const unsigned char *dest, unsigned short plen,
+kernel_route(int operation, const unsigned char *dest, unsigned short plen,
              const unsigned char *gate, int ifindex, unsigned int metric)
 {
 
@@ -554,8 +554,8 @@ kernel_route(int add, const unsigned char *dest, unsigned short plen,
     struct rtattr *rta;
     int len = sizeof(buf.raw);
 
-    debugf("kernel_route: %s: %s/%d metric %d via %d nexthop %s\n",
-           add ? "Add" : "Del",
+    debugf("kernel_route: %s %s/%d metric %d via %d nexthop %s\n",
+           operation == ROUTE_ADD ? "add" : "flush",
            format_address(dest), plen, metric, ifindex,
            format_address(gate));
 
@@ -566,7 +566,7 @@ kernel_route(int add, const unsigned char *dest, unsigned short plen,
     }
 
     memset(buf.raw, 0, sizeof(buf.raw));
-    if(add) {
+    if(operation == ROUTE_ADD) {
         buf.nh.nlmsg_flags = NLM_F_REQUEST | NLM_F_CREATE | NLM_F_EXCL;
         buf.nh.nlmsg_type = RTM_NEWROUTE;
     } else {

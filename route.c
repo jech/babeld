@@ -177,12 +177,12 @@ install_route(struct route *route)
     if(installed)
         uninstall_route(installed);
 
-    rc = kernel_route(1, route->dest->address, 128,
+    rc = kernel_route(ROUTE_ADD, route->dest->address, 128,
                       route->nexthop->address,
                       route->nexthop->network->ifindex,
                       metric_to_kernel(route->metric));
     if(rc < 0) {
-        perror("kernel_route(1)");
+        perror("kernel_route(ADD)");
         if(errno != EEXIST)
             return;
     }
@@ -209,12 +209,12 @@ uninstall_route(struct route *route)
             uninstall_xroute(&xroutes[i]);
     }
 
-    rc = kernel_route(0, route->dest->address, 128,
+    rc = kernel_route(ROUTE_FLUSH, route->dest->address, 128,
                       route->nexthop->address,
                       route->nexthop->network->ifindex,
                       metric_to_kernel(route->metric));
     if(rc < 0)
-        perror("kernel_route(0)");
+        perror("kernel_route(FLUSH)");
     route->installed = 0;
 }
 
