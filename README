@@ -13,18 +13,68 @@ Installation
   $ su -c 'make install'
 
 
-Running Babel
-*************
+Setting up a network for use with Babel
+***************************************
 
-In order to run Babel on a node (wireless or wired), just give it an
-IPv6 address, then run the routing daemon.  Assuming your wireless
-interface is eth1, and your IPv6 address is $IPv6, do
+1. Choose a prefix
+==================
 
-  # ip -6 addr add $IPv6 dev eth1
-  # babel $IPv6 eth1
+You will want your mesh network to run on a single /64 prefix.  If
+you've already got IPv6 routing with the rest of the Internet (either
+native or using 6to4) and you've got a /64 to spare, use that.
+
+If you don't, you can generate a random prefix.  RFC 4193 defines how
+such prefixes are generated.  The simplest way to make sure that you
+follow the rules is to use the utility ``ahcp-generate-address'',
+which you'll find in the AHCP package.
+
+  $ ahcp-generate-address -p -r
+  fdf0:bb4:f192::
+
+This needs to be done only once for the network; the following steps
+need to be repeated for every node.
+
+
+2. Choose a host number
+=======================
+
+You will need to choose a unique host number for every node.  You can
+number your nodes sequentially (fdf0:bb4:f192::1, fdf0:bb4:f192::2,
+etc.), generate a node number from the interface's MAC address, or
+choose it randomly.  Again, ``ahcp-generate-address'' knows the rules.
+
+  $ ip -0 addr show dev eth1
+  3: eth1: <BROADCAST,MULTICAST> mtu 1500 qdisc noop qlen 1000
+    link/ieee1394 00:11:d8:00:00:12:34:56 brd ff:ff:ff:ff:ff:ff:ff:ff
+  $ ahcp-generate-address fdf0:bb4:f192:: 00:11:d8:00:00:12:34:56
+  fdf0:bb4:f192:0:211:d8ff:fe00:12
+
+This is your IPv6 address; save it for later use.
+
+  $ IPv6=fdf0:bb4:f192:0:211:d8ff:fe00:12
+
+
+3. Set up the interface
+=======================
+
+Set up the MAC layer's parameters first:
+
+  $ iwconfig eth1 mode ad-hoc channel 11
+  $ iwconfig eth essid "my-wireless-network"
+
+Then the network layer:
+
+  $ ip link set eth1 up
+  $ ip -6 addr add $IPv6 dev eth1
+
+
+4. Start the routing daemon
+===========================
+
+  $ babel $IPv6 eth1
 
 If your node has multiple interfaces which you want to participate in
-the Babel netowk, just list them all:
+the Babel network, just list them all:
 
   # babel $IPv6 eth0 eth1 sit1
 
@@ -34,14 +84,8 @@ zero-cost external routes:
 
   # babel -X $IPv6-2 0 -X $IPv6-3 0 $IPv6 eth1
 
-On an access point, you'll probably want to inject external routes
-into the Babel network.  First check that you have a default route
-on your access point:
-
-  $ ip -6 route show default
-  default via ...
-
-Then run the routing daemon as so:
+On a gateway to the Internet, you'll want to redistribute the default
+route into the mesh network:
 
   # babel -x default 256 $IPv6 eth1
 
