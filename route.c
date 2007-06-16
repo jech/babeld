@@ -125,34 +125,6 @@ flush_neighbour_routes(struct neighbour *neigh)
     }
 }
 
-static struct route *
-reinstall_route(struct route *route)
-{
-    if(route->metric < INFINITY && route_feasible(route)) {
-        install_route(route);
-        return route;
-    } else {
-        struct route *new_route;
-        new_route = find_best_route(route->dest);
-        if(new_route) {
-            install_route(new_route);
-            return new_route;
-        } else {
-            /* We just lost a destination due to loop avoidance. */
-            if(route->dest->metric < INFINITY) {
-                /* Update seqno to make sure our predecessors accept
-                   our retraction... */
-                route->dest->seqno++;
-                route->dest->metric = INFINITY;
-            }
-            /* ...and hope we get a new seqno soon. */
-            send_update(route->dest, NULL);
-            send_request(NULL, route->dest);
-            return NULL;
-        }
-    }
-}
-
 unsigned int
 metric_to_kernel(int metric)
 {
@@ -288,29 +260,21 @@ update_neighbour_metric(struct neighbour *neigh)
 void
 update_route_metric(struct route *route)
 {
-    int metric, oldmetric, install = 0;
-    metric = MIN(route->refmetric + neighbour_cost(route->nexthop),
-                 INFINITY);
-    if(route->installed &&
-       metric_to_kernel(route->metric) != metric_to_kernel(metric)) {
-        uninstall_route(route);
-        install = 1;
-    }
+    int oldmetric;
+
     oldmetric = route->metric;
-    route->metric = metric;
-    if(install)
-        route = reinstall_route(route);
-    if(route) {
-        if(route->installed) {
-            struct route *better_route;
-            better_route = find_best_route(route->dest);
-            if(better_route->metric <= route->metric - 96)
-                consider_route(better_route);
-            else
-                send_triggered_update(route, oldmetric);
-        } else {
-            consider_route(route);
-        }
+    change_route_metric(route,
+                        MIN(route->refmetric + neighbour_cost(route->nexthop),
+                            INFINITY));
+    if(route->installed) {
+        struct route *better_route;
+        better_route = find_best_route(route->dest);
+        if(better_route->metric <= route->metric - 96)
+            consider_route(better_route);
+        else
+            send_triggered_update(route, oldmetric);
+    } else {
+        consider_route(route);
     }
 }
 
@@ -354,7 +318,9 @@ update_route(const unsigned char *d, int seqno, int refmetric,
         oldseqno = route->seqno;
         oldmetric = route->metric;
         route->time = now.tv_sec;
-        tweak_route(route, seqno, refmetric, metric);
+        route->seqno = seqno;
+        route->refmetric = refmetric;
+        change_route_metric(route, metric);
         if(seqno_compare(oldseqno, seqno) <= 0) {
             if(seqno_compare(oldseqno, seqno) < 0) {
                 /* Flush retracted xroutes */
@@ -435,21 +401,24 @@ consider_route(struct route *route)
 }
 
 void
-tweak_route(struct route *route, int newseqno, int newrefmetric, int newmetric)
+change_route_metric(struct route *route, int newmetric)
 {
-    int install = 0;
-    if(route->installed &&
-       (newmetric >= INFINITY ||
-        metric_to_kernel(route->metric) != metric_to_kernel(newmetric))) {
-        uninstall_route(route);
-        install = 1;
+    int rc;
+    if(route->installed) {
+        rc = kernel_route(newmetric >= INFINITY ? ROUTE_FLUSH : ROUTE_MODIFY,
+                          route->dest->address, 128,
+                          route->nexthop->address,
+                          route->nexthop->network->ifindex,
+                          metric_to_kernel(route->metric),
+                          metric_to_kernel(newmetric));
+        if(rc < 0) {
+            perror("kernel_route(MODIFY)");
+            return;
+        }
+        if(newmetric >= INFINITY)
+            route->installed = 0;
     }
-    route->seqno = newseqno;
     route->metric = newmetric;
-    route->refmetric = newrefmetric;
-
-    if(install)
-        reinstall_route(route);
 }
 
 void

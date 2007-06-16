@@ -54,6 +54,5 @@ struct route *update_route(const unsigned char *d, int seqno, int refmetric,
                            struct neighbour *nexthop,
                            struct xroute *pxroutes, int numpxroutes);
 void consider_route(struct route *route);
-void tweak_route(struct route *route,
-                 int newseqno, int newrefmetric, int newmetric);
+void change_route_metric(struct route *route, int newmetric);
 void send_triggered_update(struct route *route, int oldmetric);

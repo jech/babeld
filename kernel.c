@@ -566,7 +566,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         return rc;
     }
 
-    debugf("kernel_route: %s %s/%d metric %d via %d nexthop %s\n",
+    debugf("kernel_route: %s %s/%d metric %d dev %d nexthop %s\n",
            operation == ROUTE_ADD ? "add" :
            operation == ROUTE_FLUSH ? "flush" : "???",
            format_address(dest), plen, metric, ifindex,
