@@ -380,7 +380,7 @@ consider_route(struct route *route)
     if(installed == NULL)
         goto install;
 
-    if(installed->metric >= route->metric + 576)
+    if(installed->metric >= route->metric + 384)
         goto install;
 
     if(route->origtime >= now.tv_sec - 30)
