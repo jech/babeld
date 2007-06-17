@@ -482,7 +482,7 @@ main(int argc, char **argv)
         send_hello(&nets[i]);
         flushbuf(&nets[i]);
     }
-    usleep(5000 + random() % 10000);
+    usleep(50000 + random() % 100000);
     for(i = 0; i < numnets; i++) {
         /* Make sure they got it. */
         send_hello(&nets[i]);
