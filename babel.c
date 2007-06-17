@@ -490,6 +490,7 @@ main(int argc, char **argv)
         }
     }
     flushupdates();
+    usleep(50000 + random() % 100000);
     for(i = 0; i < numnets; i++) {
         /* Retract self routes. */
         send_self_retract(&nets[i]);
