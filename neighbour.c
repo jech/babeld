@@ -195,9 +195,9 @@ check_neighbour(struct neighbour *neigh)
 
     if(!neigh->network->wired) {
         while(neigh->txcost < INFINITY &&
-              neigh->txcost_time <= now.tv_sec - 30) {
+              neigh->txcost_time <= now.tv_sec - 40) {
             neigh->txcost = MIN((int)neigh->txcost * 5 / 4, INFINITY);
-            neigh->txcost_time += 30;
+            neigh->txcost_time += 10;
         }
     }
 }
