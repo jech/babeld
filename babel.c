@@ -211,6 +211,22 @@ main(int argc, char **argv)
     SHIFTE();
 
     gettimeofday(&now, NULL);
+
+    fd = open("/dev/urandom", O_RDONLY);
+    if(fd < 0) {
+        perror("open(random)");
+        memcpy(&seed, myid + 12, 4);
+    } else {
+        rc = read(fd, &seed, sizeof(unsigned int));
+        if(rc < sizeof(unsigned int)) {
+            perror("read(random)");
+            exit(1);
+        }
+        close(fd);
+    }
+    seed ^= (now.tv_sec ^ now.tv_usec);
+    srandom(seed);
+
     reboot_time = now.tv_sec;
     seqno = (random() & 0xFF);
 
@@ -244,21 +260,6 @@ main(int argc, char **argv)
         }
         close(fd);
     }
-
-    fd = open("/dev/urandom", O_RDONLY);
-    if(fd < 0) {
-        perror("open(random)");
-        memcpy(&seed, myid + 12, 4);
-        seed ^= now.tv_sec ^ now.tv_usec;
-    } else {
-        rc = read(fd, &seed, sizeof(unsigned int));
-        if(rc < sizeof(unsigned int)) {
-            perror("read(random)");
-            exit(1);
-        }
-        close(fd);
-    }
-    srandom(seed);
 
     rc = kernel_setup(1);
     if(rc < 0) {
