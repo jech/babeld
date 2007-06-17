@@ -306,8 +306,13 @@ update_route(const unsigned char *d, int seqno, int refmetric,
         oldseqno = route->seqno;
         oldmetric = route->metric;
         route->time = now.tv_sec;
-        if(route->refmetric >= INFINITY && refmetric < INFINITY)
-            route->origtime = now.tv_sec;
+        if(refmetric < INFINITY) {
+            route->blackhole_time = 0;
+            if(route->refmetric >= INFINITY)
+                route->origtime = now.tv_sec;
+        } else if(route->blackhole_time <= 0) {
+            route->blackhole_time = now.tv_sec;
+        }
         route->seqno = seqno;
         route->refmetric = refmetric;
         change_route_metric(route, metric);
@@ -342,6 +347,7 @@ update_route(const unsigned char *d, int seqno, int refmetric,
         route->nexthop = nexthop;
         route->time = now.tv_sec;
         route->origtime = now.tv_sec;
+        route->blackhole_time = 0;
         route->installed = 0;
         numroutes++;
         for(i = 0; i < numpxroutes; i++)

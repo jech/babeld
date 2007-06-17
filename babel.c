@@ -708,18 +708,19 @@ expire_routes(void)
     while(i < numroutes) {
         struct route *route = &routes[i];
 
-        if(route->time < now.tv_sec - 180) {
+        if(route->blackhole_time > 0 &&
+           route->blackhole_time < now.tv_sec - 65) {
             flush_route(route);
             continue;
         }
 
-        update_route_metric(route);
+        if(route->time < now.tv_sec - 120)
+            update_route(route->dest->address, ((route->seqno + 1) & 0xFF),
+                         INFINITY, route->nexthop, NULL, 0);
+        else
+            update_route_metric(route);
 
-        if(route->refmetric >= INFINITY) {
-            flush_route(route);
-            continue;
-        }
-        if(route->installed) {
+        if(route->installed && route->refmetric < INFINITY) {
             if(route->time <= now.tv_sec - 90)
                 send_unicast_request(route->nexthop, route->dest);
         }

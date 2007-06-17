@@ -30,6 +30,7 @@ struct route {
     struct neighbour *nexthop;
     int time;
     int origtime;
+    int blackhole_time;
     int installed;
 };
 
