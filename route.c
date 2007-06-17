@@ -262,7 +262,7 @@ update_route_metric(struct route *route)
     if(route->installed) {
         struct route *better_route;
         better_route = find_best_route(route->dest);
-        if(better_route->metric <= route->metric - 96)
+        if(better_route && better_route->metric <= route->metric - 96)
             consider_route(better_route);
         else
             send_triggered_update(route, oldmetric);
