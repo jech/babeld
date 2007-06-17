@@ -31,6 +31,7 @@ THE SOFTWARE.
 #include "neighbour.h"
 #include "route.h"
 #include "xroute.h"
+#include "util.h"
 
 struct xroute xroutes[MAXXROUTES];
 int numxroutes = 0;
@@ -324,6 +325,8 @@ check_myxroutes()
 {
     int i, j, n, change;
     struct kernel_route routes[120];
+
+    debugf("Checking kernel routes.\n");
 
     n = -1;
     for(i = 0; i < nummyxroutes; i++)

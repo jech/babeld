@@ -706,6 +706,8 @@ expire_routes(void)
 {
     int i;
 
+    debugf("Expiring old routes.\n");
+
     for(i = 0; i < numneighs; i++) {
         if(neighs[i].id[0] == 0)
             continue;
