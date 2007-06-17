@@ -49,6 +49,7 @@ THE SOFTWARE.
 #include "message.h"
 
 struct timeval now;
+const struct timeval tv_zero = {0, 0};
 
 unsigned char myid[16];
 int debug = 0;
@@ -77,7 +78,7 @@ static int routes_changed = 0;
 static volatile sig_atomic_t exiting = 0, dumping = 0;
 
 struct network *add_network(char *ifname, int ifindex, int bufsize,
-                            int wired, unsigned int cost, int hello_interval);
+                            int wired, unsigned int cost);
 void expire_routes(void);
 
 static int kernel_routes_changed(void *closure);
@@ -337,8 +338,7 @@ main(int argc, char **argv)
         }
         debugf("Adding %s network %s (%d).\n",
                rc ? "wireless" : "wired", *arg, ifindex);
-        vrc = add_network(*arg, ifindex, mtu, !rc, rc ? 0 : 128,
-                          rc ? wireless_hello_interval : wired_hello_interval);
+        vrc = add_network(*arg, ifindex, mtu, !rc, rc ? 0 : 128);
         if(vrc == NULL)
             goto fail;
         SHIFT();
@@ -637,9 +637,19 @@ kernel_routes_changed(void *closure)
     return 1;
 }
 
+void
+set_hello_interval(struct network *net, int hello_interval)
+{
+    if(hello_interval >= 0)
+        net->hello_interval = hello_interval;
+    else if(net->wired)
+        net->hello_interval = wired_hello_interval;
+    else
+        net->hello_interval = wireless_hello_interval;
+}
+
 struct network *
-add_network(char *ifname, int ifindex, int mtu,
-            int wired, unsigned int cost, int hello_interval)
+add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
 {
     void *p;
 
@@ -652,11 +662,13 @@ add_network(char *ifname, int ifindex, int mtu,
     nets[numnets].ifindex = ifindex;
     nets[numnets].wired = wired;
     nets[numnets].cost = cost;
-    nets[numnets].hello_interval = hello_interval;
+    set_hello_interval(&nets[numnets], -1);
     nets[numnets].self_update_interval =
-        MAX(15 + hello_interval / 2, hello_interval);
-    nets[numnets].txcost_interval = MIN(42, 2 * hello_interval);
+        MAX(15 + nets[numnets].hello_interval / 2,
+            nets[numnets].hello_interval);
+    nets[numnets].txcost_interval = MIN(42, 2 * nets[numnets].hello_interval);
     nets[numnets].bufsize = mtu - sizeof(packet_header);
+    nets[numnets].flush_time = tv_zero;
     strncpy(nets[numnets].ifname, ifname, IF_NAMESIZE);
     p = malloc(nets[numnets].bufsize);
     if(p == NULL) {
