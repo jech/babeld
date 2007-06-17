@@ -72,6 +72,7 @@ int protocol_port;
 unsigned char protocol_group[16];
 int protocol_socket = -1;
 int kernel_socket = -1;
+static int routes_changed = 0;
 
 static volatile sig_atomic_t exiting = 0, dumping = 0;
 
@@ -407,9 +408,8 @@ main(int argc, char **argv)
         if(exiting)
             break;
 
-        if(kernel_socket >= 0 && FD_ISSET(kernel_socket, &readfds)) {
+        if(kernel_socket >= 0 && FD_ISSET(kernel_socket, &readfds))
             kernel_callback(kernel_routes_changed, NULL);
-        }
 
         if(FD_ISSET(protocol_socket, &readfds)) {
             rc = babel_recv(protocol_socket, buf, maxmtu,
@@ -431,8 +431,9 @@ main(int argc, char **argv)
             }
         }
 
-        if(now.tv_sec >= expiry_time) {
+        if(routes_changed || now.tv_sec >= expiry_time) {
             expire_routes();
+            routes_changed = 0;
             expiry_time = now.tv_sec + 20 + random() % 20;
         }
 
@@ -624,7 +625,8 @@ dump_tables(FILE *out)
 static int
 kernel_routes_changed(void *closure)
 {
-    return 0;
+    routes_changed = 1;
+    return 1;
 }
 
 struct network *
