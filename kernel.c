@@ -685,21 +685,19 @@ print_kernel_route(int add, int protocol, int type,
     char addr_prefix[INET6_ADDRSTRLEN];
     char addr_gw[INET6_ADDRSTRLEN];
 
-    debugf("%sing route: ",
-           add == RTM_NEWROUTE ? "Add" : "Delet");
-
     if(!inet_ntop(AF_INET6, route->prefix,
                   addr_prefix, sizeof(addr_prefix)) ||
        !inet_ntop(AF_INET6,route->gw, addr_gw, sizeof(addr_gw)) ||
        !if_indextoname(route->ifindex, ifname)) {
-        debugf("failed !");
+        debugf("Couldn't format kernel route for printing.");
         return;
     }
 
-    debugf("dest: %s/%d\tgw: %s\tmetric: %d\tif: %s\t",
-           addr_prefix, route->plen, addr_gw, route->metric, ifname);
-    debugf("(proto: %d, type: %d)\n", protocol, type);
-
+    debugf("%s kernel route: dest: %s/%d gw: %s metric: %d if: %s "
+           "(proto: %d, type: %d)\n",
+           add == RTM_NEWROUTE ? "Add" : "Delete",
+           addr_prefix, route->plen, addr_gw, route->metric, ifname,
+           protocol, type);
 }
 
 static int
