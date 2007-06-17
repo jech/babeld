@@ -435,6 +435,8 @@ kernel_setup(int setup)
             return -1;
         }
 
+        kernel_socket = nl_listen.sock;
+
         old_forwarding = read_proc("/proc/sys/net/ipv6/conf/all/forwarding");
         if(old_forwarding < 0) {
             perror("Couldn't read forwarding knob.");
@@ -483,6 +485,7 @@ kernel_setup(int setup)
 
         close(nl_listen.sock);
         nl_listen.sock = -1;
+        kernel_socket = -1;
 
         return 1;
 
