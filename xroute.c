@@ -291,7 +291,7 @@ update_xroute_metric(struct xroute *xroute, int cost)
         return;
 
     oldmetric = xroute->metric;
-    newmetric = gwroute->metric + cost;
+    newmetric = MIN(gwroute->metric + cost, INFINITY);
 
     if(xroute->cost != cost || oldmetric != newmetric) {
         xroute->cost = cost;
