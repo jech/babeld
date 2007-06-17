@@ -223,14 +223,10 @@ netlink_read(int (*filter)(struct nlmsghdr *, void *data), void *data)
                 return -1;
             }
 
-            debugf("netlink_read: FILTER\n");
-
-            if(filter) {
-                err = filter(nh, data);
-                if(err || !(nh->nlmsg_flags & NLM_F_MULTI))
-                    return err;
-            }
-
+            if(filter)
+                filter(nh, data);
+            if(!(nh->nlmsg_flags & NLM_F_MULTI))
+                break;
         }
         debugf("\n");
 
