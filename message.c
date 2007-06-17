@@ -517,11 +517,20 @@ send_update(struct destination *dest, struct network *net)
 void
 send_self_update(struct network *net, int force_seqno)
 {
-    debugf("Sending self update to %s.\n", net->ifname);
     if(force_seqno || seqno_time + seqno_interval < now.tv_sec) {
         seqno++;
         seqno_time = now.tv_sec;
     }
+
+    if(net == NULL) {
+        int i;
+        for(i = 0; i < numnets; i++)
+            send_self_update(&nets[i], 0);
+        return;
+    }
+
+    debugf("Sending self update to %s.\n", net->ifname);
+
     buffer_update(net, NULL);
     schedule_update_flush();
     net->self_update_time = now.tv_sec;
@@ -530,7 +539,15 @@ send_self_update(struct network *net, int force_seqno)
 void
 send_self_retract(struct network *net)
 {
+    if(net == NULL) {
+        int i;
+        for(i = 0; i < numnets; i++)
+            send_self_retract(&nets[i]);
+        return;
+    }
+
     debugf("Retracting self on %s.\n", net->ifname);
+
     seqno++;
     seqno_time = now.tv_sec;
 
