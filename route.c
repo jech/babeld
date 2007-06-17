@@ -429,4 +429,10 @@ send_triggered_update(struct route *route, int oldmetric)
 
     if(route->metric - oldmetric >= 256 || oldmetric - route->metric >= 256)
         send_update(route->dest, NULL);
+
+    if(route->metric - oldmetric >= 384) {
+        /* This route's metric has increased a lot -- let's hope we find
+           something better */
+        send_request(NULL, route->dest);
+    }
 }
