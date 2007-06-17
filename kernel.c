@@ -636,7 +636,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
 static int
 parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
 {
-
+    int table = RT_TABLE_MAIN;
     struct rtattr *rta= RTM_RTA(rtm);;
     len -= NLMSG_ALIGN(sizeof(*rtm));
 
@@ -659,10 +659,12 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
             break;
         case RTA_PRIORITY:
             route->metric = *(int*)RTA_DATA(rta);
+            if(route->metric < 0 || route->metric > KERNEL_INFINITY)
+                route->metric = KERNEL_INFINITY;
             break;
 #ifdef RTA_TABLE
        case RTA_TABLE:
-            *table = *(int*)RTA_DATA(rta);
+            table = *(int*)RTA_DATA(rta);
             break;
 #endif
         default:
@@ -671,10 +673,9 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
         rta = RTA_NEXT(rta, len);
     }
 
-    route->metric = MIN(route->metric, KERNEL_INFINITY);
-    // TODO Error handling ?? len != 0
+    if(table != RT_TABLE_MAIN)
+        return -1;
     return 0;
-
 }
 
 static void
@@ -703,7 +704,7 @@ print_kernel_route(int add, int protocol, int type,
 static int
 monitor_kernel_route(struct nlmsghdr *nh, void *data)
 {
-
+    int rc;
     struct kernel_route route;
 
     int len = nh->nlmsg_len;
@@ -719,9 +720,10 @@ monitor_kernel_route(struct nlmsghdr *nh, void *data)
         return 0;
 
     if(debug >= 2) {
-        parse_kernel_route_rta(rtm, len, &route);
-        print_kernel_route(nh->nlmsg_type, rtm->rtm_protocol,
-                           rtm->rtm_type, &route);
+        rc = parse_kernel_route_rta(rtm, len, &route);
+        if(rc >= 0)
+            print_kernel_route(nh->nlmsg_type, rtm->rtm_protocol,
+                               rtm->rtm_type, &route);
     }
 
     return 1;
@@ -730,7 +732,7 @@ monitor_kernel_route(struct nlmsghdr *nh, void *data)
 static int
 filter_kernel_routes(struct nlmsghdr *nh, void *data)
 {
-
+    int rc;
     void **args = (void**)data;
     int maxplen = *(int*)args[0];
     int maxroutes = *(int*)args[1];
@@ -762,7 +764,9 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
     if(rtm->rtm_table != RT_TABLE_MAIN)
         return 0;
 
-    parse_kernel_route_rta(rtm, len, &routes[*found]);
+    rc = parse_kernel_route_rta(rtm, len, &routes[*found]);
+    if(rc < 0)
+        return 0;
 
     if(rtm->rtm_dst_len >= 8 &&
        (routes[*found].prefix[0] == 0xFF || routes[*found].prefix[0] == 0))
