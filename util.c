@@ -181,3 +181,23 @@ parse_net(const char *net, unsigned char *prefix_r, unsigned short *plen_r)
     *plen_r = plen;
     return 0;
 }
+
+int
+wait_for_fd(int direction, int fd, int msecs)
+{
+    fd_set fds;
+    int rc;
+    struct timeval tv;
+
+    tv.tv_sec = msecs / 1000;
+    tv.tv_usec = msecs * 1000;
+
+    FD_ZERO(&fds);
+    FD_SET(fd, &fds);
+    if(direction)
+        rc = select(fd + 1, NULL, &fds, NULL, &tv);
+    else
+        rc = select(fd + 1, &fds, NULL, NULL, &tv);
+
+    return rc;
+}
