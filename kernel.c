@@ -340,6 +340,7 @@ netlink_listen(int (*monitor)(struct nlmsghdr *nh, void *data), void *data) {
     struct iovec iov;
     struct nlmsghdr *nh;
     int len, i;
+    int interesting = 0;
 
     static char buf[8192];
 
@@ -405,14 +406,15 @@ netlink_listen(int (*monitor)(struct nlmsghdr *nh, void *data), void *data) {
 
         if(monitor) {
             err = monitor(nh,data);
-            if(err) return err;
+            if(err < 0) return err;
+            interesting = interesting || err;
         }
 
     }
     if(msg.msg_flags & MSG_TRUNC) {
         fprintf(stderr, "netlink_listen: Message truncated\n");
     }
-    return 0;
+    return interesting;
 }
 
 int
@@ -712,10 +714,16 @@ monitor_kernel_route(struct nlmsghdr *nh, void *data)
     rtm = (struct rtmsg*)NLMSG_DATA(nh);
     len -= NLMSG_LENGTH(0);
 
-    parse_kernel_route_rta(rtm, len, &route);
-    print_kernel_route(nh->nlmsg_type, rtm->rtm_protocol,
-                       rtm->rtm_type, &route);
-    return 0;
+    if(rtm->rtm_protocol == RTPROT_BOOT || rtm->rtm_protocol == RTPROT_BABEL)
+        return 0;
+
+    if(debug >= 2) {
+        parse_kernel_route_rta(rtm, len, &route);
+        print_kernel_route(nh->nlmsg_type, rtm->rtm_protocol,
+                           rtm->rtm_type, &route);
+    }
+
+    return 1;
 }
 
 static int
