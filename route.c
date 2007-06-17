@@ -101,7 +101,7 @@ flush_route(struct route *route)
             send_triggered_update(new_route, oldmetric);
         } else {
             if(destination->metric < INFINITY) {
-                destination->seqno++;
+                destination->seqno = ((destination->seqno + 1) & 0xFF);
                 destination->metric = INFINITY;
             }
             send_update(route->dest, NULL);

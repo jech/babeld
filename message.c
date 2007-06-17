@@ -124,6 +124,14 @@ parse_packet(const unsigned char *from, struct network *net,
                        format_address(from),
                        format_address(message + 4));
                 if(memcmp(message + 4, myid, 16) == 0) {
+                    int metric = ((message[2] << 8) | (message[3] & 0xFF));
+                    int theirseqno = message[1];
+                    if(metric >= INFINITY) {
+                        /* Oh my, someone is retracting a route to me. */
+                        send_txcost(neigh, NULL);
+                        send_self_update(neigh->network,
+                                         seqno_compare(theirseqno, seqno) < 0);
+                    }
                     continue;
                 }
 
@@ -270,7 +278,8 @@ send_hello(struct network *net)
     debugf("Sending hello to %s.\n", net->ifname);
     start_message(net, 20);
     accumulate_byte(net, 0);
-    accumulate_byte(net, net->hello_seqno++);
+    net->hello_seqno = ((net->hello_seqno + 1) & 0xFF);
+    accumulate_byte(net, net->hello_seqno);
     accumulate_short(net, net->hello_interval);
     accumulate_data(net, myid, 16);
     schedule_flush(net);
@@ -514,7 +523,7 @@ void
 send_self_update(struct network *net, int force_seqno)
 {
     if(force_seqno || seqno_time + seqno_interval < now.tv_sec) {
-        seqno++;
+        seqno = ((seqno + 1) & 0xFF);
         seqno_time = now.tv_sec;
     }
 
@@ -544,7 +553,7 @@ send_self_retract(struct network *net)
 
     debugf("Retracting self on %s.\n", net->ifname);
 
-    seqno++;
+    seqno = ((seqno + 1) & 0xFF);
     seqno_time = now.tv_sec;
 
     start_message(net, 20);
