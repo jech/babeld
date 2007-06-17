@@ -42,4 +42,4 @@ int kernel_route(int operation, const unsigned char *dest, unsigned short plen,
                  const unsigned char *gate, int ifindex,
                  unsigned int metric, unsigned int newmetric);
 int kernel_routes(int maxplen, struct kernel_route *routes, int maxroutes);
-int kernel_callback(void);
+int kernel_callback(int (*fn)(void*), void *closure);

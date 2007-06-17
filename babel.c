@@ -79,6 +79,7 @@ struct network *add_network(char *ifname, int ifindex, int bufsize,
                             int wired, unsigned int cost, int hello_interval);
 void expire_routes(void);
 
+static int kernel_routes_changed(void *closure);
 static void init_signals(void);
 static void dump_tables(FILE *out);
 
@@ -407,7 +408,7 @@ main(int argc, char **argv)
             break;
 
         if(kernel_socket >= 0 && FD_ISSET(kernel_socket, &readfds)) {
-            kernel_callback();
+            kernel_callback(kernel_routes_changed, NULL);
         }
 
         if(FD_ISSET(protocol_socket, &readfds)) {
@@ -618,6 +619,12 @@ dump_tables(FILE *out)
                xroutes[i].installed ? " (installed)" : "");
     }
     fflush(out);
+}
+
+static int
+kernel_routes_changed(void *closure)
+{
+    return 0;
 }
 
 struct network *

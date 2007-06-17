@@ -790,10 +790,16 @@ kernel_routes(int maxplen, struct kernel_route *routes, int maxroutes)
 }
 
 int
-kernel_callback()
+kernel_callback(int (*fn)(void*), void *closure)
 {
+    int rc;
+
     if(nl_listen.sock < 0)
         return -1;
 
-    return netlink_listen(monitor_kernel_route, NULL);
+    rc = netlink_listen(monitor_kernel_route, NULL);
+    if(rc)
+        return fn(closure);
+
+    return 0;
 }
