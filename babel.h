@@ -24,8 +24,8 @@ THE SOFTWARE.
 #define MAXDESTS 1024
 #define MAXNEIGHBOURS 128
 #define MAXNETS 8
-#define MAXXROUTES 64
-#define MAXMYXROUTES 8
+#define MAXXROUTES 128
+#define MAXMYXROUTES 64
 #define MAX_BUFFERED_UPDATES 100
 
 #define INFINITY ((unsigned short)(~0))
