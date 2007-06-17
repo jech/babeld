@@ -755,6 +755,10 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
 
     parse_kernel_route_rta(rtm, len, &routes[*found]);
 
+    if(rtm->rtm_dst_len >= 8 &&
+       (routes[*found].prefix[0] == 0xFF || routes[*found].prefix[0] == 0))
+       return 0;
+
     *found = (*found)+1;
 
     return 0;
