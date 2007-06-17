@@ -198,21 +198,15 @@ route_feasible(struct route *route)
         return 1;
     }
 
-    return
-        seqno_compare(route->dest->seqno, route->seqno) < 0 ||
-        (route->dest->seqno == route->seqno &&
-         route->refmetric < route->dest->metric);
+    return update_feasible(route->seqno, route->refmetric, route->dest);
 }
 
 int
 update_feasible(unsigned char seqno, unsigned short refmetric,
                 struct destination *dest)
 {
-    if(seqno_compare(dest->seqno, seqno) < 0 ||
-       (dest->seqno == seqno && refmetric < dest->metric))
-        return 1;
-
-    return 0;
+    return (seqno_compare(dest->seqno, seqno) < 0 ||
+            (dest->seqno == seqno && refmetric < dest->metric));
 }
 
 struct route *
