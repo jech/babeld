@@ -145,8 +145,6 @@ netlink_socket(struct netlink *nl, uint32_t groups)
 static int
 netlink_read(int (*filter)(struct nlmsghdr *, void *data), void *data)
 {
-
-    int err;
     struct sockaddr_nl nladdr;
     struct msghdr msg;
     struct iovec iov;
@@ -198,7 +196,7 @@ netlink_read(int (*filter)(struct nlmsghdr *, void *data), void *data)
         for(nh = (struct nlmsghdr *)buf;
              NLMSG_OK(nh, len);
              nh = NLMSG_NEXT(nh, len)) {
-            debugf("nh %d %s", i,
+            debugf("%d %s", i,
                    (nh->nlmsg_flags & NLM_F_MULTI) ? "(multi) " : "");
             i++;
             if(nh->nlmsg_pid != nl_command.sockaddr.nl_pid ||
@@ -206,8 +204,8 @@ netlink_read(int (*filter)(struct nlmsghdr *, void *data), void *data)
                 debugf("(wrong seqno/pid), ");
                 continue;
             } else if(nh->nlmsg_type == NLMSG_DONE) {
-                debugf("done\n");
-                return 0;
+                debugf("(done)\n");
+                goto done;
             } else if(nh->nlmsg_type == NLMSG_ERROR) {
                 struct nlmsgerr *err = (struct nlmsgerr *)NLMSG_DATA(nh);
                 if(err->error == 0) {
@@ -236,6 +234,7 @@ netlink_read(int (*filter)(struct nlmsghdr *, void *data), void *data)
         }
     }
 
+ done:
     return 0;
 }
 
@@ -340,7 +339,7 @@ netlink_listen(int (*monitor)(struct nlmsghdr *nh, void *data), void *data) {
     struct sockaddr_nl nladdr;
     struct iovec iov;
     struct nlmsghdr *nh;
-    int len, i;
+    int len;
     int interesting = 0;
 
     static char buf[8192];
@@ -362,46 +361,36 @@ netlink_listen(int (*monitor)(struct nlmsghdr *nh, void *data), void *data) {
     iov.iov_base = buf;
     iov.iov_len = sizeof(buf);
 
-    // TODO non block ??
     len = recvmsg(nl_listen.sock, &msg, 0);
-
-    debugf("netlink_listen: recvmsg\n");
 
     if(len < 0) {
         if(errno == EINTR)
             return 0;
-        perror("OVERRUN");
+        perror("recvmsg(netlink)");
         return -1;
     }
 
     if(len == 0) {
-        fprintf(stderr, "netlink_listen: EOF on netlink\n");
+        fprintf(stderr, "recvmsg(netlink): EOF\n");
         return -1;
     }
 
     if(msg.msg_namelen != nl_listen.socklen) {
-        fprintf(stderr, "netlink_listen: sender address length == %d\n",
+        fprintf(stderr,
+                "netlink_listen: unexpected sender address length (%d)\n",
                 msg.msg_namelen);
         return -1;
     }
 
-    for(nh = (struct nlmsghdr *)buf, i = 1; NLMSG_OK(nh, len);
-        nh = NLMSG_NEXT(nh, len), i++) {
-
-        debugf("netlink_listen: nh: %d (multi : %s) : ", i,
-               (nh->nlmsg_flags & NLM_F_MULTI) ? "yes" : "no");
-
+    for(nh = (struct nlmsghdr *)buf;
+        NLMSG_OK(nh, len);
+        nh = NLMSG_NEXT(nh, len)) {
         if(nh->nlmsg_type == NLMSG_DONE) {
-            debugf("netlink_listen: DONE\n");
+            continue;
+        } else if(nh->nlmsg_type == NLMSG_ERROR) {
             continue;
         }
 
-        if(nh->nlmsg_type == NLMSG_ERROR) {
-            debugf("netlink_listen: ERROR\n");
-            continue;
-        }
-
-        /* Ignore les messages venant de babel */
         if(nh->nlmsg_pid == nl_command.sockaddr.nl_pid)
             continue;
 
@@ -410,10 +399,10 @@ netlink_listen(int (*monitor)(struct nlmsghdr *nh, void *data), void *data) {
             if(err < 0) return err;
             interesting = interesting || err;
         }
-
     }
+
     if(msg.msg_flags & MSG_TRUNC) {
-        fprintf(stderr, "netlink_listen: Message truncated\n");
+        fprintf(stderr, "Netlink message truncated\n");
     }
     return interesting;
 }
