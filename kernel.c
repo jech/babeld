@@ -629,8 +629,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
 }
 
 static int
-parse_kernel_route_rta(struct rtmsg *rtm, int len,
-                       struct kernel_route *route, int *table)
+parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
 {
 
     struct rtattr *rta= RTM_RTA(rtm);;
@@ -641,8 +640,6 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len,
     route->plen = rtm->rtm_dst_len;
     route->metric = KERNEL_INFINITY;
     route->ifindex = 0;
-
-    *table = rtm->rtm_table;
 
     while(RTA_OK(rta, len)) {
         switch (rta->rta_type) {
@@ -705,7 +702,6 @@ monitor_kernel_route(struct nlmsghdr *nh, void *data)
 {
 
     struct kernel_route route;
-    int table;
 
     int len = nh->nlmsg_len;
     struct rtmsg *rtm;
@@ -716,7 +712,7 @@ monitor_kernel_route(struct nlmsghdr *nh, void *data)
     rtm = (struct rtmsg*)NLMSG_DATA(nh);
     len -= NLMSG_LENGTH(0);
 
-    parse_kernel_route_rta(rtm, len, &route, &table);
+    parse_kernel_route_rta(rtm, len, &route);
     print_kernel_route(nh->nlmsg_type, rtm->rtm_protocol,
                        rtm->rtm_type, &route);
     return 0;
@@ -733,7 +729,6 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
     int *found = (int*)args[3];
 
     struct rtmsg *rtm;
-    int table;
 
     int len = nh->nlmsg_len;
 
@@ -755,12 +750,11 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
     if(rtm->rtm_dst_len > maxplen || rtm->rtm_src_len != 0)
         return 0;
 
-    parse_kernel_route_rta(rtm, len, &routes[*found], &table);
-
-    if(table != RT_TABLE_MAIN)
+    if(rtm->rtm_table != RT_TABLE_MAIN)
         return 0;
 
-    //*found++; ??
+    parse_kernel_route_rta(rtm, len, &routes[*found]);
+
     *found = (*found)+1;
 
     return 0;
