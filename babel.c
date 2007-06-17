@@ -409,10 +409,14 @@ main(int argc, char **argv)
                 FD_SET(kernel_socket, &readfds);
             rc = select(MAX(protocol_socket, kernel_socket) + 1,
                         &readfds, NULL, NULL, &tv);
-            if(rc < 0 && errno != EINTR) {
-                perror("select");
-                sleep(1);
-                continue;
+            if(rc < 0) {
+                if(errno != EINTR) {
+                    perror("select");
+                    sleep(1);
+                    continue;
+                } else {
+                    FD_ZERO(&readfds);
+                }
             }
         }
 
