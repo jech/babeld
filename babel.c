@@ -73,7 +73,7 @@ int protocol_port;
 unsigned char protocol_group[16];
 int protocol_socket = -1;
 int kernel_socket = -1;
-static int routes_changed = 0;
+static int kernel_routes_changed = 0;
 
 static volatile sig_atomic_t exiting = 0, dumping = 0;
 
@@ -81,7 +81,7 @@ struct network *add_network(char *ifname, int ifindex, int bufsize,
                             int wired, unsigned int cost);
 void expire_routes(void);
 
-static int kernel_routes_changed(void *closure);
+static int kernel_routes_callback(void *closure);
 static void init_signals(void);
 static void dump_tables(FILE *out);
 
@@ -92,7 +92,7 @@ main(int argc, char **argv)
     struct ipv6_mreq mreq;
     int i, rc, fd;
     static unsigned char *buf;
-    int expiry_time;
+    int expiry_time, kernel_dump_time;
     void *vrc;
     unsigned int seed;
     char **arg;
@@ -354,6 +354,9 @@ main(int argc, char **argv)
 
     init_signals();
     check_myxroutes();
+    kernel_routes_changed = 0;
+    kernel_dump_time = now.tv_sec + 20 + random() % 20;
+
     expiry_time = now.tv_sec + 20 + random() % 20;
 
     /* Make some noise so others notice us */
@@ -419,7 +422,7 @@ main(int argc, char **argv)
             break;
 
         if(kernel_socket >= 0 && FD_ISSET(kernel_socket, &readfds))
-            kernel_callback(kernel_routes_changed, NULL);
+            kernel_callback(kernel_routes_callback, NULL);
 
         if(FD_ISSET(protocol_socket, &readfds)) {
             rc = babel_recv(protocol_socket, buf, maxmtu,
@@ -441,10 +444,22 @@ main(int argc, char **argv)
             }
         }
 
-        if(routes_changed || now.tv_sec >= expiry_time) {
+        if(now.tv_sec >= expiry_time) {
             expire_routes();
-            routes_changed = 0;
             expiry_time = now.tv_sec + 20 + random() % 20;
+        }
+
+        if(kernel_routes_changed || now.tv_sec >= kernel_dump_time) {
+            rc = check_myxroutes();
+            if(rc > 0)
+                send_self_update(NULL, 1);
+            else if(rc < 0)
+                fprintf(stderr, "Warning: couldn't check installed routes.\n");
+            kernel_routes_changed = 0;
+            if(kernel_socket >= 0)
+                kernel_dump_time = now.tv_sec + 200 + random() % 100;
+            else
+                kernel_dump_time = now.tv_sec + 20 + random() % 20;
         }
 
         for(i = 0; i < numnets; i++) {
@@ -633,9 +648,9 @@ dump_tables(FILE *out)
 }
 
 static int
-kernel_routes_changed(void *closure)
+kernel_routes_callback(void *closure)
 {
-    routes_changed = 1;
+    kernel_routes_changed = 1;
     return 1;
 }
 
@@ -689,13 +704,7 @@ add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
 void
 expire_routes(void)
 {
-    int rc, i;
-
-    rc = check_myxroutes();
-    if(rc > 0)
-        send_self_update(NULL, 1);
-    else if(rc < 0)
-        fprintf(stderr, "Warning: couldn't check installed routes.\n");
+    int i;
 
     for(i = 0; i < numneighs; i++) {
         if(neighs[i].id[0] == 0)
