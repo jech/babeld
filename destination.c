@@ -62,9 +62,9 @@ update_destination(struct destination *dest,
 {
     if(seqno_compare(dest->seqno, seqno) < 0 ||
        (dest->seqno == seqno && dest->metric > metric)) {
-        dest->time = now.tv_sec;
         dest->seqno = seqno;
         dest->metric = metric;
     }
+    dest->time = now.tv_sec;
 }
 
