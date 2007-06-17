@@ -591,7 +591,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     rtm->rtm_family = AF_INET6;
     rtm->rtm_dst_len = plen;
     rtm->rtm_table = RT_TABLE_MAIN;
-    rtm->rtm_scope = RT_SCOPE_LINK;
+    rtm->rtm_scope = RT_SCOPE_UNIVERSE;
     if(metric < KERNEL_INFINITY)
         rtm->rtm_type = RTN_UNICAST;
     else
