@@ -220,11 +220,10 @@ find_best_route(struct destination *dest)
             continue;
         if(routes[i].time < now.tv_sec - 180)
             continue;
-        if(routes[i].metric >= INFINITY)
-            continue;
         if(!route_feasible(&routes[i]))
             continue;
-        if(route && route->metric + 512 >= routes[i].metric) {
+        if(route && route->metric < INFINITY &&
+           route->metric + 512 >= routes[i].metric) {
             if(route->origtime <= now.tv_sec - 30 &&
                routes[i].origtime >= now.tv_sec - 30)
                 continue;
@@ -304,14 +303,11 @@ update_route(const unsigned char *d, int seqno, int refmetric,
         int oldseqno;
         int oldmetric;
 
-        if(refmetric >= INFINITY) {
-            flush_route(route);
-            return NULL;
-        }
-
         oldseqno = route->seqno;
         oldmetric = route->metric;
         route->time = now.tv_sec;
+        if(route->refmetric >= INFINITY && refmetric < INFINITY)
+            route->origtime = now.tv_sec;
         route->seqno = seqno;
         route->refmetric = refmetric;
         change_route_metric(route, metric);
@@ -366,7 +362,7 @@ consider_route(struct route *route)
     if(route->installed)
         return;
 
-    if(route->metric >= INFINITY || !route_feasible(route))
+    if(!route_feasible(route))
         return;
 
     installed = find_installed_route(route->dest);
@@ -399,7 +395,7 @@ change_route_metric(struct route *route, int newmetric)
 {
     int rc;
     if(route->installed) {
-        rc = kernel_route(newmetric >= INFINITY ? ROUTE_FLUSH : ROUTE_MODIFY,
+        rc = kernel_route(ROUTE_MODIFY,
                           route->dest->address, 128,
                           route->nexthop->address,
                           route->nexthop->network->ifindex,
@@ -409,8 +405,6 @@ change_route_metric(struct route *route, int newmetric)
             perror("kernel_route(MODIFY)");
             return;
         }
-        if(newmetric >= INFINITY)
-            route->installed = 0;
     }
     route->metric = newmetric;
 }
@@ -421,7 +415,8 @@ send_triggered_update(struct route *route, int oldmetric)
     if(!route->installed)
         return;
 
-    if(route->metric - oldmetric >= 256 || oldmetric - route->metric >= 256)
+    if((route->metric >= INFINITY && oldmetric < INFINITY) ||
+       (route->metric - oldmetric >= 256 || oldmetric - route->metric >= 256))
         send_update(route->dest, NULL);
 
     if(route->metric - oldmetric >= 384) {
