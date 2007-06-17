@@ -110,7 +110,7 @@ parse_packet(const unsigned char *from, struct network *net,
                     send_txcost(neigh, NULL);
                     send_update(NULL, neigh->network);
                 } else if(memcmp(message + 4, myid, 16) == 0) {
-                    send_self_update(neigh->network, 0);
+                    send_self_update(neigh->network, 1);
                 } else {
                     struct destination *dest;
                     dest = find_destination(message + 4, 0, 0);
