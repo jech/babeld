@@ -172,12 +172,10 @@ netlink_read(int (*filter)(struct nlmsghdr *, void *data), void *data)
     iov.iov_base = &buf;
 
     while(1) {
-        int i = 1;
+        int i = 0;
 
         iov.iov_len = sizeof(buf);
         len = recvmsg(nl_command.sock, &msg, 0);
-
-        debugf("netlink_read: recvmsg\n");
 
         if(len < 0) {
             if(errno == EINTR)
@@ -191,29 +189,34 @@ netlink_read(int (*filter)(struct nlmsghdr *, void *data), void *data)
             fprintf(stderr, "sender address length == %d\n", msg.msg_namelen);
             return -1;
         } else if(nladdr.nl_pid != 0) {
-            debugf("netlink_read: nl_pid != 0");
+            debugf("Netlink message not for us.\n");
             continue;
         }
+
+        debugf("Netlink message: ");
+
         for(nh = (struct nlmsghdr *)buf;
              NLMSG_OK(nh, len);
              nh = NLMSG_NEXT(nh, len)) {
-            debugf("netlink_read: nh: %d (multi : %s) : ", i++,
-                   (nh->nlmsg_flags & NLM_F_MULTI) ? "yes" : "no");
+            debugf("nh %d %s", i,
+                   (nh->nlmsg_flags & NLM_F_MULTI) ? "(multi) " : "");
+            i++;
             if(nh->nlmsg_pid != nl_command.sockaddr.nl_pid ||
                 nh->nlmsg_seq != nl_command.seqno) {
-                debugf("netlink_read: wrong seqno/pid\n");
-                continue; // or break ? -> read next 'msg'
+                debugf("(wrong seqno/pid), ");
+                continue;
             } else if(nh->nlmsg_type == NLMSG_DONE) {
-                debugf("netlink_read: DONE\n");
+                debugf("done\n");
                 return 0;
             } else if(nh->nlmsg_type == NLMSG_ERROR) {
                 struct nlmsgerr *err = (struct nlmsgerr *)NLMSG_DATA(nh);
                 if(err->error == 0) {
-                    debugf("netlink_read: ACK\n");
+                    debugf("ACK\n");
                     if(!(nh->nlmsg_flags & NLM_F_MULTI))
                         return 0;
                     continue;
                 }
+                debugf("error\n");
 
                 errno = -err->error;
                 perror("netlink_read");
@@ -229,8 +232,10 @@ netlink_read(int (*filter)(struct nlmsghdr *, void *data), void *data)
             }
 
         }
+        debugf("\n");
+
         if(msg.msg_flags & MSG_TRUNC) {
-            fprintf(stderr, "Message truncated\n");
+            fprintf(stderr, "Netlink message truncated\n");
             continue;
         }
     }
