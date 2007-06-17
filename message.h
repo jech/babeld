@@ -42,7 +42,7 @@ void send_hello(struct network *net);
 void send_request(struct network *net, struct destination *dest);
 void send_unicast_request(struct neighbour *neigh, struct destination *dest);
 void send_update(struct destination *dest, struct network *net);
-void send_self_update(struct network *net);
+void send_self_update(struct network *net, int force_seqno);
 void send_self_retract(struct network *net);
 void send_neighbour_update(struct neighbour *neigh, struct network *net);
 void send_txcost(struct neighbour *neigh, struct network *net);

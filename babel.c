@@ -353,7 +353,7 @@ main(int argc, char **argv)
 
     for(i = 0; i < numnets; i++) {
         send_hello(&nets[i]);
-        send_self_update(&nets[i]);
+        send_self_update(&nets[i], 0);
         send_request(&nets[i], NULL);
     }
 
@@ -444,7 +444,7 @@ main(int argc, char **argv)
                 send_txcost(NULL, &nets[i]);
             if(now.tv_sec >=
                nets[i].self_update_time + nets[i].self_update_interval) {
-                send_self_update(&nets[i]);
+                send_self_update(&nets[i], 0);
             }
         }
 
@@ -661,7 +661,7 @@ expire_routes(void)
 
     rc = check_myxroutes();
     if(rc > 0)
-        send_self_update(NULL);
+        send_self_update(NULL, 1);
     else if(rc < 0)
         fprintf(stderr, "Warning: couldn't check installed routes.\n");
 

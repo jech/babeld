@@ -110,7 +110,7 @@ parse_packet(const unsigned char *from, struct network *net,
                     send_txcost(neigh, NULL);
                     send_update(NULL, neigh->network);
                 } else if(memcmp(message + 4, myid, 16) == 0) {
-                    send_self_update(neigh->network);
+                    send_self_update(neigh->network, 0);
                 } else {
                     struct destination *dest;
                     dest = find_destination(message + 4, 0, 0);
@@ -515,10 +515,10 @@ send_update(struct destination *dest, struct network *net)
 }
 
 void
-send_self_update(struct network *net)
+send_self_update(struct network *net, int force_seqno)
 {
     debugf("Sending self update to %s.\n", net->ifname);
-    if(seqno_time + seqno_interval < now.tv_sec) {
+    if(force_seqno || seqno_time + seqno_interval < now.tv_sec) {
         seqno++;
         seqno_time = now.tv_sec;
     }
