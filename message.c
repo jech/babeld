@@ -105,6 +105,9 @@ parse_packet(const unsigned char *from, struct network *net,
                        format_address(from),
                        format_address(message + 4));
                 if(memcmp(message + 4, zeroes, 16) == 0) {
+                    /* If a neighbour is requesting a full route dump from us,
+                       we might as well send its txcost. */
+                    send_txcost(neigh, NULL);
                     send_update(NULL, neigh->network);
                 } else if(memcmp(message + 4, myid, 16) == 0) {
                     send_self_update(neigh->network);
