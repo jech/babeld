@@ -761,7 +761,7 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
 
     *found = (*found)+1;
 
-    return 0;
+    return 1;
 
 }
 
