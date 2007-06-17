@@ -182,9 +182,18 @@ netlink_read(int (*filter)(struct nlmsghdr *, void *data), void *data)
         iov.iov_len = sizeof(buf);
         len = recvmsg(nl_command.sock, &msg, 0);
 
+        if(len < 0 && (errno == EAGAIN || errno == EINTR)) {
+            int rc;
+            rc = wait_for_fd(0, nl_command.sock, 100);
+            if(rc <= 0) {
+                if(rc == 0)
+                    errno = EAGAIN;
+            } else {
+                len = recvmsg(nl_command.sock, &msg, 0);
+            }
+        }
+
         if(len < 0) {
-            if(errno == EINTR)
-                continue;
             perror("recvmsg(nl_command)");
             continue;
         } else if(len == 0) {
@@ -276,6 +285,16 @@ netlink_talk(struct nlmsghdr *nh)
     nh->nlmsg_seq = ++nl_command.seqno;
 
     rc = sendmsg(nl_command.sock, &msg, 0);
+    if(rc < 0 && (errno == EAGAIN || errno == EINTR)) {
+        rc = wait_for_fd(1, nl_command.sock, 100);
+        if(rc <= 0) {
+            if(rc == 0)
+                errno = EAGAIN;
+        } else {
+            rc = sendmsg(nl_command.sock, &msg, 0);
+        }
+    }
+
     if(rc < nh->nlmsg_len) {
         perror("sendmsg");
         return -1;
@@ -371,7 +390,7 @@ netlink_listen(int (*monitor)(struct nlmsghdr *nh, void *data), void *data) {
     len = recvmsg(nl_listen.sock, &msg, 0);
 
     if(len < 0) {
-        if(errno == EINTR)
+        if(errno == EINTR || errno == EAGAIN)
             return 0;
         perror("recvmsg(netlink)");
         return -1;
