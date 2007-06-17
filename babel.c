@@ -212,6 +212,7 @@ main(int argc, char **argv)
 
     gettimeofday(&now, NULL);
     reboot_time = now.tv_sec;
+    seqno = (random() & 0xFF);
 
     fd = open(state_file, O_RDONLY);
     if(fd < 0 && errno != ENOENT)
@@ -232,11 +233,11 @@ main(int argc, char **argv)
         } else {
             buf[rc] = '\0';
             rc = sscanf(buf, "%d %d\n", &s, &t);
-            if(rc == 2 && s >= 0 && s < 256 &&
-               t >= 1176800000 && t <= now.tv_sec) {
+            if(rc == 2 && s >= 0 && s < 256) {
                 debugf("Got %d %d from babel-state.\n", s, t);
                 seqno = ((s + 1) & 0xFF);
-                reboot_time = t;
+                if(t >= 1176800000 && t <= now.tv_sec)
+                    reboot_time = t;
             } else {
                 fprintf(stderr, "Couldn't parse babel-state.\n");
             }
@@ -679,6 +680,7 @@ add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
     nets[numnets].buffered = 0;
     nets[numnets].bucket_time = now.tv_sec;
     nets[numnets].bucket = 0;
+    nets[numnets].hello_seqno = (random() & 0xFF);
     numnets++;
     return &nets[numnets - 1];
 }
