@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include "babel.h"
 #include "util.h"
 #include "neighbour.h"
+#include "destination.h"
 #include "route.h"
 #include "message.h"
 
@@ -167,6 +168,19 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
             send_self_update(neigh->network);
             send_neighbour_update(neigh, NULL);
         }
+    }
+
+    if(neigh->reach == 0xC000) {
+        /* This is a newish neighbour.  Assume its id is also its IP address.
+           If the best route to it is through it, send it a request
+           for a full route dump. */
+        struct destination *dest;
+        struct route *route = NULL;
+        dest = find_destination(neigh->id, 0, 0);
+        if(dest)
+            route = find_best_route(dest);
+        if(!route || route->nexthop == neigh)
+            send_unicast_request(neigh, NULL);
     }
 }
 
