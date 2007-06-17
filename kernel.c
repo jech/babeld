@@ -121,12 +121,19 @@ netlink_socket(struct netlink *nl, uint32_t groups)
 
     nl->seqno = time(NULL);
 
+    rc = fcntl(nl->sock, F_GETFL, 0);
+    if(rc < 0)
+        goto fail;
+
+    rc = fcntl(nl->sock, F_SETFL, (rc | O_NONBLOCK));
+    if(rc < 0)
+        goto fail;
+
     rc = bind(nl->sock, (struct sockaddr *)&nl->sockaddr, nl->socklen);
     if(rc < 0)
         goto fail;
 
     rc = getsockname(nl->sock, (struct sockaddr *)&nl->sockaddr, &nl->socklen);
-
     if(rc < 0)
         goto fail;
 
