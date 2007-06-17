@@ -91,7 +91,7 @@ main(int argc, char **argv)
     struct ipv6_mreq mreq;
     int i, rc, fd;
     static unsigned char *buf;
-    int expiry_time = 0;
+    int expiry_time;
     void *vrc;
     unsigned int seed;
     char **arg;
@@ -352,6 +352,7 @@ main(int argc, char **argv)
 
     init_signals();
     check_myxroutes();
+    expiry_time = now.tv_sec + 20 + random() % 20;
 
     for(i = 0; i < numnets; i++) {
         send_hello(&nets[i]);
