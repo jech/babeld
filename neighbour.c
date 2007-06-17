@@ -108,6 +108,8 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
     neigh->txcost = INFINITY;
     neigh->txcost_time = now.tv_sec;
     neigh->hello_time = 0;
+    neigh->hello_interval = 0;
+    neigh->hello_seqno = -1;
     neigh->network = net;
     send_hello(net);
     return neigh;
@@ -127,7 +129,7 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
             return;
         neigh->hello_time += missed_hellos * neigh->hello_interval;
     } else {
-        if(neigh->reach > 0) {
+        if(neigh->hello_seqno >= 0 && neigh->reach > 0) {
             missed_hellos = seqno_minus(hello, neigh->hello_seqno) - 1;
             while(missed_hellos < 0) {
                 /* This neighbour has increased its hello interval, and we
