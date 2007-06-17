@@ -472,24 +472,21 @@ send_update(struct destination *dest, struct network *net)
 {
     int i;
 
-    if(net) {
-        if(parasitic ||
-           (silent_time && now.tv_sec < reboot_time + silent_time)) {
-            net->update_time = now.tv_sec;
-            if(dest == NULL) {
-                buffer_update(net, NULL);
-                net->self_update_time = now.tv_sec;
-            }
-        } else {
-            silent_time = 0;
-        }
-    }
-
     if(net == NULL) {
         for(i = 0; i < numnets; i++)
             send_update(dest, &nets[i]);
         return;
     }
+
+    if(parasitic ||
+       (silent_time && now.tv_sec < reboot_time + silent_time)) {
+        net->update_time = now.tv_sec;
+        if(dest == NULL)
+            send_self_update(net, 0);
+        return;
+    }
+
+    silent_time = 0;
 
     if(dest) {
         if(updates >= net->bufsize / 20) {
@@ -507,9 +504,8 @@ send_update(struct destination *dest, struct network *net)
         for(i = 0; i < numroutes; i++)
             if(routes[i].installed)
                 buffer_update(net, routes[i].dest);
-        buffer_update(net, NULL);
         net->update_time = now.tv_sec;
-        net->self_update_time = now.tv_sec;
+        send_self_update(net, 0);
     }
     schedule_update_flush();
 }
@@ -532,8 +528,8 @@ send_self_update(struct network *net, int force_seqno)
     debugf("Sending self update to %s.\n", net->ifname);
 
     buffer_update(net, NULL);
-    schedule_update_flush();
     net->self_update_time = now.tv_sec;
+    schedule_update_flush();
 }
 
 void
