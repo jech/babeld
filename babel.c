@@ -354,7 +354,14 @@ main(int argc, char **argv)
     check_myxroutes();
     expiry_time = now.tv_sec + 20 + random() % 20;
 
+    /* Make some noise so others notice us */
     for(i = 0; i < numnets; i++) {
+        send_hello(&nets[i]);
+        send_request(&nets[i], NULL);
+    }
+    for(i = 0; i < numnets; i++) {
+        usleep(50000 + random() % 100000);
+        flushbuf(&nets[i]);
         send_hello(&nets[i]);
         send_self_update(&nets[i], 0);
         send_request(&nets[i], NULL);
