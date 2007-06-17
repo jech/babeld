@@ -342,7 +342,7 @@ netlink_listen(int (*monitor)(struct nlmsghdr *nh, void *data), void *data) {
     int len;
     int interesting = 0;
 
-    static char buf[8192];
+    char buf[8192];
 
     if(nl_listen.sock < 0) {
         fprintf(stderr,"netlink_listen: netlink not initialized.\n");
