@@ -241,6 +241,9 @@ neighbour_cost(struct neighbour *neigh)
     if(a <= 256 && b <= 256) {
         return MAX(a, b);
     } else {
+        /* a = 256/alpha, b = 256/beta, where alpha and beta are the expected
+           probabilities of a packet getting through in the direct and reverse
+           directions. */
         a = MAX(a, 256);
         b = MAX(b, 256);
         /* (1/(alpha * beta) + 1/beta) / 2, which is half the expected
