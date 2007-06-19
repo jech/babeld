@@ -93,7 +93,8 @@ parse_packet(const unsigned char *from, struct network *net,
                    format_address(from));
             net->activity_time = now.tv_sec;
             neigh = add_neighbour(message + 4, from, net);
-            update_neighbour(neigh, message[1], (message[2] << 8 | message[3]));
+            update_neighbour(neigh, message[1],
+                             ((message[2] & 0x3) << 8) | message[3]);
             update_neighbour_metric(neigh);
         } else {
             neigh = find_neighbour(from, net);
@@ -283,7 +284,10 @@ send_hello(struct network *net)
     accumulate_byte(net, 0);
     net->hello_seqno = ((net->hello_seqno + 1) & 0xFF);
     accumulate_byte(net, net->hello_seqno);
-    accumulate_short(net, net->hello_interval);
+    if(net->hello_interval >= 1 << 10)
+        accumulate_short(net, 0);
+    else
+        accumulate_short(net, net->hello_interval);
     accumulate_data(net, myid, 16);
     schedule_flush(net);
     net->hello_time = now.tv_sec;
