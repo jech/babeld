@@ -25,10 +25,11 @@ struct neighbour {
     unsigned char address[16];
     unsigned short reach;
     unsigned short txcost;
+    /* This is -1 when unknown, so don't make it unsigned */
+    short int hello_seqno;
     int txcost_time;
     int hello_time;
     int hello_interval;
-    int hello_seqno;
     struct network *network;
 };
 
