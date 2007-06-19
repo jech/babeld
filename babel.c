@@ -741,7 +741,7 @@ expire_routes(void)
     i = 0;
     while(i < numxroutes) {
         struct xroute *xroute = &xroutes[i];
-        if(xroute->time < now.tv_sec - 240) {
+        if(xroute->time < now.tv_sec - xroute_gc_delay) {
             flush_xroute(xroute);
             continue;
         }
