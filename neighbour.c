@@ -125,11 +125,11 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
     } else {
         if(neigh->hello_seqno >= 0 && neigh->reach > 0) {
             missed_hellos = seqno_minus(hello, neigh->hello_seqno) - 1;
-            while(missed_hellos < 0) {
+            if(missed_hellos < 0) {
                 /* This neighbour has increased its hello interval, and we
                    didn't notice. */
-                neigh->reach <<= 1;
-                missed_hellos++;
+                neigh->reach <<= -missed_hellos;
+                missed_hellos = 0;
             }
         } else {
             missed_hellos = 0;
@@ -138,10 +138,8 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
         neigh->hello_interval = hello_interval;
     }
 
-    while(missed_hellos) {
-        neigh->reach >>= 1;
-        missed_hellos--;
-    }
+    neigh->reach >>= missed_hellos;
+    missed_hellos = 0;
 
     if(hello >= 0) {
         neigh->hello_seqno = hello;
