@@ -49,7 +49,6 @@ THE SOFTWARE.
 #include "message.h"
 
 struct timeval now;
-const struct timeval tv_zero = {0, 0};
 
 unsigned char myid[16];
 int debug = 0;
@@ -686,7 +685,6 @@ add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
     nets[numnets].activity_time = now.tv_sec;
     update_hello_interval(&nets[numnets]);
     nets[numnets].bufsize = mtu - sizeof(packet_header);
-    nets[numnets].flush_time = tv_zero;
     strncpy(nets[numnets].ifname, ifname, IF_NAMESIZE);
     p = malloc(nets[numnets].bufsize);
     if(p == NULL) {
