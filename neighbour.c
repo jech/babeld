@@ -157,23 +157,26 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
     }
 
     /* Make sure to give neighbours some feedback early after association */
-    if((neigh->reach & 0xF000) == 0x8000) {
+    if((neigh->reach & 0xFC00) == 0x8000) {
+        /* A new neighbour */
         send_hello(neigh->network);
         send_txcost(neigh, NULL);
     } else {
+        /* Don't send hellos, in order to avoid a positive feedback loop. */
         int a = (neigh->reach & 0xC000);
         int b = (neigh->reach & 0x3000);
         if((a == 0xC000 && b == 0) || (a == 0 && b == 0x3000)) {
+            /* Reachability is either 1100 or 0011 */
             send_txcost(neigh, NULL);
             send_self_update(neigh->network, 0);
             send_neighbour_update(neigh, NULL);
         }
     }
 
-    if(neigh->reach == 0xC000) {
-        /* This is a newish neighbour.  Assume its id is also its IP address.
-           If the best route to it is through it, send it a request
-           for a full route dump. */
+    if((neigh->reach & 0xFF00) == 0xC000) {
+        /* This is a newish neighbour.  If it's not completely useless
+           (the best route to it is through it), request a full route dump.
+           This assumes that the neighbour's ID is also it's IP address. */
         struct destination *dest;
         struct route *route = NULL;
         dest = find_destination(neigh->id, 0, 0);
