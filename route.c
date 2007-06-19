@@ -220,7 +220,7 @@ find_best_route(struct destination *dest)
     for(i = 0; i < numroutes; i++) {
         if(routes[i].dest != dest)
             continue;
-        if(routes[i].time < now.tv_sec - 180)
+        if(routes[i].time < now.tv_sec - route_timeout_delay)
             continue;
         if(!route_feasible(&routes[i]))
             continue;
