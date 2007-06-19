@@ -274,7 +274,7 @@ update_route_metric(struct route *route)
             else
                 send_triggered_update(route, oldmetric);
         } else {
-                send_triggered_update(route, oldmetric);
+            send_triggered_update(route, oldmetric);
         }
     } else {
         consider_route(route);
