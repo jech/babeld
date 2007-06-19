@@ -57,6 +57,7 @@ find_destination(const unsigned char *d, int create, unsigned char seqno)
     }
     dests[i].seqno = seqno;
     dests[i].metric = INFINITY;
+    dests[i].time = now.tv_sec;
     return &dests[i];
 }
 
