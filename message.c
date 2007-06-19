@@ -64,7 +64,7 @@ parse_packet(const unsigned char *from, struct network *net,
     int i, j;
     const unsigned char *message;
     struct neighbour *neigh;
-    struct xroute pxroutes[20];
+    struct xroute pxroutes[40];
     int numpxroutes = 0;
 
     if(len % 20 != 4 || packet[0] != 42) {
@@ -151,7 +151,7 @@ parse_packet(const unsigned char *from, struct network *net,
             } else if(message[0] == 4) {
                 debugf("Received xroute from %s.\n",
                        format_address(from));
-                if(numpxroutes >= 20) {
+                if(numpxroutes >= 40) {
                     fprintf(stderr, "Too many xroutes in update.\n");
                     continue;
                 }
