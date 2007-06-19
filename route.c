@@ -68,7 +68,7 @@ void
 flush_route(struct route *route)
 {
     int n;
-    unsigned char dest[16];
+    struct destination *dest;
     int install = 0, oldmetric;
 
     n = route - routes;
@@ -81,7 +81,7 @@ flush_route(struct route *route)
         install = 1;
     }
 
-    memcpy(dest, route->dest->address, 16);
+    dest = route->dest;
 
     if(n != numroutes - 1)
         memcpy(routes + n, routes + numroutes - 1, sizeof(struct route));
@@ -90,21 +90,14 @@ flush_route(struct route *route)
 
     if(install) {
         struct route *new_route;
-        struct destination *destination = find_destination(dest, 0, 0);
-        if(destination == NULL) {
-            fprintf(stderr,
-                    "Attempted to retract unknown destination "
-                    "(this shouldn't happen).\n");
-            return;
-        }
-        new_route = find_best_route(destination);
+        new_route = find_best_route(dest);
         if(new_route) {
             install_route(new_route);
             send_triggered_update(new_route, oldmetric);
         } else {
-            if(destination->metric < INFINITY) {
-                destination->seqno = ((destination->seqno + 1) & 0xFF);
-                destination->metric = INFINITY;
+            if(dest->metric < INFINITY) {
+                dest->metric = INFINITY;
+                dest->seqno = (dest->seqno + 1) & 0xFF;
             }
             send_update(route->dest, NULL);
             send_request(NULL, route->dest);
