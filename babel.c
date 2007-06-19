@@ -685,7 +685,6 @@ add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
     nets[numnets].cost = cost;
     nets[numnets].activity_time = now.tv_sec;
     update_hello_interval(&nets[numnets]);
-    nets[numnets].txcost_interval = MIN(42, 2 * nets[numnets].hello_interval);
     nets[numnets].bufsize = mtu - sizeof(packet_header);
     nets[numnets].flush_time = tv_zero;
     strncpy(nets[numnets].ifname, ifname, IF_NAMESIZE);
@@ -716,6 +715,8 @@ update_hello_interval(struct network *net)
     net->self_update_interval =
         MAX(15 + nets[numnets].hello_interval / 2,
             nets[numnets].hello_interval);
+
+    net->txcost_interval = 7 * net->hello_interval / 4;
 }
 
 void
