@@ -53,7 +53,7 @@ interval, or five times the wireless hello interval, whichever is less.
 .BI \-u " update-interval"
 Specify the interval in seconds at which scheduled routing table dumps
 are made on all interfaces.  The default is either the wired hello
-interval, or 150, whichever is less.  Babel uses triggered updates in
+interval, or 70, whichever is less.  Babel uses triggered updates in
 addition to scheduled updates, so this value may be set to a fairly
 large value.
 .TP
