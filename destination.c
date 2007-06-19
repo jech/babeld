@@ -36,6 +36,10 @@ find_destination(const unsigned char *d, int create, unsigned char seqno)
 {
     int i;
     for(i = 0; i < numdests; i++) {
+        /* This should really be a hash table.  For now, check the
+           last byte first. */
+        if(dests[i].address[15] != d[15])
+            continue;
         if(memcmp(dests[i].address, d, 16) == 0)
             return &dests[i];
     }
