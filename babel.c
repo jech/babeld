@@ -58,8 +58,11 @@ static int maxmtu;
 
 int reboot_time;
 
+int idle_time = 320;
+
 int wireless_hello_interval = -1;
 int wired_hello_interval = -1;
+int idle_hello_interval = -1;
 int update_interval = -1;
 
 struct network nets[MAXNETS];
@@ -157,6 +160,9 @@ main(int argc, char **argv)
         } else if(strcmp(*arg, "-H") == 0) {
             SHIFTE();
             wired_hello_interval = atoi(*arg);
+        } else if(strcmp(*arg, "-i") == 0) {
+            SHIFTE();
+            idle_hello_interval = atoi(*arg);
         } else if(strcmp(*arg, "-u") == 0) {
             SHIFTE();
             update_interval = atoi(*arg);
@@ -193,6 +199,10 @@ main(int argc, char **argv)
 
     if(wired_hello_interval <= 0)
         wired_hello_interval = 30;
+
+    if(idle_hello_interval <= 0)
+        idle_hello_interval =
+            MIN(wireless_hello_interval * 5, wired_hello_interval);
 
     if(update_interval <= 0)
         update_interval =
@@ -532,9 +542,9 @@ main(int argc, char **argv)
             "Syntax: %s "
             "[-m multicast_address] [-p port] [-S state-file]\n"
             "                "
-            "[-h hello_interval] [-H wired_hello_interval]\n"
+            "[-h hello] [-H wired_hello] [i idle_hello]\n"
             "                "
-            "[-u update_interval] [-k metric] [-s] [-P] [-c cost]\n"
+            "[-u update] [-k metric] [-s] [-P] [-c cost]\n"
             "                "
             "[-d level] [-x net cost] [-X net cost]... address interface...\n",
             argv[0]);
@@ -659,17 +669,6 @@ kernel_routes_callback(void *closure)
     return 1;
 }
 
-void
-set_hello_interval(struct network *net, int hello_interval)
-{
-    if(hello_interval >= 0)
-        net->hello_interval = hello_interval;
-    else if(net->wired)
-        net->hello_interval = wired_hello_interval;
-    else
-        net->hello_interval = wireless_hello_interval;
-}
-
 struct network *
 add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
 {
@@ -684,10 +683,8 @@ add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
     nets[numnets].ifindex = ifindex;
     nets[numnets].wired = wired;
     nets[numnets].cost = cost;
-    set_hello_interval(&nets[numnets], -1);
-    nets[numnets].self_update_interval =
-        MAX(15 + nets[numnets].hello_interval / 2,
-            nets[numnets].hello_interval);
+    nets[numnets].activity_time = now.tv_sec;
+    update_hello_interval(&nets[numnets]);
     nets[numnets].txcost_interval = MIN(42, 2 * nets[numnets].hello_interval);
     nets[numnets].bufsize = mtu - sizeof(packet_header);
     nets[numnets].flush_time = tv_zero;
@@ -704,6 +701,21 @@ add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
     nets[numnets].hello_seqno = (random() & 0xFF);
     numnets++;
     return &nets[numnets - 1];
+}
+
+void
+update_hello_interval(struct network *net)
+{
+    if(net->activity_time < now.tv_sec - idle_time)
+        net->hello_interval = idle_hello_interval;
+    else if(net->wired)
+        net->hello_interval = wired_hello_interval;
+    else
+        net->hello_interval = wireless_hello_interval;
+
+    net->self_update_interval =
+        MAX(15 + nets[numnets].hello_interval / 2,
+            nets[numnets].hello_interval);
 }
 
 void

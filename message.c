@@ -91,6 +91,7 @@ parse_packet(const unsigned char *from, struct network *net,
                    net->ifname,
                    format_address(message + 4),
                    format_address(from));
+            net->activity_time = now.tv_sec;
             neigh = add_neighbour(message + 4, from, net);
             update_neighbour(neigh, message[1], (message[2] << 8 | message[3]));
             update_neighbour_metric(neigh);
@@ -98,6 +99,7 @@ parse_packet(const unsigned char *from, struct network *net,
             neigh = find_neighbour(from, net);
             if(neigh == NULL)
                 continue;
+            net->activity_time = now.tv_sec;
             if(message[0] == 1) {
                 debugf("Received request on %s from %s (%s) for %s.\n",
                        net->ifname,
@@ -276,6 +278,7 @@ void
 send_hello(struct network *net)
 {
     debugf("Sending hello to %s.\n", net->ifname);
+    update_hello_interval(net);
     start_message(net, 20);
     accumulate_byte(net, 0);
     net->hello_seqno = ((net->hello_seqno + 1) & 0xFF);

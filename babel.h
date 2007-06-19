@@ -76,6 +76,7 @@ struct network {
     unsigned char *sendbuf;
     int bucket_time;
     unsigned int bucket;
+    int activity_time;
     unsigned char hello_seqno;
     unsigned int hello_interval;
     unsigned int self_update_interval;
@@ -95,3 +96,5 @@ extern int protocol_port;
 extern unsigned char protocol_group[16];
 extern int protocol_socket;
 extern int kernel_socket;
+
+void update_hello_interval(struct network *net);
