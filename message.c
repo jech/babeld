@@ -82,7 +82,7 @@ parse_packet(const unsigned char *from, struct network *net,
                         net->ifname, format_address(from));
             }
             numpxroutes = 0;
-            VALGRIND_MAKE_MEM_UNDEFINED(pxroutes, sizeof(pxroutes));
+            VALGRIND_MAKE_MEM_UNDEFINED(&pxroutes, sizeof(pxroutes));
         }
         if(message[0] == 0) {
             if(memcmp(message + 4, myid, 16) == 0)
@@ -142,7 +142,7 @@ parse_packet(const unsigned char *from, struct network *net,
                              message[1], (message[2] << 8 | message[3]),
                              neigh, pxroutes, numpxroutes);
                 numpxroutes = 0;
-                VALGRIND_MAKE_MEM_UNDEFINED(pxroutes, sizeof(pxroutes));
+                VALGRIND_MAKE_MEM_UNDEFINED(&pxroutes, sizeof(pxroutes));
             } else if(message[0] == 3) {
                 debugf("Received txcost from %s.\n", format_address(from));
                 if(memcmp(myid, message + 4, 16) == 0 ||
@@ -445,9 +445,8 @@ flushupdates(void)
             }
         }
         schedule_flush_now(net);
-        VALGRIND_MAKE_MEM_UNDEFINED(buffered_updates,
-                                    MAX_BUFFERED_UPDATES *
-                                    sizeof(struct destination));
+        VALGRIND_MAKE_MEM_UNDEFINED(&buffered_updates,
+                                    sizeof(buffered_updates));
     }
     update_flush_time.tv_sec = 0;
     update_flush_time.tv_usec = 0;
