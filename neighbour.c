@@ -36,13 +36,6 @@ THE SOFTWARE.
 struct neighbour neighs[MAXNEIGHBOURS];
 int numneighs = 0;
 
-struct neighbour *find_neighbour(const unsigned char *address,
-                                 struct network *net);
-struct neighbour *
-add_neighbour(const unsigned char *id, const unsigned char *address,
-              struct network *net);
-
-
 void
 flush_neighbour(struct neighbour *neigh)
 {
