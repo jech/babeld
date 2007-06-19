@@ -30,13 +30,14 @@ struct route {
     struct neighbour *nexthop;
     int time;
     int origtime;
-    int blackhole_time;
     int installed;
 };
 
 extern struct route routes[MAXROUTES];
 extern int numroutes;
 extern int kernel_metric;
+extern int route_timeout_delay;
+extern int route_gc_delay;
 
 struct route *find_route(const unsigned char *dest, struct neighbour *nexthop);
 struct route *find_installed_route(struct destination *dest);

@@ -38,6 +38,8 @@ THE SOFTWARE.
 struct route routes[MAXROUTES];
 int numroutes = 0;
 int kernel_metric = 0;
+int route_timeout_delay = 50;
+int route_gc_delay = 95;
 
 struct route *
 find_route(const unsigned char *dest, struct neighbour *nexthop)
@@ -254,18 +256,33 @@ void
 update_route_metric(struct route *route)
 {
     int oldmetric;
+    int newmetric;
 
     oldmetric = route->metric;
-    change_route_metric(route,
-                        MIN(route->refmetric + neighbour_cost(route->nexthop),
-                            INFINITY));
+    if(route->time < now.tv_sec - route_timeout_delay) {
+        if(oldmetric < INFINITY) {
+            route->refmetric = INFINITY;
+            route->seqno = (route->dest->seqno + 1) & 0xFF;
+        }
+        newmetric = INFINITY;
+    } else {
+        newmetric = MIN(route->refmetric + neighbour_cost(route->nexthop),
+                        INFINITY);
+    }
+
+    change_route_metric(route, newmetric);
+
     if(route->installed) {
-        struct route *better_route;
-        better_route = find_best_route(route->dest);
-        if(better_route && better_route->metric <= route->metric - 96)
-            consider_route(better_route);
-        else
-            send_triggered_update(route, oldmetric);
+        if(newmetric > oldmetric) {
+            struct route *better_route;
+            better_route = find_best_route(route->dest);
+            if(better_route && better_route->metric <= route->metric - 96)
+                consider_route(better_route);
+            else
+                send_triggered_update(route, oldmetric);
+        } else {
+                send_triggered_update(route, oldmetric);
+        }
     } else {
         consider_route(route);
     }
@@ -306,13 +323,8 @@ update_route(const unsigned char *d, int seqno, int refmetric,
         oldseqno = route->seqno;
         oldmetric = route->metric;
         route->time = now.tv_sec;
-        if(refmetric < INFINITY) {
-            route->blackhole_time = 0;
-            if(route->refmetric >= INFINITY)
-                route->origtime = now.tv_sec;
-        } else if(route->blackhole_time <= 0) {
-            route->blackhole_time = now.tv_sec;
-        }
+        if(route->refmetric >= INFINITY)
+            route->origtime = now.tv_sec;
         route->seqno = seqno;
         route->refmetric = refmetric;
         change_route_metric(route, metric);
@@ -347,7 +359,6 @@ update_route(const unsigned char *d, int seqno, int refmetric,
         route->nexthop = nexthop;
         route->time = now.tv_sec;
         route->origtime = now.tv_sec;
-        route->blackhole_time = 0;
         route->installed = 0;
         numroutes++;
         for(i = 0; i < numpxroutes; i++)

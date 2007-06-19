@@ -724,20 +724,15 @@ expire_routes(void)
     while(i < numroutes) {
         struct route *route = &routes[i];
 
-        if(route->blackhole_time > 0 &&
-           route->blackhole_time < now.tv_sec - 65) {
+        if(route->time < now.tv_sec - route_gc_delay) {
             flush_route(route);
             continue;
         }
 
-        if(route->time < now.tv_sec - 120)
-            update_route(route->dest->address, ((route->seqno + 1) & 0xFF),
-                         INFINITY, route->nexthop, NULL, 0);
-        else
-            update_route_metric(route);
+        update_route_metric(route);
 
         if(route->installed && route->refmetric < INFINITY) {
-            if(route->time <= now.tv_sec - 70)
+            if(route->time < now.tv_sec - MAX(5, route_timeout_delay - 25))
                 send_unicast_request(route->nexthop, route->dest);
         }
         i++;
