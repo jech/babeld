@@ -47,8 +47,8 @@ sent on wired interfaces.  The default is 30.
 .BI \-i " idle-hello-interval"
 Specify the interval in seconds at which scheduled hello packets are
 sent on idle interfaces (interfaces on which there has been no
-activity in the last 5 minutes).  The default is the wired hello
-interval, or five times the wireless hello interval, whichever is less.
+activity in the last 5 minutes).  The default is 0, which disables
+idle detection.
 .TP
 .BI \-u " update-interval"
 Specify the interval in seconds at which scheduled routing table dumps
