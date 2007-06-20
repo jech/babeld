@@ -199,10 +199,6 @@ main(int argc, char **argv)
     if(wired_hello_interval <= 0)
         wired_hello_interval = 30;
 
-    if(idle_hello_interval <= 0)
-        idle_hello_interval =
-            MIN(wireless_hello_interval * 5, wired_hello_interval);
-
     if(update_interval <= 0)
         update_interval =
             MIN(MAX(wireless_hello_interval * 5, wired_hello_interval),
@@ -703,7 +699,7 @@ add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
 void
 update_hello_interval(struct network *net)
 {
-    if(net->activity_time < now.tv_sec - idle_time)
+    if(idle_hello_interval >= 0 && net->activity_time < now.tv_sec - idle_time)
         net->hello_interval = idle_hello_interval;
     else if(net->wired)
         net->hello_interval = wired_hello_interval;
