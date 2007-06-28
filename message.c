@@ -201,7 +201,7 @@ parse_packet(const unsigned char *from, struct network *net,
 
 /* Under normal circumstances, there are enough moderation mechanisms
    elsewhere in the protocol to make sure that this last-ditch check
-   should never trigger.  But I'm superstitious. */
+   should never trigger.  But I'm supersticious. */
 
 static int
 check_bucket(struct network *net)
