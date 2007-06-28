@@ -114,8 +114,8 @@ parse_packet(const unsigned char *from, struct network *net,
                     send_update(NULL, neigh->network);
                 } else if(memcmp(message + 4, myid, 16) == 0) {
                     int new_seqno;
-                    if(message[2] > 0 &&
-                       seqno_compare(message[1], seqno) <= 0)
+                    if(message[2] > 0 && seqno_compare(message[1], seqno) <= 0)
+                        /* Somebody's requesting an old seqno. */
                         new_seqno = 0;
                     else
                         new_seqno = 1;
