@@ -374,6 +374,7 @@ main(int argc, char **argv)
     for(i = 0; i < numnets; i++) {
         usleep(50000 + random() % 100000);
         flushbuf(&nets[i]);
+        gettimeofday(&now, NULL);
         send_hello(&nets[i]);
         send_self_update(&nets[i], 0);
         send_request(&nets[i], NULL, 0, -1);
