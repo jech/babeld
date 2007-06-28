@@ -523,12 +523,15 @@ main(int argc, char **argv)
     fd = open(state_file, O_WRONLY | O_TRUNC | O_CREAT, 0644);
     if(fd < 0) {
         perror("creat(babel-state)");
+        unlink(state_file);
     } else {
         char buf[100];
         rc = snprintf(buf, 100, "%d %d\n", seqno, (int)now.tv_sec);
         rc = write(fd, buf, rc);
-        if(rc < 0)
+        if(rc < 0) {
             perror("write(babel-state)");
+            unlink(state_file);
+        }
         close(fd);
     }
     debugf("Done.");
