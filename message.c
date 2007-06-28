@@ -117,8 +117,29 @@ parse_packet(const unsigned char *from, struct network *net,
                 } else {
                     struct destination *dest;
                     dest = find_destination(message + 4, 0, 0);
-                    if(dest)
-                        send_update(dest, neigh->network);
+                    if(dest) {
+                        if(message[2] == 0) {
+                            send_update(dest, neigh->network);
+                        } else {
+                            /* Request for a new seqno */
+                            int hopcount = message[2];
+                            int seqno = message[1];
+                            struct route *installed;
+                            installed = find_installed_route(dest);
+                            if(installed) {
+                                if(seqno_compare(installed->seqno, seqno) >= 0)
+                                    send_update(dest, neigh->network);
+                                else if(hopcount >= 2) {
+                                    send_unicast_request(installed->nexthop,
+                                                         dest,
+                                                         hopcount - 1);
+                                    /* For now, let's hope the new seqno
+                                       arrives before the update is flushed. */
+                                    send_update(dest, neigh->network);
+                                }
+                            }
+                        }
+                    }
                 }
             } else if(message[0] == 2) {
                 debugf("Received update on %s from %s (%s) for %s.\n",
