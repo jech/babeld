@@ -286,16 +286,13 @@ update_xroute_metric(struct xroute *xroute, int cost)
     int rc;
 
     gwroute = find_installed_route(xroute->gateway);
-    if(!gwroute)
-        return;
 
     oldmetric = xroute->metric;
-    newmetric = MIN(gwroute->metric + cost, INFINITY);
+    newmetric = gwroute ? MIN(gwroute->metric + cost, INFINITY) : INFINITY;
 
     if(xroute->cost != cost || oldmetric != newmetric) {
         xroute->cost = cost;
         if(xroute->installed) {
-            struct route *gwroute = find_installed_route(xroute->gateway);
             if(gwroute == NULL) {
                 fprintf(stderr, "Found installed blackhole xroute!.\n");
                 return;
