@@ -429,7 +429,13 @@ flushupdates(void)
         debugf("  (flushing %d buffered updates)\n", n);
         for(i = 0; i < n; i++) {
             if(buffered_updates[i] == NULL) {
-                start_message(net, MIN(20 + 20 * nummyxroutes, 1000));
+                int numpxroutes;
+                numpxroutes = 0;
+                for(j = 0; j < nummyxroutes; j++) {
+                    if(myxroutes[j].installed)
+                        numpxroutes++;
+                }
+                start_message(net, MIN(20 + 20 * numpxroutes, 1000));
                 for(j = 0; j < nummyxroutes; j++) {
                     if(!myxroutes[j].installed)
                         continue;
