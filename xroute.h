@@ -44,8 +44,8 @@ void install_xroute(struct xroute *xroute);
 void uninstall_xroute(struct xroute *xroute);
 void consider_xroute(struct xroute *xroute);
 void flush_xroute(struct xroute *xroute);
-void flush_xroutes(struct destination *gateway,
-                   const struct xroute *except, int numexcept);
+void retract_xroutes(struct destination *gateway,
+                     const struct xroute *except, int numexcept);
 struct xroute * update_xroute(const unsigned char *prefix, unsigned short plen,
                               struct destination *gateway, int cost);
 void update_xroute_metric(struct xroute *xroute, int cost);

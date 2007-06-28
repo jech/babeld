@@ -209,24 +209,21 @@ flush_xroute(struct xroute *xroute)
 }
 
 void
-flush_xroutes(struct destination *gateway,
-              const struct xroute *except, int numexcept)
+retract_xroutes(struct destination *gateway,
+                const struct xroute *except, int numexcept)
 {
     int i, j;
 
-    i = 0;
-    while(i < numxroutes) {
-        if(xroutes[i].gateway == gateway) {
+    for(i = 0; i < numxroutes; i++) {
+        if(xroutes[i].cost < INFINITY && xroutes[i].gateway == gateway) {
             for(j = 0; j < numexcept; j++) {
                 if(memcmp(xroutes[i].prefix, except[j].prefix, 16) == 0 &&
                    xroutes[i].plen == except[j].plen)
                     goto skip;
             }
-            flush_xroute(&xroutes[i]);
-            continue;
+            update_xroute_metric(&xroutes[i], INFINITY);
         }
-    skip:
-        i++;
+    skip: ;
     }
 }
 

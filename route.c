@@ -321,10 +321,8 @@ update_route(const unsigned char *d, int seqno, int refmetric,
         route->refmetric = refmetric;
         change_route_metric(route, metric);
         if(seqno_compare(oldseqno, seqno) <= 0) {
-            if(seqno_compare(oldseqno, seqno) < 0) {
-                /* Flush retracted xroutes */
-                flush_xroutes(dest, pxroutes, numpxroutes);
-            }
+            if(seqno_compare(oldseqno, seqno) < 0)
+                retract_xroutes(dest, pxroutes, numpxroutes);
             for(i = 0; i < numpxroutes; i++)
                 update_xroute(pxroutes[i].prefix,
                               pxroutes[i].plen,
