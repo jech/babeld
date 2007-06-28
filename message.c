@@ -439,11 +439,16 @@ flushupdates(void)
                 for(j = 0; j < nummyxroutes; j++) {
                     if(!myxroutes[j].installed)
                         continue;
-                    if(net->bufsize - net->buffered < 40)
+                    if(net->bufsize - net->buffered < 40) {
                         /* We cannot just call start_message, as this would
-                           split the xroutes from the update.  Bail out
-                           for now, and never mind the missing updates. */
-                        break;
+                           split the xroutes from the update. */
+                        start_message(net, 20);
+                        accumulate_byte(net, 2);
+                        accumulate_byte(net, seqno);
+                        accumulate_short(net, 0);
+                        accumulate_data(net, myid, 16);
+                        flushbuf(net);
+                    }
                     start_message(net, 20);
                     accumulate_byte(net, 4);
                     accumulate_byte(net, myxroutes[j].plen);
@@ -487,8 +492,15 @@ flushupdates(void)
                         if(xroutes[j].gateway != buffered_updates[i])
                             continue;
                         /* See comment above */
-                        if(net->bufsize - net->buffered < 40)
-                            break;
+                        if(net->bufsize - net->buffered < 40) {
+                            start_message(net, 20);
+                            accumulate_byte(net, 2);
+                            accumulate_byte(net, seqno);
+                            accumulate_short(net, metric);
+                            accumulate_data(net,
+                                            buffered_updates[i]->address, 16);
+                            flushbuf(net);
+                        }
                         start_message(net, 20);
                         accumulate_byte(net, 4);
                         accumulate_byte(net, xroutes[j].plen);
