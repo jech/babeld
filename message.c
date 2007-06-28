@@ -162,7 +162,7 @@ parse_packet(const unsigned char *from, struct network *net,
                         /* Oh my, someone is retracting a route to me. */
                         send_txcost(neigh, NULL);
                         send_self_update(neigh->network,
-                                         seqno_compare(theirseqno, seqno) < 0);
+                                         seqno_compare(theirseqno, seqno) > 0);
                     }
                     continue;
                 }
