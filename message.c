@@ -599,7 +599,8 @@ send_update(struct destination *dest, struct network *net)
 void
 send_self_update(struct network *net, int force_seqno)
 {
-    if(force_seqno || seqno_time + seqno_interval < now.tv_sec) {
+    if((force_seqno && seqno_time < now.tv_sec) ||
+       seqno_time + seqno_interval < now.tv_sec) {
         seqno = ((seqno + 1) & 0xFF);
         seqno_time = now.tv_sec;
     }
