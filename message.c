@@ -336,8 +336,9 @@ send_request(struct network *net, struct destination *dest,
         return;
     }
 
-    debugf("Sending request to %s for %s.\n",
-           net->ifname, dest ? format_address(dest->address) : "::/0");
+    debugf("Sending request to %s for %s (%d hops for seqno %d).\n",
+           net->ifname, dest ? format_address(dest->address) : "::/0",
+           hopcount, seqno);
     start_message(net, 20);
     accumulate_byte(net, 1);
     if(hopcount > 0 && dest) {
@@ -386,10 +387,12 @@ send_unicast_request(struct neighbour *neigh, struct destination *dest,
 {
     unsigned char buf[20];
 
-    debugf("Sending unicast request to %s (%s) for %s.\n",
+    debugf("Sending unicast request to %s (%s) for %s "
+           "(%d hops for seqno %d).\n",
            format_address(neigh->id),
            format_address(neigh->address),
-           dest ? format_address(dest->address) : "::/0");
+           dest ? format_address(dest->address) : "::/0",
+           hopcount, seqno);
 
     buf[0] = 1;
     if(hopcount > 0 && dest) {
