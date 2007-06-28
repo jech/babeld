@@ -141,7 +141,8 @@ parse_packet(const unsigned char *from, struct network *net,
                                 else if(hopcount >= 2) {
                                     send_unicast_request(installed->nexthop,
                                                          dest,
-                                                         hopcount - 1);
+                                                         hopcount - 1,
+                                                         theirseqno);
                                     /* For now, let's hope the new seqno
                                        arrives before the update is flushed. */
                                     send_update(dest, neigh->network);
@@ -324,13 +325,14 @@ send_hello(struct network *net)
 }
 
 void
-send_request(struct network *net, struct destination *dest, int hopcount)
+send_request(struct network *net, struct destination *dest,
+             int hopcount, int seqno)
 {
     int i;
 
     if(net == NULL) {
         for(i = 0; i < numnets; i++)
-            send_request(&nets[i], dest, hopcount);
+            send_request(&nets[i], dest, hopcount, seqno);
         return;
     }
 
@@ -339,7 +341,10 @@ send_request(struct network *net, struct destination *dest, int hopcount)
     start_message(net, 20);
     accumulate_byte(net, 1);
     if(hopcount > 0 && dest) {
-        accumulate_byte(net, dest->seqno);
+        if(seqno >= 0)
+            accumulate_byte(net, seqno);
+        else
+            accumulate_byte(net, dest->seqno);
         accumulate_byte(net, hopcount);
     } else {
         accumulate_byte(net, 0);
@@ -377,7 +382,7 @@ send_unicast_packet(struct neighbour *neigh, unsigned char *buf, int buflen)
 
 void
 send_unicast_request(struct neighbour *neigh, struct destination *dest,
-                     int hopcount)
+                     int hopcount, int seqno)
 {
     unsigned char buf[20];
 
@@ -388,7 +393,10 @@ send_unicast_request(struct neighbour *neigh, struct destination *dest,
 
     buf[0] = 1;
     if(hopcount > 0 && dest) {
-        buf[1] = dest->seqno;
+        if(seqno >= 0)
+            buf[1] = seqno;
+        else
+            buf[1] = dest->seqno;
         buf[2] = hopcount;
     } else {
         buf[1] = 0;

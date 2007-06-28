@@ -40,9 +40,9 @@ void parse_packet(const unsigned char *from, struct network *net,
 void flushbuf(struct network *net);
 void send_hello(struct network *net);
 void send_request(struct network *net, struct destination *dest,
-                  int hopcount);
+                  int hopcount, int seqno);
 void send_unicast_request(struct neighbour *neigh, struct destination *dest,
-                          int hopcount);
+                          int hopcount, int seqno);
 void send_update(struct destination *dest, struct network *net);
 void send_self_update(struct network *net, int force_seqno);
 void send_self_retract(struct network *net);

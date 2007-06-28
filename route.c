@@ -100,7 +100,7 @@ flush_route(struct route *route)
                 dest->seqno = (dest->seqno + 1) & 0xFF;
             }
             send_update(route->dest, NULL);
-            send_request(NULL, route->dest, max_hopcount);
+            send_request(NULL, route->dest, max_hopcount, -1);
         }
     }
 }
@@ -431,6 +431,6 @@ send_triggered_update(struct route *route, int oldmetric)
     if(route->metric - oldmetric >= 384) {
         /* This route's metric has increased a lot -- let's hope we find
            something better */
-        send_request(NULL, route->dest, 1);
+        send_request(NULL, route->dest, 1, -1);
     }
 }
