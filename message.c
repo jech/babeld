@@ -435,7 +435,7 @@ flushupdates(void)
                     if(myxroutes[j].installed)
                         numpxroutes++;
                 }
-                start_message(net, MIN(20 + 20 * numpxroutes, 1000));
+                start_message(net, 20 + 20 * numpxroutes);
                 for(j = 0; j < nummyxroutes; j++) {
                     if(!myxroutes[j].installed)
                         continue;
@@ -482,7 +482,7 @@ flushupdates(void)
                         if(xroutes[j].gateway == buffered_updates[i])
                             numpxroutes++;
                     }
-                    start_message(net, MIN(20 + 20 * numpxroutes, 1000));
+                    start_message(net, 20 + 20 * numpxroutes);
                     for(j = 0; j < numxroutes; j++) {
                         if(xroutes[j].gateway != buffered_updates[i])
                             continue;
