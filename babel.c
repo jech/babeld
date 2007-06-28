@@ -64,6 +64,8 @@ int wired_hello_interval = -1;
 int idle_hello_interval = -1;
 int update_interval = -1;
 
+int max_hopcount = 25;
+
 struct network nets[MAXNETS];
 int numnets = 0;
 
@@ -367,14 +369,14 @@ main(int argc, char **argv)
     /* Make some noise so others notice us */
     for(i = 0; i < numnets; i++) {
         send_hello(&nets[i]);
-        send_request(&nets[i], NULL);
+        send_request(&nets[i], NULL, 0);
     }
     for(i = 0; i < numnets; i++) {
         usleep(50000 + random() % 100000);
         flushbuf(&nets[i]);
         send_hello(&nets[i]);
         send_self_update(&nets[i], 0);
-        send_request(&nets[i], NULL);
+        send_request(&nets[i], NULL, 0);
     }
 
     debugf("Entering main loop.\n");
@@ -740,7 +742,7 @@ expire_routes(void)
 
         if(route->installed && route->refmetric < INFINITY) {
             if(route->time < now.tv_sec - MAX(5, route_timeout_delay - 25))
-                send_unicast_request(route->nexthop, route->dest);
+                send_unicast_request(route->nexthop, route->dest, 0);
         }
         i++;
     }

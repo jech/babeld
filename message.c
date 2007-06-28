@@ -294,13 +294,13 @@ send_hello(struct network *net)
 }
 
 void
-send_request(struct network *net, struct destination *dest)
+send_request(struct network *net, struct destination *dest, int hopcount)
 {
     int i;
 
     if(net == NULL) {
         for(i = 0; i < numnets; i++)
-            send_request(&nets[i], dest);
+            send_request(&nets[i], dest, hopcount);
         return;
     }
 
@@ -308,8 +308,14 @@ send_request(struct network *net, struct destination *dest)
            net->ifname, dest ? format_address(dest->address) : "::/0");
     start_message(net, 20);
     accumulate_byte(net, 1);
+    if(hopcount > 0 && dest) {
+        accumulate_byte(net, dest->seqno);
+        accumulate_byte(net, hopcount);
+    } else {
+        accumulate_byte(net, 0);
+        accumulate_byte(net, 0);
+    }
     accumulate_byte(net, 0);
-    accumulate_short(net, 0);
     accumulate_data(net, dest ? dest->address : zeroes, 16);
     schedule_flush(net);
 }
@@ -340,7 +346,8 @@ send_unicast_packet(struct neighbour *neigh, unsigned char *buf, int buflen)
 
 
 void
-send_unicast_request(struct neighbour *neigh, struct destination *dest)
+send_unicast_request(struct neighbour *neigh, struct destination *dest,
+                     int hopcount)
 {
     unsigned char buf[20];
 
@@ -350,8 +357,13 @@ send_unicast_request(struct neighbour *neigh, struct destination *dest)
            dest ? format_address(dest->address) : "::/0");
 
     buf[0] = 1;
-    buf[1] = 0;
-    buf[2] = 0;
+    if(hopcount > 0 && dest) {
+        buf[1] = dest->seqno;
+        buf[2] = hopcount;
+    } else {
+        buf[1] = 0;
+        buf[2] = 0;
+    }
     buf[3] = 0;
     if(dest == NULL)
         memset(buf + 4, 0, 16);

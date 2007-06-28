@@ -174,7 +174,7 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
         if(dest)
             route = find_best_route(dest);
         if(!route || route->nexthop == neigh)
-            send_unicast_request(neigh, NULL);
+            send_unicast_request(neigh, NULL, 0);
     }
 }
 
