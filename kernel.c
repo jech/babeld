@@ -581,7 +581,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         if(newmetric == metric)
             return 0;
         rc = kernel_route(ROUTE_ADD, dest, plen, gate, ifindex, newmetric, 0);
-        if(rc < 0)
+        if(rc < 0 && errno != EEXIST)
             return rc;
         rc = kernel_route(ROUTE_FLUSH, dest, plen, gate, ifindex, metric, 0);
         return rc;
