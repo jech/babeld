@@ -167,7 +167,7 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
     if((neigh->reach & 0xFF00) == 0xC000) {
         /* This is a newish neighbour.  If it's not completely useless
            (the best route to it is through it), request a full route dump.
-           This assumes that the neighbour's ID is also it's IP address. */
+           This assumes that the neighbour's ID is also its IP address. */
         struct destination *dest;
         struct route *route = NULL;
         dest = find_destination(neigh->id, 0, 0);
