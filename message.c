@@ -273,6 +273,17 @@ schedule_flush(struct network *net)
     net->flush_time.tv_sec = now.tv_sec + (now.tv_usec / 1000 + msecs) / 1000;
 }
 
+void
+schedule_flush_now(struct network *net)
+{
+    int msecs = random() % 10;
+    if(net->flush_time.tv_sec != 0 &&
+       timeval_minus_msec(&net->flush_time, &now) < msecs)
+        return;
+    net->flush_time.tv_usec = (now.tv_usec + msecs * 1000) % 1000000;
+    net->flush_time.tv_sec = now.tv_sec + (now.tv_usec / 1000 + msecs) / 1000;
+}
+
 static void
 start_message(struct network *net, int bytes)
 {
@@ -701,16 +712,4 @@ send_txcost(struct neighbour *neigh, struct network *net)
         accumulate_data(net, neigh->id, 16);
         schedule_flush(net);
     }
-}
-
-
-void
-schedule_flush_now(struct network *net)
-{
-    int msecs = random() % 10;
-    if(net->flush_time.tv_sec != 0 &&
-       timeval_minus_msec(&net->flush_time, &now) < msecs)
-        return;
-    net->flush_time.tv_usec = (now.tv_usec + msecs * 1000) % 1000000;
-    net->flush_time.tv_sec = now.tv_sec + (now.tv_usec / 1000 + msecs) / 1000;
 }
