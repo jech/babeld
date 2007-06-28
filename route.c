@@ -100,8 +100,9 @@ flush_route(struct route *route)
                 dest->seqno = (dest->seqno + 1) & 0xFF;
             }
             send_update(route->dest, NULL);
-            send_request(NULL, route->dest, max_hopcount, -1);
         }
+        if(!new_route || new_route->metric >= INFINITY)
+            send_request(NULL, route->dest, max_hopcount, -1);
     }
 }
 
