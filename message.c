@@ -102,11 +102,13 @@ parse_packet(const unsigned char *from, struct network *net,
                 continue;
             net->activity_time = now.tv_sec;
             if(message[0] == 1) {
-                debugf("Received request on %s from %s (%s) for %s.\n",
+                debugf("Received request on %s from %s (%s) for %s "
+                       "(%d hops for seqno %d).\n",
                        net->ifname,
                        format_address(neigh->id),
                        format_address(from),
-                       format_address(message + 4));
+                       format_address(message + 4),
+                       message[2], message[1]);
                 if(memcmp(message + 4, zeroes, 16) == 0) {
                     /* If a neighbour is requesting a full route dump from us,
                        we might as well send its txcost. */
