@@ -40,6 +40,7 @@ struct xroute myxroutes[MAXMYXROUTES];
 int nummyxroutes = 0;
 
 int xroute_gc_delay = 180;
+int xroute_hold_delay = 45;
 
 static struct xroute *
 find_installed_xroute(unsigned char *prefix, unsigned short plen)

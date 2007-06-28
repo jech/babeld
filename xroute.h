@@ -39,6 +39,7 @@ extern struct xroute myxroutes[MAXMYXROUTES];
 extern int nummyxroutes;
 
 extern int xroute_gc_delay;
+extern int xroute_hold_delay;
 
 void install_xroute(struct xroute *xroute);
 void uninstall_xroute(struct xroute *xroute);
