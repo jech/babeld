@@ -131,11 +131,12 @@ parse_packet(const unsigned char *from, struct network *net,
                         } else {
                             /* Request for a new seqno */
                             int hopcount = message[2];
-                            int seqno = message[1];
+                            int theirseqno = message[1];
                             struct route *installed;
                             installed = find_installed_route(dest);
                             if(installed) {
-                                if(seqno_compare(installed->seqno, seqno) >= 0)
+                                if(seqno_compare(installed->seqno,
+                                                 theirseqno) >= 0)
                                     send_update(dest, neigh->network);
                                 else if(hopcount >= 2) {
                                     send_unicast_request(installed->nexthop,
