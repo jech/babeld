@@ -120,7 +120,7 @@ parse_packet(const unsigned char *from, struct network *net,
                     else
                         new_seqno = 1;
                     send_self_update(neigh->network, new_seqno);
-                } else {
+                } else if(!parasitic) {
                     struct destination *dest;
                     dest = find_destination(message + 4, 0, 0);
                     if(dest) {
