@@ -134,7 +134,7 @@ parse_packet(const unsigned char *from, struct network *net,
                             int theirseqno = message[1];
                             struct route *installed;
                             installed = find_installed_route(dest);
-                            if(installed) {
+                            if(installed && installed->nexthop != neigh) {
                                 if(seqno_compare(installed->seqno,
                                                  theirseqno) >= 0)
                                     send_update(dest, neigh->network);
