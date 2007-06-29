@@ -36,7 +36,7 @@ babel_socket(int port)
     struct sockaddr_in6 sin6;
     int s, rc;
     int saved_errno;
-    int one = 1, zero = 0, twofiftyfive = 255;
+    int one = 1, zero = 0;
 
     s = socket(PF_INET6, SOCK_DGRAM, 0);
     if(s < 0)
@@ -56,12 +56,12 @@ babel_socket(int port)
         goto fail;
 
     rc = setsockopt(s, IPPROTO_IPV6, IPV6_UNICAST_HOPS,
-                    &twofiftyfive, sizeof(twofiftyfive));
+                    &one, sizeof(one));
     if(rc < 0)
         goto fail;
 
     rc = setsockopt(s, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
-                    &twofiftyfive, sizeof(twofiftyfive));
+                    &one, sizeof(one));
     if(rc < 0)
         goto fail;
 
