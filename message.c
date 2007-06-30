@@ -102,13 +102,15 @@ parse_packet(const unsigned char *from, struct network *net,
                 continue;
             net->activity_time = now.tv_sec;
             if(message[0] == 1) {
+                int hopcount = message[2];
+                int theirseqno = message[1];
                 debugf("Received request on %s from %s (%s) for %s "
                        "(%d hops for seqno %d).\n",
                        net->ifname,
                        format_address(neigh->id),
                        format_address(from),
                        format_address(message + 4),
-                       message[2], message[1]);
+                       hopcount, theirseqno);
                 if(memcmp(message + 4, zeroes, 16) == 0) {
                     /* If a neighbour is requesting a full route dump from us,
                        we might as well send its txcost. */
@@ -116,7 +118,7 @@ parse_packet(const unsigned char *from, struct network *net,
                     send_update(NULL, neigh->network);
                 } else if(memcmp(message + 4, myid, 16) == 0) {
                     int new_seqno;
-                    if(message[2] > 0 && seqno_compare(message[1], seqno) <= 0)
+                    if(hopcount > 0 && seqno_compare(theirseqno, seqno) <= 0)
                         /* Somebody's requesting an old seqno. */
                         new_seqno = 0;
                     else
@@ -126,12 +128,10 @@ parse_packet(const unsigned char *from, struct network *net,
                     struct destination *dest;
                     dest = find_destination(message + 4, 0, 0);
                     if(dest) {
-                        if(message[2] == 0) {
+                        if(hopcount == 0) {
                             send_update(dest, neigh->network);
                         } else {
                             /* Request for a new seqno */
-                            int hopcount = message[2];
-                            int theirseqno = message[1];
                             struct route *installed;
                             installed = find_installed_route(dest);
                             if(installed && installed->nexthop != neigh) {
