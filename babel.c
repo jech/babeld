@@ -69,7 +69,7 @@ int max_hopcount = 25;
 struct network nets[MAXNETS];
 int numnets = 0;
 
-static const unsigned char zeroes[16] = {0};
+const unsigned char zeroes[16] = {0};
 
 char *state_file = "/var/lib/babel-state";
 

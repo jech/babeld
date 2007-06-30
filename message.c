@@ -38,7 +38,6 @@ THE SOFTWARE.
 
 struct timeval update_flush_time = {0, 0};
 
-static const unsigned char zeroes[16] = {0};
 const unsigned char packet_header[4] = {42, 0, 0, 0};
 
 unsigned int jitter;

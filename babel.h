@@ -92,6 +92,8 @@ extern unsigned char myid[16];
 extern struct network nets[MAXNETS];
 extern int numnets;
 
+extern const unsigned char zeroes[16];
+
 extern int protocol_port;
 extern unsigned char protocol_group[16];
 extern int protocol_socket;
