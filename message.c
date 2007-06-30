@@ -67,6 +67,12 @@ parse_packet(const unsigned char *from, struct network *net,
     struct xroute pxroutes[40];
     int numpxroutes = 0;
 
+    if(from[0] != 0xFE || (from[1] & 0xC0) != 0x80) {
+        fprintf(stderr, "Received packet from non-local address %s.\n",
+                format_address(from));
+        return;
+    }
+
     if(len % 20 != 4 || packet[0] != 42) {
         fprintf(stderr, "Received malformed packet on %s from %s.\n",
                 net->ifname, format_address(from));
