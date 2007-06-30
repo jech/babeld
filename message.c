@@ -118,6 +118,7 @@ parse_packet(const unsigned char *from, struct network *net,
                     send_update(NULL, neigh->network);
                 } else if(memcmp(message + 4, myid, 16) == 0) {
                     int new_seqno;
+                    send_txcost(neigh, NULL);
                     if(hopcount > 0 && seqno_compare(theirseqno, seqno) <= 0)
                         /* Somebody's requesting an old seqno. */
                         new_seqno = 0;
