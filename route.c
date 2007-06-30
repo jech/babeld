@@ -190,11 +190,6 @@ uninstall_route(struct route *route)
 int
 route_feasible(struct route *route)
 {
-    if(route->dest->time < now.tv_sec - 200) {
-        /* Never mind what is probably stale data */
-        return 1;
-    }
-
     return update_feasible(route->seqno, route->refmetric, route->dest);
 }
 
@@ -202,6 +197,11 @@ int
 update_feasible(unsigned char seqno, unsigned short refmetric,
                 struct destination *dest)
 {
+    if(dest->time < now.tv_sec - 200) {
+        /* Never mind what is probably stale data */
+        return 1;
+    }
+
     return (seqno_compare(dest->seqno, seqno) < 0 ||
             (dest->seqno == seqno && refmetric < dest->metric));
 }
