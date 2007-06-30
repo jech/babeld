@@ -308,6 +308,8 @@ update_route(const unsigned char *d, int seqno, int refmetric,
     if(!update_feasible(seqno, refmetric, dest)) {
         debugf("Rejecting unfeasible update from %s.\n",
                format_address(nexthop->address));
+        /* It would be really nice to send a request at this point,
+           but that might get us into a positive feedback loop. */
         return NULL;
     }
 
