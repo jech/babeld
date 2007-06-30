@@ -45,10 +45,11 @@ Specify the interval in seconds at which scheduled hello packets are
 sent on wired interfaces.  The default is 30.
 .TP
 .BI \-i " idle-hello-interval"
-Specify the interval in seconds at which scheduled hello packets are
-sent on idle interfaces (interfaces on which there has been no
-activity in the last 5 minutes).  The default is 0, which disables
-idle detection.
+Enable detection of idle networks (networks on which we haven't
+accepted a hello packet in 5 minutes) and specify the interval in
+seconds at which scheduled hello packets are sent on idle interfaces.
+This functonality is experimental, don't use it unless you know what
+you are doing.
 .TP
 .BI \-u " update-interval"
 Specify the interval in seconds at which scheduled routing table dumps
