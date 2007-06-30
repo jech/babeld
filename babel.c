@@ -404,9 +404,11 @@ main(int argc, char **argv)
             timeval_min(&tv, &nets[i].flush_time);
             timeval_min_sec(&tv,
                             nets[i].hello_time + nets[i].hello_interval);
-            timeval_min_sec(&tv, nets[i].self_update_time +
-                            nets[i].self_update_interval);
-            timeval_min_sec(&tv, nets[i].update_time + update_interval);
+            if(!network_idle(&nets[i])) {
+                timeval_min_sec(&tv, nets[i].self_update_time +
+                                nets[i].self_update_interval);
+                timeval_min_sec(&tv, nets[i].update_time + update_interval);
+            }
         }
         timeval_min(&tv, &update_flush_time);
         FD_ZERO(&readfds);
@@ -477,13 +479,15 @@ main(int argc, char **argv)
         for(i = 0; i < numnets; i++) {
             if(now.tv_sec >= nets[i].hello_time + nets[i].hello_interval)
                 send_hello(&nets[i]);
-            if(now.tv_sec >= nets[i].update_time + update_interval)
-                send_update(NULL, &nets[i]);
             if(now.tv_sec >= nets[i].txcost_time + nets[i].txcost_interval)
                 send_txcost(NULL, &nets[i]);
-            if(now.tv_sec >=
-               nets[i].self_update_time + nets[i].self_update_interval) {
-                send_self_update(&nets[i], 0);
+            if(!network_idle(&nets[i])) {
+                if(now.tv_sec >= nets[i].update_time + update_interval)
+                    send_update(NULL, &nets[i]);
+                if(now.tv_sec >=
+                   nets[i].self_update_time + nets[i].self_update_interval) {
+                    send_self_update(&nets[i], 0);
+                }
             }
         }
 
