@@ -702,10 +702,17 @@ add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
     return &nets[numnets - 1];
 }
 
+int
+network_idle(struct network *net)
+{
+    return (idle_hello_interval > 0 &&
+            net->activity_time < now.tv_sec - idle_time);
+}
+
 void
 update_hello_interval(struct network *net)
 {
-    if(idle_hello_interval >= 0 && net->activity_time < now.tv_sec - idle_time)
+    if(network_idle(net))
         net->hello_interval = idle_hello_interval;
     else if(net->wired)
         net->hello_interval = wired_hello_interval;

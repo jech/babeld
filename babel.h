@@ -98,4 +98,5 @@ extern int protocol_socket;
 extern int kernel_socket;
 extern int max_hopcount;
 
+int network_idle(struct network *net);
 void update_hello_interval(struct network *net);
