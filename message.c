@@ -364,7 +364,9 @@ send_request(struct network *net, struct destination *dest,
         if(seqno >= 0)
             accumulate_byte(net, seqno);
         else
-            accumulate_byte(net, dest->seqno);
+            accumulate_byte(net,
+                            dest->metric >= INFINITY ?
+                            dest->seqno : ((dest->seqno + 1) & 0xFF));
         accumulate_byte(net, hopcount);
     } else {
         accumulate_byte(net, 0);
@@ -399,7 +401,6 @@ send_unicast_packet(struct neighbour *neigh, unsigned char *buf, int buflen)
     }
 }
 
-
 void
 send_unicast_request(struct neighbour *neigh, struct destination *dest,
                      int hopcount, int seqno)
@@ -418,7 +419,9 @@ send_unicast_request(struct neighbour *neigh, struct destination *dest,
         if(seqno >= 0)
             buf[1] = seqno;
         else
-            buf[1] = dest->seqno;
+            buf[1] =
+                dest->metric >= INFINITY ?
+                dest->seqno : ((dest->seqno + 1) & 0xFF);
         buf[2] = hopcount;
     } else {
         buf[1] = 0;
