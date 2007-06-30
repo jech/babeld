@@ -596,9 +596,11 @@ send_update(struct destination *dest, struct network *net)
                net->ifname, format_address(dest->address));
         buffer_update(net, dest);
     } else {
-        debugf("Sending update to %s for ::/0.\n", net->ifname);
-        if(now.tv_sec - net->update_time < 2)
+        if(now.tv_sec - net->update_time < 2) {
+            send_self_update(net, 0);
             return;
+        }
+        debugf("Sending update to %s for ::/0.\n", net->ifname);
         for(i = 0; i < numroutes; i++)
             if(routes[i].installed)
                 buffer_update(net, routes[i].dest);
