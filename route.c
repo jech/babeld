@@ -254,10 +254,11 @@ update_route_metric(struct route *route)
 
     oldmetric = route->metric;
     if(route->time < now.tv_sec - route_timeout_delay) {
-        newmetric = INFINITY;
-        route->refmetric = INFINITY;
-        if(oldmetric < INFINITY)
+        if(route->refmetric < INFINITY) {
             route->seqno = (route->dest->seqno + 1) & 0xFF;
+            route->refmetric = INFINITY;
+        }
+        newmetric = INFINITY;
     } else {
         newmetric = MIN(route->refmetric + neighbour_cost(route->nexthop),
                         INFINITY);
