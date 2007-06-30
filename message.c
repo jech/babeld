@@ -86,7 +86,7 @@ parse_packet(const unsigned char *from, struct network *net,
         }
         if(message[0] == 0) {
             if(memcmp(message + 4, myid, 16) == 0)
-                    continue;
+                continue;
             debugf("Received hello on %s from %s (%s).\n",
                    net->ifname,
                    format_address(message + 4),
