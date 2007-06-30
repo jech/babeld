@@ -64,7 +64,7 @@ int wired_hello_interval = -1;
 int idle_hello_interval = -1;
 int update_interval = -1;
 
-int max_hopcount = 65;
+int max_request_hopcount = 65;
 
 struct network nets[MAXNETS];
 int numnets = 0;
@@ -758,7 +758,7 @@ expire_routes(void)
         if(route->installed && route->refmetric < INFINITY) {
             if(route->time < now.tv_sec - MAX(5, route_timeout_delay - 25))
                 send_unicast_request(route->nexthop, route->dest,
-                                     max_hopcount, -1);
+                                     max_request_hopcount, -1);
         }
         i++;
     }
