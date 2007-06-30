@@ -64,7 +64,7 @@ int wired_hello_interval = -1;
 int idle_hello_interval = -1;
 int update_interval = -1;
 
-int max_hopcount = 25;
+int max_hopcount = 65;
 
 struct network nets[MAXNETS];
 int numnets = 0;
