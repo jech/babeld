@@ -58,6 +58,8 @@ find_destination(const unsigned char *d, int create, unsigned char seqno)
     dests[i].seqno = seqno;
     dests[i].metric = INFINITY;
     dests[i].time = now.tv_sec;
+    dests[i].requested_seqno = -1;
+    dests[i].requested_net = NULL;
     return &dests[i];
 }
 
@@ -73,3 +75,47 @@ update_destination(struct destination *dest,
     dest->time = now.tv_sec;
 }
 
+void
+notice_request(struct destination *dest, unsigned char seqno,
+               struct network *net)
+{
+    if(dest->requested_seqno < 0) {
+        dest->requested_seqno = seqno;
+        dest->requested_net = net;
+    } else {
+        if(seqno_compare(dest->requested_seqno, seqno) < 0)
+            dest->requested_seqno = seqno;
+        if(net == NULL || net != dest->requested_net)
+            dest->requested_net = NULL;
+    }
+}
+
+int
+request_requested(struct destination *dest, unsigned char seqno,
+                  struct network *net)
+{
+    if(dest->requested_seqno < 0)
+        return 0;
+
+    if(seqno_compare(dest->requested_seqno, seqno) < 0)
+        return 0;
+
+    if(net == NULL || net != dest->requested_net)
+        return 0;
+
+    return 1;
+}
+
+void
+satisfy_request(struct destination *dest, unsigned char seqno,
+                struct network *net)
+{
+    if(dest->requested_seqno >= 0) {
+        if(net == NULL || net == dest->requested_net) {
+            if(seqno_compare(seqno, dest->requested_seqno) >= 0) {
+                dest->requested_seqno = -1;
+                dest->requested_net = NULL;
+            }
+        }
+    }
+}

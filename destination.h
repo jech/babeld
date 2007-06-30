@@ -25,9 +25,17 @@ struct destination {
     unsigned char seqno;
     unsigned short metric;
     int time;
+    int requested_seqno;
+    struct network *requested_net;
 };
 
 struct destination *find_destination(const unsigned char *d,
                                      int create, unsigned char seqno);
 void update_destination(struct destination *dest,
                         unsigned char seqno, unsigned short metric);
+void notice_request(struct destination *dest, unsigned char seqno,
+                    struct network *net);
+int request_requested(struct destination *dest, unsigned char seqno,
+                      struct network *net);
+void satisfy_request(struct destination *dest, unsigned char seqno,
+                     struct network *net);

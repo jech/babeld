@@ -144,14 +144,16 @@ parse_packet(const unsigned char *from, struct network *net,
                                 if(seqno_compare(installed->seqno,
                                                  theirseqno) >= 0)
                                     send_update(dest, neigh->network);
-                                else if(hopcount >= 2) {
-                                    send_unicast_request(installed->nexthop,
-                                                         dest,
-                                                         hopcount - 1,
-                                                         theirseqno);
-                                    /* For now, let's hope the new seqno
-                                       arrives before the update is flushed. */
-                                    send_update(dest, neigh->network);
+                                else if(!request_requested(dest,
+                                                           theirseqno,
+                                                           neigh->network)) {
+                                    if(hopcount >= 2)
+                                        send_unicast_request(installed->nexthop,
+                                                             dest,
+                                                             hopcount - 1,
+                                                             theirseqno);
+                                    notice_request(dest, theirseqno,
+                                                   neigh->network);
                                 }
                             }
                         }
@@ -530,6 +532,7 @@ flushupdates(void)
                 accumulate_byte(net, seqno);
                 accumulate_short(net, metric);
                 accumulate_data(net, buffered_updates[i]->address, 16);
+                satisfy_request(buffered_updates[i], seqno, net);
             }
         }
         schedule_flush_now(net);
@@ -578,6 +581,12 @@ send_update(struct destination *dest, struct network *net)
     if(net == NULL) {
         for(i = 0; i < numnets; i++)
             send_update(dest, &nets[i]);
+        if(dest != NULL) {
+            /* This case is not handled by flushupdates. */
+            struct route *installed = find_installed_route(dest);
+            satisfy_request(dest, installed ? installed->seqno : dest->seqno,
+                            NULL);
+        }
         return;
     }
 
