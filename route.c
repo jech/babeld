@@ -435,8 +435,7 @@ send_triggered_update(struct route *route, int oldmetric)
     if(oldmetric < INFINITY) {
         if(route->metric >= INFINITY) {
             /* We just lost a route, request a new seqno from the source */
-            send_unicast_request(route->nexthop, route->dest,
-                                 max_hopcount, -1);
+            send_request(NULL, route->dest, max_hopcount, -1);
         } else if(route->metric - oldmetric >= 384) {
             /* This route's metric has increased a lot -- let's hope we find
                something better */
