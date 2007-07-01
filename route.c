@@ -319,9 +319,11 @@ update_route(const unsigned char *d, int seqno, int refmetric,
 
         oldseqno = route->seqno;
         oldmetric = route->metric;
-        route->time = now.tv_sec;
-        if(route->refmetric >= INFINITY)
-            route->origtime = now.tv_sec;
+        if(refmetric < INFINITY) {
+            route->time = now.tv_sec;
+            if(route->refmetric >= INFINITY)
+                route->origtime = now.tv_sec;
+        }
         route->seqno = seqno;
         route->refmetric = refmetric;
         change_route_metric(route, metric);
