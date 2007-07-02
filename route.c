@@ -432,8 +432,7 @@ send_triggered_update(struct route *route, int oldmetric)
     if((route->metric >= INFINITY && oldmetric < INFINITY) ||
        (route->metric - oldmetric >= 256 || oldmetric - route->metric >= 256))
         send_update(route->dest, NULL);
-    else if(route->dest->requested_seqno >= 0 &&
-            seqno_compare(route->dest->requested_seqno, route->seqno) <= 0)
+    else if(request_requested(route->dest, route->seqno, NULL))
         send_update(route->dest, route->dest->requested_net);
 
     if(oldmetric < INFINITY) {
