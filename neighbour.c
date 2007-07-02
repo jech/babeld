@@ -218,7 +218,7 @@ neighbour_rxcost(struct neighbour *neigh)
         int c = (0xC000 * 0x100) / r;
         int d = now.tv_sec - neigh->hello_time;
         if(d >= 40)
-            c *= (d - 20) / 20.0;
+            c = (c * (d - 20) + 10) / 20;
 
         return MIN(c + neigh->network->cost, INFINITY);
     }
