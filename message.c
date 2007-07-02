@@ -499,6 +499,7 @@ flushupdates(void)
                 }
 
                 update_destination(buffered_updates[i], seqno, metric);
+                satisfy_request(buffered_updates[i], seqno, net);
 
                 /* Don't send xroutes if the metric is infinite as the seqno
                    might be originated by us. */
@@ -535,7 +536,6 @@ flushupdates(void)
                 accumulate_byte(net, seqno);
                 accumulate_short(net, metric);
                 accumulate_data(net, buffered_updates[i]->address, 16);
-                satisfy_request(buffered_updates[i], seqno, net);
             }
         }
         schedule_flush_now(net);
