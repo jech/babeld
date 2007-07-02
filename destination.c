@@ -100,6 +100,9 @@ request_requested(struct destination *dest, unsigned char seqno,
     if(seqno_compare(dest->requested_seqno, seqno) < 0)
         return 0;
 
+    if(dest->requested_net == NULL)
+        return 1;
+
     if(net == NULL || net != dest->requested_net)
         return 0;
 
