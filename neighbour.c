@@ -165,15 +165,15 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
     }
 
     if((neigh->reach & 0xFF00) == 0xC000) {
-        /* This is a newish neighbour.  If it's not completely useless
-           (the best route to it is through it), request a full route dump.
-           This assumes that the neighbour's ID is also its IP address. */
+        /* This is a newish neighbour.  If we don't have another route to it,
+           request a full route dump.  This assumes that the neighbour's ID
+           is also its IP address. */
         struct destination *dest;
         struct route *route = NULL;
         dest = find_destination(neigh->id, 0, 0);
         if(dest)
-            route = find_best_route(dest);
-        if(!route || route->nexthop == neigh)
+            route = find_installed_route(dest);
+        if(!route || route->metric >= INFINITY || route->nexthop == neigh)
             send_unicast_request(neigh, NULL, 0, -1);
     }
 }
