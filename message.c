@@ -581,15 +581,17 @@ send_update(struct destination *dest, struct network *net)
 {
     int i;
 
+    if(dest != NULL) {
+        /* The case of net == NULL is not handled by flushupdates.
+           The other case is, but it won't do any harm to record it early. */
+        struct route *installed = find_installed_route(dest);
+        satisfy_request(dest, installed ? installed->seqno : dest->seqno,
+                        net);
+    }
+
     if(net == NULL) {
         for(i = 0; i < numnets; i++)
             send_update(dest, &nets[i]);
-        if(dest != NULL) {
-            /* This case is not handled by flushupdates. */
-            struct route *installed = find_installed_route(dest);
-            satisfy_request(dest, installed ? installed->seqno : dest->seqno,
-                            NULL);
-        }
         return;
     }
 
