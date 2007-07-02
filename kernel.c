@@ -198,9 +198,11 @@ netlink_read(int (*filter)(struct nlmsghdr *, void *data), void *data)
             continue;
         } else if(len == 0) {
             fprintf(stderr, "EOF on netlink\n");
+            errno = EIO;
             return -1;
         } else if(msg.msg_namelen != nl_command.socklen) {
             fprintf(stderr, "sender address length == %d\n", msg.msg_namelen);
+            errno = EIO;
             return -1;
         } else if(nladdr.nl_pid != 0) {
             debugf("Netlink message not for us.\n");
@@ -230,10 +232,9 @@ netlink_read(int (*filter)(struct nlmsghdr *, void *data), void *data)
                         return 0;
                     continue;
                 }
-                debugf("error\n");
-
                 errno = -err->error;
                 perror("netlink_read");
+                errno = -err->error;
                 return -1;
             }
 
@@ -296,7 +297,9 @@ netlink_talk(struct nlmsghdr *nh)
     }
 
     if(rc < nh->nlmsg_len) {
+        int saved_errno = errno;
         perror("sendmsg");
+        errno = saved_errno;
         return -1;
     }
 
@@ -317,12 +320,15 @@ netlink_send_dump(int type, void *data, int len) {
 
     if(nl_command.sock < 0) {
         fprintf(stderr,"netlink_send_dump: netlink not initialized.\n");
+        errno = EIO;
         return -1;
     }
 
     /* At least we should send an 'struct rtgenmsg' */
-    if(data == NULL || len == 0)
+    if(data == NULL || len == 0) {
+        errno = EIO;
         return -1;
+    }
 
     /* And more : using anything else that 'struct rtgenmsg' is currently */
     /* ignored by the linux kernel (today: 2.6.21) because NLM_F_MATCH is */
@@ -350,7 +356,9 @@ netlink_send_dump(int type, void *data, int len) {
 
     rc = sendmsg(nl_command.sock, &msg, 0);
     if(rc < buf.nh.nlmsg_len) {
+        int saved_errno = errno;
         perror("sendmsg");
+        errno = saved_errno;
         return -1;
     }
 
@@ -372,6 +380,7 @@ netlink_listen(int (*monitor)(struct nlmsghdr *nh, void *data), void *data) {
 
     if(nl_listen.sock < 0) {
         fprintf(stderr,"netlink_listen: netlink not initialized.\n");
+        errno = EIO;
         return -1;
     }
 
@@ -390,14 +399,17 @@ netlink_listen(int (*monitor)(struct nlmsghdr *nh, void *data), void *data) {
     len = recvmsg(nl_listen.sock, &msg, 0);
 
     if(len < 0) {
+        int saved_errno = errno;
         if(errno == EINTR || errno == EAGAIN)
             return 0;
         perror("recvmsg(netlink)");
+        errno = saved_errno;
         return -1;
     }
 
     if(len == 0) {
         fprintf(stderr, "recvmsg(netlink): EOF\n");
+        errno = EIO;
         return -1;
     }
 
@@ -405,6 +417,7 @@ netlink_listen(int (*monitor)(struct nlmsghdr *nh, void *data), void *data) {
         fprintf(stderr,
                 "netlink_listen: unexpected sender address length (%d)\n",
                 msg.msg_namelen);
+        errno = EIO;
         return -1;
     }
 
