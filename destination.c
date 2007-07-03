@@ -75,10 +75,10 @@ update_destination(struct destination *dest,
     dest->time = now.tv_sec;
 
     if(dest->requested_seqno >= 0) {
-        if(seqno_minus(dest->requested_seqno, seqno >= 16)) {
-                /* Stale data? */
-                dest->requested_seqno = -1;
-                dest->requested_net = NULL;
+        if(seqno_minus(dest->requested_seqno, seqno) >= 16) {
+            /* Stale data? */
+            dest->requested_seqno = -1;
+            dest->requested_net = NULL;
         }
     }
 }
