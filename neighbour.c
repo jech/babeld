@@ -200,7 +200,7 @@ int
 neighbour_rxcost(struct neighbour *neigh)
 {
     update_neighbour(neigh, -1, 0);
-    if(neigh->reach == 0)
+    if((neigh->reach & 0xF800) == 0)
         return INFINITY;
     else if(neigh->network->wired) {
         if((neigh->reach & 0xE000) != 0) {
