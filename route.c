@@ -301,10 +301,6 @@ update_route(const unsigned char *d, int seqno, int refmetric,
     if(dest == NULL)
         return NULL;
 
-    metric = MIN(refmetric + neighbour_cost(nexthop), INFINITY);
-
-    route = find_route(d, nexthop);
-
     if(!update_feasible(seqno, refmetric, dest)) {
         debugf("Rejecting unfeasible update from %s.\n",
                format_address(nexthop->address));
@@ -312,6 +308,10 @@ update_route(const unsigned char *d, int seqno, int refmetric,
            but that might get us into a positive feedback loop. */
         return NULL;
     }
+
+    metric = MIN(refmetric + neighbour_cost(nexthop), INFINITY);
+
+    route = find_route(d, nexthop);
 
     if(route) {
         int oldseqno;
