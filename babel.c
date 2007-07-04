@@ -547,7 +547,7 @@ main(int argc, char **argv)
             "Syntax: %s "
             "[-m multicast_address] [-p port] [-S state-file]\n"
             "                "
-            "[-h hello] [-H wired_hello] [i idle_hello]\n"
+            "[-h hello] [-H wired_hello] [-i idle_hello]\n"
             "                "
             "[-u update] [-k metric] [-s] [-P] [-c cost]\n"
             "                "
