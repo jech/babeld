@@ -608,6 +608,10 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
            format_address(dest), plen, metric, ifindex,
            format_address(gate));
 
+    /* Linux sucks: it doesn't accept an unreachable default route */
+    if(metric >= KERNEL_INFINITY && plen == 0)
+        return 0;
+
     if(ifindex_lo < 0) {
         ifindex_lo = if_nametoindex("lo");
         if(ifindex_lo <= 0)
