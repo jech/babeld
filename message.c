@@ -78,6 +78,13 @@ parse_packet(const unsigned char *from, struct network *net,
         return;
     }
 
+    if(packet[1] != 0) {
+        fprintf(stderr,
+                "Received packet with unknown version %d on %s from %s.\n",
+                packet[1], net->ifname, format_address(from));
+        return;
+    }
+
     j = 0;
     for(i = 0; i < (len - 4) / 20; i++) {
         message = packet + 4 + 20 * i;
