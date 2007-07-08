@@ -655,14 +655,15 @@ dump_tables(FILE *out)
                route_feasible(&routes[i]) ? " (feasible)" : "");
     }
     for(i = 0; i < numxroutes; i++) {
-        fprintf(out, "%s/%d gw %s cost %d metric %d age %d%s\n",
-               format_address(xroutes[i].prefix),
-               xroutes[i].plen,
-               format_address(xroutes[i].gateway->address),
-               xroutes[i].cost,
-               xroutes[i].metric,
-               (int)(now.tv_sec - xroutes[i].time),
-               xroutes[i].installed ? " (installed)" : "");
+        fprintf(out, "%s/%d gw %s nexthop %s cost %d metric %d age %d%s\n",
+                format_address(xroutes[i].prefix),
+                xroutes[i].plen,
+                format_address(xroutes[i].gateway->address),
+                format_address(xroutes[i].nexthop->address),
+                xroutes[i].cost,
+                xroutes[i].metric,
+                (int)(now.tv_sec - xroutes[i].time),
+                xroutes[i].installed ? " (installed)" : "");
     }
     fflush(out);
 }

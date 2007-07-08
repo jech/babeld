@@ -514,11 +514,14 @@ flushupdates(void)
                     int numpxroutes;
                     numpxroutes = 0;
                     for(j = 0; j < numxroutes; j++) {
-                        if(xroutes[j].gateway == buffered_updates[i])
+                        if(xroutes[j].installed &&
+                           xroutes[j].gateway == buffered_updates[i])
                             numpxroutes++;
                     }
                     start_message(net, 20 + 20 * numpxroutes);
                     for(j = 0; j < numxroutes; j++) {
+                        if(!xroutes[i].installed)
+                            continue;
                         if(xroutes[j].gateway != buffered_updates[i])
                             continue;
                         /* See comment above */

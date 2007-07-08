@@ -31,6 +31,7 @@ THE SOFTWARE.
 #include "neighbour.h"
 #include "destination.h"
 #include "route.h"
+#include "xroute.h"
 #include "message.h"
 
 struct neighbour neighs[MAXNEIGHBOURS];
@@ -39,6 +40,7 @@ int numneighs = 0;
 void
 flush_neighbour(struct neighbour *neigh)
 {
+    flush_neighbour_xroutes(neigh);
     flush_neighbour_routes(neigh);
     memset(neigh, 0, sizeof(*neigh));
     if(neigh == &neighs[numneighs - 1]) {

@@ -159,6 +159,7 @@ install_route(struct route *route)
 
     for(i = 0; i < numxroutes; i++) {
         if(xroutes[i].gateway == route->dest &&
+           xroutes[i].nexthop == route->nexthop &&
            xroutes[i].time >= now.tv_sec - 240) {
             update_xroute_metric(&xroutes[i], xroutes[i].cost);
             consider_xroute(&xroutes[i]);
@@ -174,7 +175,7 @@ uninstall_route(struct route *route)
         return;
 
     for(i = 0; i < numxroutes; i++) {
-        if(xroutes[i].installed && xroutes[i].gateway == route->dest)
+        if(xroutes[i].installed && xroutes[i].nexthop == route->nexthop)
             uninstall_xroute(&xroutes[i]);
     }
 
@@ -329,11 +330,11 @@ update_route(const unsigned char *d, int seqno, int refmetric,
         change_route_metric(route, metric);
         if(seqno_compare(oldseqno, seqno) <= 0) {
             if(seqno_compare(oldseqno, seqno) < 0)
-                retract_xroutes(dest, pxroutes, numpxroutes);
+                retract_xroutes(dest, nexthop, pxroutes, numpxroutes);
             for(i = 0; i < numpxroutes; i++)
                 update_xroute(pxroutes[i].prefix,
                               pxroutes[i].plen,
-                              dest,
+                              dest, nexthop,
                               pxroutes[i].cost);
         }
         if(route->installed)
@@ -361,7 +362,7 @@ update_route(const unsigned char *d, int seqno, int refmetric,
         for(i = 0; i < numpxroutes; i++)
             update_xroute(pxroutes[i].prefix,
                           pxroutes[i].plen,
-                          dest,
+                          dest, nexthop,
                           pxroutes[i].cost);
         consider_route(route);
     }

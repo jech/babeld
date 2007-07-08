@@ -74,6 +74,7 @@ static struct xroute *
 find_best_xroute(unsigned char *prefix, unsigned short plen)
 {
     struct xroute *xroute = NULL;
+    struct route *route;
     int i;
 
     for(i = 0; i < numxroutes; i++) {
@@ -82,8 +83,10 @@ find_best_xroute(unsigned char *prefix, unsigned short plen)
         if(xroutes[i].plen != plen ||
            memcmp(xroutes[i].prefix, prefix, 16) != 0)
             continue;
-        if((!xroute || xroutes[i].metric < xroute->metric) &&
-           find_installed_route(xroutes[i].gateway) != NULL)
+        route = find_installed_route(xroutes[i].gateway);
+        if(route->nexthop != xroutes[i].nexthop)
+            continue;
+        if(!xroute || xroutes[i].metric < xroute->metric)
             xroute = &xroutes[i];
     }
     return xroute;
@@ -109,7 +112,7 @@ install_xroute(struct xroute *xroute)
     }
 
     gwroute = find_installed_route(xroute->gateway);
-    if(!gwroute) {
+    if(!gwroute || gwroute->nexthop != xroute->nexthop) {
         fprintf(stderr,
                 "Attempted to install a blackhole xroute "
                 "(this shouldn't happen).\n");
@@ -162,11 +165,14 @@ void
 consider_xroute(struct xroute *xroute)
 {
     struct xroute *installed;
+    struct route *route;
 
     if(xroute->installed)
         return;
 
-    if(find_installed_route(xroute->gateway) == NULL)
+    route = find_installed_route(xroute->gateway);
+
+    if(xroute->nexthop != route->nexthop)
         return;
 
     installed = find_installed_myxroute(xroute->prefix, xroute->plen);
@@ -174,6 +180,17 @@ consider_xroute(struct xroute *xroute)
         installed = find_installed_xroute(xroute->prefix, xroute->plen);
         if(!installed || installed->metric > xroute->metric + 64)
             install_xroute(xroute);
+    }
+}
+
+void
+consider_all_xroutes(struct route *route)
+{
+    int i;
+
+    for(i = 0; i < numxroutes; i++) {
+        if(xroutes[i].nexthop == route->nexthop)
+            consider_route(route);
     }
 }
 
@@ -210,13 +227,29 @@ flush_xroute(struct xroute *xroute)
 }
 
 void
-retract_xroutes(struct destination *gateway,
+flush_neighbour_xroutes(struct neighbour *neigh)
+{
+    int i;
+
+    i = 0;
+    while(i < numxroutes) {
+        if(xroutes[i].nexthop == neigh) {
+            flush_xroute(xroutes + i);
+            continue;
+        }
+        i++;
+    }
+}
+
+void
+retract_xroutes(struct destination *gateway, struct neighbour *nexthop,
                 const struct xroute *except, int numexcept)
 {
     int i, j;
 
     for(i = 0; i < numxroutes; i++) {
-        if(xroutes[i].cost < INFINITY && xroutes[i].gateway == gateway) {
+        if(xroutes[i].cost < INFINITY && xroutes[i].gateway == gateway &&
+           xroutes[i].nexthop == nexthop) {
             for(j = 0; j < numexcept; j++) {
                 if(memcmp(xroutes[i].prefix, except[j].prefix, 16) == 0 &&
                    xroutes[i].plen == except[j].plen)
@@ -230,7 +263,7 @@ retract_xroutes(struct destination *gateway,
 
 struct xroute *
 update_xroute(const unsigned char *prefix, unsigned short plen,
-              struct destination *gateway, int cost)
+              struct destination *gateway, struct neighbour *nexthop, int cost)
 {
     int i;
     struct xroute *xroute = NULL;
@@ -248,7 +281,7 @@ update_xroute(const unsigned char *prefix, unsigned short plen,
 
     for(i = 0; i < numxroutes; i++) {
         xroute = &xroutes[i];
-        if(xroute->gateway == gateway &&
+        if(xroute->gateway == gateway && xroute->nexthop == nexthop &&
            memcmp(xroute->prefix, prefix, 16) == 0 && xroute->plen == plen) {
             update_xroute_metric(xroute, cost);
             xroute->time = now.tv_sec;
@@ -267,6 +300,7 @@ update_xroute(const unsigned char *prefix, unsigned short plen,
     memcpy(&xroute->prefix, prefix, 16);
     xroute->plen = plen;
     xroute->gateway = gateway;
+    xroute->nexthop = nexthop;
     xroute->cost = cost;
     xroute->metric =
         gwroute ? MIN(gwroute->metric + cost, INFINITY) : INFINITY;
