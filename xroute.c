@@ -64,7 +64,7 @@ find_installed_myxroute(unsigned char *prefix, unsigned short plen)
         if(myxroutes[i].installed &&
            myxroutes[i].plen == plen &&
            memcmp(myxroutes[i].prefix, prefix, 16) == 0) {
-            return &xroutes[i];
+            return &myxroutes[i];
         }
     }
     return NULL;
