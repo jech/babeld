@@ -73,6 +73,11 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
     struct neighbour *neigh;
     int i;
 
+    if(id[0] == 0xFF) {
+        fprintf(stderr, "Received neighbour announcement with id[0] = FF.\n");
+        return NULL;
+    }
+
     neigh = find_neighbour(address, net);
     if(neigh) {
         if(memcmp(neigh->id, id, 16) == 0) {
