@@ -268,7 +268,7 @@ update_xroute(const unsigned char *prefix, unsigned short plen,
     struct xroute *xroute = NULL;
     struct route *gwroute;
 
-    if(prefix[0] == 0xFF || (plen >= 8 && prefix[0] == 0)) {
+    if(martian_prefix(prefix, plen)) {
         fprintf(stderr, "Ignoring martian xroute.\n");
         return NULL;
     }
