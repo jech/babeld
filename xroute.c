@@ -79,12 +79,12 @@ find_best_xroute(unsigned char *prefix, unsigned short plen)
     int i;
 
     for(i = 0; i < numxroutes; i++) {
-        if(xroutes[i].metric >= INFINITY && xroutes[i].cost < INFINITY)
-            continue;
         if(!xroute_prefix(&xroutes[i], prefix, plen))
             continue;
+        if(xroutes[i].metric >= INFINITY && xroutes[i].cost < INFINITY)
+            continue;
         route = find_installed_route(xroutes[i].gateway);
-        if(route->nexthop != xroutes[i].nexthop)
+        if(!route || route->nexthop != xroutes[i].nexthop)
             continue;
         if(!xroute || xroutes[i].metric < xroute->metric)
             xroute = &xroutes[i];
