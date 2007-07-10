@@ -291,8 +291,7 @@ update_route(const unsigned char *d, int seqno, int refmetric,
     struct destination *dest;
     int i, metric;
 
-    if(d[0] == 0xFF || (d[0] == 0xFE && ((d[1] & 0xC0) == 0x80)) ||
-       (memcmp(d, zeroes, 15) == 0 && (d[15] == 0 || d[15] == 1))) {
+    if(martian_prefix(d, 128)) {
         fprintf(stderr, "Rejecting martian route to %s.\n",
                 format_address(d));
         return NULL;
