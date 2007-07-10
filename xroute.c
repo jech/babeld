@@ -105,12 +105,6 @@ install_xroute(struct xroute *xroute)
     if(xroute->metric >= INFINITY && xroute->cost < INFINITY)
         return;
 
-    if(xroute->plen >= 8 &&
-       (xroute->prefix[0] == 0 || xroute->prefix[0] == 0xFF)) {
-        fprintf(stderr, "Attempted to install martian xroute.\n");
-        return;
-    }
-
     gwroute = find_installed_route(xroute->gateway);
     if(!gwroute || gwroute->nexthop != xroute->nexthop) {
         fprintf(stderr,
