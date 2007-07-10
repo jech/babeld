@@ -42,16 +42,20 @@ int nummyxroutes = 0;
 int xroute_gc_delay = 180;
 int xroute_hold_delay = 45;
 
+static int
+xroute_prefix(struct xroute *xroute, const unsigned char *prefix, int plen)
+{
+    return (xroute->plen == plen &&
+            memcmp(xroute->prefix, prefix, 16) == 0);
+}
+
 static struct xroute *
 find_installed_xroute(unsigned char *prefix, unsigned short plen)
 {
     int i;
     for(i = 0; i < numxroutes; i++) {
-        if(xroutes[i].installed &&
-           xroutes[i].plen == plen &&
-           memcmp(xroutes[i].prefix, prefix, 16) == 0) {
+        if(xroutes[i].installed && xroute_prefix(&xroutes[i], prefix, plen))
             return &xroutes[i];
-        }
     }
     return NULL;
 }
@@ -61,11 +65,8 @@ find_installed_myxroute(unsigned char *prefix, unsigned short plen)
 {
     int i;
     for(i = 0; i < nummyxroutes; i++) {
-        if(myxroutes[i].installed &&
-           myxroutes[i].plen == plen &&
-           memcmp(myxroutes[i].prefix, prefix, 16) == 0) {
+        if(myxroutes[i].installed && xroute_prefix(&myxroutes[i], prefix, plen))
             return &myxroutes[i];
-        }
     }
     return NULL;
 }
@@ -80,8 +81,7 @@ find_best_xroute(unsigned char *prefix, unsigned short plen)
     for(i = 0; i < numxroutes; i++) {
         if(xroutes[i].metric >= INFINITY && xroutes[i].cost < INFINITY)
             continue;
-        if(xroutes[i].plen != plen ||
-           memcmp(xroutes[i].prefix, prefix, 16) != 0)
+        if(!xroute_prefix(&xroutes[i], prefix, plen))
             continue;
         route = find_installed_route(xroutes[i].gateway);
         if(route->nexthop != xroutes[i].nexthop)
@@ -251,8 +251,7 @@ retract_xroutes(struct destination *gateway, struct neighbour *nexthop,
         if(xroutes[i].cost < INFINITY && xroutes[i].gateway == gateway &&
            xroutes[i].nexthop == nexthop) {
             for(j = 0; j < numexcept; j++) {
-                if(memcmp(xroutes[i].prefix, except[j].prefix, 16) == 0 &&
-                   xroutes[i].plen == except[j].plen)
+                if(xroute_prefix(&xroutes[i], except[j].prefix, except[j].plen))
                     goto skip;
             }
             update_xroute_metric(&xroutes[i], INFINITY);
@@ -282,7 +281,7 @@ update_xroute(const unsigned char *prefix, unsigned short plen,
     for(i = 0; i < numxroutes; i++) {
         xroute = &xroutes[i];
         if(xroute->gateway == gateway && xroute->nexthop == nexthop &&
-           memcmp(xroute->prefix, prefix, 16) == 0 && xroute->plen == plen) {
+           xroute_prefix(xroute, prefix, plen)) {
             update_xroute_metric(xroute, cost);
             xroute->time = now.tv_sec;
             return xroute;
@@ -378,8 +377,8 @@ check_myxroutes()
             continue;
         installed = 0;
         for(j = 0; j < n; j++) {
-            if(routes[j].plen == myxroutes[i].plen &&
-               memcmp(routes[j].prefix, myxroutes[i].prefix, 16) == 0) {
+            if(xroute_prefix(&myxroutes[i],
+                             routes[j].prefix, routes[j].plen)) {
                 installed = 1;
                 break;
             }
