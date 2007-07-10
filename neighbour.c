@@ -47,8 +47,8 @@ flush_neighbour(struct neighbour *neigh)
        numneighs--;
        VALGRIND_MAKE_MEM_UNDEFINED(neigh, sizeof(*neigh));
     } else {
-        /* The first byte is used to mark unused entries */
-        VALGRIND_MAKE_MEM_UNDEFINED((char*)neigh + 1, sizeof(*neigh) - 1);
+        VALGRIND_MAKE_MEM_UNDEFINED(neigh, sizeof(*neigh));
+        neigh->id[0] = 0xFF;
     }
 }
 
@@ -57,7 +57,7 @@ find_neighbour(const unsigned char *address, struct network *net)
 {
     int i;
     for(i = 0; i < numneighs; i++) {
-        if(neighs[i].id[0] == 0)
+        if(neighs[i].id[0] == 0xFF)
             continue;
         if(memcmp(address, neighs[i].address, 16) == 0 &&
            neighs[i].network == net)
@@ -87,7 +87,7 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
     debugf("Creating neighbour %s (%s).\n",
            format_address(id), format_address(address));
     for(i = 0; i < numneighs; i++) {
-        if(neighs[i].id[0] == 0)
+        if(neighs[i].id[0] == 0xFF)
             neigh = &neighs[i];
     }
     if(!neigh) {
