@@ -201,3 +201,12 @@ wait_for_fd(int direction, int fd, int msecs)
 
     return rc;
 }
+
+int
+martian_prefix(const unsigned char *prefix, int plen)
+{
+    return
+        (plen >= 8 && prefix[0] == 0xFF) ||
+        (plen >= 10 && prefix[0] == 0xFE && (prefix[1] & 0xC0) == 0x80) ||
+        (plen >= 128 && memcmp(prefix, zeroes, 16) == 0);
+}

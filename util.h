@@ -37,6 +37,7 @@ const char *format_address(const unsigned char *address);
 int parse_address(const char *address, unsigned char *addr_r);
 int parse_net(const char *net, unsigned char *prefix_r, unsigned short *plen_r);
 int wait_for_fd(int direction, int fd, int msecs);
+int martian_prefix(const unsigned char *prefix, int plen);
 
 /* If debugging is disabled, we want to avoid calling format_address
    for every omitted debugging message.  So debug is a macro.  But
