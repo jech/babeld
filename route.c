@@ -137,7 +137,7 @@ void
 install_route(struct route *route)
 {
     struct route *installed;
-    int i, rc;
+    int rc;
 
     if(route->installed)
         return;
@@ -157,14 +157,7 @@ install_route(struct route *route)
     }
     route->installed = 1;
 
-    for(i = 0; i < numxroutes; i++) {
-        if(xroutes[i].gateway == route->dest &&
-           xroutes[i].nexthop == route->nexthop &&
-           xroutes[i].time >= now.tv_sec - 240) {
-            update_xroute_metric(&xroutes[i], xroutes[i].cost);
-            consider_xroute(&xroutes[i]);
-        }
-    }
+    consider_all_xroutes(route);
 }
 
 void
