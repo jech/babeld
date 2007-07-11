@@ -175,7 +175,9 @@ uninstall_route(struct route *route)
         return;
 
     for(i = 0; i < numxroutes; i++) {
-        if(xroutes[i].installed && xroutes[i].nexthop == route->nexthop)
+        if(xroutes[i].installed &&
+           xroutes[i].gateway == route->dest &&
+           xroutes[i].nexthop == route->nexthop)
             uninstall_xroute(&xroutes[i]);
     }
 
