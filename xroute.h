@@ -45,6 +45,7 @@ extern int xroute_hold_delay;
 void install_xroute(struct xroute *xroute);
 void uninstall_xroute(struct xroute *xroute);
 void consider_xroute(struct xroute *xroute);
+void consider_all_xroutes(struct route *route);
 void flush_xroute(struct xroute *xroute);
 void flush_neighbour_xroutes(struct neighbour *neigh);
 void retract_xroutes(struct destination *gateway, struct neighbour *nexthop,

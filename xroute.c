@@ -185,7 +185,8 @@ consider_all_xroutes(struct route *route)
     int i;
 
     for(i = 0; i < numxroutes; i++) {
-        if(xroutes[i].nexthop == route->nexthop)
+        if(xroutes[i].gateway == route->dest &&
+           xroutes[i].nexthop == route->nexthop)
             consider_route(route);
     }
 }
