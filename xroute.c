@@ -169,6 +169,8 @@ consider_xroute(struct xroute *xroute)
     if(xroute->nexthop != route->nexthop)
         return;
 
+    update_xroute_metric(xroute, xroute->cost);
+
     installed = find_installed_myxroute(xroute->prefix, xroute->plen);
     if(!installed) {
         installed = find_installed_xroute(xroute->prefix, xroute->plen);
