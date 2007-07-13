@@ -719,7 +719,7 @@ send_txcost(struct neighbour *neigh, struct network *net)
             schedule_flush(net);
         } else {
             for(i = 0; i < numneighs; i++) {
-                if(neighs[i].id[0] != 0) {
+                if(neighs[i].id[0] != 0xFF) {
                     if(neighs[i].network == net)
                         send_txcost(&neighs[i], net);
                 }

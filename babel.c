@@ -633,7 +633,7 @@ dump_tables(FILE *out)
     }
 
     for(i = 0; i < numneighs; i++) {
-        if(neighs[i].id[0] == 0)
+        if(neighs[i].id[0] == 0xFF)
             continue;
         fprintf(out, "Neighbour %s ", format_address(neighs[i].id));
         fprintf(out, "at %s dev %s reach %04x rxcost %d txcost %d.\n",
@@ -739,7 +739,7 @@ expire_routes(void)
     debugf("Expiring old routes.\n");
 
     for(i = 0; i < numneighs; i++) {
-        if(neighs[i].id[0] == 0)
+        if(neighs[i].id[0] == 0xFF)
             continue;
         check_neighbour(&neighs[i]);
         /* No need to update_neighbour_metric -- update_route_metric below. */
