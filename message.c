@@ -520,7 +520,7 @@ flushupdates(void)
                     }
                     start_message(net, 20 + 20 * numpxroutes);
                     for(j = 0; j < numxroutes; j++) {
-                        if(!xroutes[i].installed)
+                        if(!xroutes[j].installed)
                             continue;
                         if(xroutes[j].gateway != buffered_updates[i])
                             continue;
