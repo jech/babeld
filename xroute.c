@@ -299,7 +299,9 @@ update_xroute(const unsigned char *prefix, unsigned short plen,
     xroute->nexthop = nexthop;
     xroute->cost = cost;
     xroute->metric =
-        gwroute ? MIN(gwroute->metric + cost, INFINITY) : INFINITY;
+        gwroute && gwroute->nexthop == xroute->nexthop ?
+        MIN(gwroute->metric + cost, INFINITY) :
+        INFINITY;
     xroute->time = now.tv_sec;
     xroute->installed = 0;
     numxroutes++;
@@ -319,8 +321,9 @@ update_xroute_metric(struct xroute *xroute, int cost)
     gwroute = find_installed_route(xroute->gateway);
 
     oldmetric = xroute->metric;
-    newmetric = gwroute ? MIN(gwroute->metric + cost, INFINITY) : INFINITY;
-
+    newmetric = gwroute && gwroute->nexthop == xroute->nexthop ?
+        MIN(gwroute->metric + cost, INFINITY) :
+        INFINITY;
     if(xroute->cost != cost || oldmetric != newmetric) {
         xroute->cost = cost;
         if(xroute->installed) {
