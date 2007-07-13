@@ -99,7 +99,7 @@ flush_route(struct route *route)
                 dest->metric = INFINITY;
                 dest->seqno = (dest->seqno + 1) & 0xFF;
             }
-            send_update(route->dest, NULL);
+            send_update(dest, NULL);
         }
         if(oldmetric < INFINITY &&
            (!new_route || new_route->metric >= INFINITY))
