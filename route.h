@@ -39,7 +39,7 @@ extern int kernel_metric;
 extern int route_timeout_delay;
 extern int route_gc_delay;
 
-struct route *find_route(const unsigned char *dest, struct neighbour *nexthop);
+struct route *find_route(struct destination *dest, struct neighbour *nexthop);
 struct route *find_installed_route(struct destination *dest);
 void flush_route(struct route *route);
 void flush_neighbour_routes(struct neighbour *neigh);

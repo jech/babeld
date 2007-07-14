@@ -42,12 +42,11 @@ int route_timeout_delay = 50;
 int route_gc_delay = 95;
 
 struct route *
-find_route(const unsigned char *dest, struct neighbour *nexthop)
+find_route(struct destination *dest, struct neighbour *nexthop)
 {
     int i;
     for(i = 0; i < numroutes; i++) {
-        if(routes[i].nexthop == nexthop &&
-           memcmp(routes[i].dest->address, dest, 16) == 0)
+        if(routes[i].nexthop == nexthop && routes[i].dest == dest)
             return &routes[i];
     }
     return NULL;
@@ -306,7 +305,7 @@ update_route(const unsigned char *d, int seqno, int refmetric,
 
     metric = MIN(refmetric + neighbour_cost(nexthop), INFINITY);
 
-    route = find_route(d, nexthop);
+    route = find_route(dest, nexthop);
 
     if(route) {
         int oldseqno;
