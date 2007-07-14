@@ -47,20 +47,17 @@ find_destination(const unsigned char *d, int create, unsigned char seqno)
     if(!create)
         return NULL;
 
-    if(i >= numdests) {
-        if(numdests >= MAXDESTS) {
-            fprintf(stderr, "Too many destinations.\n");
-            return NULL;
-        }
-        memcpy(dests[numdests].address, d, 16);
-        numdests++;
+    if(numdests >= MAXDESTS) {
+        fprintf(stderr, "Too many destinations.\n");
+        return NULL;
     }
-    dests[i].seqno = seqno;
-    dests[i].metric = INFINITY;
-    dests[i].time = now.tv_sec;
-    dests[i].requested_seqno = -1;
-    dests[i].requested_net = NULL;
-    return &dests[i];
+    memcpy(dests[numdests].address, d, 16);
+    dests[numdests].seqno = seqno;
+    dests[numdests].metric = INFINITY;
+    dests[numdests].time = now.tv_sec;
+    dests[numdests].requested_seqno = -1;
+    dests[numdests].requested_net = NULL;
+    return &dests[numdests++];
 }
 
 void
