@@ -105,6 +105,8 @@ parse_packet(const unsigned char *from, struct network *net,
                    format_address(from));
             net->activity_time = now.tv_sec;
             neigh = add_neighbour(message + 4, from, net);
+            if(neigh == NULL)
+                continue;
             update_neighbour(neigh, message[1],
                              ((message[2] & 0x3) << 8) | message[3]);
             update_neighbour_metric(neigh);
