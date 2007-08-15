@@ -130,7 +130,7 @@ install_route(struct route *route)
     rc = kernel_route(ROUTE_ADD, route->src->prefix, route->src->plen,
                       route->nexthop->address,
                       route->nexthop->network->ifindex,
-                      metric_to_kernel(route->metric), 0);
+                      metric_to_kernel(route->metric), NULL, 0, 0);
     if(rc < 0) {
         perror("kernel_route(ADD)");
         if(errno != EEXIST)
@@ -150,7 +150,7 @@ uninstall_route(struct route *route)
     rc = kernel_route(ROUTE_FLUSH, route->src->prefix, route->src->plen,
                       route->nexthop->address,
                       route->nexthop->network->ifindex,
-                      metric_to_kernel(route->metric), 0);
+                      metric_to_kernel(route->metric), NULL, 0, 0);
     if(rc < 0)
         perror("kernel_route(FLUSH)");
 
@@ -168,6 +168,8 @@ change_route_metric(struct route *route, int newmetric)
                           route->nexthop->address,
                           route->nexthop->network->ifindex,
                           metric_to_kernel(route->metric),
+                          route->nexthop->address,
+                          route->nexthop->network->ifindex,
                           metric_to_kernel(newmetric));
         if(rc < 0) {
             perror("kernel_route(MODIFY)");

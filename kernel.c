@@ -580,8 +580,9 @@ kernel_interface_wireless(const char *ifname, int ifindex)
 
 int
 kernel_route(int operation, const unsigned char *dest, unsigned short plen,
-             const unsigned char *gate, int ifindex,
-             unsigned int metric, unsigned int newmetric)
+             const unsigned char *gate, int ifindex, unsigned int metric,
+             const unsigned char *newgate, int newifindex,
+             unsigned int newmetric)
 {
 
     union { char raw[1024]; struct nlmsghdr nh; } buf;
@@ -591,12 +592,15 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     int rc;
 
     if(operation == ROUTE_MODIFY) {
-        if(newmetric == metric)
+        if(newmetric == metric && memcmp(newgate, gate, 16) == 0 &&
+           newifindex == ifindex)
             return 0;
-        rc = kernel_route(ROUTE_ADD, dest, plen, gate, ifindex, newmetric, 0);
+        rc = kernel_route(ROUTE_ADD, dest, plen, newgate, newifindex, newmetric,
+                          NULL, 0, 0);
         if(rc < 0 && errno != EEXIST)
             return rc;
-        rc = kernel_route(ROUTE_FLUSH, dest, plen, gate, ifindex, metric, 0);
+        rc = kernel_route(ROUTE_FLUSH, dest, plen, gate, ifindex, metric,
+                          NULL, 0, 0);
         if(rc < 0 && (errno == ENOENT || errno == ESRCH))
             rc = 1;
         return rc;
