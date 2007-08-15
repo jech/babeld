@@ -286,6 +286,12 @@ main(int argc, char **argv)
         exit(1);
     }
 
+    rc = kernel_setup_socket(1);
+    if(rc < 0) {
+        fprintf(stderr, "kernel_setup_socket failed.\n");
+        exit(1);
+    }
+
     protocol_socket = babel_socket(protocol_port);
     if(protocol_socket < 0) {
         perror("Couldn't create link local socket");
@@ -550,6 +556,7 @@ main(int argc, char **argv)
         usleep(50000 + random() % 100000);
         kernel_setup_interface(0, nets[i].ifname, nets[i].ifindex);
     }
+    kernel_setup_socket(0);
     kernel_setup(0);
 
     fd = open(state_file, O_WRONLY | O_TRUNC | O_CREAT, 0644);
@@ -586,6 +593,7 @@ main(int argc, char **argv)
  fail:
     for(i = 0; i < numnets; i++)
         kernel_setup_interface(0, nets[i].ifname, nets[i].ifindex);
+    kernel_setup_socket(0);
     kernel_setup(0);
     exit(1);
 }

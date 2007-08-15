@@ -458,14 +458,6 @@ kernel_setup(int setup)
             return -1;
         }
 
-        rc = netlink_socket(&nl_listen, RTMGRP_IPV6_ROUTE);
-        if(rc < 0) {
-            perror("netlink_socket(RTMGRP_IPV6_ROUTE)");
-            return -1;
-        }
-
-        kernel_socket = nl_listen.sock;
-
         old_forwarding = read_proc("/proc/sys/net/ipv6/conf/all/forwarding");
         if(old_forwarding < 0) {
             perror("Couldn't read forwarding knob.");
@@ -511,6 +503,30 @@ kernel_setup(int setup)
 
         close(nl_command.sock);
         nl_command.sock = -1;
+
+        return 1;
+
+    }
+}
+
+int
+kernel_setup_socket(int setup)
+{
+    int rc;
+
+    if(setup) {
+        rc = netlink_socket(&nl_listen, RTMGRP_IPV6_ROUTE);
+        if(rc < 0) {
+            perror("netlink_socket(RTMGRP_IPV6_ROUTE)");
+            kernel_socket = -1;
+            return -1;
+        }
+
+        kernel_socket = nl_listen.sock;
+
+        return 1;
+
+    } else {
 
         close(nl_listen.sock);
         nl_listen.sock = -1;
