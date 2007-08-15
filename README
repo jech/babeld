@@ -3,7 +3,7 @@ Babel
 
 Babel is a loop-avoiding distance-vector routing protocol roughly
 based on HSDV and AODV, but with provisions for link cost estimation
-and injection of external routes.
+and redistribution of routes from other routing protocols.
 
 
 Installation
@@ -71,23 +71,23 @@ Then the network layer:
 4. Start the routing daemon
 ===========================
 
-  $ babel $IPv6 eth1
+  $ babel -X $IPv6 0 $IPv6 eth1
 
 If your node has multiple interfaces which you want to participate in
 the Babel network, just list them all:
 
-  # babel $IPv6 eth0 eth1 sit1
+  # babel -X $IPv6 0 $IPv6 eth0 eth1 sit1
 
 If your node has multiple addresses and you want all of them to
-participate in the routing protocol, inject the other addresses as
-zero-cost external routes:
+participate in the routing protocol, just repeat the ``-X'' option
+multiple times:
 
-  # babel -X $IPv6-2 0 -X $IPv6-3 0 $IPv6 eth1
+  # babel -X $IPv6 0 -X $IPv6-2 0 -X $IPv6-3 0 $IPv6 eth1
 
 On a gateway to the Internet, you'll want to redistribute the default
 route into the mesh network:
 
-  # babel -x default 256 $IPv6 eth1
+  # babel -X $IPv6 0 -x default 256 $IPv6 eth1
 
 If you find all of this too complicated and error-prone (as I do), you
 may want to consider autoconfiguring your routing domain using AHCP:
