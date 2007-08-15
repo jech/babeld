@@ -20,7 +20,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-extern unsigned char seqno;
+#define MAX_BUFFERED_UPDATES 200
+
+extern unsigned short myseqno;
 extern int seqno_time;
 extern int seqno_interval;
 
@@ -29,25 +31,26 @@ extern unsigned int update_jitter;
 extern int add_cost;
 extern int parasitic;
 extern int silent_time;
-extern int broadcast_txcost;
+extern int broadcast_ihu;
 extern int split_horizon;
 
 extern struct timeval update_flush_time;
-extern const unsigned char packet_header[4];
+extern const unsigned char packet_header[8];
 
 void parse_packet(const unsigned char *from, struct network *net,
                   const unsigned char *packet, int len);
 void flushbuf(struct network *net);
 void send_hello(struct network *net);
-void send_request(struct network *net, struct destination *dest,
-                  int hopcount, int seqno);
-void send_unicast_request(struct neighbour *neigh, struct destination *dest,
-                          int hopcount, int seqno);
-void send_update(struct destination *dest, struct network *net);
+void send_request(struct network *net,
+                  const unsigned char *prefix, unsigned char plen);
+void send_unicast_request(struct neighbour *neigh,
+                  const unsigned char *prefix, unsigned char plen);
+void send_update(struct network *net,
+                 const unsigned char *prefix, unsigned char plen);
 void send_self_update(struct network *net, int force_seqno);
 void send_self_retract(struct network *net);
 void send_neighbour_update(struct neighbour *neigh, struct network *net);
-void send_txcost(struct neighbour *neigh, struct network *net);
+void send_ihu(struct neighbour *neigh, struct network *net);
 void schedule_flush_now(struct network *net);
 void flushupdates(void);
 

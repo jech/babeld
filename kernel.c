@@ -96,7 +96,7 @@ write_proc(char *filename, int value)
 }
 
 struct netlink {
-    unsigned int seqno;
+    unsigned short seqno;
     int sock;
     struct sockaddr_nl sockaddr;
     socklen_t socklen;

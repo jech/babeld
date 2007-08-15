@@ -26,10 +26,10 @@ struct neighbour {
     unsigned short reach;
     unsigned short txcost;
     /* This is -1 when unknown, so don't make it unsigned */
-    short int hello_seqno;
-    int txcost_time;
-    int hello_time;
-    int hello_interval;
+    int hello_seqno;
+    int ihu_time;
+    struct timeval hello_time;
+    unsigned short hello_interval; /* in centiseconds */
     struct network *network;
 };
 
@@ -42,7 +42,7 @@ struct neighbour *find_neighbour(const unsigned char *address,
 struct neighbour *
 add_neighbour(const unsigned char *id, const unsigned char *address,
               struct network *net);
-void update_neighbour(struct neighbour *neigh, int hello, int hello_interval);
-void check_neighbour(struct neighbour *neigh);
+int update_neighbour(struct neighbour *neigh, int hello, int hello_interval);
+int check_neighbours(void);
 int neighbour_rxcost(struct neighbour *neigh);
 int neighbour_cost(struct neighbour *neigh);

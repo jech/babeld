@@ -30,7 +30,7 @@ THE SOFTWARE.
 #include "babel.h"
 #include "util.h"
 #include "net.h"
-#include "destination.h"
+#include "source.h"
 #include "neighbour.h"
 #include "route.h"
 #include "xroute.h"
@@ -38,21 +38,25 @@ THE SOFTWARE.
 
 struct timeval update_flush_time = {0, 0};
 
-const unsigned char packet_header[4] = {42, 0, 0, 0};
+const unsigned char packet_header[8] = {42, 1};
 
 unsigned int jitter;
 unsigned int update_jitter;
 int add_cost = 0;
 int parasitic = 0;
 int silent_time = 30;
-int broadcast_txcost = 0;
+int broadcast_ihu = 0;
 int split_horizon = 1;
 
-unsigned char seqno = 0;
+unsigned short myseqno = 0;
 int seqno_time = 0;
 int seqno_interval = -1;
 
-struct destination *buffered_updates[MAX_BUFFERED_UPDATES];
+struct buffered_update {
+    unsigned char prefix[16];
+    unsigned char plen;
+};
+struct buffered_update buffered_updates[MAX_BUFFERED_UPDATES];
 struct network *update_net = NULL;
 int updates = 0;
 
@@ -62,9 +66,13 @@ parse_packet(const unsigned char *from, struct network *net,
 {
     int i, j;
     const unsigned char *message;
+    unsigned char type, plen;
+    unsigned short seqno;
+    unsigned short metric;
+    const unsigned char *address;
     struct neighbour *neigh;
-    struct xroute pxroutes[40];
-    int numpxroutes = 0;
+    int have_current_source = 0;
+    unsigned char current_source[16];
 
     if(from[0] != 0xFE || (from[1] & 0xC0) != 0x80) {
         fprintf(stderr, "Received packet from non-local address %s.\n",
@@ -72,148 +80,122 @@ parse_packet(const unsigned char *from, struct network *net,
         return;
     }
 
-    if(len % 20 != 4 || packet[0] != 42) {
+    if(packet[0] != 42) {
         fprintf(stderr, "Received malformed packet on %s from %s.\n",
                 net->ifname, format_address(from));
         return;
     }
 
-    if(packet[1] != 0) {
+    if(packet[1] != 1) {
         fprintf(stderr,
                 "Received packet with unknown version %d on %s from %s.\n",
                 packet[1], net->ifname, format_address(from));
         return;
     }
 
+    if(len % 24 != 8) {
+        fprintf(stderr, "Received malformed packet on %s from %s.\n",
+                net->ifname, format_address(from));
+        return;
+    }
+
     j = 0;
-    for(i = 0; i < (len - 4) / 20; i++) {
-        message = packet + 4 + 20 * i;
-        if(message[0] != 4 && message[0] != 2) {
-            if(numpxroutes > 0) {
-                fprintf(stderr, "Received unexpected xroute on %s from %s.\n",
-                        net->ifname, format_address(from));
-            }
-            numpxroutes = 0;
-            VALGRIND_MAKE_MEM_UNDEFINED(&pxroutes, sizeof(pxroutes));
-        }
-        if(message[0] == 0) {
-            if(memcmp(message + 4, myid, 16) == 0)
+    for(i = 0; i < (len - 8) / 24; i++) {
+        message = packet + 8 + 24 * i;
+        type = message[0];
+        plen = message[1];
+        seqno = ntohs(*(uint16_t*)(message + 4));
+        metric = ntohs(*(uint16_t*)(message + 6));
+        address = message + 8;
+        if(type == 0) {
+            int changed;
+            if(memcmp(address, myid, 16) == 0)
                 continue;
             debugf("Received hello on %s from %s (%s).\n",
                    net->ifname,
-                   format_address(message + 4),
+                   format_address(address),
                    format_address(from));
             net->activity_time = now.tv_sec;
-            neigh = add_neighbour(message + 4, from, net);
+            neigh = add_neighbour(address, from, net);
             if(neigh == NULL)
                 continue;
-            update_neighbour(neigh, message[1],
-                             ((message[2] & 0x3) << 8) | message[3]);
-            update_neighbour_metric(neigh);
+            changed = update_neighbour(neigh, seqno, metric);
+            if(changed)
+                update_neighbour_metric(neigh);
         } else {
             neigh = find_neighbour(from, net);
             if(neigh == NULL)
                 continue;
             net->activity_time = now.tv_sec;
-            if(message[0] == 1) {
-                int hopcount = message[2];
-                int theirseqno = message[1];
-                debugf("Received request on %s from %s (%s) for %s "
-                       "(%d hops for seqno %d).\n",
-                       net->ifname,
+            if(type == 1) {
+                debugf("Received ihu for %s from %s (%s).\n",
+                       format_address(address),
                        format_address(neigh->id),
-                       format_address(from),
-                       format_address(message + 4),
-                       hopcount, theirseqno);
-                if(memcmp(message + 4, zeroes, 16) == 0) {
-                    /* If a neighbour is requesting a full route dump from us,
-                       we might as well send its txcost. */
-                    send_txcost(neigh, NULL);
-                    send_update(NULL, neigh->network);
-                } else if(memcmp(message + 4, myid, 16) == 0) {
-                    int new_seqno;
-                    send_txcost(neigh, NULL);
-                    if(hopcount > 0 && seqno_compare(theirseqno, seqno) <= 0)
-                        /* Somebody's requesting an old seqno. */
-                        new_seqno = 0;
-                    else
-                        new_seqno = 1;
-                    send_self_update(neigh->network, new_seqno);
-                } else if(!parasitic) {
-                    struct destination *dest;
-                    dest = find_destination(message + 4, 0, 0);
-                    if(dest) {
-                        if(hopcount == 0) {
-                            send_update(dest, neigh->network);
-                        } else {
-                            /* Request for a new seqno */
-                            struct route *installed;
-                            installed = find_installed_route(dest);
-                            if(installed && installed->nexthop != neigh) {
-                                if(seqno_compare(installed->seqno,
-                                                 theirseqno) >= 0)
-                                    send_update(dest, neigh->network);
-                                else if(!request_requested(dest,
-                                                           theirseqno,
-                                                           neigh->network)) {
-                                    if(hopcount >= 2)
-                                        send_unicast_request(installed->nexthop,
-                                                             dest,
-                                                             hopcount - 1,
-                                                             theirseqno);
-                                    notice_request(dest, theirseqno,
-                                                   neigh->network);
-                                }
-                            }
-                        }
-                    }
-                }
-            } else if(message[0] == 2) {
-                debugf("Received update on %s from %s (%s) for %s.\n",
-                       net->ifname,
-                       format_address(neigh->id),
-                       format_address(from),
-                       format_address(message + 4));
-                if(memcmp(message + 4, myid, 16) == 0) {
-                    int metric = ((message[2] << 8) | (message[3] & 0xFF));
-                    int theirseqno = message[1];
-                    if(metric >= INFINITY) {
-                        /* Oh my, someone is retracting a route to me. */
-                        send_txcost(neigh, NULL);
-                        send_self_update(neigh->network,
-                                         seqno_compare(theirseqno, seqno) > 0);
-                    }
-                    continue;
-                }
-
-                update_route(message + 4,
-                             message[1], (message[2] << 8 | message[3]),
-                             neigh, pxroutes, numpxroutes);
-                numpxroutes = 0;
-                VALGRIND_MAKE_MEM_UNDEFINED(&pxroutes, sizeof(pxroutes));
-            } else if(message[0] == 3) {
-                debugf("Received txcost from %s.\n", format_address(from));
-                if(memcmp(myid, message + 4, 16) == 0 ||
-                   memcmp(zeroes, message + 4, 16) == 0) {
-                    neigh->txcost = (message[2] << 8 | message[3]);
-                    neigh->txcost_time = now.tv_sec;
-                }
-                update_neighbour_metric(neigh);
-            } else if(message[0] == 4) {
-                debugf("Received xroute from %s.\n",
                        format_address(from));
-                if(numpxroutes >= 40) {
-                    fprintf(stderr, "Too many xroutes in update.\n");
+                if(plen == 0xFF || memcmp(myid, address, 16) == 0) {
+                    neigh->txcost = metric;
+                    neigh->ihu_time = now.tv_sec;
+                    update_neighbour_metric(neigh);
+                }
+            } else if(type == 2) {
+                debugf("Received request on %s from %s (%s) for %s "
+                       "(%d hops).\n",
+                       net->ifname,
+                       format_address(neigh->id),
+                       format_address(from),
+                       plen == 0xFF ?
+                       "any" :
+                       format_prefix(address, plen),
+                       metric);
+                if(plen == 0xFF) {
+                    /* If a neighbour is requesting a full route dump from us,
+                       we might as well send it an ihu. */
+                    send_ihu(neigh, NULL);
+                    send_update(neigh->network, NULL, 0);
+                } else {
+                    send_update(neigh->network, address, plen);
+                }
+            } else if(type == 3) {
+                if(plen == 0xFF)
+                    debugf("Received update for %s/none on %s from %s (%s).\n",
+                           format_address(message + 8),
+                           net->ifname,
+                           format_address(neigh->id),
+                           format_address(from));
+                else
+                    debugf("Received update for %s on %s from %s (%s).\n",
+                           format_prefix(message + 8, plen),
+                           net->ifname,
+                           format_address(neigh->id),
+                           format_address(from));
+                memcpy(current_source, address, 16);
+                have_current_source = 1;
+                if(memcmp(address, myid, 16) == 0)
+                    continue;
+                if(plen <= 128)
+                    update_route(address, mask_prefix(address, plen), plen,
+                                 seqno, metric, neigh);
+            } else if(type == 4) {
+                debugf("Received prefix %s on %s from %s (%s).\n",
+                       format_prefix(address, plen),
+                       net->ifname,
+                       format_address(neigh->id),
+                       format_address(from));
+                if(!have_current_source) {
+                    fprintf(stderr, "Received prefix with no source "
+                            "on %s from %s (%s).\n",
+                            net->ifname,
+                            format_address(neigh->id),
+                            format_address(from));
                     continue;
                 }
-                memcpy(pxroutes[numpxroutes].prefix, message + 4, 16);
-                pxroutes[numpxroutes].plen = message[1];
-                pxroutes[numpxroutes].cost =
-                    ((message[2] << 8) | (message[3] & 0xFF));
-                numpxroutes++;
+                if(memcmp(current_source, myid, 16) == 0)
+                    continue;
+                update_route(current_source, mask_prefix(address, plen), plen,
+                             seqno, metric, neigh);
             } else {
-                debugf("Received unknown packet type %d from %s.\n",
-                       message[0], format_address(from));
+                debugf("Received unknown packet type %d from %s (%s).\n",
+                       type, format_address(neigh->id), format_address(from));
             }
         }
     }
@@ -248,10 +230,10 @@ flushbuf(struct network *net)
     int rc;
     struct sockaddr_in6 sin6;
 
-    if(update_net == net) {
+    assert(net->buffered <= net->bufsize);
+
+    if(update_net == net)
         flushupdates();
-        return;
-    }
 
     if(net->buffered > 0) {
         debugf("  (flushing %d buffered bytes on %s)\n",
@@ -304,6 +286,7 @@ schedule_flush_now(struct network *net)
 static void
 start_message(struct network *net, int bytes)
 {
+    assert(net->buffered % 8 == 0);
     if(net->bufsize - net->buffered < bytes)
         flushbuf(net);
 }
@@ -311,7 +294,6 @@ start_message(struct network *net, int bytes)
 static void
 accumulate_byte(struct network *net, unsigned char byte)
 {
-    assert(net->bufsize - net->buffered >= 1);
     net->sendbuf[net->buffered] = byte;
     net->buffered++;
 }
@@ -319,9 +301,7 @@ accumulate_byte(struct network *net, unsigned char byte)
 static void
 accumulate_short(struct network *net, unsigned short s)
 {
-    assert(net->bufsize - net->buffered >= 2);
-    net->sendbuf[net->buffered] = s >> 8;
-    net->sendbuf[net->buffered + 1] = (s & 0xFF);
+    *(uint16_t *)(net->sendbuf + net->buffered) = htons(s);
     net->buffered += 2;
 }
 
@@ -329,9 +309,45 @@ static void
 accumulate_data(struct network *net,
                 const unsigned char *data, unsigned int len)
 {
-    assert(net->bufsize - net->buffered >= len);
     memcpy(net->sendbuf + net->buffered, data, len);
     net->buffered += len;
+}
+
+static void
+send_message(struct network *net,
+             unsigned char type,  unsigned char plen,
+             unsigned short seqno, unsigned short metric,
+             const unsigned char *address)
+{
+    start_message(net, 24);
+    accumulate_byte(net, type);
+    accumulate_byte(net, plen);
+    accumulate_short(net, 0);
+    accumulate_short(net, seqno);
+    accumulate_short(net, metric);
+    accumulate_data(net, address, 16);
+    schedule_flush(net);
+}
+
+static const unsigned char *
+message_source_id(struct network *net)
+{
+    int i;
+    assert(net->buffered % 24 == 0);
+
+    i = net->buffered / 24 - 1;
+    while(i >= 0) {
+        const unsigned char *message;
+        message = (const unsigned char*)(net->sendbuf + i * 24);
+        if(message[0] == 3)
+            return message + 8;
+        else if(message[0] == 4)
+            i--;
+        else
+            break;
+    }
+
+    return NULL;
 }
 
 void
@@ -339,51 +355,32 @@ send_hello(struct network *net)
 {
     debugf("Sending hello to %s.\n", net->ifname);
     update_hello_interval(net);
-    start_message(net, 20);
-    accumulate_byte(net, 0);
-    net->hello_seqno = ((net->hello_seqno + 1) & 0xFF);
-    accumulate_byte(net, net->hello_seqno);
-    if(net->hello_interval >= 1 << 10)
-        accumulate_short(net, 0);
-    else
-        accumulate_short(net, net->hello_interval);
-    accumulate_data(net, myid, 16);
-    schedule_flush(net);
+    net->hello_seqno = ((net->hello_seqno + 1) & 0xFFFF);
     net->hello_time = now.tv_sec;
+    send_message(net, 0, 0, net->hello_seqno,
+                 100 * net->hello_interval > 0xFFFF ?
+                 0 : 100 * net->hello_interval,
+                 myid);
 }
 
 void
-send_request(struct network *net, struct destination *dest,
-             int hopcount, int seqno)
+send_request(struct network *net,
+             const unsigned char *prefix, unsigned char plen)
 {
     int i;
 
     if(net == NULL) {
         for(i = 0; i < numnets; i++)
-            send_request(&nets[i], dest, hopcount, seqno);
+            send_request(&nets[i], prefix, plen);
         return;
     }
 
-    debugf("Sending request to %s for %s (%d hops for seqno %d).\n",
-           net->ifname, dest ? format_address(dest->address) : "::/0",
-           hopcount, seqno);
-    start_message(net, 20);
-    accumulate_byte(net, 1);
-    if(hopcount > 0 && dest) {
-        if(seqno >= 0)
-            accumulate_byte(net, seqno);
-        else
-            accumulate_byte(net,
-                            dest->metric >= INFINITY ?
-                            dest->seqno : ((dest->seqno + 1) & 0xFF));
-        accumulate_byte(net, hopcount);
-    } else {
-        accumulate_byte(net, 0);
-        accumulate_byte(net, 0);
-    }
-    accumulate_byte(net, 0);
-    accumulate_data(net, dest ? dest->address : zeroes, 16);
-    schedule_flush(net);
+    debugf("Sending request to %s for %s.\n",
+           net->ifname, prefix ? format_prefix(prefix, plen) : "any");
+    if(prefix)
+        send_message(net, 2, plen, 0, 0, prefix);
+    else
+        send_message(net, 2, 0xFF, 0, 0, ones);
 }
 
 static void
@@ -411,44 +408,50 @@ send_unicast_packet(struct neighbour *neigh, unsigned char *buf, int buflen)
 }
 
 void
-send_unicast_request(struct neighbour *neigh, struct destination *dest,
-                     int hopcount, int seqno)
+send_unicast_request(struct neighbour *neigh,
+                     const unsigned char *prefix, unsigned char plen)
 {
-    unsigned char buf[20];
+    unsigned char buf[24];
 
-    debugf("Sending unicast request to %s (%s) for %s "
-           "(%d hops for seqno %d).\n",
+    debugf("Sending unicast request to %s (%s) for %s.\n",
            format_address(neigh->id),
            format_address(neigh->address),
-           dest ? format_address(dest->address) : "::/0",
-           hopcount, seqno);
+           prefix ? format_prefix(prefix, plen) : "any");
 
+    memset(buf, 0, 24);
     buf[0] = 1;
-    if(hopcount > 0 && dest) {
-        if(seqno >= 0)
-            buf[1] = seqno;
-        else
-            buf[1] =
-                dest->metric >= INFINITY ?
-                dest->seqno : ((dest->seqno + 1) & 0xFF);
-        buf[2] = hopcount;
+    if(prefix) {
+        memcpy(buf + 8, prefix, 16);
+        buf[7] = plen;
     } else {
-        buf[1] = 0;
-        buf[2] = 0;
+        memcpy(buf + 8, ones, 16);
+        buf[7] = 0xFF;
     }
-    buf[3] = 0;
-    if(dest == NULL)
-        memset(buf + 4, 0, 16);
-    else
-        memcpy(buf + 4, dest->address, 16);
+    send_unicast_packet(neigh, buf, 24);
+}
 
-    send_unicast_packet(neigh, buf, 20);
+static void
+really_send_update(struct network *net,
+                   const unsigned char *address,
+                   const unsigned char *prefix, unsigned char plen,
+                   unsigned short seqno, unsigned short metric)
+{
+    if(in_prefix(address, prefix, plen)) {
+        send_message(net, 3, plen, seqno, metric, address);
+    } else {
+        unsigned const char *sid;
+        start_message(net, 48);
+        sid = message_source_id(net);
+        if(sid == NULL || memcmp(address, sid, 16) != 0)
+            send_message(net, 3, 0xFF, 0, 0xFFFF, address);
+        send_message(net, 4, plen, seqno, metric, prefix);
+    }
 }
 
 void
 flushupdates(void)
 {
-    int i, j;
+    int i;
 
     if(updates > 0) {
         /* Ensure that we won't be recursively called by flushbuf. */
@@ -458,96 +461,44 @@ flushupdates(void)
         update_net = NULL;
 
         debugf("  (flushing %d buffered updates)\n", n);
+
         for(i = 0; i < n; i++) {
-            if(buffered_updates[i] == NULL) {
-                int numpxroutes;
-                numpxroutes = 0;
-                for(j = 0; j < nummyxroutes; j++) {
-                    if(myxroutes[j].installed)
-                        numpxroutes++;
-                }
-                start_message(net, 20 + 20 * numpxroutes);
-                for(j = 0; j < nummyxroutes; j++) {
-                    if(!myxroutes[j].installed)
-                        continue;
-                    if(net->bufsize - net->buffered < 40) {
-                        /* We cannot just call start_message, as this would
-                           split the xroutes from the update. */
-                        start_message(net, 20);
-                        accumulate_byte(net, 2);
-                        accumulate_byte(net, seqno);
-                        accumulate_short(net, 0);
-                        accumulate_data(net, myid, 16);
-                        flushbuf(net);
-                    }
-                    start_message(net, 20);
-                    accumulate_byte(net, 4);
-                    accumulate_byte(net, myxroutes[j].plen);
-                    accumulate_short(net, myxroutes[j].cost);
-                    accumulate_data(net, myxroutes[j].prefix, 16);
-                }
-                start_message(net, 20);
-                accumulate_byte(net, 2);
-                accumulate_byte(net, seqno);
-                accumulate_short(net, 0);
-                accumulate_data(net, myid, 16);
-            } else {
-                struct route *route;
-                int seqno;
-                int metric;
-                route = find_installed_route(buffered_updates[i]);
-                if(route) {
-                    if(split_horizon && net->wired &&
-                       route->nexthop->network == net)
-                        continue;
-                    seqno = route->seqno;
-                    metric = MIN(route->metric + add_cost, INFINITY);
-                } else {
-                    seqno = buffered_updates[i]->seqno;
-                    metric = INFINITY;
-                }
-
-                update_destination(buffered_updates[i], seqno, metric);
-                satisfy_request(buffered_updates[i], seqno, net);
-
-                /* Don't send xroutes if the metric is infinite as the seqno
-                   might be originated by us. */
-                if(metric < INFINITY) {
-                    int numpxroutes;
-                    numpxroutes = 0;
-                    for(j = 0; j < numxroutes; j++) {
-                        if(xroutes[j].installed &&
-                           xroutes[j].gateway == buffered_updates[i])
-                            numpxroutes++;
-                    }
-                    start_message(net, 20 + 20 * numpxroutes);
-                    for(j = 0; j < numxroutes; j++) {
-                        if(!xroutes[j].installed)
-                            continue;
-                        if(xroutes[j].gateway != buffered_updates[i])
-                            continue;
-                        /* See comment above */
-                        if(net->bufsize - net->buffered < 40) {
-                            start_message(net, 20);
-                            accumulate_byte(net, 2);
-                            accumulate_byte(net, seqno);
-                            accumulate_short(net, metric);
-                            accumulate_data(net,
-                                            buffered_updates[i]->address, 16);
-                            flushbuf(net);
-                        }
-                        start_message(net, 20);
-                        accumulate_byte(net, 4);
-                        accumulate_byte(net, xroutes[j].plen);
-                        accumulate_short(net, xroutes[j].cost);
-                        accumulate_data(net, xroutes[j].prefix, 16);
-                    }
-                }
-                start_message(net, 20);
-                accumulate_byte(net, 2);
-                accumulate_byte(net, seqno);
-                accumulate_short(net, metric);
-                accumulate_data(net, buffered_updates[i]->address, 16);
+            struct xroute *xroute;
+            struct route *route;
+            struct source *src;
+            unsigned short seqno;
+            unsigned short metric;
+            xroute = find_exported_xroute(buffered_updates[i].prefix,
+                                          buffered_updates[i].plen);
+            if(xroute) {
+                really_send_update(net, myid,
+                                   xroute->prefix, xroute->plen,
+                                   myseqno, xroute->metric);
+                continue;
+            }
+            route = find_installed_route(buffered_updates[i].prefix,
+                                         buffered_updates[i].plen);
+            if(route) {
+                if(split_horizon &&
+                   net->wired && route->nexthop->network == net)
+                    continue;
+                seqno = route->seqno;
+                metric = MIN((int)route->metric + add_cost, INFINITY);
+                really_send_update(net, route->src->address,
+                                   route->src->prefix,
+                                   route->src->plen,
+                                   seqno, metric);
+                update_source(route->src, seqno, metric);
+                continue;
+            }
+            src = find_recent_source(buffered_updates[i].prefix,
+                                     buffered_updates[i].plen);
+            if(src) {
+                really_send_update(net, src->address, src->prefix, src->plen,
+                                   src->metric >= INFINITY ?
+                                   src->seqno : (src->seqno + 1) & 0xFFFF,
+                                   INFINITY);
+                continue;
             }
         }
         schedule_flush_now(net);
@@ -570,7 +521,8 @@ schedule_update_flush(void)
 }
 
 static void
-buffer_update(struct network *net, struct destination *dest)
+buffer_update(struct network *net,
+              const unsigned char *prefix, unsigned char plen)
 {
     int i;
 
@@ -579,64 +531,61 @@ buffer_update(struct network *net, struct destination *dest)
 
     update_net = net;
 
-    for(i = 0; i < updates; i++)
-        if(buffered_updates[i] == dest)
+    for(i = 0; i < updates; i++) {
+        if(buffered_updates[i].plen == plen &&
+           memcmp(buffered_updates[i].prefix, prefix, 16) == 0)
             return;
+    }
 
     if(updates >= MAX_BUFFERED_UPDATES)
         flushupdates();
-    buffered_updates[updates++] = dest;
+    memcpy(buffered_updates[updates].prefix, prefix, 16);
+    buffered_updates[updates].plen = plen;
+    updates++;
 }
 
 void
-send_update(struct destination *dest, struct network *net)
+send_update(struct network *net,
+            const unsigned char *prefix, unsigned char plen)
 {
     int i;
 
-    if(dest != NULL) {
-        /* The case of net == NULL is not handled by flushupdates.
-           The other case is, but it won't do any harm to record it early. */
-        struct route *installed = find_installed_route(dest);
-        satisfy_request(dest, installed ? installed->seqno : dest->seqno,
-                        net);
-    }
-
     if(net == NULL) {
         for(i = 0; i < numnets; i++)
-            send_update(dest, &nets[i]);
+            send_update(&nets[i], prefix, plen);
         return;
     }
 
-    if(parasitic ||
-       (silent_time && now.tv_sec < reboot_time + silent_time)) {
-        net->update_time = now.tv_sec;
-        if(dest == NULL)
+    if(parasitic || (silent_time && now.tv_sec < reboot_time + silent_time)) {
+        if(prefix == NULL) {
             send_self_update(net, 0);
+            net->update_time = now.tv_sec;
+        } else if(find_exported_xroute(prefix, plen)) {
+            buffer_update(net, prefix, plen);
+        }
         return;
     }
 
     silent_time = 0;
 
-    if(dest) {
-        if(updates >= net->bufsize / 20) {
+    if(prefix) {
+        if(updates > net->bufsize / 24 - 2) {
             /* Update won't fit in a single packet -- send a full dump. */
-            send_update(NULL, net);
+            send_update(net, NULL, 0);
             return;
         }
         debugf("Sending update to %s for %s.\n",
-               net->ifname, format_address(dest->address));
-        buffer_update(net, dest);
+               net->ifname, format_prefix(prefix, plen));
+        buffer_update(net, prefix, plen);
     } else {
-        if(now.tv_sec - net->update_time < 2) {
-            send_self_update(net, 0);
+        send_self_update(net, 0);
+        if(now.tv_sec - net->update_time < 1)
             return;
-        }
-        debugf("Sending update to %s for ::/0.\n", net->ifname);
+        debugf("Sending update to %s for any.\n", net->ifname);
         for(i = 0; i < numroutes; i++)
             if(routes[i].installed)
-                buffer_update(net, routes[i].dest);
+                buffer_update(net, routes[i].src->prefix, routes[i].src->plen);
         net->update_time = now.tv_sec;
-        send_self_update(net, 0);
     }
     schedule_update_flush();
 }
@@ -644,14 +593,13 @@ send_update(struct destination *dest, struct network *net)
 void
 send_self_update(struct network *net, int force_seqno)
 {
-    if((force_seqno && seqno_time < now.tv_sec) ||
-       seqno_time + seqno_interval < now.tv_sec) {
-        seqno = ((seqno + 1) & 0xFF);
+    int i;
+    if(force_seqno || seqno_time + seqno_interval < now.tv_sec) {
+        myseqno = ((myseqno + 1) & 0xFFFF);
         seqno_time = now.tv_sec;
     }
 
     if(net == NULL) {
-        int i;
         for(i = 0; i < numnets; i++)
             send_self_update(&nets[i], 0);
         return;
@@ -659,14 +607,20 @@ send_self_update(struct network *net, int force_seqno)
 
     debugf("Sending self update to %s.\n", net->ifname);
 
-    buffer_update(net, NULL);
     net->self_update_time = now.tv_sec;
+
+    for(i = 0; i < numxroutes; i++) {
+        if(xroutes[i].exported)
+            send_update(net, xroutes[i].prefix, xroutes[i].plen);
+    }
     schedule_update_flush();
 }
 
 void
 send_self_retract(struct network *net)
 {
+    int i;
+
     if(net == NULL) {
         int i;
         for(i = 0; i < numnets; i++)
@@ -674,18 +628,18 @@ send_self_retract(struct network *net)
         return;
     }
 
+    flushupdates();
+
     debugf("Retracting self on %s.\n", net->ifname);
 
-    seqno = ((seqno + 1) & 0xFF);
+    myseqno = ((myseqno + 1) & 0xFFFF);
     seqno_time = now.tv_sec;
-
-    start_message(net, 20);
-    accumulate_byte(net, 2);
-    accumulate_byte(net, seqno);
-    accumulate_short(net, 0xFFFF);
-    accumulate_data(net, myid, 16);
-    schedule_flush(net);
     net->self_update_time = now.tv_sec;
+    for(i = 0; i < numxroutes; i++) {
+        if(xroutes[i].exported)
+            really_send_update(net, myid, xroutes[i].prefix, xroutes[i].plen,
+                               myseqno, 0xFFFF);
+    }
 }
 
 void
@@ -694,40 +648,34 @@ send_neighbour_update(struct neighbour *neigh, struct network *net)
     int i;
     for(i = 0; i < numroutes; i++) {
         if(routes[i].installed && routes[i].nexthop == neigh)
-            send_update(routes[i].dest, net);
+            send_update(net, routes[i].src->prefix, routes[i].src->plen);
     }
-    schedule_update_flush();
 }
 
 void
-send_txcost(struct neighbour *neigh, struct network *net)
+send_ihu(struct neighbour *neigh, struct network *net)
 {
     int i;
 
     if(neigh == NULL && net == NULL) {
         for(i = 0; i < numnets; i++)
-            send_txcost(NULL, &nets[i]);
+            send_ihu(NULL, &nets[i]);
         return;
     }
 
     if(neigh == NULL) {
-        if(broadcast_txcost && net->wired) {
-            debugf("Sending broadcast txcost to %s.\n", net->ifname);
-            start_message(net, 20);
-            accumulate_byte(net, 3);
-            accumulate_byte(net, 0);
-            accumulate_short(net, net->cost);
-            accumulate_data(net, zeroes, 16);
-            schedule_flush(net);
+        if(broadcast_ihu && net->wired) {
+            debugf("Sending broadcast ihu to %s.\n", net->ifname);
+            send_message(net, 1, 0xFF, 0, net->cost, ones);
         } else {
             for(i = 0; i < numneighs; i++) {
                 if(neighs[i].id[0] != 0xFF) {
                     if(neighs[i].network == net)
-                        send_txcost(&neighs[i], net);
+                        send_ihu(&neighs[i], net);
                 }
             }
         }
-        net->txcost_time = now.tv_sec;
+        net->ihu_time = now.tv_sec;
     } else {
         int rxcost;
 
@@ -736,17 +684,12 @@ send_txcost(struct neighbour *neigh, struct network *net)
 
         net = neigh->network;
 
-        debugf("Sending txcost on %s to %s (%s).\n",
+        debugf("Sending ihu on %s to %s (%s).\n",
                neigh->network->ifname,
                format_address(neigh->id),
                format_address(neigh->address));
 
         rxcost = neighbour_rxcost(neigh);
-        start_message(net, 20);
-        accumulate_byte(net, 3);
-        accumulate_byte(net, 0);
-        accumulate_short(net, rxcost);
-        accumulate_data(net, neigh->id, 16);
-        schedule_flush(net);
+        send_message(net, 1, 128, 0, rxcost, neigh->id);
     }
 }

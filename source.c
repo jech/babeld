@@ -23,107 +23,86 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include "babel.h"
 #include "util.h"
-#include "destination.h"
+#include "source.h"
 
-struct destination dests[MAXDESTS];
-int numdests = 0;
+struct source srcs[MAXSRCS];
+int numsrcs = 0;
 
-struct destination *
-find_destination(const unsigned char *d, int create, unsigned char seqno)
+struct source *
+find_source(const unsigned char *a, const unsigned char *p, unsigned char plen,
+            int create, unsigned short seqno)
 {
     int i;
-    for(i = 0; i < numdests; i++) {
+    for(i = 0; i < numsrcs; i++) {
         /* This should really be a hash table.  For now, check the
            last byte first. */
-        if(dests[i].address[15] != d[15])
+        if(srcs[i].address[15] != a[15])
             continue;
-        if(memcmp(dests[i].address, d, 16) == 0)
-            return &dests[i];
+        if(memcmp(srcs[i].address, a, 16) != 0)
+            continue;
+        if(source_match(&srcs[i], p, plen))
+           return &srcs[i];
     }
 
     if(!create)
         return NULL;
 
-    if(numdests >= MAXDESTS) {
-        fprintf(stderr, "Too many destinations.\n");
+    if(numsrcs >= MAXSRCS) {
+        fprintf(stderr, "Too many sources.\n");
         return NULL;
     }
-    memcpy(dests[numdests].address, d, 16);
-    dests[numdests].seqno = seqno;
-    dests[numdests].metric = INFINITY;
-    dests[numdests].time = now.tv_sec;
-    dests[numdests].requested_seqno = -1;
-    dests[numdests].requested_net = NULL;
-    return &dests[numdests++];
+    memcpy(srcs[numsrcs].address, a, 16);
+    memcpy(srcs[numsrcs].prefix, p, 16);
+    srcs[numsrcs].plen = plen;
+    srcs[numsrcs].seqno = seqno;
+    srcs[numsrcs].metric = INFINITY;
+    srcs[numsrcs].time = now.tv_sec;
+    return &srcs[numsrcs++];
 }
 
-void
-update_destination(struct destination *dest,
-                   unsigned char seqno, unsigned short metric)
+struct source *
+find_recent_source(const unsigned char *p, unsigned char plen)
 {
-    if(seqno_compare(dest->seqno, seqno) < 0 ||
-       (dest->seqno == seqno && dest->metric > metric)) {
-        dest->seqno = seqno;
-        dest->metric = metric;
-    }
-    dest->time = now.tv_sec;
+    int i;
+    struct source *src = NULL;
 
-    if(dest->requested_seqno >= 0) {
-        if(seqno_minus(dest->requested_seqno, seqno) >= 16) {
-            /* Stale data? */
-            dest->requested_seqno = -1;
-            dest->requested_net = NULL;
-        }
+    for(i = 0; i < numsrcs; i++) {
+        if(!source_match(&srcs[i], p, plen))
+            continue;
+        if(!src || src->time < srcs[i].time)
+            src = &srcs[i];
     }
-}
-
-void
-notice_request(struct destination *dest, unsigned char seqno,
-               struct network *net)
-{
-    if(dest->requested_seqno < 0) {
-        dest->requested_seqno = seqno;
-        dest->requested_net = net;
-    } else {
-        if(seqno_compare(dest->requested_seqno, seqno) < 0)
-            dest->requested_seqno = seqno;
-        if(net == NULL || net != dest->requested_net)
-            dest->requested_net = NULL;
-    }
+    return src;
 }
 
 int
-request_requested(struct destination *dest, unsigned char seqno,
-                  struct network *net)
+source_match(struct source *src,
+             const unsigned char *p, unsigned char plen)
 {
-    if(dest->requested_seqno < 0)
+    if(src->plen != plen)
         return 0;
-
-    if(seqno_compare(dest->requested_seqno, seqno) < 0)
+    if(src->prefix[15] != p[15])
         return 0;
-
-    if(dest->requested_net == NULL)
-        return 1;
-
-    if(net == NULL || net != dest->requested_net)
+    if(memcmp(src->prefix, p, 16) != 0)
         return 0;
-
     return 1;
 }
 
 void
-satisfy_request(struct destination *dest, unsigned char seqno,
-                struct network *net)
+update_source(struct source *src,
+              unsigned short seqno, unsigned short metric)
 {
-    if(dest->requested_seqno >= 0) {
-        if(net == NULL || net == dest->requested_net) {
-            if(seqno_compare(seqno, dest->requested_seqno) >= 0) {
-                dest->requested_seqno = -1;
-                dest->requested_net = NULL;
-            }
-        }
+    if(metric >= INFINITY)
+        return;
+
+    if(seqno_compare(src->seqno, seqno) < 0 ||
+       (src->seqno == seqno && src->metric > metric)) {
+        src->seqno = seqno;
+        src->metric = metric;
     }
+    src->time = now.tv_sec;
 }

@@ -38,7 +38,7 @@ seqno_compare(unsigned char s1, unsigned char s2)
 {
     if(s1 == s2)
         return 0;
-    else if(((s2 - s1) & 0xFF) < 128)
+    else if(((s2 - s1) & 0xFFFF) < 0x8000)
         return -1;
     else
         return 1;
@@ -49,10 +49,10 @@ seqno_minus(unsigned char s1, unsigned char s2)
 {
     if(s1 == s2)
         return 0;
-    else if(((s2 - s1) & 0xFF) < 128)
-        return -(int)((s2 - s1) & 0xFF);
+    else if(((s2 - s1) & 0xFFFF) < 0x8000)
+        return -(int)((s2 - s1) & 0xFFFF);
     else
-        return ((s1 - s2) & 0xFF);
+        return ((s1 - s2) & 0xFFFF);
 }
 
 void
@@ -73,6 +73,20 @@ timeval_minus_msec(const struct timeval *s1, const struct timeval *s2)
 {
     return (s1->tv_sec - s2->tv_sec) * 1000 +
         (s1->tv_usec - s2->tv_usec) / 1000;
+}
+
+void
+timeval_plus_msec(struct timeval *d, const struct timeval *s, int msecs)
+{
+    int usecs;
+    d->tv_sec = s->tv_sec + msecs / 1000;
+    usecs = s->tv_usec + (msecs % 1000) * 1000;
+    if(usecs < 1000000) {
+        d->tv_usec = usecs;
+    } else {
+        d->tv_usec = usecs - 1000000;
+        d->tv_sec++;
+    }
 }
 
 int
@@ -122,6 +136,38 @@ do_debugf(const char *format, ...)
     fflush(stderr);
 }
 
+int
+in_prefix(const unsigned char *address,
+          const unsigned char *prefix, unsigned char plen)
+{
+    unsigned char m;
+
+    if(plen > 128)
+        plen = 128;
+
+    if(memcmp(address, prefix, plen / 8) != 0)
+        return 0;
+
+    m = 0xFF << (8 - (plen % 8));
+
+    return ((address[plen / 8] & m) == (prefix[plen / 8] & m));
+}
+
+const unsigned char *
+mask_prefix(const unsigned char *prefix, unsigned char plen)
+{
+    static unsigned char ret[16];
+
+    if(plen > 128)
+        plen = 128;
+
+    memset(ret, 0, 16);
+    memcpy(ret, prefix, plen / 8);
+    if(plen % 8 != 0)
+        ret[plen / 8] = 0xFF << (8 - (plen % 8));
+    return (const unsigned char *)ret;
+}
+
 const char *
 format_address(const unsigned char *address)
 {
@@ -129,6 +175,19 @@ format_address(const unsigned char *address)
     static int i = 0;
     i = (i + 1) % 4;
     return inet_ntop(AF_INET6, address, buf[i], INET6_ADDRSTRLEN);
+}
+
+const char *
+format_prefix(const unsigned char *prefix, unsigned char plen)
+{
+    static char buf[4][INET6_ADDRSTRLEN + 4];
+    static int i = 0;
+    int n;
+    i = (i + 1) % 4;
+    inet_ntop(AF_INET6, prefix, buf[i], INET6_ADDRSTRLEN);
+    n = strlen(buf[i]);
+    snprintf(buf[i] + n, INET6_ADDRSTRLEN + 4 - n, "/%d", plen);
+    return buf[i];
 }
 
 int
@@ -146,12 +205,12 @@ parse_address(const char *address, unsigned char *addr_r)
 }
 
 int
-parse_net(const char *net, unsigned char *prefix_r, unsigned short *plen_r)
+parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r)
 {
     char buf[INET6_ADDRSTRLEN];
     char *slash, *end;
     unsigned char prefix[16];
-    unsigned short plen;
+    long plen;
     int rc;
 
     if(strcmp(net, "default") == 0) {
@@ -173,11 +232,11 @@ parse_net(const char *net, unsigned char *prefix_r, unsigned short *plen_r)
             if(rc < 0)
                 return rc;
             plen = strtol(slash + 1, &end, 0);
-            if(*end != '\0')
+            if(*end != '\0' || plen < 0 || plen > 128)
             return -1;
         }
     }
-    memcpy(prefix_r, prefix, 16);
+    memcpy(prefix_r, mask_prefix(prefix, plen), 16);
     *plen_r = plen;
     return 0;
 }

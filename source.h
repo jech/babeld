@@ -20,22 +20,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-struct destination {
+struct source {
     unsigned char address[16];
-    unsigned char seqno;
+    unsigned char prefix[16];
+    unsigned char plen;
+    unsigned short seqno;
     unsigned short metric;
     int time;
-    int requested_seqno;
-    struct network *requested_net;
 };
 
-struct destination *find_destination(const unsigned char *d,
-                                     int create, unsigned char seqno);
-void update_destination(struct destination *dest,
-                        unsigned char seqno, unsigned short metric);
-void notice_request(struct destination *dest, unsigned char seqno,
-                    struct network *net);
-int request_requested(struct destination *dest, unsigned char seqno,
-                      struct network *net);
-void satisfy_request(struct destination *dest, unsigned char seqno,
-                     struct network *net);
+int source_match(struct source *src,
+                 const unsigned char *p, unsigned char plen);
+struct source *find_source(const unsigned char *a,
+                           const unsigned char *p,
+                           unsigned char plen,
+                           int create, unsigned short seqno);
+struct source *find_recent_source(const unsigned char *p,
+                                  unsigned char plen);
+void update_source(struct source *src,
+                   unsigned short seqno, unsigned short metric);

@@ -20,38 +20,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-struct route;
+int check_xroutes(void);
 
 struct xroute {
     unsigned char prefix[16];
-    unsigned short plen;
-    struct destination *gateway;
-    struct neighbour *nexthop;
-    int cost;
-    int metric;
-    int time;
-    int installed;
+    unsigned char plen;
+    char exported;
+    unsigned short metric;
 };
 
 extern struct xroute xroutes[MAXXROUTES];
 extern int numxroutes;
 
-extern struct xroute myxroutes[MAXMYXROUTES];
-extern int nummyxroutes;
-
-extern int xroute_gc_delay;
-extern int xroute_hold_delay;
-
-void install_xroute(struct xroute *xroute);
-void uninstall_xroute(struct xroute *xroute);
-void consider_xroute(struct xroute *xroute);
-void consider_all_xroutes(struct route *route);
-void flush_xroute(struct xroute *xroute);
-void flush_neighbour_xroutes(struct neighbour *neigh);
-void retract_xroutes(struct destination *gateway, struct neighbour *nexthop,
-                     const struct xroute *except, int numexcept);
-struct xroute * update_xroute(const unsigned char *prefix, unsigned short plen,
-                              struct destination *gateway,
-                              struct neighbour *nexthop, int cost);
-void update_xroute_metric(struct xroute *xroute, int cost);
-int check_myxroutes(void);
+struct xroute *find_exported_xroute(const unsigned char *prefix,
+                                    unsigned char plen);

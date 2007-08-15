@@ -29,7 +29,7 @@ THE SOFTWARE.
 #include "babel.h"
 #include "util.h"
 #include "kernel.h"
-#include "destination.h"
+#include "source.h"
 #include "neighbour.h"
 #include "route.h"
 #include "xroute.h"
@@ -42,22 +42,24 @@ int route_timeout_delay = 50;
 int route_gc_delay = 95;
 
 struct route *
-find_route(struct destination *dest, struct neighbour *nexthop)
+find_route(const unsigned char *prefix, unsigned char plen,
+           struct neighbour *nexthop)
 {
     int i;
     for(i = 0; i < numroutes; i++) {
-        if(routes[i].nexthop == nexthop && routes[i].dest == dest)
+        if(routes[i].nexthop == nexthop &&
+           source_match(routes[i].src, prefix, plen))
             return &routes[i];
     }
     return NULL;
 }
 
 struct route *
-find_installed_route(struct destination *dest)
+find_installed_route(const unsigned char *prefix, unsigned char plen)
 {
     int i;
     for(i = 0; i < numroutes; i++) {
-        if(routes[i].installed && routes[i].dest == dest)
+        if(routes[i].installed && source_match(routes[i].src, prefix, plen))
             return &routes[i];
     }
     return NULL;
@@ -67,8 +69,8 @@ void
 flush_route(struct route *route)
 {
     int n;
-    struct destination *dest;
-    int install = 0, oldmetric;
+    struct source *src;
+    int oldmetric, lost = 0;
 
     n = route - routes;
     assert(n >= 0 && n < numroutes);
@@ -77,33 +79,18 @@ flush_route(struct route *route)
 
     if(route->installed) {
         uninstall_route(route);
-        install = 1;
+        lost = 1;
     }
 
-    dest = route->dest;
+    src = route->src;
 
     if(n != numroutes - 1)
         memcpy(routes + n, routes + numroutes - 1, sizeof(struct route));
     numroutes--;
     VALGRIND_MAKE_MEM_UNDEFINED(routes + numroutes, sizeof(struct route));
 
-    if(install) {
-        struct route *new_route;
-        new_route = find_best_route(dest);
-        if(new_route) {
-            install_route(new_route);
-            send_triggered_update(new_route, oldmetric);
-        } else {
-            if(dest->metric < INFINITY) {
-                dest->metric = INFINITY;
-                dest->seqno = (dest->seqno + 1) & 0xFF;
-            }
-            send_update(dest, NULL);
-        }
-        if(oldmetric < INFINITY &&
-           (!new_route || new_route->metric >= INFINITY))
-            send_request(NULL, route->dest, max_request_hopcount, -1);
-    }
+    if(lost)
+        route_lost(src, oldmetric);
 }
 
 void
@@ -135,17 +122,12 @@ metric_to_kernel(int metric)
 void
 install_route(struct route *route)
 {
-    struct route *installed;
     int rc;
 
     if(route->installed)
         return;
 
-    installed = find_installed_route(route->dest);
-    if(installed)
-        uninstall_route(installed);
-
-    rc = kernel_route(ROUTE_ADD, route->dest->address, 128,
+    rc = kernel_route(ROUTE_ADD, route->src->prefix, route->src->plen,
                       route->nexthop->address,
                       route->nexthop->network->ifindex,
                       metric_to_kernel(route->metric), 0);
@@ -155,60 +137,85 @@ install_route(struct route *route)
             return;
     }
     route->installed = 1;
-
-    consider_all_xroutes(route);
 }
 
 void
 uninstall_route(struct route *route)
 {
-    int i, rc;
+    int rc;
+
     if(!route->installed)
         return;
 
-    for(i = 0; i < numxroutes; i++) {
-        if(xroutes[i].installed &&
-           xroutes[i].gateway == route->dest &&
-           xroutes[i].nexthop == route->nexthop)
-            uninstall_xroute(&xroutes[i]);
-    }
-
-    rc = kernel_route(ROUTE_FLUSH, route->dest->address, 128,
+    rc = kernel_route(ROUTE_FLUSH, route->src->prefix, route->src->plen,
                       route->nexthop->address,
                       route->nexthop->network->ifindex,
                       metric_to_kernel(route->metric), 0);
     if(rc < 0)
         perror("kernel_route(FLUSH)");
+
     route->installed = 0;
+}
+
+void
+change_route_metric(struct route *route, int newmetric)
+{
+    int rc;
+
+    if(route->installed) {
+        rc = kernel_route(ROUTE_MODIFY,
+                          route->src->prefix, route->src->plen,
+                          route->nexthop->address,
+                          route->nexthop->network->ifindex,
+                          metric_to_kernel(route->metric),
+                          metric_to_kernel(newmetric));
+        if(rc < 0) {
+            perror("kernel_route(MODIFY)");
+            return;
+        }
+    }
+    route->metric = newmetric;
 }
 
 int
 route_feasible(struct route *route)
 {
-    return update_feasible(route->seqno, route->refmetric, route->dest);
+    return update_feasible(route->src->address,
+                           route->src->prefix, route->src->plen,
+                           route->seqno, route->refmetric);
 }
 
 int
-update_feasible(unsigned char seqno, unsigned short refmetric,
-                struct destination *dest)
+update_feasible(const unsigned char *a,
+                const unsigned char *p, unsigned char plen,
+                unsigned short seqno, unsigned short refmetric)
 {
-    if(dest->time < now.tv_sec - 200) {
+    struct source *src = find_source(a, p, plen, 0, 0);
+    if(src == NULL)
+        return 1;
+
+    if(src->time < now.tv_sec - 200)
         /* Never mind what is probably stale data */
         return 1;
-    }
 
-    return (seqno_compare(dest->seqno, seqno) < 0 ||
-            (dest->seqno == seqno && refmetric < dest->metric));
+    if(refmetric >= INFINITY)
+        /* Retractions are always feasible */
+        return 1;
+
+    return (seqno_compare(seqno, src->seqno) > 0 ||
+            (src->seqno == seqno && refmetric < src->metric));
 }
 
+/* This returns a feasible route.  The only condition it must satisfy if that
+   if there is a feasible route, then one will be found. */
 struct route *
-find_best_route(struct destination *dest)
+find_best_route(const unsigned char *prefix, unsigned char plen)
 {
     struct route *route = NULL;
     int i;
 
     for(i = 0; i < numroutes; i++) {
-        if(routes[i].dest != dest)
+        if(!source_match(routes[i].src, prefix, plen))
             continue;
         if(routes[i].time < now.tv_sec - route_timeout_delay)
             continue;
@@ -230,6 +237,28 @@ find_best_route(struct destination *dest)
 }
 
 void
+update_route_metric(struct route *route)
+{
+    int oldmetric;
+    int newmetric;
+
+    oldmetric = route->metric;
+    if(route->time < now.tv_sec - route_timeout_delay) {
+        if(route->refmetric < INFINITY) {
+            route->seqno = (route->src->seqno + 1) & 0xFFFF;
+            route->refmetric = INFINITY;
+        }
+        newmetric = INFINITY;
+    } else {
+        newmetric = MIN(route->refmetric + neighbour_cost(route->nexthop),
+                        INFINITY);
+    }
+
+    change_route_metric(route, newmetric);
+    trigger_route_change(route, route->src, oldmetric);
+}
+
+void
 update_neighbour_metric(struct neighbour *neigh)
 {
     int i;
@@ -242,78 +271,57 @@ update_neighbour_metric(struct neighbour *neigh)
     }
 }
 
-void
-update_route_metric(struct route *route)
-{
-    int oldmetric;
-    int newmetric;
-
-    oldmetric = route->metric;
-    if(route->time < now.tv_sec - route_timeout_delay) {
-        if(route->refmetric < INFINITY) {
-            route->seqno = (route->dest->seqno + 1) & 0xFF;
-            route->refmetric = INFINITY;
-        }
-        newmetric = INFINITY;
-    } else {
-        newmetric = MIN(route->refmetric + neighbour_cost(route->nexthop),
-                        INFINITY);
-    }
-
-    change_route_metric(route, newmetric);
-
-    if(route->installed) {
-        if(newmetric > oldmetric) {
-            struct route *better_route;
-            better_route = find_best_route(route->dest);
-            if(better_route && better_route->metric <= route->metric - 96)
-                consider_route(better_route);
-        }
-        if(route->installed)
-            send_triggered_update(route, oldmetric);
-    } else if(newmetric < oldmetric) {
-        consider_route(route);
-    }
-}
-
+/* This is called whenever we receive an update. */
 struct route *
-update_route(const unsigned char *d, int seqno, int refmetric,
-             struct neighbour *nexthop,
-             struct xroute *pxroutes, int numpxroutes)
+update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
+             unsigned short seqno, unsigned short refmetric,
+             struct neighbour *nexthop)
 {
     struct route *route;
-    struct destination *dest;
-    int i, metric;
+    struct source *src;
+    int metric, feasible;
 
-    if(martian_prefix(d, 128)) {
-        fprintf(stderr, "Rejecting martian route to %s.\n",
-                format_address(d));
+    if(martian_prefix(p, plen)) {
+        fprintf(stderr, "Rejecting martian route to %s through %s.\n",
+                format_prefix(p, plen), format_address(a));
         return NULL;
     }
 
-    dest = find_destination(d, 1, seqno);
-    if(dest == NULL)
+    src = find_source(a, p, plen, 1, seqno);
+    if(src == NULL)
         return NULL;
 
-    if(!update_feasible(seqno, refmetric, dest)) {
-        debugf("Rejecting unfeasible update from %s.\n",
-               format_address(nexthop->address));
-        /* It would be really nice to send a request at this point,
-           but that might get us into a positive feedback loop. */
-        return NULL;
-    }
-
-    metric = MIN(refmetric + neighbour_cost(nexthop), INFINITY);
-
-    route = find_route(dest, nexthop);
+    feasible = update_feasible(a, p, plen, seqno, refmetric);
+    route = find_route(p, plen, nexthop);
+    metric = MIN((int)refmetric + neighbour_cost(nexthop), INFINITY);
 
     if(route) {
-        int oldseqno;
-        int oldmetric;
+        struct source *oldsrc;
+        unsigned short oldseqno;
+        unsigned short oldmetric;
+        int lost = 0;
 
+        oldsrc = route->src;
         oldseqno = route->seqno;
         oldmetric = route->metric;
-        if(refmetric < INFINITY) {
+
+        /* If a successor switches sources, we must accept his update even
+           if it makes a route unfeasible in order to break any routing loops.
+           It's not clear to me (jch) what is the best approach if the
+           successor sticks to the same source but increases its metric. */
+        if(!feasible && route->installed) {
+            debugf("Unfeasible update for installed route to %s "
+                   "(%s %d %d -> %s %d %d).\n",
+                   format_prefix(src->prefix, src->plen),
+                   format_address(route->src->address),
+                   route->seqno, route->refmetric,
+                   format_address(src->address), seqno, refmetric);
+            uninstall_route(route);
+            lost = 1;
+        }
+
+        route->src = src;
+        if(feasible && refmetric < INFINITY) {
             route->time = now.tv_sec;
             if(route->refmetric >= INFINITY)
                 route->origtime = now.tv_sec;
@@ -321,20 +329,14 @@ update_route(const unsigned char *d, int seqno, int refmetric,
         route->seqno = seqno;
         route->refmetric = refmetric;
         change_route_metric(route, metric);
-        if(seqno_compare(oldseqno, seqno) <= 0) {
-            if(seqno_compare(oldseqno, seqno) < 0)
-                retract_xroutes(dest, nexthop, pxroutes, numpxroutes);
-            for(i = 0; i < numpxroutes; i++)
-                update_xroute(pxroutes[i].prefix,
-                              pxroutes[i].plen,
-                              dest, nexthop,
-                              pxroutes[i].cost);
-        }
-        if(route->installed)
-            send_triggered_update(route, oldmetric);
-        else
-            consider_route(route);
+
+        if(feasible)
+            trigger_route_change(route, oldsrc, oldmetric);
+        else if(lost)
+            route_lost(oldsrc, oldmetric);
     } else {
+        if(!feasible)
+            return NULL;
         if(refmetric >= INFINITY)
             /* Somebody's retracting a route we never saw. */
             return NULL;
@@ -343,7 +345,7 @@ update_route(const unsigned char *d, int seqno, int refmetric,
             return NULL;
         }
         route = &routes[numroutes];
-        route->dest = dest;
+        route->src = src;
         route->refmetric = refmetric;
         route->seqno = seqno;
         route->metric = metric;
@@ -352,16 +354,14 @@ update_route(const unsigned char *d, int seqno, int refmetric,
         route->origtime = now.tv_sec;
         route->installed = 0;
         numroutes++;
-        for(i = 0; i < numpxroutes; i++)
-            update_xroute(pxroutes[i].prefix,
-                          pxroutes[i].plen,
-                          dest, nexthop,
-                          pxroutes[i].cost);
         consider_route(route);
     }
     return route;
 }
 
+/* This takes a feasible route and decides whether to install it.  The only
+   condition that it must satisfy is that if there is no currently installed
+   route, then one will be installed. */
 void
 consider_route(struct route *route)
 {
@@ -373,7 +373,10 @@ consider_route(struct route *route)
     if(!route_feasible(route))
         return;
 
-    installed = find_installed_route(route->dest);
+    if(find_exported_xroute(route->src->prefix, route->src->plen))
+       return;
+
+    installed = find_installed_route(route->src->prefix, route->src->plen);
 
     if(installed == NULL)
         goto install;
@@ -381,7 +384,15 @@ consider_route(struct route *route)
     if(installed->metric >= route->metric + 384)
         goto install;
 
+    /* Avoid routes that haven't been around for some time */
     if(route->origtime >= now.tv_sec - 30)
+        return;
+
+    if(installed->metric >= route->metric + 192)
+        goto install;
+
+    /* Avoid switching sources */
+    if(installed->src != route->src)
         return;
 
     if(installed->metric >= route->metric + 96)
@@ -390,53 +401,95 @@ consider_route(struct route *route)
     return;
 
  install:
-    install_route(route);
     if(installed)
-        send_triggered_update(route, installed->metric);
+        uninstall_route(installed);
+    install_route(route);
+    if(installed && route->installed)
+        send_triggered_update(route, installed->src, installed->metric);
     else
-        send_update(route->dest, NULL);
+        send_update(NULL, route->src->prefix, route->src->plen);
     return;
 }
 
 void
-change_route_metric(struct route *route, int newmetric)
-{
-    int rc;
-    if(route->installed) {
-        rc = kernel_route(ROUTE_MODIFY,
-                          route->dest->address, 128,
-                          route->nexthop->address,
-                          route->nexthop->network->ifindex,
-                          metric_to_kernel(route->metric),
-                          metric_to_kernel(newmetric));
-        if(rc < 0) {
-            perror("kernel_route(MODIFY)");
-            return;
-        }
-    }
-    route->metric = newmetric;
-}
-
-void
-send_triggered_update(struct route *route, int oldmetric)
+send_triggered_update(struct route *route, struct source *oldsrc, int oldmetric)
 {
     if(!route->installed)
         return;
 
-    if((route->metric >= INFINITY && oldmetric < INFINITY) ||
-       (route->metric - oldmetric >= 256 || oldmetric - route->metric >= 256))
-        send_update(route->dest, NULL);
-    else if(request_requested(route->dest, route->seqno, NULL))
-        send_update(route->dest, route->dest->requested_net);
+    /* Switching sources can cause transient routing loops, so always send
+       updates in that case */
+    if(route->src != oldsrc ||
+       ((route->metric >= INFINITY) != (oldmetric >= INFINITY)) ||
+       (route->metric >= oldmetric + 256 || oldmetric >= route->metric + 256))
+        send_update(NULL, route->src->prefix, route->src->plen);
 
     if(oldmetric < INFINITY) {
-        if(route->metric >= INFINITY) {
-            /* We just lost a route, request a new seqno from the source */
-            send_request(NULL, route->dest, max_request_hopcount, -1);
-        } else if(route->metric - oldmetric >= 384) {
-            /* This route's metric has increased a lot -- let's hope we find
-               something better */
-            send_request(NULL, route->dest, 1, route->seqno);
+        if(route->metric >= INFINITY || route->metric - oldmetric >= 384)
+            send_request(NULL, route->src->prefix, route->src->plen);
+    }
+}
+
+/* A route has just changed.  Decide whether to switch to a different route or
+   send an update. */
+void
+trigger_route_change(struct route *route,
+                     struct source *oldsrc, unsigned short oldmetric)
+{
+    if(route->installed) {
+        if(route->metric > oldmetric) {
+            struct route *better_route;
+            better_route =
+                find_best_route(route->src->prefix, route->src->plen);
+            if(better_route && better_route->metric <= route->metric - 96)
+                consider_route(better_route);
         }
+        if(route->installed)
+            send_triggered_update(route, oldsrc, oldmetric);
+    } else if(route->metric < oldmetric) {
+        consider_route(route);
+    }
+}
+
+/* We just lost the installed route to a given destination. */
+void
+route_lost(struct source *src, int oldmetric)
+{
+    struct route *new_route;
+    new_route = find_best_route(src->prefix, src->plen);
+    if(new_route) {
+        consider_route(new_route);
+    } else {
+        /* Complain loudly. */
+        send_update(NULL, src->prefix, src->plen);
+        if(oldmetric < INFINITY)
+            send_request(NULL, src->prefix, src->plen);
+    }
+}
+
+void
+expire_routes(void)
+{
+    int i;
+
+    debugf("Expiring old routes.\n");
+
+    i = 0;
+    while(i < numroutes) {
+        struct route *route = &routes[i];
+
+        if(route->time < now.tv_sec - route_gc_delay) {
+            flush_route(route);
+            continue;
+        }
+
+        update_route_metric(route);
+
+        if(route->installed && route->refmetric < INFINITY) {
+            if(route->time < now.tv_sec - MAX(10, route_timeout_delay - 25))
+                send_unicast_request(route->nexthop,
+                                     route->src->prefix, route->src->plen);
+        }
+        i++;
     }
 }

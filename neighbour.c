@@ -29,9 +29,8 @@ THE SOFTWARE.
 #include "babel.h"
 #include "util.h"
 #include "neighbour.h"
-#include "destination.h"
+#include "source.h"
 #include "route.h"
-#include "xroute.h"
 #include "message.h"
 
 struct neighbour neighs[MAXNEIGHBOURS];
@@ -40,15 +39,14 @@ int numneighs = 0;
 void
 flush_neighbour(struct neighbour *neigh)
 {
-    flush_neighbour_xroutes(neigh);
     flush_neighbour_routes(neigh);
     memset(neigh, 0, sizeof(*neigh));
-    if(neigh == &neighs[numneighs - 1]) {
+    VALGRIND_MAKE_MEM_UNDEFINED(neigh, sizeof(*neigh));
+    neigh->id[0] = 0xFF;
+    while(numneighs > 0 && neighs[numneighs - 1].id[0] == 0xFF) {
        numneighs--;
-       VALGRIND_MAKE_MEM_UNDEFINED(neigh, sizeof(*neigh));
-    } else {
-        VALGRIND_MAKE_MEM_UNDEFINED(neigh, sizeof(*neigh));
-        neigh->id[0] = 0xFF;
+       VALGRIND_MAKE_MEM_UNDEFINED(&neighs[numneighs],
+                                   sizeof(neighs[numneighs]));
     }
 }
 
@@ -71,6 +69,7 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
               struct network *net)
 {
     struct neighbour *neigh;
+    const struct timeval zero = {0, 0};
     int i;
 
     if(id[0] == 0xFF) {
@@ -104,11 +103,10 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
     }
     memcpy(neigh->id, id, 16);
     memcpy(neigh->address, address, 16);
-    neigh->hello_interval = 0;
     neigh->reach = 0;
     neigh->txcost = INFINITY;
-    neigh->txcost_time = now.tv_sec;
-    neigh->hello_time = 0;
+    neigh->ihu_time = now.tv_sec;
+    neigh->hello_time = zero;
     neigh->hello_interval = 0;
     neigh->hello_seqno = -1;
     neigh->network = net;
@@ -116,19 +114,23 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
     return neigh;
 }
 
-void
+/* Recompute a neighbour's rxcost.  Return true if anything changed. */
+int
 update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
 {
     int missed_hellos;
+    int rc = 0;
 
     if(hello < 0) {
         if(neigh->hello_interval <= 0)
-            return;
-        missed_hellos =
-            (now.tv_sec - 3 - neigh->hello_time) / neigh->hello_interval;
+            return rc;
+        missed_hellos = (timeval_minus_msec(&now, &neigh->hello_time) -
+                         neigh->hello_interval * 6) /
+            (neigh->hello_interval * 10);
         if(missed_hellos <= 0)
-            return;
-        neigh->hello_time += missed_hellos * neigh->hello_interval;
+            return rc;
+        timeval_plus_msec(&neigh->hello_time, &neigh->hello_time,
+                          missed_hellos * neigh->hello_interval * 10);
     } else {
         if(neigh->hello_seqno >= 0 && neigh->reach > 0) {
             missed_hellos = seqno_minus(hello, neigh->hello_seqno) - 1;
@@ -137,97 +139,120 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
                    didn't notice. */
                 neigh->reach <<= -missed_hellos;
                 missed_hellos = 0;
+                rc = 1;
             }
         } else {
             missed_hellos = 0;
         }
-        neigh->hello_time = now.tv_sec;
+        neigh->hello_time = now;
         neigh->hello_interval = hello_interval;
     }
 
-    neigh->reach >>= missed_hellos;
-    missed_hellos = 0;
+    if(missed_hellos > 0) {
+        neigh->reach >>= missed_hellos;
+        missed_hellos = 0;
+        rc = 1;
+    }
 
     if(hello >= 0) {
         neigh->hello_seqno = hello;
         neigh->reach >>= 1;
         neigh->reach |= 0x8000;
+        if((neigh->reach & 0xFC00) == 0xFC00)
+            return rc;
+        else
+            rc = 1;
     }
 
     /* Make sure to give neighbours some feedback early after association */
     if((neigh->reach & 0xFC00) == 0x8000) {
         /* A new neighbour */
         send_hello(neigh->network);
-        send_txcost(neigh, NULL);
+        send_ihu(neigh, NULL);
     } else {
         /* Don't send hellos, in order to avoid a positive feedback loop. */
         int a = (neigh->reach & 0xC000);
         int b = (neigh->reach & 0x3000);
         if((a == 0xC000 && b == 0) || (a == 0 && b == 0x3000)) {
             /* Reachability is either 1100 or 0011 */
-            send_txcost(neigh, NULL);
+            send_ihu(neigh, NULL);
             send_self_update(neigh->network, 0);
             send_neighbour_update(neigh, NULL);
         }
     }
 
-    if((neigh->reach & 0xFF00) == 0xC000) {
+    if((neigh->reach & 0xFC00) == 0xC000) {
         /* This is a newish neighbour.  If we don't have another route to it,
-           request a full route dump.  This assumes that the neighbour's ID
-           is also its IP address. */
-        struct destination *dest;
+           request a full route dump.  This assumes that the neighbour's id
+           is also its IP address and that it is exporting a route to itself. */
         struct route *route = NULL;
-        dest = find_destination(neigh->id, 0, 0);
-        if(dest)
-            route = find_installed_route(dest);
+        if(!martian_prefix(neigh->id, 128))
+           route = find_installed_route(neigh->id, 128);
         if(!route || route->metric >= INFINITY || route->nexthop == neigh)
-            send_unicast_request(neigh, NULL, 0, -1);
+            send_unicast_request(neigh, NULL, 0);
     }
+    return rc;
 }
 
-void
-check_neighbour(struct neighbour *neigh)
+int
+check_neighbours()
 {
-    update_neighbour(neigh, -1, 0);
-    if(neigh->reach == 0) {
-        flush_neighbour(neigh);
-        return;
+    int i, changed;
+    int msecs = 50000;
+
+    debugf("Checking neighbours.\n");
+
+    for(i = 0; i < numneighs; i++) {
+        if(neighs[i].id[0] == 0xFF)
+            continue;
+
+        changed = update_neighbour(&neighs[i], -1, 0);
+
+        if(neighs[i].reach == 0 ||
+           timeval_minus_msec(&now, &neighs[i].hello_time) > 300000) {
+            flush_neighbour(&neighs[i]);
+            continue;
+        }
+
+        if(changed)
+            update_neighbour_metric(&neighs[i]);
+
+        if(neighs[i].hello_interval > 0)
+            msecs = MIN(msecs, neighs[i].hello_interval * 10);
     }
 
-    if(!neigh->network->wired) {
-        while(neigh->txcost < INFINITY &&
-              neigh->txcost_time <= now.tv_sec - 40) {
-            neigh->txcost = MIN((int)neigh->txcost * 3 / 2, INFINITY);
-            neigh->txcost_time += 10;
-        }
-    }
+    return msecs;
 }
 
 int
 neighbour_rxcost(struct neighbour *neigh)
 {
-    update_neighbour(neigh, -1, 0);
-    if((neigh->reach & 0xF800) == 0)
-        return INFINITY;
-    else if(neigh->network->wired) {
-        if((neigh->reach & 0xE000) != 0) {
-            int c = neigh->network->cost;
-            int d = now.tv_sec - neigh->hello_time;
-            if(d >= 60)
-                c = (c * (d - 40) + 19) / 20;
-            return MIN(c, INFINITY);
-        } else {
-            return INFINITY;
-        }
-    } else {
-        int r = (neigh->reach & 0x7FFF) + ((neigh->reach & 0x8000) >> 1);
-        /* 0 <= r <= 0xBFFF */
-        int c = (0xC000 * 0x100) / r;
-        int d = now.tv_sec - neigh->hello_time;
-        if(d >= 40)
-            c = (c * (d - 20) + 10) / 20;
+    int delay;
+    unsigned short reach = neigh->reach;
 
-        return MIN(c + neigh->network->cost, INFINITY);
+    delay = timeval_minus_msec(&now, &neigh->hello_time);
+
+    if((reach & 0xF800) == 0 || delay >= 180000) {
+        return INFINITY;
+    } else if(neigh->network->wired) {
+        /* To lose one hello is a misfortune, to lose two is carelessness. */
+        if((reach & 0xC000) == 0xC000)
+            return neigh->network->cost;
+        else if((reach & 0xC000) == 0)
+            return INFINITY;
+        else if((reach & 0x2000))
+            return neigh->network->cost;
+        else
+            return INFINITY;
+    } else {
+        int sreach = (reach & 0x7FFF) + ((reach & 0x8000) >> 1);
+        /* 0 <= sreach <= 0xBFFF */
+        int cost = (0xC000 * neigh->network->cost) / (sreach + 1);
+        /* cost >= network->cost */
+        if(delay >= 40000)
+            cost = (cost * (delay - 20000) + 10000) / 20000;
+
+        return MIN(cost, INFINITY);
     }
 }
 
@@ -235,6 +260,9 @@ int
 neighbour_cost(struct neighbour *neigh)
 {
     int a, b;
+
+    if(now.tv_sec - neigh->ihu_time >= 180)
+        return INFINITY;
 
     a = neigh->txcost;
 

@@ -20,13 +20,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-struct xroute;
-
 struct route {
-    struct destination *dest;
+    struct source *src;
     unsigned short metric;
     unsigned short refmetric;
-    unsigned char seqno;
+    unsigned short seqno;
     struct neighbour *nexthop;
     int time;
     int origtime;
@@ -39,22 +37,33 @@ extern int kernel_metric;
 extern int route_timeout_delay;
 extern int route_gc_delay;
 
-struct route *find_route(struct destination *dest, struct neighbour *nexthop);
-struct route *find_installed_route(struct destination *dest);
+struct route *find_route(const unsigned char *prefix, unsigned char plen,
+                         struct neighbour *nexthop);
+struct route *find_installed_route(const unsigned char *prefix,
+                                   unsigned char plen);
 void flush_route(struct route *route);
 void flush_neighbour_routes(struct neighbour *neigh);
 unsigned int metric_to_kernel(int metric);
 void install_route(struct route *route);
 void uninstall_route(struct route *route);
+void change_route_metric(struct route *route, int newmetric);
 int route_feasible(struct route *route);
-int update_feasible(unsigned char seqno, unsigned short refmetric,
-                    struct destination *dest);
-struct route *find_best_route(struct destination *dest);
+int update_feasible(const unsigned char *a,
+                    const unsigned char *p, unsigned char plen,
+                    unsigned short seqno, unsigned short refmetric);
+struct route *find_best_route(const unsigned char *prefix, unsigned char plen);
+struct route *install_best_route(const unsigned char prefix[16],
+                                 unsigned char plen);
 void update_neighbour_metric(struct neighbour *neigh);
 void update_route_metric(struct route *route);
-struct route *update_route(const unsigned char *d, int seqno, int refmetric,
-                           struct neighbour *nexthop,
-                           struct xroute *pxroutes, int numpxroutes);
+struct route *update_route(const unsigned char *a,
+                           const unsigned char *p, unsigned char plen,
+                           unsigned short seqno, unsigned short refmetric,
+                           struct neighbour *nexthop);
 void consider_route(struct route *route);
-void change_route_metric(struct route *route, int newmetric);
-void send_triggered_update(struct route *route, int oldmetric);
+void send_triggered_update(struct route *route,
+                           struct source *oldsrc, int oldmetric);
+void trigger_route_change(struct route *route,
+                          struct source *oldsrc, unsigned short oldmetric);
+void route_lost(struct source *src, int oldmetric);
+void expire_routes(void);

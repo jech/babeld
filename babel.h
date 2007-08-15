@@ -21,12 +21,10 @@ THE SOFTWARE.
 */
 
 #define MAXROUTES 512
-#define MAXDESTS 1024
+#define MAXSRCS 1024
 #define MAXNEIGHBOURS 128
 #define MAXNETS 8
-#define MAXXROUTES 128
-#define MAXMYXROUTES 64
-#define MAX_BUFFERED_UPDATES 100
+#define MAXXROUTES 64
 
 #define INFINITY ((unsigned short)(~0))
 
@@ -68,7 +66,7 @@ struct network {
     int hello_time;
     int self_update_time;
     int update_time;
-    int txcost_time;
+    int ihu_time;
     char ifname[IF_NAMESIZE];
     int buffered;
     struct timeval flush_time;
@@ -77,10 +75,10 @@ struct network {
     int bucket_time;
     unsigned int bucket;
     int activity_time;
-    unsigned char hello_seqno;
+    unsigned short hello_seqno;
     unsigned int hello_interval;
     unsigned int self_update_interval;
-    unsigned int txcost_interval;
+    unsigned int ihu_interval;
 };
 
 extern struct timeval now;
@@ -92,7 +90,7 @@ extern unsigned char myid[16];
 extern struct network nets[MAXNETS];
 extern int numnets;
 
-extern const unsigned char zeroes[16];
+extern const unsigned char zeroes[16], ones[16];
 
 extern int protocol_port;
 extern unsigned char protocol_group[16];

@@ -20,28 +20,36 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-int seqno_compare(unsigned char s1, unsigned char s2)
+int seqno_compare(unsigned short s1, unsigned short s2)
     ATTRIBUTE ((const));
-int seqno_minus(unsigned char s1, unsigned char s2)
+int seqno_minus(unsigned short s1, unsigned short s2)
     ATTRIBUTE ((const));
 void timeval_minus(struct timeval *d,
                    const struct timeval *s1, const struct timeval *s2);
 int timeval_minus_msec(const struct timeval *s1, const struct timeval *s2)
     ATTRIBUTE ((pure));
+void timeval_plus_msec(struct timeval *d,
+                       const struct timeval *s, int msecs);
 int timeval_compare(const struct timeval *s1, const struct timeval *s2)
     ATTRIBUTE ((pure));
 void timeval_min(struct timeval *d, const struct timeval *s);
 void timeval_min_sec(struct timeval *d, int secs);
 void do_debugf(const char *format, ...) ATTRIBUTE ((format (printf, 1, 2)));
+int in_prefix(const unsigned char *address,
+              const unsigned char *prefix, unsigned char plen)
+    ATTRIBUTE ((pure));
+const unsigned char *mask_prefix(const unsigned char *prefix,
+                                 unsigned char plen);
 const char *format_address(const unsigned char *address);
+const char *format_prefix(const unsigned char *address, unsigned char prefix);
 int parse_address(const char *address, unsigned char *addr_r);
-int parse_net(const char *net, unsigned char *prefix_r, unsigned short *plen_r);
+int parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r);
 int wait_for_fd(int direction, int fd, int msecs);
 int martian_prefix(const unsigned char *prefix, int plen);
 
 /* If debugging is disabled, we want to avoid calling format_address
    for every omitted debugging message.  So debug is a macro.  But
-   vararg macros are not portable... */
+   vararg macros are not portable. */
 #if defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L
 #define debugf(...) \
     do { \
