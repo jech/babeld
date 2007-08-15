@@ -38,7 +38,8 @@ void do_debugf(const char *format, ...) ATTRIBUTE ((format (printf, 1, 2)));
 int in_prefix(const unsigned char *address,
               const unsigned char *prefix, unsigned char plen)
     ATTRIBUTE ((pure));
-const unsigned char *mask_prefix(const unsigned char *prefix,
+const unsigned char *mask_prefix(unsigned char *ret,
+                                 const unsigned char *prefix,
                                  unsigned char plen);
 const char *format_address(const unsigned char *address);
 const char *format_prefix(const unsigned char *address, unsigned char prefix);

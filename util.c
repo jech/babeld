@@ -154,17 +154,16 @@ in_prefix(const unsigned char *address,
 }
 
 const unsigned char *
-mask_prefix(const unsigned char *prefix, unsigned char plen)
+mask_prefix(unsigned char *ret,
+            const unsigned char *prefix, unsigned char plen)
 {
-    static unsigned char ret[16];
-
     if(plen > 128)
         plen = 128;
 
     memset(ret, 0, 16);
     memcpy(ret, prefix, plen / 8);
     if(plen % 8 != 0)
-        ret[plen / 8] = 0xFF << (8 - (plen % 8));
+        ret[plen / 8] = (prefix[plen / 8] & (0xFF << (8 - (plen % 8))));
     return (const unsigned char *)ret;
 }
 
@@ -236,7 +235,7 @@ parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r)
             return -1;
         }
     }
-    memcpy(prefix_r, mask_prefix(prefix, plen), 16);
+    mask_prefix(prefix_r, prefix, plen);
     *plen_r = plen;
     return 0;
 }
