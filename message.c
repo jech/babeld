@@ -172,10 +172,13 @@ parse_packet(const unsigned char *from, struct network *net,
                 have_current_source = 1;
                 if(memcmp(address, myid, 16) == 0)
                     continue;
-                if(plen <= 128)
-                    update_route(address, mask_prefix(address, plen), plen,
-                                 seqno, metric, neigh);
+                if(plen <= 128) {
+                    unsigned char prefix[16];
+                    mask_prefix(prefix, address, plen);
+                    update_route(address, prefix, plen, seqno, metric, neigh);
+                }
             } else if(type == 4) {
+                unsigned char prefix[16];
                 debugf("Received prefix %s on %s from %s (%s).\n",
                        format_prefix(address, plen),
                        net->ifname,
@@ -191,8 +194,8 @@ parse_packet(const unsigned char *from, struct network *net,
                 }
                 if(memcmp(current_source, myid, 16) == 0)
                     continue;
-                update_route(current_source, mask_prefix(address, plen), plen,
-                             seqno, metric, neigh);
+                mask_prefix(prefix, address, plen);
+                update_route(current_source, prefix, plen, seqno, metric, neigh);
             } else {
                 debugf("Received unknown packet type %d from %s (%s).\n",
                        type, format_address(neigh->id), format_address(from));
