@@ -7,17 +7,17 @@ babel \- ad-hoc network routing daemon
 [
 .B \-\-
 ]
-.I address
+.I id
 .IR interface ...
 .SH DESCRIPTION
 Babel is a loop-avoiding distance-vector routing protocol roughly
 based on DSDV and AODV, but with provisions for link cost estimation
-and injection of external routes.
+and redistribution of routes from other routing protocols.
 
 While it is optimised for wireless mesh networks, Babel will also work
-efficiently on wired networks.  In the worst case, it will generate
-roughly double the amount of traffic that RIPng would generate, while
-never counting to infinity.
+efficiently on wired networks.  It will generate between roughly the
+same and double the amount of routing traffic that RIPng would
+generate, while never counting to infinity.
 .SH OPTIONS
 .TP
 .BI \-m " multicast-address"
@@ -38,7 +38,7 @@ below), and other hosts might initially ignore it.  The default is
 .TP
 .BI \-h " hello-interval"
 Specify the interval in seconds at which scheduled hello packets are
-sent on wireless interfaces.  The default is 8.
+sent on wireless interfaces.  The default is 6.
 .TP
 .BI \-H " wired-hello-interval"
 Specify the interval in seconds at which scheduled hello packets are
@@ -68,12 +68,13 @@ Do not perform split-horizon processing on wired interfaces.
 Split-horizon is never performed on wireless interfaces.
 .TP
 .B \-b
-Use a single broadcast message for reverse reachability information on
-wired interfaces rather then messages specific to each peer.  This
-will slightly reduce traffic on interfaces with many neighbours, but
-will disable detection of asymmetric links, and is therefore not
-recommended.  Messages specific to each peer are always sent on
-wireless interfaces.
+Use a single broadcast
+.I I Heard You
+message for reverse reachability information on wired interfaces
+rather than messages specific to each peer.  This will slightly reduce
+traffic on interfaces with many neighbours, but will disable detection
+of asymmetric links, and is therefore not recommended.  Messages
+specific to each peer are always sent on wireless interfaces.
 .TP
 .BI \-c " cost"
 Add
@@ -82,8 +83,8 @@ to the metrics of advertised routes.  This is useful for example when
 we are low on battery and hardly eager to forward packets.
 .TP
 .B \-P
-Run in parasitic (passive) mode.  The daemon will not announce any
-routes except to itself.
+Run in parasitic (passive) mode.  The daemon will only announce
+redistributed routes.
 .TP
 .BI \-d " level"
 Debug level.  A value of 1 requests a routing table dump at every
@@ -110,13 +111,14 @@ wired link.
 .TP
 .BI \-X " network cost"
 Advertise a route for the given network or host with the given cost,
-even if it is not currently installed.  Use of this option is
-discouraged, as it can cause persistent routing loops.
+even if it is not currently installed.  This is normally used for
+advertising the local addresses of this machine.  Use of this option
+for any other purpose is discouraged, as it can cause persistent
+routing loops.
 .TP
-.I address
-The IPv6 address that the node should advertise for itself.
-(Additional addresses can be advertised as external routes with a cost
-of 0.)
+.I id
+The router-id of this daemon.  This should normally be an IPv6 address
+of this machine, but can be any unique 128-bit string.
 .TP
 .IR interface ...
 The list of interfaces on which the protocol should operate.
@@ -128,7 +130,7 @@ be one of your node's IPv6 addresses, and suppose that
 is a wireless interface.  You can participate in a Babel mesh network
 by simply running
 .IP
-# babel $IPv6 eth1
+# babel -X $IPv6 0 $IPv6 eth1
 .PP
 
 In order to gateway between multiple interfaces, just list them all on
@@ -163,8 +165,8 @@ peers, at the benefit of a very slight decrease in traffic.  This is
 not recommended.
 
 No link cost estimation is ever performed on wired interfaces: a wired
-adjacency is assumed to be up if at least one of the last three hello
-messages has been received, and down otherwise.
+adjacency is assumed to be up if at least two of the last three hello
+messages have been received, and down otherwise.
 .SH FILES
 .TP
 .B /var/lib/babel-state
