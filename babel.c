@@ -670,11 +670,16 @@ dump_tables(FILE *out)
                 "not exported");
     }
     for(i = 0; i < numroutes; i++) {
-        fprintf(out, "%s via %s metric %d refmetric %d seqno %d age %d "
+        int id =
+            routes[i].src->plen != 128 ||
+            memcmp(routes[i].src->prefix, routes[i].src->address, 16) != 0;
+        fprintf(out, "%s metric %d refmetric %d %s%s seqno %d age %d "
                 "via %s nexthop %s%s\n",
                 format_prefix(routes[i].src->prefix, routes[i].src->plen),
-                format_address(routes[i].src->address),
-                routes[i].metric, routes[i].refmetric, (int)routes[i].seqno,
+                routes[i].metric, routes[i].refmetric,
+                id ? "id " : "",
+                id ? format_address(routes[i].src->address) : "",
+                (int)routes[i].seqno,
                 (int)(now.tv_sec - routes[i].time),
                 routes[i].nexthop->network->ifname,
                 format_address(routes[i].nexthop->address),
