@@ -32,6 +32,7 @@ THE SOFTWARE.
 #include <arpa/inet.h>
 
 #include "babel.h"
+#include "util.h"
 
 int
 seqno_compare(unsigned char s1, unsigned char s2)
