@@ -38,8 +38,8 @@ THE SOFTWARE.
 struct route routes[MAXROUTES];
 int numroutes = 0;
 int kernel_metric = 0;
-int route_timeout_delay = 50;
-int route_gc_delay = 95;
+int route_timeout_delay = 160;
+int route_gc_delay = 180;
 
 struct route *
 find_route(const unsigned char *prefix, unsigned char plen,
