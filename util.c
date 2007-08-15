@@ -35,7 +35,7 @@ THE SOFTWARE.
 #include "util.h"
 
 int
-seqno_compare(unsigned char s1, unsigned char s2)
+seqno_compare(unsigned short s1, unsigned short s2)
 {
     if(s1 == s2)
         return 0;
@@ -46,7 +46,7 @@ seqno_compare(unsigned char s1, unsigned char s2)
 }
 
 int
-seqno_minus(unsigned char s1, unsigned char s2)
+seqno_minus(unsigned short s1, unsigned short s2)
 {
     if(s1 == s2)
         return 0;
