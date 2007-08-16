@@ -45,6 +45,7 @@ THE SOFTWARE.
 #endif
 
 #ifndef IF_NAMESIZE
+#include <sys/socket.h>
 #include <net/if.h>
 #endif
 
