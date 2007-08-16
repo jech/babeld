@@ -56,7 +56,7 @@ check_xroutes()
     int i, j, n, change;
     struct kernel_route routes[120];
 
-    debugf("Checking kernel routes.\n");
+    debugf("\nChecking kernel routes.\n");
 
     n = -1;
     for(i = 0; i < numxroutes; i++)

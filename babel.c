@@ -427,6 +427,7 @@ main(int argc, char **argv)
         if(timeval_compare(&tv, &now) > 0) {
             timeval_minus(&tv, &tv, &now);
             FD_SET(protocol_socket, &readfds);
+            if(kernel_socket < 0) kernel_setup_socket(1);
             if(kernel_socket >= 0)
                 FD_SET(kernel_socket, &readfds);
             rc = select(MAX(protocol_socket, kernel_socket) + 1,

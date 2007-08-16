@@ -46,7 +46,6 @@ THE SOFTWARE.
 
 static int old_forwarding = -1;
 static int old_accept_redirects = -1;
-static int ifindex_lo = -1;
 
 static int
 read_proc(char *filename)
@@ -104,6 +103,7 @@ struct netlink {
 
 static struct netlink nl_command = { 0, -1, {0}, 0 };
 static struct netlink nl_listen = { 0, -1, {0}, 0 };
+static int nl_setup = 0;
 
 static int
 netlink_socket(struct netlink *nl, uint32_t groups)
@@ -150,20 +150,31 @@ netlink_socket(struct netlink *nl, uint32_t groups)
 }
 
 static int
-netlink_read(int (*filter)(struct nlmsghdr *, void *data), void *data)
+netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
+             int (*fn)(struct nlmsghdr *nh, void *data), void *data)
 {
-    struct sockaddr_nl nladdr;
+
+    /* 'answer' must be true when we just have send a request on 'nl_socket' */
+
+    /* 'nl_ignore' is used in kernel_callback to ignore message originating  */
+    /*  from 'nl_command' while reading 'nl_listen'                          */
+
+    /* Return code :                                       */
+    /* -1 : error                                          */
+    /*  0 : if(fn) found_interesting; else found_ack;      */
+    /*  1 : only if(fn) nothing interesting has been found */
+    /*  2 : nothing found, retry                           */
+
+    int err;
     struct msghdr msg;
+    struct sockaddr_nl nladdr;
     struct iovec iov;
     struct nlmsghdr *nh;
     int len;
+    int interesting = 0;
+    int done = 0;
 
     char buf[8192];
-
-    if(nl_command.sock < 0) {
-        fprintf(stderr,"netlink_read: netlink not initialized.\n");
-        return -1;
-    }
 
     memset(&nladdr, 0, sizeof(nladdr));
     nladdr.nl_family = AF_NETLINK;
@@ -176,84 +187,95 @@ netlink_read(int (*filter)(struct nlmsghdr *, void *data), void *data)
 
     iov.iov_base = &buf;
 
-    while(1) {
-        int i = 0;
-
+    do {
         iov.iov_len = sizeof(buf);
-        len = recvmsg(nl_command.sock, &msg, 0);
+        len = recvmsg(nl->sock, &msg, 0);
 
         if(len < 0 && (errno == EAGAIN || errno == EINTR)) {
             int rc;
-            rc = wait_for_fd(0, nl_command.sock, 100);
+            rc = wait_for_fd(0, nl->sock, 100);
             if(rc <= 0) {
                 if(rc == 0)
                     errno = EAGAIN;
             } else {
-                len = recvmsg(nl_command.sock, &msg, 0);
+                len = recvmsg(nl->sock, &msg, 0);
             }
         }
 
         if(len < 0) {
-            perror("recvmsg(nl_command)");
-            continue;
+            perror("netlink_read: recvmsg()");
+            return 2;
         } else if(len == 0) {
-            fprintf(stderr, "EOF on netlink\n");
-            errno = EIO;
-            return -1;
-        } else if(msg.msg_namelen != nl_command.socklen) {
-            fprintf(stderr, "sender address length == %d\n", msg.msg_namelen);
-            errno = EIO;
-            return -1;
+            fprintf(stderr, "netlink_read: EOF\n");
+            goto socket_error;
+        } else if(msg.msg_namelen != nl->socklen) {
+            fprintf(stderr,
+                    "netlink_read: unexpected sender address length (%d)\n",
+                    msg.msg_namelen);
+            goto socket_error;
         } else if(nladdr.nl_pid != 0) {
-            debugf("Netlink message not for us.\n");
-            continue;
+            debugf("netlink_read: message not sent by kernel.\n");
+            return 2;
         }
 
         debugf("Netlink message: ");
 
         for(nh = (struct nlmsghdr *)buf;
-             NLMSG_OK(nh, len);
-             nh = NLMSG_NEXT(nh, len)) {
-            debugf("%d %s", i,
-                   (nh->nlmsg_flags & NLM_F_MULTI) ? "(multi) " : "");
-            i++;
-            if(nh->nlmsg_pid != nl_command.sockaddr.nl_pid ||
-                nh->nlmsg_seq != nl_command.seqno) {
-                debugf("(wrong seqno/pid), ");
+            NLMSG_OK(nh, len);
+            nh = NLMSG_NEXT(nh, len)) {
+            debugf("%s", (nh->nlmsg_flags & NLM_F_MULTI) ? "[multi] " : "");
+            if(!(nh->nlmsg_flags & NLM_F_MULTI))
+                done = 1;
+            if(nl_ignore && nh->nlmsg_pid == nl_ignore->sockaddr.nl_pid) {
+                debugf("(ignore), ");
+                continue;
+            } else if(answer && (nh->nlmsg_pid != nl->sockaddr.nl_pid ||
+                                 nh->nlmsg_seq != nl->seqno)) {
+                debugf("(wrong seqno %d %d /pid %d %d), ",
+                       nh->nlmsg_seq, nl->seqno,
+                       nh->nlmsg_pid, nl->sockaddr.nl_pid);
                 continue;
             } else if(nh->nlmsg_type == NLMSG_DONE) {
                 debugf("(done)\n");
-                goto done;
+                done = 1;
+                break;
             } else if(nh->nlmsg_type == NLMSG_ERROR) {
                 struct nlmsgerr *err = (struct nlmsgerr *)NLMSG_DATA(nh);
                 if(err->error == 0) {
-                    debugf("ACK\n");
-                    if(!(nh->nlmsg_flags & NLM_F_MULTI))
+                    debugf("(ACK)\n");
+                    if(!(nh->nlmsg_flags & NLM_F_MULTI) && !fn)
                         return 0;
-                    continue;
+                } else {
+                    errno = -err->error;
+                    perror("netlink_read");
+                    errno = -err->error;
+                    return -1;
                 }
-                errno = -err->error;
-                perror("netlink_read");
-                errno = -err->error;
-                return -1;
+            } else if(fn) {
+                debugf("(msg -> \"");
+                err = fn(nh,data);
+                debugf("\" %d), ", err);
+                if(err < 0) return err;
+                interesting = interesting || err;
+                continue;
             }
-
-            if(filter)
-                filter(nh, data);
-            if(!(nh->nlmsg_flags & NLM_F_MULTI))
-                break;
+            debugf(", ");
         }
         debugf("\n");
 
-        if(msg.msg_flags & MSG_TRUNC) {
-            fprintf(stderr, "Netlink message truncated\n");
-            continue;
-        }
-    }
+        if(msg.msg_flags & MSG_TRUNC)
+            fprintf(stderr, "netlink_read: message truncated\n");
 
- done:
-    return 0;
-}
+    } while (!done);
+
+    return interesting;
+
+    socket_error:
+        close(nl->sock);
+        nl->sock = -1;
+        errno = EIO;
+        return -1;
+    }
 
 static int
 netlink_talk(struct nlmsghdr *nh)
@@ -263,11 +285,6 @@ netlink_talk(struct nlmsghdr *nh)
     struct sockaddr_nl nladdr;
     struct msghdr msg;
     struct iovec iov;
-
-    if(nl_command.sock < 0) {
-        fprintf(stderr,"netlink_talk: netlink not initialized.\n");
-        return -1;
-    }
 
     memset(&nladdr, 0, sizeof(nladdr));
     nladdr.nl_family = AF_NETLINK;
@@ -303,7 +320,9 @@ netlink_talk(struct nlmsghdr *nh)
         return -1;
     }
 
-    return netlink_read(NULL,NULL); /* ACK */
+    rc = netlink_read(&nl_command, NULL, 1, NULL, NULL); /* ACK */
+
+    return rc;
 }
 
 static int
@@ -317,12 +336,6 @@ netlink_send_dump(int type, void *data, int len) {
         struct nlmsghdr nh;
     } buf;
     int rc;
-
-    if(nl_command.sock < 0) {
-        fprintf(stderr,"netlink_send_dump: netlink not initialized.\n");
-        errno = EIO;
-        return -1;
-    }
 
     /* At least we should send an 'struct rtgenmsg' */
     if(data == NULL || len == 0) {
@@ -365,87 +378,6 @@ netlink_send_dump(int type, void *data, int len) {
     return 0;
 }
 
-static int
-netlink_listen(int (*monitor)(struct nlmsghdr *nh, void *data), void *data) {
-
-    int err;
-    struct msghdr msg;
-    struct sockaddr_nl nladdr;
-    struct iovec iov;
-    struct nlmsghdr *nh;
-    int len;
-    int interesting = 0;
-
-    char buf[8192];
-
-    if(nl_listen.sock < 0) {
-        fprintf(stderr,"netlink_listen: netlink not initialized.\n");
-        errno = EIO;
-        return -1;
-    }
-
-    memset(&msg, 0, sizeof(msg));
-    msg.msg_name = &nladdr;
-    msg.msg_namelen = sizeof(nladdr);
-    msg.msg_iov = &iov;
-    msg.msg_iovlen = 1;
-
-    memset(&nladdr, 0, sizeof(nladdr));
-    nladdr.nl_family = AF_NETLINK;
-
-    iov.iov_base = buf;
-    iov.iov_len = sizeof(buf);
-
-    len = recvmsg(nl_listen.sock, &msg, 0);
-
-    if(len < 0) {
-        int saved_errno = errno;
-        if(errno == EINTR || errno == EAGAIN)
-            return 0;
-        perror("recvmsg(netlink)");
-        errno = saved_errno;
-        return -1;
-    }
-
-    if(len == 0) {
-        fprintf(stderr, "recvmsg(netlink): EOF\n");
-        errno = EIO;
-        return -1;
-    }
-
-    if(msg.msg_namelen != nl_listen.socklen) {
-        fprintf(stderr,
-                "netlink_listen: unexpected sender address length (%d)\n",
-                msg.msg_namelen);
-        errno = EIO;
-        return -1;
-    }
-
-    for(nh = (struct nlmsghdr *)buf;
-        NLMSG_OK(nh, len);
-        nh = NLMSG_NEXT(nh, len)) {
-        if(nh->nlmsg_type == NLMSG_DONE) {
-            continue;
-        } else if(nh->nlmsg_type == NLMSG_ERROR) {
-            continue;
-        }
-
-        if(nh->nlmsg_pid == nl_command.sockaddr.nl_pid)
-            continue;
-
-        if(monitor) {
-            err = monitor(nh,data);
-            if(err < 0) return err;
-            interesting = interesting || err;
-        }
-    }
-
-    if(msg.msg_flags & MSG_TRUNC) {
-        fprintf(stderr, "Netlink message truncated\n");
-    }
-    return interesting;
-}
-
 int
 kernel_setup(int setup)
 {
@@ -482,6 +414,7 @@ kernel_setup(int setup)
             perror("Couldn't write accept_redirects knob.");
             return -1;
         }
+        nl_setup = 1;
         return 1;
     } else {
         if(old_forwarding >= 0) {
@@ -504,6 +437,7 @@ kernel_setup(int setup)
         close(nl_command.sock);
         nl_command.sock = -1;
 
+        nl_setup = 0;
         return 1;
 
     }
@@ -607,7 +541,23 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     int len = sizeof(buf.raw);
     int rc;
 
-    if(operation == ROUTE_MODIFY) {
+    if(!nl_setup) {
+        fprintf(stderr,"kernel_route: netlink not initialized.\n");
+        errno = EIO;
+        return -1;
+    }
+
+    /* if the socket has been closed after an IO error, */
+    /* we try to re-open it. */
+    if(nl_command.sock < 0) {
+        rc = netlink_socket(&nl_command, 0);
+        if(rc < 0) {
+            perror("kernel_route: netlink_socket()");
+            return -1;
+        }
+    }
+
+   if(operation == ROUTE_MODIFY) {
         if(newmetric == metric && memcmp(newgate, gate, 16) == 0 &&
            newifindex == ifindex)
             return 0;
@@ -631,12 +581,6 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     /* Linux sucks: it doesn't accept an unreachable default route */
     if(metric >= KERNEL_INFINITY && plen == 0)
         return 0;
-
-    if(ifindex_lo < 0) {
-        ifindex_lo = if_nametoindex("lo");
-        if(ifindex_lo <= 0)
-            return -1;
-    }
 
     memset(buf.raw, 0, sizeof(buf.raw));
     if(operation == ROUTE_ADD) {
@@ -695,8 +639,8 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
     struct rtattr *rta= RTM_RTA(rtm);;
     len -= NLMSG_ALIGN(sizeof(*rtm));
 
-    memset(&route->prefix,0,sizeof(struct in6_addr));
-    memset(&route->gw,0,sizeof(struct in6_addr));
+    memset(&route->prefix, 0, sizeof(struct in6_addr));
+    memset(&route->gw, 0, sizeof(struct in6_addr));
     route->plen = rtm->rtm_dst_len;
     route->metric = KERNEL_INFINITY;
     route->ifindex = 0;
@@ -704,10 +648,10 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
     while(RTA_OK(rta, len)) {
         switch (rta->rta_type) {
         case RTA_DST:
-            memcpy(&route->prefix,RTA_DATA(rta),16);
+            memcpy(&route->prefix, RTA_DATA(rta), 16);
             break;
         case RTA_GATEWAY:
-            memcpy(&route->gw,RTA_DATA(rta),16);
+            memcpy(&route->gw, RTA_DATA(rta), 16);
             break;
         case RTA_OIF:
             route->ifindex = *(int*)RTA_DATA(rta);
@@ -750,58 +694,42 @@ print_kernel_route(int add, int protocol, int type,
     }
 
     debugf("%s kernel route: dest: %s/%d gw: %s metric: %d if: %s "
-           "(proto: %d, type: %d)\n",
+           "(proto: %d, type: %d)",
            add == RTM_NEWROUTE ? "Add" : "Delete",
            addr_prefix, route->plen, addr_gw, route->metric, ifname,
            protocol, type);
 }
 
 static int
-monitor_kernel_route(struct nlmsghdr *nh, void *data)
-{
-    int rc;
-    struct kernel_route route;
-
-    int len = nh->nlmsg_len;
-    struct rtmsg *rtm;
-
-    if(nh->nlmsg_type != RTM_NEWROUTE && nh->nlmsg_type != RTM_DELROUTE)
-        return 0;
-
-    rtm = (struct rtmsg*)NLMSG_DATA(nh);
-    len -= NLMSG_LENGTH(0);
-
-    if(rtm->rtm_protocol == RTPROT_BOOT || rtm->rtm_protocol == RTPROT_BABEL)
-        return 0;
-
-    if(debug >= 2) {
-        rc = parse_kernel_route_rta(rtm, len, &route);
-        if(rc >= 0)
-            print_kernel_route(nh->nlmsg_type, rtm->rtm_protocol,
-                               rtm->rtm_type, &route);
-    }
-
-    return 1;
-}
-
-static int
 filter_kernel_routes(struct nlmsghdr *nh, void *data)
 {
     int rc;
-    void **args = (void**)data;
-    int maxplen = *(int*)args[0];
-    int maxroutes = *(int*)args[1];
-    struct kernel_route *routes = (struct kernel_route *)args[2];
-    int *found = (int*)args[3];
+
+    struct kernel_route *current_route;
+    struct kernel_route route;
+
+    int maxplen = 128;
+    int maxroutes = 0;
+    struct kernel_route *routes = NULL;
+    int *found = NULL;
 
     struct rtmsg *rtm;
 
+    if(data) {
+        void **args = (void**)data;
+        maxplen = *(int*)args[0];
+        maxroutes = *(int*)args[1];
+        routes = (struct kernel_route *)args[2];
+        found = (int*)args[3];
+    }
+
     int len = nh->nlmsg_len;
 
-    if(*found >= maxroutes)
+    if(data && *found >= maxroutes)
         return 0;
 
-    if(nh->nlmsg_type != RTM_NEWROUTE)
+    if(nh->nlmsg_type != RTM_NEWROUTE &&
+       (data || nh->nlmsg_type != RTM_DELROUTE))
         return 0;
 
     rtm = (struct rtmsg*)NLMSG_DATA(nh);
@@ -819,15 +747,27 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
     if(rtm->rtm_table != RT_TABLE_MAIN)
         return 0;
 
-    rc = parse_kernel_route_rta(rtm, len, &routes[*found]);
+    if(data)
+        current_route = &routes[*found];
+    else
+        current_route = &route;
+
+    rc = parse_kernel_route_rta(rtm, len, current_route);
     if(rc < 0)
         return 0;
 
     if(rtm->rtm_dst_len >= 8 &&
-       (routes[*found].prefix[0] == 0xFF || routes[*found].prefix[0] == 0))
-       return 0;
+       (current_route->prefix[0] == 0xFF || current_route->prefix[0] == 0))
+           return 0;
 
-    *found = (*found)+1;
+    if(debug >= 2) {
+        if(rc >= 0) {
+            print_kernel_route(nh->nlmsg_type, rtm->rtm_protocol,
+                               rtm->rtm_type, current_route);
+        }
+    }
+
+    if (data) *found = (*found)+1;
 
     return 1;
 
@@ -844,13 +784,29 @@ kernel_routes(int maxplen, struct kernel_route *routes, int maxroutes)
     void *data[4] = { &maxp, &maxr, routes, &found };
     struct rtgenmsg g;
 
+    if(!nl_setup) {
+        fprintf(stderr,"kernel_routes: netlink not initialized.\n");
+        errno = EIO;
+        return -1;
+    }
+
+    if(nl_command.sock < 0) {
+        rc = netlink_socket(&nl_command, 0);
+        if(rc < 0) {
+            perror("kernel_routes: netlink_socket()");
+            return -1;
+        }
+    }
+
     memset(&g, 0, sizeof(g));
     g.rtgen_family = AF_INET6;
     rc = netlink_send_dump(RTM_GETROUTE, &g, sizeof(g));
     if(rc < 0)
         return -1;
 
-    rc = netlink_read(filter_kernel_routes, (void*)data);
+    rc = netlink_read(&nl_command, NULL, 1,
+                      filter_kernel_routes, (void *)data);
+
     if(rc < 0)
         return -1;
 
@@ -862,10 +818,22 @@ kernel_callback(int (*fn)(void*), void *closure)
 {
     int rc;
 
-    if(nl_listen.sock < 0)
-        return -1;
+    debugf("\nReceived changes in kernel tables.\n");
+    
+    if(nl_listen.sock < 0) {
+        rc = kernel_setup_socket(1);
+        if(rc < 0) {
+            perror("kernel_callback: kernel_setup_socket(1)");
+            return -1;
+        }
+    }
+    rc = netlink_read(&nl_listen, &nl_command, 0, filter_kernel_routes, NULL);
 
-    rc = netlink_listen(monitor_kernel_route, NULL);
+    if(rc < 0 && nl_listen.sock < 0)
+      kernel_setup_socket(1);
+
+    /* if netlink return 0 (found something interesting) */
+    /* or -1 (i.e. IO error), we call... back ! */
     if(rc)
         return fn(closure);
 
