@@ -159,13 +159,13 @@ parse_packet(const unsigned char *from, struct network *net,
             } else if(type == 3) {
                 if(plen == 0xFF)
                     debugf("Received update for %s/none on %s from %s (%s).\n",
-                           format_address(message + 8),
+                           format_address(address),
                            net->ifname,
                            format_address(neigh->id),
                            format_address(from));
                 else
                     debugf("Received update for %s on %s from %s (%s).\n",
-                           format_prefix(message + 8, plen),
+                           format_prefix(address, plen),
                            net->ifname,
                            format_address(neigh->id),
                            format_address(from));
