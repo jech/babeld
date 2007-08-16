@@ -35,4 +35,4 @@ uninstall:
 clean:
 	-rm -f babel babel.html *.o *~ core TAGS gmon.out
 
-kernel.o: kernel_netlink.c
+kernel.o: kernel_netlink.c kernel_socket.c
