@@ -671,8 +671,10 @@ send_ihu(struct neighbour *neigh, struct network *net)
         return;
     }
 
-    interval =
-        net->ihu_interval * 100 >= 0xFFFF ? 0 : net->ihu_interval * 100;
+    if(net && net->ihu_interval * 100 >= 0xFFFF)
+        interval = net->ihu_interval;
+    else
+        interval = 0;
 
     if(neigh == NULL) {
         if(broadcast_ihu && net->wired) {
