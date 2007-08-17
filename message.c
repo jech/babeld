@@ -662,6 +662,7 @@ void
 send_ihu(struct neighbour *neigh, struct network *net)
 {
     int i;
+    unsigned short interval;
 
     if(neigh == NULL && net == NULL) {
         for(i = 0; i < numnets; i++)
@@ -669,10 +670,13 @@ send_ihu(struct neighbour *neigh, struct network *net)
         return;
     }
 
+    interval =
+        net->ihu_interval * 100 >= 0xFFFF ? 0 : net->ihu_interval * 100;
+
     if(neigh == NULL) {
         if(broadcast_ihu && net->wired) {
             debugf("Sending broadcast ihu to %s.\n", net->ifname);
-            send_message(net, 1, 0xFF, 0, net->cost, ones);
+            send_message(net, 1, 0xFF, interval, net->cost, ones);
         } else {
             for(i = 0; i < numneighs; i++) {
                 if(neighs[i].id[0] != 0xFF) {
@@ -696,6 +700,6 @@ send_ihu(struct neighbour *neigh, struct network *net)
                format_address(neigh->address));
 
         rxcost = neighbour_rxcost(neigh);
-        send_message(net, 1, 128, 0, rxcost, neigh->id);
+        send_message(net, 1, 128, interval, rxcost, neigh->id);
     }
 }
