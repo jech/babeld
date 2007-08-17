@@ -735,18 +735,35 @@ network_idle(struct network *net)
             net->activity_time < now.tv_sec - idle_time);
 }
 
-void
+int
 update_hello_interval(struct network *net)
 {
-    if(network_idle(net))
-        net->hello_interval = idle_hello_interval;
-    else if(net->wired)
-        net->hello_interval = wired_hello_interval;
-    else
-        net->hello_interval = wireless_hello_interval;
+    int rc = 0;
+
+    if(network_idle(net)) {
+        if(net->hello_interval != idle_hello_interval) {
+            net->hello_interval = idle_hello_interval;
+            rc = 1;
+        }
+    } else if(net->wired) {
+        if(net->hello_interval != wired_hello_interval) {
+            net->hello_interval = wired_hello_interval;
+            rc = 1;
+        }
+    } else {
+        if(net->hello_interval != wireless_hello_interval) {
+            net->hello_interval = wireless_hello_interval;
+            rc = 1;
+        }
+    }
+
+    if(net->ihu_interval != 3 * net->hello_interval) {
+        net->ihu_interval = 3 * net->hello_interval;
+        rc = 1;
+    }
 
     net->self_update_interval =
         MAX(15 + net->hello_interval / 2, net->hello_interval);
 
-    net->ihu_interval = 10 * net->hello_interval / 4;
+    return rc;
 }
