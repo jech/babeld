@@ -30,6 +30,7 @@ struct neighbour {
     int ihu_time;
     struct timeval hello_time;
     unsigned short hello_interval; /* in centiseconds */
+    unsigned short ihu_interval;   /* in centiseconds */
     struct network *network;
 };
 

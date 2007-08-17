@@ -108,6 +108,7 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
     neigh->ihu_time = now.tv_sec;
     neigh->hello_time = zero;
     neigh->hello_interval = 0;
+    neigh->ihu_interval = 0;
     neigh->hello_seqno = -1;
     neigh->network = net;
     send_hello(net);
