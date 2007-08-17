@@ -27,8 +27,8 @@ struct neighbour {
     unsigned short txcost;
     /* This is -1 when unknown, so don't make it unsigned */
     int hello_seqno;
-    int ihu_time;
     struct timeval hello_time;
+    struct timeval ihu_time;
     unsigned short hello_interval; /* in centiseconds */
     unsigned short ihu_interval;   /* in centiseconds */
     struct network *network;

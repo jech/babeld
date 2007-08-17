@@ -105,7 +105,7 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
     memcpy(neigh->address, address, 16);
     neigh->reach = 0;
     neigh->txcost = INFINITY;
-    neigh->ihu_time = now.tv_sec;
+    neigh->ihu_time = now;
     neigh->hello_time = zero;
     neigh->hello_interval = 0;
     neigh->ihu_interval = 0;
@@ -198,7 +198,7 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
 int
 check_neighbours()
 {
-    int i, changed;
+    int i, changed, delay;
     int msecs = 50000;
 
     debugf("Checking neighbours.\n");
@@ -215,11 +215,23 @@ check_neighbours()
             continue;
         }
 
+        delay = timeval_minus_msec(&now, &neighs[i].ihu_time);
+
+        if(delay >= 180000 ||
+           (neighs[i].ihu_interval > 0 &&
+            delay >= neighs[i].ihu_interval * 10 * 4)) {
+            neighs[i].txcost = INFINITY;
+            neighs[i].ihu_time = now;
+            changed = 1;
+        }
+
         if(changed)
             update_neighbour_metric(&neighs[i]);
 
         if(neighs[i].hello_interval > 0)
             msecs = MIN(msecs, neighs[i].hello_interval * 10);
+        if(neighs[i].ihu_interval > 0)
+            msecs = MIN(msecs, neighs[i].ihu_interval * 10);
     }
 
     return msecs;
@@ -261,9 +273,6 @@ int
 neighbour_cost(struct neighbour *neigh)
 {
     int a, b;
-
-    if(now.tv_sec - neigh->ihu_time >= 180)
-        return INFINITY;
 
     a = neigh->txcost;
 

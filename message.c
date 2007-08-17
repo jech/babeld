@@ -134,7 +134,7 @@ parse_packet(const unsigned char *from, struct network *net,
                        format_address(from));
                 if(plen == 0xFF || memcmp(myid, address, 16) == 0) {
                     neigh->txcost = metric;
-                    neigh->ihu_time = now.tv_sec;
+                    neigh->ihu_time = now;
                     neigh->ihu_interval = seqno;
                     update_neighbour_metric(neigh);
                 }
