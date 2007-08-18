@@ -193,7 +193,7 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
 
         if(len < 0 && (errno == EAGAIN || errno == EINTR)) {
             int rc;
-            rc = wait_for_fd(0, nl->sock, 10);
+            rc = wait_for_fd(0, nl->sock, 100);
             if(rc <= 0) {
                 if(rc == 0)
                     errno = EAGAIN;
@@ -203,11 +203,7 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
         }
 
         if(len < 0) {
-            if(errno == EAGAIN) {
-                done = 1;
-                break;
-            }
-            perror("netlink_read: recvmsg");
+            perror("netlink_read: recvmsg()");
             return 2;
         } else if(len == 0) {
             fprintf(stderr, "netlink_read: EOF\n");
@@ -228,6 +224,8 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
             NLMSG_OK(nh, len);
             nh = NLMSG_NEXT(nh, len)) {
             debugf("%s", (nh->nlmsg_flags & NLM_F_MULTI) ? "[multi] " : "");
+            if(!answer) // (!(nh->nlmsg_flags & NLM_F_MULTI))
+                done = 1;
             if(nl_ignore && nh->nlmsg_pid == nl_ignore->sockaddr.nl_pid) {
                 debugf("(ignore), ");
                 continue;
@@ -245,6 +243,8 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
                 struct nlmsgerr *err = (struct nlmsgerr *)NLMSG_DATA(nh);
                 if(err->error == 0) {
                     debugf("(ACK)\n");
+		    // if(!(nh->nlmsg_flags & NLM_F_MULTI) && !fn)
+		    return 0;
                 } else {
                     errno = -err->error;
                     perror("netlink_read");
