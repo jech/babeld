@@ -157,6 +157,34 @@ uninstall_route(struct route *route)
     route->installed = 0;
 }
 
+/* This is equivalent to uninstall_route followed with install_route,
+   but without the race condition.  The destination of both routes
+   must be the same. */
+
+void
+change_route(struct route *old, struct route *new)
+{
+    int rc;
+
+    if(!old) {
+        install_route(new);
+        return;
+    }
+
+    if(!old->installed)
+        return;
+
+    rc = kernel_route(ROUTE_MODIFY, old->src->prefix, old->src->plen,
+                      old->nexthop->address, old->nexthop->network->ifindex,
+                      metric_to_kernel(old->metric),
+                      new->nexthop->address, new->nexthop->network->ifindex,
+                      metric_to_kernel(new->metric));
+    if(rc >= 0) {
+        old->installed = 0;
+        new->installed = 1;
+    }
+}
+
 void
 change_route_metric(struct route *route, int newmetric)
 {
@@ -403,9 +431,7 @@ consider_route(struct route *route)
     return;
 
  install:
-    if(installed)
-        uninstall_route(installed);
-    install_route(route);
+    change_route(installed, route);
     if(installed && route->installed)
         send_triggered_update(route, installed->src, installed->metric);
     else
