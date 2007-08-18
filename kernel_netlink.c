@@ -224,7 +224,7 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
             NLMSG_OK(nh, len);
             nh = NLMSG_NEXT(nh, len)) {
             debugf("%s", (nh->nlmsg_flags & NLM_F_MULTI) ? "[multi] " : "");
-            if(!answer) // (!(nh->nlmsg_flags & NLM_F_MULTI))
+            if(!answer)
                 done = 1;
             if(nl_ignore && nh->nlmsg_pid == nl_ignore->sockaddr.nl_pid) {
                 debugf("(ignore), ");
@@ -243,7 +243,6 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
                 struct nlmsgerr *err = (struct nlmsgerr *)NLMSG_DATA(nh);
                 if(err->error == 0) {
                     debugf("(ACK)\n");
-		    // if(!(nh->nlmsg_flags & NLM_F_MULTI) && !fn)
 		    return 0;
                 } else {
                     errno = -err->error;
