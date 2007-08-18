@@ -249,7 +249,7 @@ wait_for_fd(int direction, int fd, int msecs)
     struct timeval tv;
 
     tv.tv_sec = msecs / 1000;
-    tv.tv_usec = msecs * 1000;
+    tv.tv_usec = (msecs % 1000) * 1000;
 
     FD_ZERO(&fds);
     FD_SET(fd, &fds);
