@@ -578,7 +578,8 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
            format_address(dest), plen, metric, ifindex,
            format_address(gate));
 
-    /* Linux sucks: it doesn't accept an unreachable default route */
+    /* Unreachable default routes cause all sort of weird interactions;
+       ignore them. */
     if(metric >= KERNEL_INFINITY && plen == 0)
         return 0;
 
@@ -759,6 +760,10 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
     if(rtm->rtm_dst_len >= 8 &&
        (current_route->prefix[0] == 0xFF || current_route->prefix[0] == 0))
            return 0;
+
+    /* Ignore default unreachable routes; no idea where they come from. */
+    if(current_route->plen == 0 && current_route->metric >= KERNEL_INFINITY)
+        return 0;
 
     if(debug >= 2) {
         if(rc >= 0) {
