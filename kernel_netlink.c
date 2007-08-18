@@ -193,7 +193,7 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
 
         if(len < 0 && (errno == EAGAIN || errno == EINTR)) {
             int rc;
-            rc = wait_for_fd(0, nl->sock, 100);
+            rc = wait_for_fd(0, nl->sock, 10);
             if(rc <= 0) {
                 if(rc == 0)
                     errno = EAGAIN;
@@ -203,7 +203,11 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
         }
 
         if(len < 0) {
-            perror("netlink_read: recvmsg()");
+            if(errno == EAGAIN) {
+                done = 1;
+                break;
+            }
+            perror("netlink_read: recvmsg");
             return 2;
         } else if(len == 0) {
             fprintf(stderr, "netlink_read: EOF\n");
