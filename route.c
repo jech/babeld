@@ -472,11 +472,17 @@ trigger_route_change(struct route *route,
             if(better_route && better_route->metric <= route->metric - 96)
                 consider_route(better_route);
         }
+
         if(route->installed)
             send_triggered_update(route, oldsrc, oldmetric);
-    } else if(route->metric < oldmetric) {
-        consider_route(route);
+
+        return;
     }
+
+    /* consider_route avoids very recent routes, so reconsider newish routes
+       even when their metric didn't decrease. */
+    if(route->metric < oldmetric || route->origtime >= now.tv_sec - 240)
+        consider_route(route);
 }
 
 /* We just lost the installed route to a given destination. */
