@@ -125,8 +125,9 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
     if(hello < 0) {
         if(neigh->hello_interval <= 0)
             return rc;
-        missed_hellos = (timeval_minus_msec(&now, &neigh->hello_time) -
-                         neigh->hello_interval * 6) /
+        missed_hellos =
+            (timeval_minus_msec(&now, &neigh->hello_time) -
+             neigh->hello_interval * 7) /
             (neigh->hello_interval * 10);
         if(missed_hellos <= 0)
             return rc;
@@ -136,10 +137,17 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
         if(neigh->hello_seqno >= 0 && neigh->reach > 0) {
             missed_hellos = seqno_minus(hello, neigh->hello_seqno) - 1;
             if(missed_hellos < 0) {
-                /* This neighbour has increased its hello interval, and we
-                   didn't notice. */
-                neigh->reach <<= -missed_hellos;
-                missed_hellos = 0;
+                if(hello_interval > neigh->hello_interval) {
+                    /* This neighbour has increased its hello interval,
+                       and we didn't notice. */
+                    neigh->reach <<= -missed_hellos;
+                    missed_hellos = 0;
+                } else {
+                    /* Late hello.  Probably due to the link layer buffering
+                       packets during a link outage.  Ignore it. */
+                    hello = 0;
+                    missed_hellos = 0;
+                }
                 rc = 1;
             }
         } else {
@@ -151,6 +159,7 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
 
     if(missed_hellos > 0) {
         neigh->reach >>= missed_hellos;
+        neigh->hello_seqno = (neigh->hello_seqno + missed_hellos) & 0xFFFF;
         missed_hellos = 0;
         rc = 1;
     }
