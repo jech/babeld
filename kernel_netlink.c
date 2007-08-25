@@ -712,6 +712,7 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
     int maxroutes = 0;
     struct kernel_route *routes = NULL;
     int *found = NULL;
+    int len;
 
     struct rtmsg *rtm;
 
@@ -723,7 +724,7 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
         found = (int*)args[3];
     }
 
-    int len = nh->nlmsg_len;
+    len = nh->nlmsg_len;
 
     if(data && *found >= maxroutes)
         return 0;
