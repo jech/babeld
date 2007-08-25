@@ -520,10 +520,10 @@ flushupdates(void)
 }
 
 static void
-schedule_update_flush(struct network *net)
+schedule_update_flush(struct network *net, int urgent)
 {
     int msecs;
-    msecs = update_jitter(net);
+    msecs = update_jitter(net, urgent);
     if(update_flush_time.tv_sec != 0 &&
        timeval_minus_msec(&update_flush_time, &now) < msecs)
         return;
@@ -598,7 +598,7 @@ send_update(struct network *net, int urgent,
                 buffer_update(net, routes[i].src->prefix, routes[i].src->plen);
         net->update_time = now.tv_sec;
     }
-    schedule_update_flush(net);
+    schedule_update_flush(net, urgent);
 }
 
 void
