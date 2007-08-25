@@ -650,6 +650,7 @@ send_self_retract(struct network *net)
             really_send_update(net, myid, xroutes[i].prefix, xroutes[i].plen,
                                myseqno, 0xFFFF);
     }
+    schedule_update_flush(net, 1);
 }
 
 void
