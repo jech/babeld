@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include "babel.h"
 #include "kernel.h"
 #include "neighbour.h"
+#include "message.h"
 #include "route.h"
 #include "xroute.h"
 #include "util.h"
@@ -95,8 +96,9 @@ check_xroutes()
                 struct route *route;
                 route = find_best_route(xroutes[i].prefix, xroutes[i].plen);
                 if(route)
-                    consider_route(route);
+                    install_route(route);
             }
+            send_update(NULL, 1, xroutes[i].prefix, xroutes[i].plen);
             change = 1;
         }
     }
