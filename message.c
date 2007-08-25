@@ -355,17 +355,22 @@ message_source_id(struct network *net)
 }
 
 void
-send_hello(struct network *net)
+send_hello_noupdate(struct network *net, unsigned interval)
 {
-    int changed;
     debugf("Sending hello to %s.\n", net->ifname);
-    changed = update_hello_interval(net);
     net->hello_seqno = ((net->hello_seqno + 1) & 0xFFFF);
     net->hello_time = now.tv_sec;
     send_message(net, 0, 0, net->hello_seqno,
-                 100 * net->hello_interval > 0xFFFF ?
-                 0 : 100 * net->hello_interval,
+                 interval > 0xFFFF ? 0 : interval,
                  myid);
+}
+
+void
+send_hello(struct network *net)
+{
+    int changed;
+    changed = update_hello_interval(net);
+    send_hello_noupdate(net, net->hello_interval * 100);
     if(changed)
         send_ihu(NULL, net);
 }

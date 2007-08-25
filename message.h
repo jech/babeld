@@ -40,6 +40,7 @@ extern const unsigned char packet_header[8];
 void parse_packet(const unsigned char *from, struct network *net,
                   const unsigned char *packet, int len);
 void flushbuf(struct network *net);
+void send_hello_noupdate(struct network *net, unsigned interval);
 void send_hello(struct network *net);
 void send_request(struct network *net,
                   const unsigned char *prefix, unsigned char plen);
