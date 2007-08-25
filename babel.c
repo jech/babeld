@@ -502,7 +502,7 @@ main(int argc, char **argv)
                 send_ihu(NULL, &nets[i]);
             if(!network_idle(&nets[i])) {
                 if(now.tv_sec >= nets[i].update_time + update_interval)
-                    send_update(&nets[i], NULL, 0);
+                    send_update(&nets[i], 0, NULL, 0);
                 if(now.tv_sec >=
                    nets[i].self_update_time + nets[i].self_update_interval) {
                     send_self_update(&nets[i], 0);
@@ -533,7 +533,7 @@ main(int argc, char **argv)
         /* Uninstall and retract all routes. */
         if(routes[i].installed) {
             uninstall_route(&routes[i]);
-            send_update(NULL, routes[i].src->prefix, routes[i].src->plen);
+            send_update(NULL, 1, routes[i].src->prefix, routes[i].src->plen);
         }
     }
     for(i = 0; i < numnets; i++) {

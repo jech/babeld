@@ -150,9 +150,9 @@ parse_packet(const unsigned char *from, struct network *net,
                     /* If a neighbour is requesting a full route dump from us,
                        we might as well send it an ihu. */
                     send_ihu(neigh, NULL);
-                    send_update(neigh->network, NULL, 0);
+                    send_update(neigh->network, 0, NULL, 0);
                 } else {
-                    send_update(neigh->network, address, plen);
+                    send_update(neigh->network, 1, address, plen);
                 }
             } else if(type == 3) {
                 if(plen == 0xFF)
@@ -556,14 +556,14 @@ buffer_update(struct network *net,
 }
 
 void
-send_update(struct network *net,
+send_update(struct network *net, int urgent,
             const unsigned char *prefix, unsigned char plen)
 {
     int i;
 
     if(net == NULL) {
         for(i = 0; i < numnets; i++)
-            send_update(&nets[i], prefix, plen);
+            send_update(&nets[i], urgent, prefix, plen);
         return;
     }
 
@@ -582,7 +582,7 @@ send_update(struct network *net,
     if(prefix) {
         if(updates > net->bufsize / 24 - 2) {
             /* Update won't fit in a single packet -- send a full dump. */
-            send_update(net, NULL, 0);
+            send_update(net, urgent, NULL, 0);
             return;
         }
         debugf("Sending update to %s for %s.\n",
@@ -622,9 +622,8 @@ send_self_update(struct network *net, int force_seqno)
 
     for(i = 0; i < numxroutes; i++) {
         if(xroutes[i].exported)
-            send_update(net, xroutes[i].prefix, xroutes[i].plen);
+            send_update(net, 0, xroutes[i].prefix, xroutes[i].plen);
     }
-    schedule_update_flush(net);
 }
 
 void
@@ -659,7 +658,7 @@ send_neighbour_update(struct neighbour *neigh, struct network *net)
     int i;
     for(i = 0; i < numroutes; i++) {
         if(routes[i].installed && routes[i].nexthop == neigh)
-            send_update(net, routes[i].src->prefix, routes[i].src->plen);
+            send_update(net, 0, routes[i].src->prefix, routes[i].src->plen);
     }
 }
 

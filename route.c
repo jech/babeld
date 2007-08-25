@@ -435,7 +435,7 @@ consider_route(struct route *route)
     if(installed && route->installed)
         send_triggered_update(route, installed->src, installed->metric);
     else
-        send_update(NULL, route->src->prefix, route->src->plen);
+        send_update(NULL, 0, route->src->prefix, route->src->plen);
     return;
 }
 
@@ -450,7 +450,8 @@ send_triggered_update(struct route *route, struct source *oldsrc, int oldmetric)
     if(route->src != oldsrc ||
        ((route->metric >= INFINITY) != (oldmetric >= INFINITY)) ||
        (route->metric >= oldmetric + 256 || oldmetric >= route->metric + 256))
-        send_update(NULL, route->src->prefix, route->src->plen);
+        send_update(NULL, ((route->metric >= INFINITY) || route->src != oldsrc),
+                    route->src->prefix, route->src->plen);
 
     if(oldmetric < INFINITY) {
         if(route->metric >= INFINITY || route->metric - oldmetric >= 384)
@@ -495,7 +496,7 @@ route_lost(struct source *src, int oldmetric)
         consider_route(new_route);
     } else {
         /* Complain loudly. */
-        send_update(NULL, src->prefix, src->plen);
+        send_update(NULL, 1, src->prefix, src->plen);
         if(oldmetric < INFINITY)
             send_request(NULL, src->prefix, src->plen);
     }

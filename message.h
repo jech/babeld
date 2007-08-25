@@ -44,7 +44,7 @@ void send_request(struct network *net,
                   const unsigned char *prefix, unsigned char plen);
 void send_unicast_request(struct neighbour *neigh,
                   const unsigned char *prefix, unsigned char plen);
-void send_update(struct network *net,
+void send_update(struct network *net, int urgent,
                  const unsigned char *prefix, unsigned char plen);
 void send_self_update(struct network *net, int force_seqno);
 void send_self_retract(struct network *net);
