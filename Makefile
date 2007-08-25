@@ -20,9 +20,9 @@ babel.html: babel.man
 
 .PHONY: all install uninstall clean
 
-all: babel
+all: babel babel.man
 
-install: babel babel.man
+install: all
 	-rm -f $(TARGET)$(PREFIX)/bin/babel
 	cp -f babel $(TARGET)$(PREFIX)/bin
 	mkdir -p $(TARGET)$(PREFIX)/man/man8
