@@ -23,7 +23,6 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 
 #include "babel.h"
 #include "util.h"
