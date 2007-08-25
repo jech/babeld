@@ -442,19 +442,24 @@ consider_route(struct route *route)
 void
 send_triggered_update(struct route *route, struct source *oldsrc, int oldmetric)
 {
+    int urgent, newmetric;
+
     if(!route->installed)
         return;
 
+    newmetric = route->metric;
+
     /* Switching sources can cause transient routing loops, so always send
-       updates in that case */
-    if(route->src != oldsrc ||
-       ((route->metric >= INFINITY) != (oldmetric >= INFINITY)) ||
-       (route->metric >= oldmetric + 256 || oldmetric >= route->metric + 256))
-        send_update(NULL, ((route->metric >= INFINITY) || route->src != oldsrc),
-                    route->src->prefix, route->src->plen);
+       updates in that case.  Retractions are always urgent. */
+    urgent = (route->src != oldsrc) ||
+        (oldmetric < INFINITY && newmetric >= INFINITY);
+
+    if(urgent ||
+       (newmetric >= oldmetric + 256 || oldmetric >= newmetric + 256))
+        send_update(NULL, urgent, route->src->prefix, route->src->plen);
 
     if(oldmetric < INFINITY) {
-        if(route->metric >= INFINITY || route->metric - oldmetric >= 384)
+        if(newmetric >= INFINITY || newmetric >= oldmetric + 384)
             send_request(NULL, route->src->prefix, route->src->plen);
     }
 }
