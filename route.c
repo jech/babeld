@@ -275,7 +275,7 @@ update_route_metric(struct route *route)
     oldmetric = route->metric;
     if(route->time < now.tv_sec - route_timeout_delay) {
         if(route->refmetric < INFINITY) {
-            route->seqno = (route->src->seqno + 1) & 0xFFFF;
+            route->seqno = seqno_plus(route->src->seqno, 1);
             route->refmetric = INFINITY;
         }
         newmetric = INFINITY;

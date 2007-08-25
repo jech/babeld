@@ -266,7 +266,7 @@ main(int argc, char **argv)
                 } else {
                     debugf("Got %s %d %ld from babel-state.\n",
                            format_address(sid), s, t);
-                    myseqno = ((s + 1) & 0xFFFF);
+                    myseqno = seqno_plus(s, 1);
                     if(t >= 1176800000L && t <= now.tv_sec)
                         reboot_time = t;
                 }

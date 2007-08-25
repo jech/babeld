@@ -357,7 +357,7 @@ void
 send_hello_noupdate(struct network *net, unsigned interval)
 {
     debugf("Sending hello to %s.\n", net->ifname);
-    net->hello_seqno = ((net->hello_seqno + 1) & 0xFFFF);
+    net->hello_seqno = seqno_plus(net->hello_seqno, 1);
     net->hello_time = now.tv_sec;
     send_message(net, 0, 0, net->hello_seqno,
                  interval > 0xFFFF ? 0 : interval,
@@ -507,7 +507,7 @@ flushupdates(void)
             if(src) {
                 really_send_update(net, src->address, src->prefix, src->plen,
                                    src->metric >= INFINITY ?
-                                   src->seqno : (src->seqno + 1) & 0xFFFF,
+                                   src->seqno : seqno_plus(src->seqno, 1),
                                    INFINITY);
                 continue;
             }
@@ -607,7 +607,7 @@ send_self_update(struct network *net, int force_seqno)
 {
     int i;
     if(force_seqno || seqno_time + seqno_interval < now.tv_sec) {
-        myseqno = ((myseqno + 1) & 0xFFFF);
+        myseqno = seqno_plus(myseqno, 1);
         seqno_time = now.tv_sec;
     }
 
@@ -642,7 +642,7 @@ send_self_retract(struct network *net)
 
     debugf("Retracting self on %s.\n", net->ifname);
 
-    myseqno = ((myseqno + 1) & 0xFFFF);
+    myseqno = seqno_plus(myseqno, 1);
     seqno_time = now.tv_sec;
     net->self_update_time = now.tv_sec;
     for(i = 0; i < numxroutes; i++) {
