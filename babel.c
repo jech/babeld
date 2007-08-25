@@ -566,10 +566,16 @@ main(int argc, char **argv)
         char buf[100];
         rc = snprintf(buf, 100, "%s %d %ld\n",
                       format_address(myid), (int)myseqno, (long)now.tv_sec);
-        rc = write(fd, buf, rc);
-        if(rc < 0) {
-            perror("write(babel-state)");
+        if(rc < 0 || rc >= 100) {
+            fprintf(stderr, "write(babel-state): overflow.\n");
             unlink(state_file);
+        } else {
+            rc = write(fd, buf, rc);
+            if(rc < 0) {
+                perror("write(babel-state)");
+                unlink(state_file);
+            }
+            fsync(fd);
         }
         close(fd);
     }
