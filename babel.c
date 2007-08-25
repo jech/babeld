@@ -542,6 +542,7 @@ main(int argc, char **argv)
         /* Make sure that we expire quickly from our neighbours'
            association caches. */
         send_hello_noupdate(&nets[i], 1);
+        flushupdates();
         flushbuf(&nets[i]);
         usleep(50000 + random() % 100000);
     }
@@ -549,6 +550,7 @@ main(int argc, char **argv)
         /* Make sure they got it. */
         send_self_retract(&nets[i]);
         send_hello_noupdate(&nets[i], 1);
+        flushupdates();
         flushbuf(&nets[i]);
         usleep(50000 + random() % 100000);
         kernel_setup_interface(0, nets[i].ifname, nets[i].ifindex);
