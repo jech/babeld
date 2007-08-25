@@ -40,8 +40,6 @@ struct timeval update_flush_time = {0, 0};
 
 const unsigned char packet_header[8] = {42, 1};
 
-unsigned int jitter;
-unsigned int update_jitter;
 int add_cost = 0;
 int parasitic = 0;
 int silent_time = 30;
@@ -268,7 +266,7 @@ flushbuf(struct network *net)
 static void
 schedule_flush(struct network *net)
 {
-    int msecs = jitter / 2 + random() % jitter;
+    int msecs = jitter(net);
     if(net->flush_time.tv_sec != 0 &&
        timeval_minus_msec(&net->flush_time, &now) < msecs)
         return;
@@ -522,9 +520,10 @@ flushupdates(void)
 }
 
 static void
-schedule_update_flush(void)
+schedule_update_flush(struct network *net)
 {
-    int msecs = update_jitter / 2 + random() % update_jitter;
+    int msecs;
+    msecs = update_jitter(net);
     if(update_flush_time.tv_sec != 0 &&
        timeval_minus_msec(&update_flush_time, &now) < msecs)
         return;
@@ -599,7 +598,7 @@ send_update(struct network *net,
                 buffer_update(net, routes[i].src->prefix, routes[i].src->plen);
         net->update_time = now.tv_sec;
     }
-    schedule_update_flush();
+    schedule_update_flush(net);
 }
 
 void
@@ -625,7 +624,7 @@ send_self_update(struct network *net, int force_seqno)
         if(xroutes[i].exported)
             send_update(net, xroutes[i].prefix, xroutes[i].plen);
     }
-    schedule_update_flush();
+    schedule_update_flush(net);
 }
 
 void

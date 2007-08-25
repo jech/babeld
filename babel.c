@@ -210,9 +210,6 @@ main(int argc, char **argv)
     if(seqno_interval <= 0)
         seqno_interval = MAX(wireless_hello_interval - 1, 2);
 
-    jitter = MIN(wireless_hello_interval * 1000 / 4, 2000);
-    update_jitter = 2 * jitter;
-
     rc = parse_address(*arg, myid);
     if(rc < 0)
         goto syntax;
@@ -775,3 +772,20 @@ update_hello_interval(struct network *net)
 
     return rc;
 }
+
+/* This should be no more than half the hello interval, so that hellos
+   aren't sent late.  The result is in milliseconds. */
+unsigned int
+jitter(struct network *net)
+{
+    unsigned interval = net->hello_interval * 1000;
+    return (interval / 2 + random() % interval) / 4;
+}
+
+unsigned int
+update_jitter(struct network *net)
+{
+    unsigned interval = net->hello_interval * 1000;
+    return (interval / 2 + random() % interval);
+}
+

@@ -101,3 +101,6 @@ extern int max_request_hopcount;
 
 int network_idle(struct network *net);
 int update_hello_interval(struct network *net);
+unsigned int jitter(struct network *net);
+unsigned int update_jitter(struct network *net);
+
