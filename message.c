@@ -633,7 +633,6 @@ send_self_retract(struct network *net)
     int i;
 
     if(net == NULL) {
-        int i;
         for(i = 0; i < numnets; i++)
             send_self_retract(&nets[i]);
         return;
