@@ -435,7 +435,7 @@ consider_route(struct route *route)
     if(installed && route->installed)
         send_triggered_update(route, installed->src, installed->metric);
     else
-        send_update(NULL, 0, route->src->prefix, route->src->plen);
+        send_update(NULL, 1, route->src->prefix, route->src->plen);
     return;
 }
 
