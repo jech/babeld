@@ -544,15 +544,14 @@ main(int argc, char **argv)
         send_self_retract(&nets[i]);
         /* Make sure that we expire quickly from our neighbours'
            association caches. */
-        nets[i].hello_interval = 1;
-        send_hello(&nets[i]);
+        send_hello_noupdate(&nets[i], 1);
         flushbuf(&nets[i]);
         usleep(50000 + random() % 100000);
     }
     for(i = 0; i < numnets; i++) {
         /* Make sure they got it. */
         send_self_retract(&nets[i]);
-        send_hello(&nets[i]);
+        send_hello_noupdate(&nets[i], 1);
         flushbuf(&nets[i]);
         usleep(50000 + random() % 100000);
         kernel_setup_interface(0, nets[i].ifname, nets[i].ifindex);
