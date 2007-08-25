@@ -24,6 +24,8 @@ int seqno_compare(unsigned short s1, unsigned short s2)
     ATTRIBUTE ((const));
 int seqno_minus(unsigned short s1, unsigned short s2)
     ATTRIBUTE ((const));
+unsigned short seqno_plus(unsigned short s, int plus)
+    ATTRIBUTE ((const));
 void timeval_minus(struct timeval *d,
                    const struct timeval *s1, const struct timeval *s2);
 int timeval_minus_msec(const struct timeval *s1, const struct timeval *s2)

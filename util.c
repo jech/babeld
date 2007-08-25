@@ -56,6 +56,12 @@ seqno_minus(unsigned short s1, unsigned short s2)
         return ((s1 - s2) & 0xFFFF);
 }
 
+unsigned short
+seqno_plus(unsigned short s, int plus)
+{
+    return ((s + plus) & 0xFFFF);
+}
+
 void
 timeval_minus(struct timeval *d,
               const struct timeval *s1, const struct timeval *s2)
