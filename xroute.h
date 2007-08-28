@@ -34,3 +34,4 @@ extern int numxroutes;
 
 struct xroute *find_exported_xroute(const unsigned char *prefix,
                                     unsigned char plen);
+int check_xroutes(void);
