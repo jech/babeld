@@ -1,0 +1,12 @@
+29 August 2007: babel 0.2
+
+  * Made jitter computation depend on how urgent a given message is.
+    This dramatically improves convergence speed, without increasing
+    network load.
+
+  * Fixed a bug that prevented neighbour associations from being
+    discarded at shutdown.
+
+22 August 2007: babel 0.1
+
+  * Initial public release.
