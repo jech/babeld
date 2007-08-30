@@ -265,9 +265,17 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
        memcmp(newgate, gate, 16) == 0 && newifindex == ifindex)
       return 0;
 
-    metric = newmetric;
-    gate = newgate;
-    ifindex = newifindex;
+    if(operation == ROUTE_MODIFY) {
+        metric = newmetric;
+        gate = newgate;
+        ifindex = newifindex;
+    }
+
+    debugf("kernel_route: %s %s/%d metric %d dev %d nexthop %s\n",
+           operation == ROUTE_ADD ? "add" :
+           operation == ROUTE_FLUSH ? "flush" : "change",
+           format_address(dest), plen, metric, ifindex,
+           format_address(gate));
 
     if(kernel_socket < 0) kernel_setup_socket(1);
     
@@ -280,7 +288,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     case ROUTE_ADD:
       rtm->rtm_type = RTM_ADD; break;
     case ROUTE_MODIFY: 
-      rtm->rtm_type = RTM_DELETE; break;
+      rtm->rtm_type = RTM_CHANGE; break;
     default: 
       return -1;
     };
@@ -303,7 +311,10 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         rtm->rtm_index = ifindex_lo;      
     }
     rtm->rtm_seq = ++seq;
-    rtm->rtm_addrs = RTA_DST | RTA_GATEWAY | RTA_NETMASK;
+    rtm->rtm_addrs = RTA_DST | RTA_GATEWAY;
+    if(!(operation == ROUTE_MODIFY && plen == 128)) {
+        rtm->rtm_addrs |= RTA_NETMASK;
+    }
     rtm->rtm_rmx.rmx_hopcount = metric;
     rtm->rtm_inits = RTV_HOPCOUNT;
 
@@ -324,10 +335,12 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         SET_IN6_LINKLOCAL_IFINDEX (sin6->sin6_addr, ifindex);
     sin6 = (struct sockaddr_in6 *)((char *)sin6 + ROUNDUP(sin6->sin6_len));
     /* Netmask */
-    sin6->sin6_len = sizeof(struct sockaddr_in6);
-    sin6->sin6_family = AF_INET6;
-    plen2mask(plen, &sin6->sin6_addr);
-    sin6 = (struct sockaddr_in6 *)((char *)sin6 + ROUNDUP(sin6->sin6_len));
+    if((rtm->rtm_addrs | RTA_NETMASK) != 0) {
+        sin6->sin6_len = sizeof(struct sockaddr_in6);
+        sin6->sin6_family = AF_INET6;
+        plen2mask(plen, &sin6->sin6_addr);
+        sin6 = (struct sockaddr_in6 *)((char *)sin6 + ROUNDUP(sin6->sin6_len));
+    }
     len = (char *)sin6 - (char *)msg;
     rtm->rtm_msglen = len;
 
