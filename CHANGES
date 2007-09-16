@@ -1,3 +1,7 @@
+babel 0.3 (unreleased)
+
+  * Fixes to Mac OS X support (Grégoire Henry).
+
 29 August 2007: babel 0.2
 
   * Made jitter computation depend on how urgent a given message is.
