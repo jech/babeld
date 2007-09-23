@@ -1,3 +1,8 @@
+23 September 2007: babel 0.4
+
+  * Fixed incorrect expiration of old sources.  This could prevent
+    convergence in some cases.
+
 16 September 2007: babel 0.3
 
   * Fixes to Mac OS X support (Grégoire Henry).
