@@ -661,7 +661,7 @@ dump_tables(FILE *out)
 
     fprintf(out, "\n");
 
-    fprintf(out, "My id %s\n", format_address(myid));
+    fprintf(out, "My id %s seqno %d\n", format_address(myid), myseqno);
 
     for(i = 0; i < numneighs; i++) {
         if(neighs[i].id[0] == 0xFF)
