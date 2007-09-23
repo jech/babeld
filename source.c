@@ -98,7 +98,8 @@ update_source(struct source *src,
     if(metric >= INFINITY)
         return;
 
-    if(seqno_compare(src->seqno, seqno) < 0 ||
+    if(src->time < now.tv_sec - 200 ||
+       seqno_compare(src->seqno, seqno) < 0 ||
        (src->seqno == seqno && src->metric > metric)) {
         src->seqno = seqno;
         src->metric = metric;
