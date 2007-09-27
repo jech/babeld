@@ -675,7 +675,7 @@ send_ihu(struct neighbour *neigh, struct network *net)
         return;
     }
 
-    if(net && net->ihu_interval * 100 >= 0xFFFF)
+    if(net && net->ihu_interval * 100 <= 0xFFFF)
         interval = net->ihu_interval * 100;
     else
         interval = 0;
