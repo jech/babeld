@@ -318,14 +318,15 @@ accumulate_data(struct network *net,
 
 static void
 send_message(struct network *net,
-             unsigned char type,  unsigned char plen,
+             unsigned char type,  unsigned char plen, unsigned char hop_count,
              unsigned short seqno, unsigned short metric,
              const unsigned char *address)
 {
     start_message(net, 24);
     accumulate_byte(net, type);
     accumulate_byte(net, plen);
-    accumulate_short(net, 0);
+    accumulate_byte(net, 0);
+    accumulate_byte(net, hop_count);
     accumulate_short(net, seqno);
     accumulate_short(net, metric);
     accumulate_data(net, address, 16);
@@ -359,7 +360,7 @@ send_hello_noupdate(struct network *net, unsigned interval)
     debugf("Sending hello to %s.\n", net->ifname);
     net->hello_seqno = seqno_plus(net->hello_seqno, 1);
     net->hello_time = now.tv_sec;
-    send_message(net, 0, 0, net->hello_seqno,
+    send_message(net, 0, 0, 0, net->hello_seqno,
                  interval > 0xFFFF ? 0 : interval,
                  myid);
 }
@@ -389,9 +390,9 @@ send_request(struct network *net,
     debugf("Sending request to %s for %s.\n",
            net->ifname, prefix ? format_prefix(prefix, plen) : "any");
     if(prefix)
-        send_message(net, 2, plen, 0, 0, prefix);
+        send_message(net, 2, plen, 0, 0, 0, prefix);
     else
-        send_message(net, 2, 0xFF, 0, 0, ones);
+        send_message(net, 2, 0xFF, 0, 0, 0, ones);
 }
 
 static void
@@ -448,14 +449,14 @@ really_send_update(struct network *net,
                    unsigned short seqno, unsigned short metric)
 {
     if(in_prefix(address, prefix, plen)) {
-        send_message(net, 3, plen, seqno, metric, address);
+        send_message(net, 3, plen, 0, seqno, metric, address);
     } else {
         unsigned const char *sid;
         start_message(net, 48);
         sid = message_source_id(net);
         if(sid == NULL || memcmp(address, sid, 16) != 0)
-            send_message(net, 3, 0xFF, 0, 0xFFFF, address);
-        send_message(net, 4, plen, seqno, metric, prefix);
+            send_message(net, 3, 0xFF, 0, 0, 0xFFFF, address);
+        send_message(net, 4, plen, 0, seqno, metric, prefix);
     }
 }
 
@@ -683,7 +684,7 @@ send_ihu(struct neighbour *neigh, struct network *net)
     if(neigh == NULL) {
         if(broadcast_ihu && net->wired) {
             debugf("Sending broadcast ihu to %s.\n", net->ifname);
-            send_message(net, 1, 0xFF, interval, net->cost, ones);
+            send_message(net, 1, 0xFF, 0, interval, net->cost, ones);
         } else {
             for(i = 0; i < numneighs; i++) {
                 if(neighs[i].id[0] != 0xFF) {
@@ -707,6 +708,6 @@ send_ihu(struct neighbour *neigh, struct network *net)
                format_address(neigh->address));
 
         rxcost = neighbour_rxcost(neigh);
-        send_message(net, 1, 128, interval, rxcost, neigh->id);
+        send_message(net, 1, 128, 0, interval, rxcost, neigh->id);
     }
 }
