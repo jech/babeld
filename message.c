@@ -58,6 +58,11 @@ struct buffered_update buffered_updates[MAX_BUFFERED_UPDATES];
 struct network *update_net = NULL;
 int updates = 0;
 
+static void
+handle_request(struct neighbour *neigh, const unsigned char *prefix,
+               unsigned char plen, unsigned char hop_count,
+               unsigned short seqno, unsigned short router_hash);
+
 unsigned short
 hash_id(const unsigned char *id)
 {
@@ -74,9 +79,8 @@ parse_packet(const unsigned char *from, struct network *net,
 {
     int i, j;
     const unsigned char *message;
-    unsigned char type, plen;
-    unsigned short seqno;
-    unsigned short metric;
+    unsigned char type, plen, hop_count;
+    unsigned short seqno, metric;
     const unsigned char *address;
     struct neighbour *neigh;
     int have_current_source = 0;
@@ -112,6 +116,7 @@ parse_packet(const unsigned char *from, struct network *net,
         message = packet + 8 + 24 * i;
         type = message[0];
         plen = message[1];
+        hop_count = message[3];
         seqno = ntohs(*(uint16_t*)(message + 4));
         metric = ntohs(*(uint16_t*)(message + 6));
         address = message + 8;
@@ -162,7 +167,8 @@ parse_packet(const unsigned char *from, struct network *net,
                     send_ihu(neigh, NULL);
                     send_update(neigh->network, 0, NULL, 0);
                 } else {
-                    send_update(neigh->network, 1, address, plen);
+                    handle_request(neigh, address, plen,
+                                   hop_count, seqno, metric);
                 }
             } else if(type == 3) {
                 if(plen == 0xFF)
@@ -213,6 +219,15 @@ parse_packet(const unsigned char *from, struct network *net,
     }
     return;
 }
+
+static void
+handle_request(struct neighbour *neigh, const unsigned char *prefix,
+               unsigned char plen, unsigned char hop_count,
+               unsigned short seqno, unsigned short router_hash)
+{
+    send_update(neigh->network, 1, prefix, plen);
+}
+
 
 /* Under normal circumstances, there are enough moderation mechanisms
    elsewhere in the protocol to make sure that this last-ditch check
