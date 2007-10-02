@@ -639,13 +639,20 @@ send_update(struct network *net, int urgent,
 }
 
 void
-send_self_update(struct network *net, int force_seqno)
+update_myseqno(int force)
 {
-    int i;
-    if(force_seqno || seqno_time + seqno_interval < now.tv_sec) {
+    if(force || seqno_time + seqno_interval < now.tv_sec) {
         myseqno = seqno_plus(myseqno, 1);
         seqno_time = now.tv_sec;
     }
+}
+
+void
+send_self_update(struct network *net, int force_seqno)
+{
+    int i;
+
+    update_myseqno(force_seqno);
 
     if(net == NULL) {
         for(i = 0; i < numnets; i++)
