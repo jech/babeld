@@ -225,7 +225,38 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
                unsigned char plen, unsigned char hop_count,
                unsigned short seqno, unsigned short router_hash)
 {
-    send_update(neigh->network, 1, prefix, plen);
+    struct xroute *xroute;
+    struct route *route;
+
+    if(hop_count == 0) {
+        send_update(neigh->network, 1, prefix, plen);
+        return;
+    }
+
+    xroute = find_exported_xroute(prefix, plen);
+    if(xroute) {
+        if(router_hash == hash_id(myid) && seqno_compare(seqno, myseqno) > 0)
+            update_myseqno(1);
+        send_update(neigh->network, 1, prefix, plen);
+        return;
+    }
+
+    route = find_installed_route(prefix, plen);
+    if(route && route->metric < INFINITY) {
+        if(router_hash == hash_id(route->src->address) &&
+           seqno_compare(seqno, route->seqno) > 0) {
+            if(hop_count > 1) {
+                send_unicast_request(route->nexthop, prefix, plen,
+                                     hop_count - 1, seqno, router_hash);
+                /* We should record sending this request at this point. */
+            }
+        } else {
+            send_update(neigh->network, 1, prefix, plen);
+        }
+        return;
+    }
+
+    send_update(neigh->network, 0, prefix, plen);
 }
 
 
