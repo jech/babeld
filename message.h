@@ -41,9 +41,13 @@ void flushbuf(struct network *net);
 void send_hello_noupdate(struct network *net, unsigned interval);
 void send_hello(struct network *net);
 void send_request(struct network *net,
-                  const unsigned char *prefix, unsigned char plen);
+                  const unsigned char *prefix, unsigned char plen,
+                  unsigned char hop_count, unsigned short seqno,
+                  unsigned short router_hash);
 void send_unicast_request(struct neighbour *neigh,
-                  const unsigned char *prefix, unsigned char plen);
+                          const unsigned char *prefix, unsigned char plen,
+                          unsigned char hop_count, unsigned short seqno,
+                          unsigned short router_hash);
 void send_update(struct network *net, int urgent,
                  const unsigned char *prefix, unsigned char plen);
 void send_self_update(struct network *net, int force_seqno);

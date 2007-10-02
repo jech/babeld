@@ -199,7 +199,7 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
         if(!martian_prefix(neigh->id, 128))
            route = find_installed_route(neigh->id, 128);
         if(!route || route->metric >= INFINITY || route->nexthop == neigh)
-            send_unicast_request(neigh, NULL, 0);
+            send_unicast_request(neigh, NULL, 0, 0, 0, 0);
     }
     return rc;
 }

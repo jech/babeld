@@ -377,20 +377,23 @@ send_hello(struct network *net)
 
 void
 send_request(struct network *net,
-             const unsigned char *prefix, unsigned char plen)
+             const unsigned char *prefix, unsigned char plen,
+             unsigned char hop_count, unsigned short seqno,
+             unsigned short router_hash)
 {
     int i;
 
     if(net == NULL) {
         for(i = 0; i < numnets; i++)
-            send_request(&nets[i], prefix, plen);
+            send_request(&nets[i], prefix, plen, hop_count, seqno, router_hash);
         return;
     }
 
-    debugf("Sending request to %s for %s.\n",
-           net->ifname, prefix ? format_prefix(prefix, plen) : "any");
+    debugf("Sending request to %s for %s (%d hops).\n",
+           net->ifname, prefix ? format_prefix(prefix, plen) : "any",
+           hop_count);
     if(prefix)
-        send_message(net, 2, plen, 0, 0, 0, prefix);
+        send_message(net, 2, plen, hop_count, seqno, router_hash, prefix);
     else
         send_message(net, 2, 0xFF, 0, 0, 0, ones);
 }
@@ -421,23 +424,30 @@ send_unicast_packet(struct neighbour *neigh, unsigned char *buf, int buflen)
 
 void
 send_unicast_request(struct neighbour *neigh,
-                     const unsigned char *prefix, unsigned char plen)
+                     const unsigned char *prefix, unsigned char plen,
+                     unsigned char hop_count, unsigned short seqno,
+                     unsigned short router_hash)
 {
     unsigned char buf[24];
 
-    debugf("Sending unicast request to %s (%s) for %s.\n",
+    debugf("Sending unicast request to %s (%s) for %s (%d hops).\n",
            format_address(neigh->id),
            format_address(neigh->address),
-           prefix ? format_prefix(prefix, plen) : "any");
+           prefix ? format_prefix(prefix, plen) : "any",
+           hop_count);
 
-    memset(buf, 0, 24);
     buf[0] = 1;
     if(prefix) {
+        buf[1] = plen;
+        buf[2] = 0;
+        buf[3] = hop_count;
+        *(uint16_t*)(buf + 4) = seqno;
+        *(uint16_t*)(buf + 6) = router_hash;
         memcpy(buf + 8, prefix, 16);
-        buf[7] = plen;
     } else {
+        buf[1] = 0xFF;
+        memset(buf + 2, 0, 6);
         memcpy(buf + 8, ones, 16);
-        buf[7] = 0xFF;
     }
     send_unicast_packet(neigh, buf, 24);
 }
