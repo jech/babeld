@@ -35,6 +35,7 @@ extern int split_horizon;
 extern struct timeval update_flush_time;
 extern const unsigned char packet_header[8];
 
+unsigned short hash_id(const unsigned char *id) ATTRIBUTE ((pure));
 void parse_packet(const unsigned char *from, struct network *net,
                   const unsigned char *packet, int len);
 void flushbuf(struct network *net);

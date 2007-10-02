@@ -58,6 +58,16 @@ struct buffered_update buffered_updates[MAX_BUFFERED_UPDATES];
 struct network *update_net = NULL;
 int updates = 0;
 
+unsigned short
+hash_id(const unsigned char *id)
+{
+    int i;
+    unsigned short hash = 0;
+    for(i = 0; i < 8; i++)
+        hash ^= (id[2 * i] << 8) | id[2 * i + 1];
+    return hash;
+}
+
 void
 parse_packet(const unsigned char *from, struct network *net,
              const unsigned char *packet, int len)
