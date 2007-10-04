@@ -136,7 +136,12 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
     } else {
         if(neigh->hello_seqno >= 0 && neigh->reach > 0) {
             missed_hellos = seqno_minus(hello, neigh->hello_seqno) - 1;
-            if(missed_hellos < 0) {
+            if(missed_hellos < -8) {
+                /* Probably a neighbour that rebooted and lost its seqno.
+                   Reboot the universe. */
+                neigh->reach = 0;
+                missed_hellos = 0;
+            } else if(missed_hellos < 0) {
                 if(hello_interval > neigh->hello_interval) {
                     /* This neighbour has increased its hello interval,
                        and we didn't notice. */
