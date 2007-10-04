@@ -175,7 +175,7 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
     }
 
     /* Make sure to give neighbours some feedback early after association */
-    if((neigh->reach & 0xFC00) == 0x8000) {
+    if((neigh->reach & 0xBF00) == 0x8000) {
         /* A new neighbour */
         send_hello(neigh->network);
         send_ihu(neigh, NULL);
