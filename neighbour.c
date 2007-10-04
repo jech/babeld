@@ -141,6 +141,7 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
                    Reboot the universe. */
                 neigh->reach = 0;
                 missed_hellos = 0;
+                rc = 1;
             } else if(missed_hellos < 0) {
                 if(hello_interval > neigh->hello_interval) {
                     /* This neighbour has increased its hello interval,
