@@ -261,12 +261,13 @@ main(int argc, char **argv)
                 rc = parse_address(buf2, sid);
                 if(rc < 0) {
                     fprintf(stderr, "Couldn't parse babel-state.\n");
-                } else if(memcmp(sid, myid, 16) != 0) {
-                    fprintf(stderr, "ID mismatch in babel-state.\n");
                 } else {
                     debugf("Got %s %d %ld from babel-state.\n",
                            format_address(sid), s, t);
-                    myseqno = seqno_plus(s, 1);
+                    if(memcmp(sid, myid, 16) == 0)
+                        myseqno = seqno_plus(s, 1);
+                    else
+                        fprintf(stderr, "ID mismatch in babel-state.\n");
                     if(t >= 1176800000L && t <= now.tv_sec)
                         reboot_time = t;
                 }
@@ -276,6 +277,10 @@ main(int argc, char **argv)
         }
         close(fd);
     }
+
+    if(reboot_time + silent_time > now.tv_sec)
+        fprintf(stderr, "Respecting %ld second silent time.\n",
+                (long int)(reboot_time + silent_time - now.tv_sec));
 
     rc = kernel_setup(1);
     if(rc < 0) {
