@@ -34,6 +34,7 @@ THE SOFTWARE.
 #include "neighbour.h"
 #include "route.h"
 #include "xroute.h"
+#include "request.h"
 #include "message.h"
 
 struct timeval update_flush_time = {0, 0};
@@ -248,7 +249,8 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
             if(hop_count > 1) {
                 send_unicast_request(route->nexthop, prefix, plen,
                                      hop_count - 1, seqno, router_hash);
-                /* We should record sending this request at this point. */
+                record_request(prefix, plen, seqno, router_hash,
+                               neigh->network);
             }
         } else {
             send_update(neigh->network, 1, prefix, plen);
@@ -512,7 +514,8 @@ static void
 really_send_update(struct network *net,
                    const unsigned char *address,
                    const unsigned char *prefix, unsigned char plen,
-                   unsigned short seqno, unsigned short metric)
+                   unsigned short seqno, unsigned short metric,
+                   unsigned short router_hash)
 {
     if(in_prefix(address, prefix, plen)) {
         send_message(net, 3, plen, 0, seqno, metric, address);
@@ -524,6 +527,7 @@ really_send_update(struct network *net,
             send_message(net, 3, 0xFF, 0, 0, 0xFFFF, address);
         send_message(net, 4, plen, 0, seqno, metric, prefix);
     }
+    satisfy_request(prefix, plen, seqno, router_hash, net);
 }
 
 void
@@ -551,7 +555,8 @@ flushupdates(void)
             if(xroute) {
                 really_send_update(net, myid,
                                    xroute->prefix, xroute->plen,
-                                   myseqno, xroute->metric);
+                                   myseqno, xroute->metric,
+                                   hash_id(myid));
                 continue;
             }
             route = find_installed_route(buffered_updates[i].prefix,
@@ -565,7 +570,8 @@ flushupdates(void)
                 really_send_update(net, route->src->address,
                                    route->src->prefix,
                                    route->src->plen,
-                                   seqno, metric);
+                                   seqno, metric,
+                                   hash_id(route->src->address));
                 update_source(route->src, seqno, metric);
                 continue;
             }
@@ -575,7 +581,7 @@ flushupdates(void)
                 really_send_update(net, src->address, src->prefix, src->plen,
                                    src->metric >= INFINITY ?
                                    src->seqno : seqno_plus(src->seqno, 1),
-                                   INFINITY);
+                                   INFINITY, hash_id(src->address));
                 continue;
             }
         }
@@ -628,6 +634,20 @@ send_update(struct network *net, int urgent,
             const unsigned char *prefix, unsigned char plen)
 {
     int i;
+    struct request *request;
+
+    /* This is needed here, since really_send_update only handles the
+       case where network is not null. */
+    request = find_request(prefix, plen, NULL);
+    if(request) {
+        struct route *route;
+        route = find_installed_route(prefix, plen);
+        if(route) {
+            urgent = 1;
+            satisfy_request(prefix, plen, route->seqno,
+                            hash_id(route->src->address), net);
+        }
+    }
 
     if(net == NULL) {
         for(i = 0; i < numnets; i++)
@@ -722,7 +742,7 @@ send_self_retract(struct network *net)
     for(i = 0; i < numxroutes; i++) {
         if(xroutes[i].exported)
             really_send_update(net, myid, xroutes[i].prefix, xroutes[i].plen,
-                               myseqno, 0xFFFF);
+                               myseqno, 0xFFFF, hash_id(myid));
     }
     schedule_update_flush(net, 1);
 }

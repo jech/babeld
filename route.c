@@ -34,6 +34,7 @@ THE SOFTWARE.
 #include "route.h"
 #include "xroute.h"
 #include "message.h"
+#include "request.h"
 
 struct route routes[MAXROUTES];
 int numroutes = 0;
@@ -452,7 +453,8 @@ send_triggered_update(struct route *route, struct source *oldsrc, int oldmetric)
     /* Switching sources can cause transient routing loops, so always send
        updates in that case.  Retractions are always urgent. */
     urgent = (route->src != oldsrc) ||
-        (oldmetric < INFINITY && newmetric >= INFINITY);
+        (oldmetric < INFINITY && newmetric >= INFINITY) ||
+        find_request(route->src->prefix, route->src->plen, NULL);
 
     if(urgent ||
        (newmetric >= oldmetric + 256 || oldmetric >= newmetric + 256))

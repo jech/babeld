@@ -47,6 +47,7 @@ THE SOFTWARE.
 #include "route.h"
 #include "xroute.h"
 #include "message.h"
+#include "request.h"
 
 struct timeval now;
 
@@ -497,6 +498,7 @@ main(int argc, char **argv)
 
         if(now.tv_sec >= expiry_time) {
             expire_routes();
+            expire_requests();
             expiry_time = now.tv_sec + 20 + random() % 20;
         }
 
