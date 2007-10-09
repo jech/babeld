@@ -125,8 +125,8 @@ parse_packet(const unsigned char *from, struct network *net,
             int changed;
             if(memcmp(address, myid, 16) == 0)
                 continue;
-            debugf("Received hello on %s from %s (%s).\n",
-                   net->ifname,
+            debugf("Received hello (%d) on %s from %s (%s).\n",
+                   metric, net->ifname,
                    format_address(address),
                    format_address(from));
             net->activity_time = now.tv_sec;
@@ -415,7 +415,7 @@ message_source_id(struct network *net)
 void
 send_hello_noupdate(struct network *net, unsigned interval)
 {
-    debugf("Sending hello to %s.\n", net->ifname);
+    debugf("Sending hello (%d) to %s.\n", interval, net->ifname);
     net->hello_seqno = seqno_plus(net->hello_seqno, 1);
     net->hello_time = now.tv_sec;
     send_message(net, 0, 0, 0, net->hello_seqno,
