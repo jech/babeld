@@ -1,3 +1,16 @@
+9 October 2007: babel 0.5
+
+  * Implemented forwarding of requests and replies.
+
+  * Fixed a bug that prevented requests from being parsed correctly.
+
+  * Fixed a bug that prevented IHU intervals from being sent.
+
+  * Respect reboot_time even after an id change.
+
+  * Deal with neighbours rebooting and losing their hello seqno when
+    computing link quality.
+
 23 September 2007: babel 0.4
 
   * Fixed incorrect expiration of old sources.  This could prevent
