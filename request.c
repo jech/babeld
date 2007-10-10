@@ -69,7 +69,7 @@ record_request(const unsigned char *prefix, unsigned char plen,
 
     request = find_request(prefix, plen, NULL);
     if(request) {
-        if(request->router_hash == router_hash ||
+        if(request->router_hash == router_hash &&
            seqno_compare(request->seqno, seqno) > 0) {
             return 0;
         } else {
