@@ -121,8 +121,6 @@ satisfy_request(const unsigned char *prefix, unsigned char plen,
     }
 
     return 0;
-
-    
 }
 
 void
