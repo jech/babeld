@@ -250,7 +250,7 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
                 send_unicast_request(route->nexthop, prefix, plen,
                                      hop_count - 1, seqno, router_hash);
                 record_request(prefix, plen, seqno, router_hash,
-                               neigh->network);
+                               neigh->network, 0);
             }
         } else {
             send_update(neigh->network, 1, prefix, plen);
@@ -454,6 +454,14 @@ send_request(struct network *net,
         send_message(net, 2, plen, hop_count, seqno, router_hash, prefix);
     else
         send_message(net, 2, 0xFF, 0, 0, 0, ones);
+}
+
+void
+send_request_resend(const unsigned char *prefix, unsigned char plen,
+                    unsigned short seqno, unsigned short router_hash)
+{
+    send_request(NULL, prefix, plen, 127, seqno, router_hash);
+    record_request(prefix, plen, seqno, router_hash, NULL, 2);
 }
 
 static void

@@ -29,7 +29,9 @@ THE SOFTWARE.
 #include "util.h"
 #include "neighbour.h"
 #include "request.h"
+#include "message.h"
 
+int request_resend_time = 0;
 struct request *recorded_requests = NULL;
 
 static int
@@ -63,19 +65,25 @@ find_request(const unsigned char *prefix, unsigned char plen,
 int
 record_request(const unsigned char *prefix, unsigned char plen,
                unsigned short seqno, unsigned short router_hash,
-               struct network *network)
+               struct network *network, int resend)
 {
     struct request *request;
 
     request = find_request(prefix, plen, NULL);
     if(request) {
+        if(request->resend && resend)
+            request->resend = MIN(request->resend, resend);
+        else if(resend)
+            request->resend = resend;
+        request->time = now.tv_sec;
+        request_resend_time = MIN(request_resend_time,
+                                  request->time + request->resend);
         if(request->router_hash == router_hash &&
            seqno_compare(request->seqno, seqno) > 0) {
             return 0;
         } else {
             request->router_hash = router_hash;
             request->seqno = seqno;
-            request->time = now.tv_sec;
             if(request->network != network)
                 request->network = NULL;
             return 1;
@@ -88,8 +96,11 @@ record_request(const unsigned char *prefix, unsigned char plen,
         request->plen = plen;
         request->seqno = seqno;
         request->router_hash = router_hash;
-        request->time = now.tv_sec;
         request->network = network;
+        request->time = now.tv_sec;
+        request->resend = resend;
+        if(resend)
+            request_resend_time = MIN(request_resend_time, now.tv_sec + resend);
         request->next = recorded_requests;
         recorded_requests = request;
         return 1;
@@ -117,6 +128,7 @@ satisfy_request(const unsigned char *prefix, unsigned char plen,
         else
             previous->next = request->next;
         free(request);
+        recompute_request_resend_time();
         return 1;
     }
 
@@ -127,11 +139,12 @@ void
 expire_requests()
 {
     struct request *request, *previous;
+    int recompute = 0;
 
     previous = NULL;
     request = recorded_requests;
     while(request) {
-        if(request->time < now.tv_sec - 60) {
+        if(request->time < now.tv_sec - REQUEST_TIMEOUT) {
             if(previous == NULL) {
                 recorded_requests = request->next;
                 free(request);
@@ -146,5 +159,43 @@ expire_requests()
             request = request->next;
         }
     }
+    if(recompute)
+        recompute_request_resend_time();
 }
 
+int
+recompute_request_resend_time()
+{
+    struct request *request;
+    int resend = 0;
+
+    request = recorded_requests;
+    while(request) {
+        if(request->resend) {
+            if(resend)
+                resend = MIN(resend, request->time + request->resend);
+            else
+                resend = request->time + request->resend;
+        }
+        request = request->next;
+    }
+
+    request_resend_time = resend;
+    return resend;
+}
+
+void
+resend_requests()
+{
+    struct request *request;
+
+    request = recorded_requests;
+    while(request) {
+        if(request->resend && now.tv_sec >= request->time + request->resend) {
+            send_request(NULL, request->prefix, request->plen, 127,
+                         request->seqno, request->router_hash);
+            request->resend = 2 * request->resend;
+        }
+        request = request->next;
+    }
+}

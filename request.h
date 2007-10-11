@@ -20,6 +20,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#define REQUEST_TIMEOUT 128
+
 struct request {
     unsigned char prefix[16];
     unsigned char plen;
@@ -27,18 +29,20 @@ struct request {
     unsigned short router_hash;
     struct network *network;
     int time;
+    int resend;
     struct request *next;
 };
+
+extern int request_resend_time;
 
 struct request *find_request(const unsigned char *prefix, unsigned char plen,
                              struct request **previous_return);
 int record_request(const unsigned char *prefix, unsigned char plen,
                    unsigned short seqno, unsigned short router_hash,
-                   struct network *net);
+                   struct network *net, int resend);
 int satisfy_request(const unsigned char *prefix, unsigned char plen,
                     unsigned short seqno, unsigned short router_hash,
                     struct network *net);
 
 void expire_requests(void);
-
-
+int recompute_request_resend_time(void);
