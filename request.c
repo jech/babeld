@@ -134,12 +134,14 @@ expire_requests()
         if(request->time < now.tv_sec - 60) {
             if(previous == NULL) {
                 recorded_requests = request->next;
+                free(request);
                 request = recorded_requests;
             } else {
                 previous->next = request->next;
+                free(request);
                 request = previous->next;
             }
-            free(request);
+            recompute = 1;
         } else {
             request = request->next;
         }
