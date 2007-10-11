@@ -636,16 +636,18 @@ send_update(struct network *net, int urgent,
     int i;
     struct request *request;
 
-    /* This is needed here, since really_send_update only handles the
-       case where network is not null. */
-    request = find_request(prefix, plen, NULL);
-    if(request) {
-        struct route *route;
-        route = find_installed_route(prefix, plen);
-        if(route) {
-            urgent = 1;
-            satisfy_request(prefix, plen, route->seqno,
-                            hash_id(route->src->address), net);
+    if(prefix) {
+        /* This is needed here, since really_send_update only handles the
+           case where network is not null. */
+        request = find_request(prefix, plen, NULL);
+        if(request) {
+            struct route *route;
+            route = find_installed_route(prefix, plen);
+            if(route) {
+                urgent = 1;
+                satisfy_request(prefix, plen, route->seqno,
+                                hash_id(route->src->address), net);
+            }
         }
     }
 
