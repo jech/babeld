@@ -46,3 +46,4 @@ int satisfy_request(const unsigned char *prefix, unsigned char plen,
 
 void expire_requests(void);
 int recompute_request_resend_time(void);
+void resend_requests(void);
