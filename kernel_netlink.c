@@ -46,6 +46,7 @@ THE SOFTWARE.
 
 static int old_forwarding = -1;
 static int old_accept_redirects = -1;
+static int old_rp_filter = -1;
 
 static int
 read_proc(char *filename)
@@ -388,6 +389,7 @@ kernel_setup(int setup)
             perror("netlink_socket(0)");
             return -1;
         }
+        nl_setup = 1;
 
         old_forwarding = read_proc("/proc/sys/net/ipv6/conf/all/forwarding");
         if(old_forwarding < 0) {
@@ -413,7 +415,20 @@ kernel_setup(int setup)
             perror("Couldn't write accept_redirects knob.");
             return -1;
         }
-        nl_setup = 1;
+
+        old_rp_filter =
+            read_proc("/proc/sys/net/ipv4/conf/all/rp_filter");
+        if(old_rp_filter < 0) {
+            perror("Couldn't read rp_filter knob.");
+            return -1;
+        }
+
+        rc = write_proc("/proc/sys/net/ipv4/conf/all/rp_filter", 0);
+        if(rc < 0) {
+            perror("Couldn't write rp_filter knob.");
+            return -1;
+        }
+
         return 1;
     } else {
         if(old_forwarding >= 0) {
@@ -429,6 +444,15 @@ kernel_setup(int setup)
                             old_accept_redirects);
             if(rc < 0) {
                 perror("Couldn't write accept_redirects knob.\n");
+                return -1;
+            }
+        }
+
+        if(old_rp_filter >= 0) {
+            rc = write_proc("/proc/sys/net/ipv4/conf/all/rp_filter",
+                            old_accept_redirects);
+            if(rc < 0) {
+                perror("Couldn't write rp_filter knob.\n");
                 return -1;
             }
         }
