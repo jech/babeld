@@ -184,18 +184,19 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
     if((neigh->reach & 0xBF00) == 0x8000) {
         /* A new neighbour */
         send_hello(neigh->network);
-        send_ihu(neigh, NULL);
     } else {
         /* Don't send hellos, in order to avoid a positive feedback loop. */
         int a = (neigh->reach & 0xC000);
         int b = (neigh->reach & 0x3000);
         if((a == 0xC000 && b == 0) || (a == 0 && b == 0x3000)) {
             /* Reachability is either 1100 or 0011 */
-            send_ihu(neigh, NULL);
             send_self_update(neigh->network, 0);
             send_neighbour_update(neigh, NULL);
         }
     }
+
+    if((neigh->reach & 0xF000) != 0xF000 && (neigh->reach & 0xF000) != 0x0000)
+        send_ihu(neigh, NULL);
 
     if((neigh->reach & 0xFC00) == 0xC000) {
         /* This is a newish neighbour.  If we don't have another route to it,
