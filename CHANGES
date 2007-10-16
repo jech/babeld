@@ -1,3 +1,11 @@
+16 October 2007: babel 0.6
+
+  * Implemented resending of unsatisfied requests, with exponential backoff.
+
+  * Fixed a potential crash in the request handling code.
+
+  * Send IHUs more aggressively.
+
 9 October 2007: babel 0.5
 
   * Implemented forwarding of requests and replies.
