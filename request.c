@@ -198,4 +198,5 @@ resend_requests()
         }
         request = request->next;
     }
+    recompute_request_resend_time();
 }
