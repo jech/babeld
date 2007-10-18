@@ -257,8 +257,6 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
         }
         return;
     }
-
-    send_update(neigh->network, 0, prefix, plen);
 }
 
 
