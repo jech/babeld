@@ -575,12 +575,14 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     if(nl_command.sock < 0) {
         rc = netlink_socket(&nl_command, 0);
         if(rc < 0) {
+            int olderrno = errno;
             perror("kernel_route: netlink_socket()");
+            errno = olderrno;
             return -1;
         }
     }
 
-   if(operation == ROUTE_MODIFY) {
+    if(operation == ROUTE_MODIFY) {
         if(newmetric == metric && memcmp(newgate, gate, 16) == 0 &&
            newifindex == ifindex)
             return 0;
