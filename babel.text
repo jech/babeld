@@ -1,0 +1,690 @@
+                        The Babel Routing Protocol
+
+                            Juliusz Chroboczek
+                           <jch@pps.jussieu.fr>
+
+                              19 November 2007
+
+
+1. Introduction
+
+Babel is a distance vector protocol that is designed to be robust both on
+classical wired networks and on wireless mesh networks.  By robust, we mean
+that Babel has the following properties:
+
+   (i) in the absence of multiple gateways to the same destination, Babel
+       never causes rooting loops, not even transient ones;
+  (ii) in the presence of multiple gateways to the same destination, loops
+       can only appear if multiple gateways loose external connectivity at
+       the same time; such loops disappear after n updates at most, where
+       n is the size of the loop (there is no ``counting to infinity'');
+ (iii) any black holes disappear after at most n updates, where n is the
+       diameter of the network.
+
+These robustness properties are achieved by using a feasibility condition
+similar to the one used by the DUAL algorithm [DUAL] used by Cisco's EIGRP
+[EIGRP].  Unlike DUAL, however, Babel doesn't use any hard state to make
+routes feasible; instead, it uses sequenced updates in a manner similar to
+DSDV [DSDV] and AODV [RFC3561].
+
+Additionally, Babel is designed to be a flexible protocol.  A large number
+of parameters are left to the implementer's discretion, such as the
+frequency of link quality sensing ``Hello'' messages, the frequency of
+periodic updates, the link quality estimation algorithm, or the route
+selection policy.  Two implementations with widely differing parameters
+will interoperate reliably.
+
+
+2. Protocol operation
+
+Every Babel speaker has a router id, which is an arbitrary string of 16
+bytes that MUST be unique across the routing domain.  A simple choice is to
+use one of the speaker's IPv6 addresses as the router id; the encoding of
+some messages is more efficient when this is indeed the case.
+
+
+2.1 Message emission and reception
+
+Babel speakers exchange Babel protocol messages.  One or more Babel
+messages are appended to form a Babel packet, which is sent as a UDP
+datagram.
+
+The source address of a Babel packet is always a link-local unicast
+address; a Babel speaker MUST silently discard any packets whose source
+address is not a unicast link-local address.  Babel packets may be sent to
+a well-known link-local multicast address (this is the usual case) or
+a link-local unicast address.
+
+With the exception of Hello messages, all Babel messages can be sent either
+in unicast and multicast packets, and their semantics does not depend on
+whether the destination was unicast or multicast.  In other words, a Babel
+speaker does not need to determine the destination address of a packet that
+it has received.
+
+Hello messages may be sent to multicast addresses only.
+
+2.1.1 Jitter and aggregation
+
+A moderate amount of jitter is applied to messages sent by a Babel speaker.
+This is done for two purposes: it avoids synchronisation of multiple Babel
+speakers across a network [JITTER], and allows for the aggregation of
+multiple messages into a single packet.
+
+The amount of jitter applied to a message depends on whether a message is
+urgent or not; urgent messages SHOULD be sent in a timely manner whenever
+possible, while non-urgent messages can be delayed by up to half the hello
+interval.  The following kinds of messages are urgent:
+
+  - route retractions (Section 2.3);
+  - route announcements just after changing gateways (Section 2.3);
+  - requests for a lost route (Section 2.5);
+  - replies to requests (Section 2.5).
+
+All other messages are not urgent.
+
+
+2.2 Adjacency establishment and link quality sensing
+
+Every Babel node maintains a table of neighbours.  The neighbour table is
+indexed by triples of the form (id, interface, address), where id is the
+router-id of the neighbour, interface is the interface over which the
+neighbour is reachable, and address is its link-local address.
+
+2.2.1 Inverse link sensing
+
+Every Babel node broadcasts periodic Hello messages.  Every Hello message
+carries a sequence number and the interval at which Hellos are being
+broadcast.
+
+When a hello is received, its sequence number is compared with the next
+expected sequence number for this neighbour.  If the sequence number of the
+received Hello is higher than expected, then one or more Hellos have been
+missed.  If the sequence number is lower, then this neighbour decreased the
+Hello interval without us noticing, and part of the history must be undone.
+In order to avoid undoing history, a node SHOULD always send a Hello
+immediately after increasing its periodic Hello interval.
+
+When a mobility event is detected (such as a new neighbour appearing),
+a node MAY send a gratuitous Hello or temporarily decrease its Hello
+interval.  Conversely, when no mobility event has happened for an extended
+period of time, a node MAY increase its periodic Hello interval.
+
+From the history of received Hellos, a node computes an estimate of the
+link quality in the inverse direction.  This computation is a purely local
+matter, and different nodes MAY use different link quality strategies;
+a number of such strategies are suggested in Section 2.2.3 below.
+
+2.2.2 Direct link sensing
+
+In order to ascertain link symmetry and determine link quality in the
+direct direction, every Babel node sends periodic IHU (``I Heard You'')
+messages to every neighbour.  An IHU message contains the link quality in
+the direct direction, as estimated by the sending node (see Section 2.2.3),
+and the interval at which periodic IHU packets are being sent.
+
+The direct link quality is initialised at infinity.  After an IHU message
+has been received, it is set to the value carried by that packet.  After
+three IHU packets have been missed, it is again set to infinity.
+
+2.2.3 Link quality computation
+
+The strategy for computing the link quality is a local matter; different
+nodes MAY use different strategies in a single network, and MAY use
+different strategies on different interface types.  This section suggests
+a few such strategies.
+
+In the following, we write rxcost for the inverse cost of a link, and
+txcost for the direct cost.  From these values, we compute the cost, which
+is used for routing.
+
+The sample implementation of Babel uses modified ETX (Section 2.2.3.3) on
+wireless links, and 2-out-of-3 (Section 2.2.3.1) on wired links.
+
+2.2.3.1 k-out-of-j
+
+K-out-of-j link sensing is useful for bimodal links, such as wired links,
+that are either on or off but on which a packet may occasionally be lost.
+It was first used in the EGP [RFC904] external routing protocol.
+
+The k-out-of-j strategy is parameterised by two small integers k and j,
+such that 0 < k <= j, and the link cost, a constant K <= 1.  A node keeps
+a history of the last j hellos; if k or more of those have been correctly
+received, the link is assumed to be up, and the rxcost is set to K;
+otherwise, the link is assumed to be down, and the rxcost is set to
+infinity.
+
+The cost of such a link is defined as
+
+  cost = MAX(rxcost, txcost).
+
+2.2.3.2 ETX
+
+ETX [ETX] computes the cost by estimating the number of times that
+a unicast frame will need to be retransmitted using the IEEE 802.11 MAC.
+
+A node performing the Estimated Transmission Count (ETX) metric computes an
+exponentially decaying average beta of the probability beta that a Hello
+message is successfully received.  The rxcost is defined as 1/beta.
+
+Let alpha be MAX(1, 1/txcost), an estimate of the probability of
+successfully sending a Hello message.  The cost is then computed by
+
+    cost = 1/(1/(alpha * beta))
+
+or, equivalently,
+
+    cost = MAX(txcost, 1) * rxcost.
+
+2.2.3.3 Modified ETX
+
+Modified ETX computes the cost by estimating half the number of times
+a frame will need to be either transmitted or acknowledged using the IEEE
+802.11 MAC.  Compared to ETX, it slightly deprecates links that have poor
+quality in the inverse direction.
+
+Let alpha and beta be as above, and rxcost be 1/beta.  Then the cost is
+defined by
+
+    cost = 1/(2/(alpha * beta) + 2/beta)
+
+or equivalently    
+
+    cost = (MAX(txcost, 1) * rxcost + rxcost) / 2.
+
+2.2.3.4 Link-specific strategies
+
+A lot of thought has been given by a lot of smart people to using
+link-layer information in order to estimate link quality.  Common
+approaches include:
+
+  - discarding neighbour relationships when the link is down;
+  - using physical layer information, such as the signal/noise ratio;
+  - using the modulation rate used by the MAC sublayer as input to the link
+    cost computation.
+
+At the current time, however, the published results on the effectiveness of
+such ``cross-layer'' approaches appear to yield contradictory data; hence,
+their use should be considered as experimental.
+
+
+2.3 Reachability information
+
+Reachability information is carried in update and prefix messages.  An
+update is a quadruple
+
+  (id, prefix, seqno, metric)
+
+where id is the router-id of the router that originates this route, prefix
+is the destination of the route, seqno is a sequentially increasing (modulo
+2^16) sequence number, and metric is the sum of the costs of the links
+constituting the path.
+
+If the metric is infinite, the update is in fact a retraction.
+
+2.3.1 Feasibility condition
+
+A source is a pair (id, prefix).  A reference distance is a pair (seqno,
+metric), ordered lexicographically, with the first component inverted.  In
+other words,
+
+  (seqno, metric) < (seqno', metric')
+
+when
+
+  seqno > seqno' or (seqno = seqno' and metric < metric').
+
+The reference distance of a source is the minimum, according to the
+previous order, of the reference distances of all the updates ever sent for
+that source.
+
+Every Babel node maintains a table of sources, indexed by (id, prefix)
+pairs.  Every entry in the source table contains the reference distance of
+the source, a pair (seqno, metric).
+
+Whenever an update (id, prefix, seqno', metric') is sent, the corresponding
+source table entry is updated according to the following rules:
+
+  - if metric' is infinite, then nothing is done;
+  - if seqno' > seqno, then seqno := seqno', metric := metric', and the
+    garbage collection timer for the entry is reset ;
+  - if seqno' = seqno and metric < metric', then seqno := seqno',
+    metric := metric', and the garbage collection timer for the entry is
+    reset;
+  - otherwise, the garbage collection timer for the entry is reset.
+
+An update (id, prefix, seqno', metric') received from a neighbouring node
+is feasible when either metric' is infinite, or (seqno', metric') is
+strictly smaller than the reference distance of (id, prefix).  In other
+words, an update (id, prefix, seqno', metric') is feasible when one of the
+following conditions is true:
+
+  - no entry exists in the source table for (id, prefix); or
+  - metric' is infinite; or
+  - an entry (id, prefix, seqno, metric) exists, and either
+      * seqno' > seqno or
+      * seqno' = seqno and metric' < metric.
+
+2.3.2 The Routing Information Base
+
+Every node maintains a Routing Information Base (RIB), a table of recently
+received routing information.  The route selection procedure (Section 2.4)
+will choose routes from the RIB to include them in the Forwarding
+Information Base (FIB), the actual ``routing table''.
+
+The RIB is indexed by triples of the form (neighbour, id, prefix), where
+neighbour is the neighbour who sent the update that created this entry (and
+also the next hop for this route), id is the router id of the node that
+originated the route, and prefix is the destination of the route.  An RIB
+entry also contains the sequence number of the most recent update for this
+route, the time at which this update was received, the reference metric of
+the route (the metric carried by the update) and the route's metric, which
+is the sum of the route's reference metric and the cost of the neighbour
+association over which it was received.
+
+An RIB entry may also carry extra information used for route selection,
+such as historical information about the route's stability.
+
+An RIB entry is garbage collected either when its nexthop is removed from
+the neighbour table, or when it has not been refreshed by a feasible update
+in 180 seconds.
+
+2.3.3 Receiving updates
+
+When a Babel node receives an update (id, prefix, seqno, metric) from
+a neighbour neigh with a link cost value equal to cost, it checks whether
+it already has in its RIB an entry indexed by (neigh, id, prefix).
+
+If no such entry exists:
+
+  - if the update is unfeasible, it is ignored;
+  - if the metric is infinite, the update is ignored;
+  - otherwise, a new RIB entry is created, indexed by (neigh, id, prefix),
+    with seqno seqno, reference metric equal to the metric carried by the
+    update, and metric equal to metric + cost.
+
+If such an entry exists:
+
+  - if the entry is currently selected, and the update is unfeasible, then
+    the metric of the entry is set to infinity and a different route is
+    selected; if no different route exists, the route is retracted;
+  - if the update's metric is infinite and the entry's is not, then the
+    entry's seqno is incremented, and its metric is set to infinity;
+  - otherwise, the entry's sequence number, reference metric and metric are
+    updated.  If the update is feasible, the garbage collection timer for
+    the route is reset.
+
+After the RIB is modified, route selection (Section 2.4) is performed for
+the affected destination.
+
+2.3.4 Sending updates
+
+A node that originates a route -- for example a route to itself, a route to
+a directly attached network, or a route imported from another routing
+protocol -- MUST periodically broadcast an update where
+
+  - id is the node's router-id;
+  - prefix is the destination of the route;
+  - seqno is an integer that is increased by 1 (modulo 2^16) every time an
+    update is sent;
+  - metric is an arbitrary value that reflects the desirability of using
+    this route; it should normally be 0 for a route to this node, and
+    a small positive value for a directly attached network.
+
+When a node has selected a route (Section 2.4 below), it SHOULD
+periodically broadcast, with an interval no larger than 60 seconds, an
+update for this route where:
+
+  - id is the id of the selected route;
+  - prefix is the destination of the selected route;
+  - seqno is the seqno of the selected route;
+  - metric is no less than the metric of the selected route.
+
+When a node has retracted a route, or when it changes to a route with
+a different router id for a given destination, it MUST urgently send an
+update for that destination.  When the metric of a selected route changes
+by more than 2, it SHOULD send an update for that destination.  A node MAY
+also send a spontaneous update when it detects a mobility event.
+
+
+2.4 Route selection
+
+The goal of a routing protocol is to select routes for inclusion in the
+Forwarding Information Base, the table of routes used by the system for
+forwarding packets.
+
+Babel is designed to allow flexible route selection policies.  As long as
+only feasible routes are ever selected, Babel will function correctly; the
+actual choice of routes to be selected is left to the implementation.
+
+2.4.1 Strategies for route selection
+
+Route selection can be done according to multiple mutually contradictory
+criteria:
+
+  - routes with a small metric should be preferred over routes with a large
+    metric;
+  - routes with a large seqno should be preferred over routes with a small
+    seqno;
+  - stable routes should be preferred over unstable routes;
+  - routes through stable neighbours should be preferred over routes
+    through unstable ones;
+  - switching routes should be avoided;
+  - changing source ids should be avoided.
+
+Choosing a route selection policy for Babel is an open research problem; at
+any rate, the optimal route selection policy will depend on the individual
+network being routed.  The current version of the sample implementation of
+Babel uses the following route selection policy:
+
+  - source ids are not changed unless the new route's metric is smaller
+    by at least 1.5;
+  - routes are not switched unless the new route's metric is smaller by at
+    least 0.5;
+  - routes are not switched unless the new route has been stable for 30
+    seconds or its metric is smaller by at least 1.5;
+  - routes with a smaller metric are preferred;
+  - sequence numbers are ignored when performing route selection.
+
+This strategy is likely to be reconsidered in a future version.
+
+
+2.5 Accelerating convergence
+
+When a Babel node moves, it is quite likely that most of its routes will
+become unfeasible; in that case, it looses connectivity to the rest of the
+network until it receives a new sequence number.
+
+In order to recover its routes as promptly as possible, a node that has
+lost all feasible routes to a given destination broadcasts a request for
+a new sequence number.  Any neighbouring node that can satisfy the request
+responds with an update; a node that cannot satisfy the request forwards
+the request to its next hop for the given source as a unicast packet.
+
+A node SHOULD maintain a list of forwarded requests, and forward the reply
+(using unicast or multicast) as soon as it arrives.
+
+
+2.6 Simplified implementations
+
+Babel is a very economic protocol.  Route updates take between 24 and 48
+octets per destination; and the RIB takes about 50 bytes per entry.  In
+other words, a single Ethernet packet can carry roughly 50 route updates,
+and a megabyte of memory can contain a 20000-entry RIB.
+
+Babel is also a simple protocol.  The current sample implementation
+consists of less than 5000 lines of C code, and compiles to less than
+32 kB of code on a 32-bit CISC architecture.
+
+However, in some very constrained environments, such as PDAs, microwave
+ovens or abacuses, it may be desirable to have subset implementations of
+the protocol.  The following sections give two examples of such
+implementations that do not endanger the integrity of the network.
+
+2.6.1 The simplified feasibility condition
+
+The feasibility condition described in Section 2.3.1 requires maintaining
+a table of sources.  The following describes a feasibility condition,
+DSDV-feasibility, that is strictly stronger than the feasibility condition
+in 2.3.1.
+
+An update (id, prefix, seqno', metric') is DSDV-feasible when
+
+  - either there is no route with source (id, prefix) in the RIB; or
+  - there is a route (id, prefix, seqno', metric', nexthop) in the
+    RIB, and either
+        - seqno > seqno'; or
+        - seqno = seqno' and metric < metric'.
+
+Note that the correctness of this condition is dependent on the fact that
+retracted routes are not garbage collected too early.
+
+2.6.2 Parasitic implementations
+
+A parasitic implementation is one that uses a Babel network for routing its
+packets but does not announce any routes except to itself.
+
+A parasitic implementation SHOULD participate in the Hello and IHU
+protocols.  It may either maintain a full routing table, or simply select
+one of its non-parasitic neighbours (i.e. one that does announce routes
+with an id that is not its router-id) as its default gateway.
+
+Since a parasitic implementation cannot possibly participate in routing
+loops, it need not evaluate the feasibility condition, and can instead
+consider all routes as feasible.  It SHOULD, however, be able to reply to
+non-specific request messages and request messages for routes that it
+advertises.
+
+
+3. Packet and message format
+
+Babel aggregates multiple messages into a single transport layer datagram;
+we say that multiple Babel messages are sent as a single Babel packet.
+
+3.1 Packet format
+
+Babel packets are sent as link-local UDP datagrams to port ????, using
+either multicast to group ???? or unicast to a link-local address.  The
+meaning of a received message does not depend on the transport being used.
+
+A Babel packet has the following structure:
+
+  - magic: 1 octet;
+  - version: 1 octet;
+  - reserved: 6 octets;
+  - body: n * 24 octets.
+
+The magic octet has the arbitrary but carefully chosen value 42; packets
+with a first octet different from 42 MUST be silently ignored.  Version has
+the value 1; packets with a second octet different from 1 MUST be silently
+ignored.  The reserved field MUST be sent as 0, and ignored upon reception.
+
+The body consists of an arbitrary number of messages (up to the link MTU or
+the minimum maximum datagram size, whichever is more) of 24 octets each.
+
+
+3.2 Message format
+
+All Babel messages have the same format:
+
+  type: 1 octet;
+  h1: 1 octet;
+  s1: 2 octets;
+  s2: 2 octets;
+  s3: 2 octets;
+  a: 16 octets.
+
+The interpretation of the fields h1, s1, s2, s3 and a depends on the value
+of the type field, and is described in the following paragraphs.
+
+Except for Hello messages (Section 3.2.1), all messages can be sent using
+unicast or multicast, and their semantics does not depend on the transport
+being used.  Hello messages may be sent using multicast only.
+
+This document defines the interpretation of messages having a type field
+between 0 and 4 inclusive; unknown messages MUST be silently ignored.
+
+3.2.1 Hello messages
+
+  type: 1 octet;
+  reserved: 3 octets;
+  seqno: 2 octets;
+  hello interval: 2 octets;
+  id: 16 octets.
+
+The type field is 0, indicating a Hello message.  Seqno indicates the
+sequence number of this hello message; it is incremented by one (modulo
+2^16) every time a hello is sent.  The hello interval indicates a time in
+centiseconds after which the next hello will be scheduled; the sending node
+MAY send the next hello earlier than that, but MUST NOT send the next hello
+later then after 1.5 times this interval.  The id field indicates the
+router id of the router sending this hello; it MUST be unique within the
+routing domain, and SHOULD NOT change over time.
+
+In order to allow accurate link quality measurement, hello messages MUST
+NOT be sent using unicast.
+
+3.2.2 IHU messages
+
+  type: 1 octet;
+  reserved: 3 octets;
+  IHU interval: 2 octets;
+  txcost: 2 octets.
+  id: 16 octets
+
+The type field is 1 to indicate an IHU (``I Heard You'') message.  The IHU
+interval field indicates the interval in centiseconds after which the next
+scheduled multicast IHU message will be sent by this router; an IHU MAY be
+sent earlier than that, but MUST NOT be sent later than after this interval
+plus half the hello interval.
+
+The txcost field expresses the cost of sending messages from the router
+identified by the id field to the router sending this message.  It is
+specified as a fixed-point number in 16.16 bit format.  The value 0xFF.0xFF
+(infinity) indicates that the link from the router identified by the id
+field to the router sending this message is broken.
+
+3.2.3 Request message
+
+  type: 1 octet;
+  plen: 1 octet;
+  reserved: 1 octet;
+  hop count: 1 octet;
+  seqno: 2 octets;
+  router-id hash: 2 octets;
+  prefix: 16 octets.
+
+A request message is used for requesting an update from the receiver.
+A reply to a request is a packet consisting of update and prefix messages,
+sent either to the well-known multicast address, or to the source address
+of the packet carrying the request message, at the sender's discretion.
+
+The type field is 2 to indicate a request message.  There are three kinds
+of request messages.
+
+3.2.3.1 Full table requests
+
+If plen is 0xFF, then this is a request for a full dump of the routing
+table; in this case, hop count must be zero and is ignored on reception.
+When a Babel speaker receives such a request, it responds with a full dump
+of its routing table.
+
+3.2.3.2 Specific requests
+
+If plen is no more than 128 and hop count is 0, then this is a request for
+a route with the destination specified by prefix and plen.  If the
+receiving Babel speaker has selected a route with that destination, it
+replies with an update for this route.  Otherwise, it sends a retraction
+for that destination.
+
+3.2.3.3 Multi-hop requests
+
+Finally, if plen is no more than 128 and hop count is larger than 0, then
+this is a multi-hop request for a particular sequence number.  If the
+receiver's router-id matches the router-id hash, and it is exporting
+a route to the requested destination, it increases its sequence number to
+match the seqno field of the request, and sends an update.
+
+Otherwise, If the receiver has selected a route with the destination
+specified by prefix and plen, a router id that matches the hash, and
+a sequence number no less than seqno, it replies with an update for that
+route.  If the receiver has a route for that destination with a different
+router id, it sends an update for that route.
+
+Otherwise, if the receiver has selected a route to the given destination,
+with matching router-id, but a too small seqno, if the hop count is at
+least 2, it forwards the request as unicast to its selected successor after
+decreasing the hop count by one.  If the hop count is 1, it remains silent.
+A speaker SHOULD keep track of forwarded multi-hop requests, and forward
+the replies whenever a request is satisfied.
+
+Finally, if the receiver has no route to the given destination, it sends
+a retraction for that destination.
+
+
+3.2.4 Update
+
+  type: 1 octet;
+  plen: 1 octet;
+  reserved: 2 octets;
+  seqno: 2 octets;
+  metric: 2 octets;
+  id: 16 octets.
+
+The type field is 3 to indicate an update message.  If plen is 0xFF (the
+normal case), the field id establishes the context for the following update
+message; all the other fields MUST then be sent as 0 and ignored upon
+reception.
+
+If plen is between 0 and 0x80, inclusive, the message is an abbreviation
+for an update message followed by a prefix message (Section 3.2.5).  More
+precisely, the message
+
+  (3, plen, 0, seqno, metric, id)
+
+is interpreted just like the sequence of two messages
+
+  (3, 0xFF, 0, 0, 0, id)
+  (4, plen, 0, seqno, metric, id)
+
+3.2.5 Prefix information
+
+  type: 1 octet;
+  plen: 1 octet;
+  reserved: 2 octets;
+  seqno: 2 octets;
+  metric: 2 octets;
+  prefix: 16 octets.
+
+The type field is 4 to indicate a prefix message.  A prefix message MUST
+immediately follow either an update message, or another prefix message.
+
+The metric field is a fixed-point number in 16.16 bit format, and
+represents an additive metric.  The value 0xFF.0xFF (infinite) indicates
+that this is a route retraction.
+
+An update message specifies an update for the route to destination (prefix,
+plen), with a sequence number given by the field seqno, a metric given by
+the metric field, and a source indicated by the id field of the preceding
+update message.
+
+
+4. Sample implementation
+
+A sample implementation of the Babel protocol is available from
+
+    http://www.pps.jussieu.fr/~jch/software/babel/
+
+
+References
+
+  [JITTER] Sally Floyd and Van Jacobson.  The synchronization of periodic
+           routing messages.  IEEE/ACM Trans. Netw. 2, 2 (Apr. 1994),
+           122-136.  1994.
+
+    [DSDV] Charles Perkins and Pravin Bhagwat.  Highly Dynamic
+           Destination-Sequenced Distance-Vector Routing (DSDV) for Mobile
+           Computers.  ACM SIGCOMM'94 Conference on Communications
+           Architectures, Protocols and Applications, 234-244.  1994
+
+ [RFC3561] Ad hoc On-Demand Distance Vector (AODV) Routing.  C. Perkins,
+           E. Belding-Royer,  S. Das.  RFC 3561.  July 2003.
+
+  [RFC904] Exterior Gateway Protocol formal specification.  D. L. Mills.
+           RFC 904.  April 1 1984.
+
+    [DUAL] J. J. Garcia Luna Aceves.  Loop-Free Routing Using Diffusing
+           Computations.  IEEE/ACM Transactions on Networking, 1:1.
+           February 1993.
+
+   [EIGRP] Bob Albrigtson, J. J. Garcia Luna Aceves and Joanne Boyle.
+           EIGRP -- a Fast Routing Protocol Based on Distance Vectors.
+           Proc. Interop 94.  1994.
+
+     [ETX] D. Defcouto, D. Aguayo, J. Bicket, and R. Morris.  A high-
+           throughput path metric for multi-hop wireless networks.
+           Proc. MobiCom.  2003.
+
+
+Local Variables:
+fill-column: 75
+End:
