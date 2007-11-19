@@ -35,6 +35,7 @@ THE SOFTWARE.
 #include "xroute.h"
 #include "message.h"
 #include "request.h"
+#include "filter.h"
 
 struct route routes[MAXROUTES];
 int numroutes = 0;
@@ -317,6 +318,9 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
                 format_prefix(p, plen), format_address(a));
         return NULL;
     }
+
+    if(import_filter(a, p, plen, nexthop->id))
+        return NULL;
 
     src = find_source(a, p, plen, 1, seqno);
     if(src == NULL)

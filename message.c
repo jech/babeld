@@ -36,6 +36,7 @@ THE SOFTWARE.
 #include "xroute.h"
 #include "request.h"
 #include "message.h"
+#include "filter.h"
 
 struct timeval update_flush_time = {0, 0};
 
@@ -522,15 +523,17 @@ really_send_update(struct network *net,
                    const unsigned char *prefix, unsigned char plen,
                    unsigned short seqno, unsigned short metric)
 {
-    if(in_prefix(address, prefix, plen)) {
-        send_message(net, 3, plen, 0, seqno, metric, address);
-    } else {
-        unsigned const char *sid;
-        start_message(net, 48);
-        sid = message_source_id(net);
-        if(sid == NULL || memcmp(address, sid, 16) != 0)
-            send_message(net, 3, 0xFF, 0, 0, 0xFFFF, address);
-        send_message(net, 4, plen, 0, seqno, metric, prefix);
+    if(!export_filter(address, prefix, plen)) {
+        if(in_prefix(address, prefix, plen)) {
+            send_message(net, 3, plen, 0, seqno, metric, address);
+        } else {
+            unsigned const char *sid;
+            start_message(net, 48);
+            sid = message_source_id(net);
+            if(sid == NULL || memcmp(address, sid, 16) != 0)
+                send_message(net, 3, 0xFF, 0, 0, 0xFFFF, address);
+            send_message(net, 4, plen, 0, seqno, metric, prefix);
+        }
     }
     satisfy_request(prefix, plen, seqno, hash_id(address), net);
 }
