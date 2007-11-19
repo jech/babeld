@@ -582,6 +582,25 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         }
     }
 
+    /* Check that the protocol family is consistent. */
+    if(plen >= 96 && v4mapped(dest)) {
+        if(!v4mapped(gate)) {
+            errno = EINVAL;
+            return -1;
+        }
+    } else {
+        if(v4mapped(gate)) {
+            errno = EINVAL;
+            return -1;
+        }
+    }
+
+    if(v4mapped(gate)) {
+        /* Not implemented yet. */
+        errno = EINVAL;
+        return -1;
+    }
+
     if(operation == ROUTE_MODIFY) {
         if(newmetric == metric && memcmp(newgate, gate, 16) == 0 &&
            newifindex == ifindex)

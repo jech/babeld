@@ -261,6 +261,25 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
 
     char local[1][1][16] = IN6ADDR_LOOPBACK_INIT;
 
+    /* Check that the protocol family is consistent. */
+    if(plen >= 96 && v4mapped(dest)) {
+        if(!v4mapped(gate)) {
+            errno = EINVAL;
+            return -1;
+        }
+    } else {
+        if(v4mapped(gate)) {
+            errno = EINVAL;
+            return -1;
+        }
+    }
+
+    if(v4mapped(gate)) {
+        /* Not implemented yet. */
+        errno = EINVAL;
+        return -1;
+    }
+
     if(operation == ROUTE_MODIFY && newmetric == metric && 
        memcmp(newgate, gate, 16) == 0 && newifindex == ifindex)
       return 0;
