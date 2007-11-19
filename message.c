@@ -520,8 +520,7 @@ static void
 really_send_update(struct network *net,
                    const unsigned char *address,
                    const unsigned char *prefix, unsigned char plen,
-                   unsigned short seqno, unsigned short metric,
-                   unsigned short router_hash)
+                   unsigned short seqno, unsigned short metric)
 {
     if(in_prefix(address, prefix, plen)) {
         send_message(net, 3, plen, 0, seqno, metric, address);
@@ -533,7 +532,7 @@ really_send_update(struct network *net,
             send_message(net, 3, 0xFF, 0, 0, 0xFFFF, address);
         send_message(net, 4, plen, 0, seqno, metric, prefix);
     }
-    satisfy_request(prefix, plen, seqno, router_hash, net);
+    satisfy_request(prefix, plen, seqno, hash_id(address), net);
 }
 
 void
@@ -561,8 +560,7 @@ flushupdates(void)
             if(xroute) {
                 really_send_update(net, myid,
                                    xroute->prefix, xroute->plen,
-                                   myseqno, xroute->metric,
-                                   hash_id(myid));
+                                   myseqno, xroute->metric);
                 continue;
             }
             route = find_installed_route(buffered_updates[i].prefix,
@@ -576,8 +574,7 @@ flushupdates(void)
                 really_send_update(net, route->src->address,
                                    route->src->prefix,
                                    route->src->plen,
-                                   seqno, metric,
-                                   hash_id(route->src->address));
+                                   seqno, metric);
                 update_source(route->src, seqno, metric);
                 continue;
             }
@@ -587,7 +584,7 @@ flushupdates(void)
                 really_send_update(net, src->address, src->prefix, src->plen,
                                    src->metric >= INFINITY ?
                                    src->seqno : seqno_plus(src->seqno, 1),
-                                   INFINITY, hash_id(src->address));
+                                   INFINITY);
                 continue;
             }
         }
@@ -750,7 +747,7 @@ send_self_retract(struct network *net)
     for(i = 0; i < numxroutes; i++) {
         if(xroutes[i].exported)
             really_send_update(net, myid, xroutes[i].prefix, xroutes[i].plen,
-                               myseqno, 0xFFFF, hash_id(myid));
+                               myseqno, 0xFFFF);
     }
     schedule_update_flush(net, 1);
 }
