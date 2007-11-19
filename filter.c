@@ -20,11 +20,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include "babel.h"
+#include "util.h"
+#include "filter.h"
+
+static unsigned char v4prefix[16] =
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0 };
+
 int
 import_filter(const unsigned char *id,
               const unsigned char *prefix, unsigned short plen,
               const unsigned char *nexthop)
 {
+    if(plen >= 96 && in_prefix(prefix, v4prefix, 96))
+        return 1;
+
     return 0;
 }
 
