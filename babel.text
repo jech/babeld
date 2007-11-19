@@ -38,22 +38,23 @@ will interoperate reliably.
 2. Protocol operation
 
 Every Babel speaker has a router id, which is an arbitrary string of 16
-bytes that MUST be unique across the routing domain.  A simple choice is to
-use one of the speaker's IPv6 addresses as the router id; the encoding of
-some messages is more efficient when this is indeed the case.
+bytes that MUST be unique across the routing domain.  A natural choice is
+to use one of the speaker's global IPv6 addresses as the router id; the
+encoding of some messages is slightly more efficient when this is indeed
+the case.
 
 
 2.1 Message emission and reception
 
 Babel speakers exchange Babel protocol messages.  One or more Babel
 messages are appended to form a Babel packet, which is sent as a UDP
-datagram.
+datagram over IPv6.
 
-The source address of a Babel packet is always a link-local unicast
+The source address of a Babel packet is always a link-local unicast IPv6
 address; a Babel speaker MUST silently discard any packets whose source
 address is not a unicast link-local address.  Babel packets may be sent to
 a well-known link-local multicast address (this is the usual case) or
-a link-local unicast address.
+to a link-local unicast address.
 
 With the exception of Hello messages, all Babel messages can be sent either
 in unicast and multicast packets, and their semantics does not depend on
@@ -246,17 +247,21 @@ source table entry is updated according to the following rules:
 
   - if metric' is infinite, then nothing is done;
   - if seqno' > seqno, then seqno := seqno', metric := metric', and the
-    garbage collection timer for the entry is reset ;
+    garbage collection timer for the entry is reset;
   - if seqno' = seqno and metric < metric', then seqno := seqno',
     metric := metric', and the garbage collection timer for the entry is
     reset;
   - otherwise, the garbage collection timer for the entry is reset.
 
+
+An entry in the table of sources is purged when its garbage collection
+timer hasn't been reset for 200 seconds.
+
 An update (id, prefix, seqno', metric') received from a neighbouring node
-is feasible when either metric' is infinite, or (seqno', metric') is
-strictly smaller than the reference distance of (id, prefix).  In other
-words, an update (id, prefix, seqno', metric') is feasible when one of the
-following conditions is true:
+(Section 2.3.2) is feasible when either metric' is infinite, or
+(seqno', metric') is strictly smaller than the reference distance of (id,
+prefix).  In other words, an update (id, prefix, seqno', metric') is
+feasible when one of the following conditions is true:
 
   - no entry exists in the source table for (id, prefix); or
   - metric' is infinite; or
