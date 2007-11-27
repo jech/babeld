@@ -284,3 +284,10 @@ v4mapped(const unsigned char *address)
 {
     return in_prefix(address, v4prefix, 96);
 }
+
+void
+v4tov6(unsigned char *dst, const unsigned char *src)
+{
+    memcpy(dst, v4prefix, 12);
+    memcpy(dst + 12, src, 4);
+}
