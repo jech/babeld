@@ -212,8 +212,17 @@ format_prefix(const unsigned char *prefix, unsigned char plen)
 int
 parse_address(const char *address, unsigned char *addr_r)
 {
+    struct in_addr ina;
     struct in6_addr ina6;
     int rc;
+
+    rc = inet_pton(AF_INET, address, &ina);
+    if(rc > 0) {
+        memcpy(addr_r, v4prefix, 12);
+        memcpy(addr_r + 12, &ina, 4);
+        return 0;
+    }
+
     rc = inet_pton(AF_INET6, address, &ina6);
     if(rc > 0) {
         memcpy(addr_r, &ina6, 16);
@@ -230,6 +239,8 @@ parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r)
     char *slash, *end;
     unsigned char prefix[16];
     long plen;
+    struct in_addr ina;
+    struct in6_addr ina6;
     int rc;
 
     if(strcmp(net, "default") == 0) {
@@ -247,12 +258,25 @@ parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r)
                 return -1;
             memcpy(buf, net, slash - net);
             buf[slash - net] = '\0';
-            rc = parse_address(buf, prefix);
-            if(rc < 0)
-                return rc;
-            plen = strtol(slash + 1, &end, 0);
-            if(*end != '\0' || plen < 0 || plen > 128)
-            return -1;
+            rc = inet_pton(AF_INET, buf, &ina);
+            if(rc > 0) {
+                memcpy(prefix, v4prefix, 12);
+                memcpy(prefix + 12, &ina, 4);
+                plen = strtol(slash + 1, &end, 0);
+                if(*end != '\0' || plen < 0 || plen > 32)
+                    return -1;
+                plen += 96;
+            } else {
+                rc = inet_pton(AF_INET6, buf, &ina6);
+                if(rc > 0) {
+                    memcpy(prefix, &ina6, 16);
+                    plen = strtol(slash + 1, &end, 0);
+                    if(*end != '\0' || plen < 0 || plen > 128)
+                        return -1;
+                } else {
+                    return -1;
+                }
+            }
         }
     }
     mask_prefix(prefix_r, prefix, plen);
