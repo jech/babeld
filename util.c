@@ -174,13 +174,20 @@ mask_prefix(unsigned char *ret,
     return (const unsigned char *)ret;
 }
 
+static unsigned char v4prefix[16] =
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0 };
+
 const char *
 format_address(const unsigned char *address)
 {
     static char buf[4][INET6_ADDRSTRLEN];
     static int i = 0;
     i = (i + 1) % 4;
-    return inet_ntop(AF_INET6, address, buf[i], INET6_ADDRSTRLEN);
+    if(v4mapped(address))
+       inet_ntop(AF_INET, address + 12, buf[i], INET6_ADDRSTRLEN);
+    else
+       inet_ntop(AF_INET6, address, buf[i], INET6_ADDRSTRLEN);
+    return buf[i];
 }
 
 const char *
@@ -190,9 +197,15 @@ format_prefix(const unsigned char *prefix, unsigned char plen)
     static int i = 0;
     int n;
     i = (i + 1) % 4;
-    inet_ntop(AF_INET6, prefix, buf[i], INET6_ADDRSTRLEN);
-    n = strlen(buf[i]);
-    snprintf(buf[i] + n, INET6_ADDRSTRLEN + 4 - n, "/%d", plen);
+    if(plen >= 96 && v4mapped(prefix)) {
+        inet_ntop(AF_INET, prefix + 12, buf[i], INET6_ADDRSTRLEN);
+        n = strlen(buf[i]);
+        snprintf(buf[i] + n, INET6_ADDRSTRLEN + 4 - n, "/%d", plen - 96);
+    } else {
+        inet_ntop(AF_INET6, prefix, buf[i], INET6_ADDRSTRLEN);
+        n = strlen(buf[i]);
+        snprintf(buf[i] + n, INET6_ADDRSTRLEN + 4 - n, "/%d", plen);
+    }
     return buf[i];
 }
 
@@ -275,9 +288,6 @@ martian_prefix(const unsigned char *prefix, int plen)
         (plen >= 10 && prefix[0] == 0xFE && (prefix[1] & 0xC0) == 0x80) ||
         (plen >= 128 && memcmp(prefix, zeroes, 16) == 0);
 }
-
-static unsigned char v4prefix[16] =
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0 };
 
 int
 v4mapped(const unsigned char *address)
