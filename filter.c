@@ -27,7 +27,7 @@ THE SOFTWARE.
 int
 import_filter(const unsigned char *id,
               const unsigned char *prefix, unsigned short plen,
-              const unsigned char *nexthop)
+              const unsigned char *neigh)
 {
     if(plen >= 96 && v4mapped(prefix))
         return 1;

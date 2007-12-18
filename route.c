@@ -45,11 +45,11 @@ int route_gc_delay = 180;
 
 struct route *
 find_route(const unsigned char *prefix, unsigned char plen,
-           struct neighbour *nexthop)
+           struct neighbour *neigh)
 {
     int i;
     for(i = 0; i < numroutes; i++) {
-        if(routes[i].nexthop == nexthop &&
+        if(routes[i].neigh == neigh &&
            source_match(routes[i].src, prefix, plen))
             return &routes[i];
     }
@@ -102,7 +102,7 @@ flush_neighbour_routes(struct neighbour *neigh)
 
     i = 0;
     while(i < numroutes) {
-        if(routes[i].nexthop == neigh) {
+        if(routes[i].neigh == neigh) {
             flush_route(routes + i);
             continue;
         }
@@ -130,8 +130,8 @@ install_route(struct route *route)
         return;
 
     rc = kernel_route(ROUTE_ADD, route->src->prefix, route->src->plen,
-                      route->nexthop->address,
-                      route->nexthop->network->ifindex,
+                      route->neigh->address,
+                      route->neigh->network->ifindex,
                       metric_to_kernel(route->metric), NULL, 0, 0);
     if(rc < 0) {
         perror("kernel_route(ADD)");
@@ -150,8 +150,8 @@ uninstall_route(struct route *route)
         return;
 
     rc = kernel_route(ROUTE_FLUSH, route->src->prefix, route->src->plen,
-                      route->nexthop->address,
-                      route->nexthop->network->ifindex,
+                      route->neigh->address,
+                      route->neigh->network->ifindex,
                       metric_to_kernel(route->metric), NULL, 0, 0);
     if(rc < 0)
         perror("kernel_route(FLUSH)");
@@ -177,9 +177,9 @@ change_route(struct route *old, struct route *new)
         return;
 
     rc = kernel_route(ROUTE_MODIFY, old->src->prefix, old->src->plen,
-                      old->nexthop->address, old->nexthop->network->ifindex,
+                      old->neigh->address, old->neigh->network->ifindex,
                       metric_to_kernel(old->metric),
-                      new->nexthop->address, new->nexthop->network->ifindex,
+                      new->neigh->address, new->neigh->network->ifindex,
                       metric_to_kernel(new->metric));
     if(rc >= 0) {
         old->installed = 0;
@@ -195,11 +195,11 @@ change_route_metric(struct route *route, int newmetric)
     if(route->installed) {
         rc = kernel_route(ROUTE_MODIFY,
                           route->src->prefix, route->src->plen,
-                          route->nexthop->address,
-                          route->nexthop->network->ifindex,
+                          route->neigh->address,
+                          route->neigh->network->ifindex,
                           metric_to_kernel(route->metric),
-                          route->nexthop->address,
-                          route->nexthop->network->ifindex,
+                          route->neigh->address,
+                          route->neigh->network->ifindex,
                           metric_to_kernel(newmetric));
         if(rc < 0) {
             perror("kernel_route(MODIFY)");
@@ -282,7 +282,7 @@ update_route_metric(struct route *route)
         }
         newmetric = INFINITY;
     } else {
-        newmetric = MIN(route->refmetric + neighbour_cost(route->nexthop),
+        newmetric = MIN(route->refmetric + neighbour_cost(route->neigh),
                         INFINITY);
     }
 
@@ -297,7 +297,7 @@ update_neighbour_metric(struct neighbour *neigh)
 
     i = 0;
     while(i < numroutes) {
-        if(routes[i].nexthop == neigh)
+        if(routes[i].neigh == neigh)
             update_route_metric(&routes[i]);
         i++;
     }
@@ -307,7 +307,7 @@ update_neighbour_metric(struct neighbour *neigh)
 struct route *
 update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
              unsigned short seqno, unsigned short refmetric,
-             struct neighbour *nexthop)
+             struct neighbour *neigh)
 {
     struct route *route;
     struct source *src;
@@ -319,7 +319,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         return NULL;
     }
 
-    if(import_filter(a, p, plen, nexthop->id))
+    if(import_filter(a, p, plen, neigh->id))
         return NULL;
 
     src = find_source(a, p, plen, 1, seqno);
@@ -327,8 +327,8 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         return NULL;
 
     feasible = update_feasible(a, p, plen, seqno, refmetric);
-    route = find_route(p, plen, nexthop);
-    metric = MIN((int)refmetric + neighbour_cost(nexthop), INFINITY);
+    route = find_route(p, plen, neigh);
+    metric = MIN((int)refmetric + neighbour_cost(neigh), INFINITY);
 
     if(route) {
         struct source *oldsrc;
@@ -384,7 +384,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         route->refmetric = refmetric;
         route->seqno = seqno;
         route->metric = metric;
-        route->nexthop = nexthop;
+        route->neigh = neigh;
         route->time = now.tv_sec;
         route->origtime = now.tv_sec;
         route->installed = 0;
@@ -543,7 +543,7 @@ expire_routes(void)
 
         if(route->installed && route->refmetric < INFINITY) {
             if(route->time < now.tv_sec - MAX(10, route_timeout_delay - 25))
-                send_unicast_request(route->nexthop,
+                send_unicast_request(route->neigh,
                                      route->src->prefix, route->src->plen,
                                      0, 0, 0);
         }

@@ -706,8 +706,8 @@ dump_tables(FILE *out)
                 id ? format_address(routes[i].src->address) : "",
                 (int)routes[i].seqno,
                 (int)(now.tv_sec - routes[i].time),
-                routes[i].nexthop->network->ifname,
-                format_address(routes[i].nexthop->address),
+                routes[i].neigh->network->ifname,
+                format_address(routes[i].neigh->address),
                 routes[i].installed ? " (installed)" :
                 route_feasible(&routes[i]) ? " (feasible)" : "");
     }

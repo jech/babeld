@@ -248,7 +248,7 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
         if(router_hash == hash_id(route->src->address) &&
            seqno_compare(seqno, route->seqno) > 0) {
             if(hop_count > 1) {
-                send_unicast_request(route->nexthop, prefix, plen,
+                send_unicast_request(route->neigh, prefix, plen,
                                      hop_count - 1, seqno, router_hash);
                 record_request(prefix, plen, seqno, router_hash,
                                neigh->network, 0);
@@ -570,7 +570,7 @@ flushupdates(void)
                                          buffered_updates[i].plen);
             if(route) {
                 if(split_horizon &&
-                   net->wired && route->nexthop->network == net)
+                   net->wired && route->neigh->network == net)
                     continue;
                 seqno = route->seqno;
                 metric = MIN((int)route->metric + add_cost, INFINITY);
@@ -760,7 +760,7 @@ send_neighbour_update(struct neighbour *neigh, struct network *net)
 {
     int i;
     for(i = 0; i < numroutes; i++) {
-        if(routes[i].installed && routes[i].nexthop == neigh)
+        if(routes[i].installed && routes[i].neigh == neigh)
             send_update(net, 0, routes[i].src->prefix, routes[i].src->plen);
     }
 }

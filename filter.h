@@ -22,6 +22,6 @@ THE SOFTWARE.
 
 int import_filter(const unsigned char *id,
                   const unsigned char *prefix, unsigned short plen,
-                  const unsigned char *nexthop);
+                  const unsigned char *neigh);
 int export_filter(const unsigned char *id,
                   const unsigned char *prefix, unsigned short plen);
