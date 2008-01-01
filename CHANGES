@@ -1,21 +1,15 @@
 16 October 2007: babel 0.6
 
   * Implemented resending of unsatisfied requests, with exponential backoff.
-
   * Fixed a potential crash in the request handling code.
-
   * Send IHUs more aggressively.
 
 9 October 2007: babel 0.5
 
   * Implemented forwarding of requests and replies.
-
   * Fixed a bug that prevented requests from being parsed correctly.
-
   * Fixed a bug that prevented IHU intervals from being sent.
-
   * Respect reboot_time even after an id change.
-
   * Deal with neighbours rebooting and losing their hello seqno when
     computing link quality.
 
@@ -33,7 +27,6 @@
   * Made jitter computation depend on how urgent a given message is.
     This dramatically improves convergence speed, without increasing
     network load.
-
   * Fixed a bug that prevented neighbour associations from being
     discarded at shutdown.
 
