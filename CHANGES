@@ -1,3 +1,9 @@
+babel 0.7 (unreleased)
+
+  * Implemented support for IPv4.
+  * Don't send poison when receiving a request for an unknown route.
+  * Basic filtering infrastructure.
+
 16 October 2007: babel 0.6
 
   * Implemented resending of unsatisfied requests, with exponential backoff.
