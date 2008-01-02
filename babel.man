@@ -63,6 +63,10 @@ Specify a value that will be added to routes' metrics before
 installing them in the kernel; this is useful when a single node
 participates in multiple routing protocols.  The default is 0.
 .TP
+.B \-4
+Participate in IPv4 routing.  IPv4 forwarding will happen on all
+interfaces that have been assigned an IPv4 address.
+.TP
 .B \-s
 Do not perform split-horizon processing on wired interfaces.
 Split-horizon is never performed on wireless interfaces.
