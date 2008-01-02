@@ -26,6 +26,7 @@ struct route {
     unsigned short refmetric;
     unsigned short seqno;
     struct neighbour *neigh;
+    unsigned char nexthop[16];
     int time;
     int origtime;
     int installed;
@@ -38,7 +39,7 @@ extern int route_timeout_delay;
 extern int route_gc_delay;
 
 struct route *find_route(const unsigned char *prefix, unsigned char plen,
-                         struct neighbour *neigh);
+                         struct neighbour *neigh, const unsigned char *nexthop);
 struct route *find_installed_route(const unsigned char *prefix,
                                    unsigned char plen);
 void flush_route(struct route *route);
@@ -60,7 +61,8 @@ void update_route_metric(struct route *route);
 struct route *update_route(const unsigned char *a,
                            const unsigned char *p, unsigned char plen,
                            unsigned short seqno, unsigned short refmetric,
-                           struct neighbour *neigh);
+                           struct neighbour *neigh,
+                           const unsigned char *nexthop);
 void consider_route(struct route *route);
 void send_triggered_update(struct route *route,
                            struct source *oldsrc, int oldmetric);

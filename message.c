@@ -192,7 +192,8 @@ parse_packet(const unsigned char *from, struct network *net,
                 if(plen <= 128) {
                     unsigned char prefix[16];
                     mask_prefix(prefix, address, plen);
-                    update_route(address, prefix, plen, seqno, metric, neigh);
+                    update_route(address, prefix, plen, seqno, metric, neigh,
+                                 neigh->address);
                 }
             } else if(type == 4) {
                 unsigned char prefix[16];
@@ -212,7 +213,8 @@ parse_packet(const unsigned char *from, struct network *net,
                 if(memcmp(current_source, myid, 16) == 0)
                     continue;
                 mask_prefix(prefix, address, plen);
-                update_route(current_source, prefix, plen, seqno, metric, neigh);
+                update_route(current_source, prefix, plen, seqno, metric,
+                             neigh, neigh->address);
             } else {
                 debugf("Received unknown packet type %d from %s (%s).\n",
                        type, format_address(neigh->id), format_address(from));

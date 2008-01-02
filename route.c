@@ -45,11 +45,12 @@ int route_gc_delay = 180;
 
 struct route *
 find_route(const unsigned char *prefix, unsigned char plen,
-           struct neighbour *neigh)
+           struct neighbour *neigh, const unsigned char *nexthop)
 {
     int i;
     for(i = 0; i < numroutes; i++) {
         if(routes[i].neigh == neigh &&
+           memcmp(routes[i].nexthop, nexthop, 16) == 0 &&
            source_match(routes[i].src, prefix, plen))
             return &routes[i];
     }
@@ -130,7 +131,7 @@ install_route(struct route *route)
         return;
 
     rc = kernel_route(ROUTE_ADD, route->src->prefix, route->src->plen,
-                      route->neigh->address,
+                      route->nexthop,
                       route->neigh->network->ifindex,
                       metric_to_kernel(route->metric), NULL, 0, 0);
     if(rc < 0) {
@@ -150,7 +151,7 @@ uninstall_route(struct route *route)
         return;
 
     rc = kernel_route(ROUTE_FLUSH, route->src->prefix, route->src->plen,
-                      route->neigh->address,
+                      route->nexthop,
                       route->neigh->network->ifindex,
                       metric_to_kernel(route->metric), NULL, 0, 0);
     if(rc < 0)
@@ -177,9 +178,9 @@ change_route(struct route *old, struct route *new)
         return;
 
     rc = kernel_route(ROUTE_MODIFY, old->src->prefix, old->src->plen,
-                      old->neigh->address, old->neigh->network->ifindex,
+                      old->nexthop, old->neigh->network->ifindex,
                       metric_to_kernel(old->metric),
-                      new->neigh->address, new->neigh->network->ifindex,
+                      new->nexthop, new->neigh->network->ifindex,
                       metric_to_kernel(new->metric));
     if(rc >= 0) {
         old->installed = 0;
@@ -195,10 +196,10 @@ change_route_metric(struct route *route, int newmetric)
     if(route->installed) {
         rc = kernel_route(ROUTE_MODIFY,
                           route->src->prefix, route->src->plen,
-                          route->neigh->address,
+                          route->nexthop,
                           route->neigh->network->ifindex,
                           metric_to_kernel(route->metric),
-                          route->neigh->address,
+                          route->nexthop,
                           route->neigh->network->ifindex,
                           metric_to_kernel(newmetric));
         if(rc < 0) {
@@ -307,7 +308,7 @@ update_neighbour_metric(struct neighbour *neigh)
 struct route *
 update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
              unsigned short seqno, unsigned short refmetric,
-             struct neighbour *neigh)
+             struct neighbour *neigh, const unsigned char *nexthop)
 {
     struct route *route;
     struct source *src;
@@ -327,7 +328,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         return NULL;
 
     feasible = update_feasible(a, p, plen, seqno, refmetric);
-    route = find_route(p, plen, neigh);
+    route = find_route(p, plen, neigh, nexthop);
     metric = MIN((int)refmetric + neighbour_cost(neigh), INFINITY);
 
     if(route) {
@@ -385,6 +386,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         route->seqno = seqno;
         route->metric = metric;
         route->neigh = neigh;
+        memcpy(route->nexthop, nexthop, 16);
         route->time = now.tv_sec;
         route->origtime = now.tv_sec;
         route->installed = 0;
