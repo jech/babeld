@@ -614,7 +614,6 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     int len = sizeof(buf.raw);
     int rc, ipv4;
 
-
     if(!nl_setup) {
         fprintf(stderr,"kernel_route: netlink not initialized.\n");
         errno = EIO;
@@ -693,6 +692,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     else
         rtm->rtm_type = RTN_UNREACHABLE;
     rtm->rtm_protocol = RTPROT_BABEL;
+    rtm->rtm_flags |= RTNH_F_ONLINK;
 
     rta = RTM_RTA(rtm);
 
