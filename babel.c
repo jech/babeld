@@ -681,7 +681,11 @@ dump_tables(FILE *out)
 
     fprintf(out, "\n");
 
-    fprintf(out, "My id %s seqno %d\n", format_address(myid), myseqno);
+    fprintf(out, "My id %s%s%s seqno %d\n",
+            format_address(myid),
+            myipv4 ? " IPv4 " : "",
+            myipv4 ? format_address(myipv4) : "",
+            myseqno);
 
     for(i = 0; i < numneighs; i++) {
         if(neighs[i].id[0] == 0xFF)
