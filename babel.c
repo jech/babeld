@@ -604,7 +604,7 @@ main(int argc, char **argv)
             "                "
             "[-h hello] [-H wired_hello] [-i idle_hello]\n"
             "                "
-            "[-u update] [-k metric] [-s] [-P] [-c cost]\n"
+            "[-u update] [-k metric] [-4] [-s] [-P] [-c cost]\n"
             "                "
             "[-d level] [-x net cost] [-X net cost]... id interface...\n",
             argv[0]);
