@@ -217,6 +217,8 @@ parse_packet(const unsigned char *from, struct network *net,
                              neigh, neigh->address);
             } else if(type == 5) {
                 unsigned char p4[16], prefix[16], nh[16];
+                if(!myipv4)
+                    continue;
                 v4tov6(p4, message + 20);
                 v4tov6(nh, message + 16);
                 debugf("Received update for %s nh %s on %s from %s (%s).\n",
