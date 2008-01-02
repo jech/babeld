@@ -3,7 +3,7 @@
                             Juliusz Chroboczek
                            <jch@pps.jussieu.fr>
 
-                              19 November 2007
+                              2 January 2008
 
 
 1. Introduction
@@ -651,6 +651,12 @@ An update message specifies an update for the route to destination (prefix,
 plen), with a sequence number given by the field seqno, a metric given by
 the metric field, and a source indicated by the id field of the preceding
 update message.
+
+3.2.6 IPv4 prefix information
+
+Message type 5 is reserved for IPv4 prefix information.  A message with
+a type of 5 should be silently ignored by an implementation that does not
+implement the IPv4 extensions to Babel.
 
 
 4. Sample implementation
