@@ -286,7 +286,7 @@ main(int argc, char **argv)
         fprintf(stderr, "Respecting %ld second silent time.\n",
                 (long int)(reboot_time + silent_time - now.tv_sec));
 
-    rc = kernel_setup(1);
+    rc = kernel_setup(1, do_ipv4);
     if(rc < 0) {
         fprintf(stderr, "kernel_setup failed.\n");
         exit(1);
@@ -571,7 +571,7 @@ main(int argc, char **argv)
         kernel_setup_interface(0, nets[i].ifname, nets[i].ifindex);
     }
     kernel_setup_socket(0);
-    kernel_setup(0);
+    kernel_setup(0, do_ipv4);
 
     fd = open(state_file, O_WRONLY | O_TRUNC | O_CREAT, 0644);
     if(fd < 0) {
@@ -614,7 +614,7 @@ main(int argc, char **argv)
     for(i = 0; i < numnets; i++)
         kernel_setup_interface(0, nets[i].ifname, nets[i].ifindex);
     kernel_setup_socket(0);
-    kernel_setup(0);
+    kernel_setup(0, do_ipv4);
     exit(1);
 }
 

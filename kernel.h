@@ -34,7 +34,7 @@ struct kernel_route {
 #define ROUTE_ADD 1
 #define ROUTE_MODIFY 2
 
-int kernel_setup(int setup);
+int kernel_setup(int setup, int ipv4);
 int kernel_setup_socket(int setup);
 int kernel_setup_interface(int setup, const char *ifname, int ifindex);
 int kernel_interface_ipv4(const char *ifname, int ifindex, char *addr_r);

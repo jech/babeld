@@ -45,6 +45,7 @@ THE SOFTWARE.
 #include "util.h"
 
 static int old_forwarding = -1;
+static int old_ipv4_forwarding = -1;
 static int old_accept_redirects = -1;
 static int old_rp_filter = -1;
 
@@ -379,7 +380,7 @@ netlink_send_dump(int type, void *data, int len) {
 }
 
 int
-kernel_setup(int setup)
+kernel_setup(int setup, int ipv4)
 {
     int rc;
 
@@ -402,6 +403,22 @@ kernel_setup(int setup)
             perror("Couldn't write forwarding knob.");
             return -1;
         }
+
+        if(ipv4) {
+            old_ipv4_forwarding =
+                read_proc("/proc/sys/net/ipv4/conf/all/forwarding");
+            if(old_ipv4_forwarding < 0) {
+                perror("Couldn't read IPv4 forwarding knob.");
+                return -1;
+            }
+
+            rc = write_proc("/proc/sys/net/ipv4/conf/all/forwarding", 1);
+            if(rc < 0) {
+                perror("Couldn't write IPv4 forwarding knob.");
+                return -1;
+            }
+        }
+
 
         old_accept_redirects =
             read_proc("/proc/sys/net/ipv6/conf/all/accept_redirects");
@@ -435,10 +452,20 @@ kernel_setup(int setup)
             rc = write_proc("/proc/sys/net/ipv6/conf/all/forwarding",
                             old_forwarding);
             if(rc < 0) {
-                perror("Couldn't write accept_redirects knob.\n");
+                perror("Couldn't write forwarding knob.\n");
                 return -1;
             }
         }
+
+        if(old_ipv4_forwarding >= 0) {
+            rc = write_proc("/proc/sys/net/ipv4/conf/all/forwarding",
+                            old_ipv4_forwarding);
+            if(rc < 0) {
+                perror("Couldn't write IPv4 forwarding knob.\n");
+                return -1;
+            }
+        }
+
         if(old_accept_redirects >= 0) {
             rc = write_proc("/proc/sys/net/ipv6/conf/all/accept_redirects",
                             old_accept_redirects);
