@@ -597,7 +597,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
 
     if(v4mapped(gate)) {
         /* Not implemented yet. */
-        errno = EINVAL;
+        errno = ENOSYS;
         return -1;
     }
 
