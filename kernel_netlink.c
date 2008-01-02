@@ -562,7 +562,8 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     struct rtmsg *rtm;
     struct rtattr *rta;
     int len = sizeof(buf.raw);
-    int rc;
+    int rc, ipv4;
+
 
     if(!nl_setup) {
         fprintf(stderr,"kernel_route: netlink not initialized.\n");
@@ -595,11 +596,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         }
     }
 
-    if(v4mapped(gate)) {
-        /* Not implemented yet. */
-        errno = ENOSYS;
-        return -1;
-    }
+    ipv4 = v4mapped(gate);
 
     if(operation == ROUTE_MODIFY) {
         if(newmetric == metric && memcmp(newgate, gate, 16) == 0 &&
@@ -624,7 +621,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
 
     /* Unreachable default routes cause all sort of weird interactions;
        ignore them. */
-    if(metric >= KERNEL_INFINITY && plen == 0)
+    if(metric >= KERNEL_INFINITY && (plen == 0 || (ipv4 && plen == 96)))
         return 0;
 
     memset(buf.raw, 0, sizeof(buf.raw));
@@ -637,8 +634,8 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     }
 
     rtm = NLMSG_DATA(&buf.nh);
-    rtm->rtm_family = AF_INET6;
-    rtm->rtm_dst_len = plen;
+    rtm->rtm_family = ipv4 ? AF_INET : AF_INET6;
+    rtm->rtm_dst_len = ipv4 ? plen - 96 : plen;
     rtm->rtm_table = RT_TABLE_MAIN;
     rtm->rtm_scope = RT_SCOPE_UNIVERSE;
     if(metric < KERNEL_INFINITY)
@@ -649,10 +646,17 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
 
     rta = RTM_RTA(rtm);
 
-    rta = RTA_NEXT(rta, len);
-    rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr));
-    rta->rta_type = RTA_DST;
-    memcpy(RTA_DATA(rta), dest, sizeof(struct in6_addr));
+    if(ipv4) {
+        rta = RTA_NEXT(rta, len);
+        rta->rta_len = RTA_LENGTH(sizeof(struct in_addr));
+        rta->rta_type = RTA_DST;
+        memcpy(RTA_DATA(rta), dest + 12, sizeof(struct in_addr));
+    } else {
+        rta = RTA_NEXT(rta, len);
+        rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr));
+        rta->rta_type = RTA_DST;
+        memcpy(RTA_DATA(rta), dest, sizeof(struct in6_addr));
+    }
 
     rta = RTA_NEXT(rta, len);
     rta->rta_len = RTA_LENGTH(sizeof(int));
@@ -665,10 +669,17 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         rta->rta_type = RTA_OIF;
         *(int*)RTA_DATA(rta) = ifindex;
 
-        rta = RTA_NEXT(rta, len);
-        rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr));
-        rta->rta_type = RTA_GATEWAY;
-        memcpy(RTA_DATA(rta), gate, sizeof(struct in6_addr));
+        if(ipv4) {
+            rta = RTA_NEXT(rta, len);
+            rta->rta_len = RTA_LENGTH(sizeof(struct in_addr));
+            rta->rta_type = RTA_GATEWAY;
+            memcpy(RTA_DATA(rta), gate + 12, sizeof(struct in_addr));
+        } else {
+            rta = RTA_NEXT(rta, len);
+            rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr));
+            rta->rta_type = RTA_GATEWAY;
+            memcpy(RTA_DATA(rta), gate, sizeof(struct in6_addr));
+        }
     } else {
         *(int*)RTA_DATA(rta) = -1;
     }
