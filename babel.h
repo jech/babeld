@@ -69,6 +69,7 @@ struct network {
     int update_time;
     int ihu_time;
     char ifname[IF_NAMESIZE];
+    unsigned char *ipv4;
     int buffered;
     struct timeval flush_time;
     int bufsize;
@@ -87,7 +88,6 @@ extern int debug;
 extern int reboot_time;
 
 extern unsigned char myid[16];
-extern unsigned char *myipv4;
 
 extern struct network nets[MAXNETS];
 extern int numnets;

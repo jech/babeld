@@ -217,7 +217,7 @@ parse_packet(const unsigned char *from, struct network *net,
                              neigh, neigh->address);
             } else if(type == 5) {
                 unsigned char p4[16], prefix[16], nh[16];
-                if(!myipv4)
+                if(!net->ipv4)
                     continue;
                 v4tov6(p4, message + 20);
                 v4tov6(nh, message + 16);
@@ -550,10 +550,10 @@ really_send_update(struct network *net,
         if(plen >= 96 && v4mapped(prefix)) {
             const unsigned char *sid;
             unsigned char v4route[16];
-            if(!myipv4)
+            if(!net->ipv4)
                 return;
             memset(v4route, 0, 8);
-            memcpy(v4route + 8, myipv4 + 12, 4);
+            memcpy(v4route + 8, net->ipv4, 4);
             memcpy(v4route + 12, prefix + 12, 4);
             start_message(net, 48);
             sid = message_source_id(net);

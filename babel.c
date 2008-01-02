@@ -52,7 +52,7 @@ THE SOFTWARE.
 struct timeval now;
 
 unsigned char myid[16];
-unsigned char *myipv4 = NULL;
+unsigned char do_ipv4 = 0;
 int debug = 0;
 
 static int maxmtu;
@@ -193,12 +193,7 @@ main(int argc, char **argv)
             SHIFTE();
             debug = atoi(*arg);
         } else if(strcmp(*arg, "-4") == 0) {
-            SHIFTE();
-            myipv4 = malloc(16);
-            if(myipv4 == NULL) goto syntax;
-            rc = parse_address(*arg, myipv4);
-            if(rc < 0) goto syntax;
-            if(!v4mapped(myipv4)) goto syntax;
+            do_ipv4 = 1;
         } else {
             goto syntax;
         }
@@ -681,11 +676,7 @@ dump_tables(FILE *out)
 
     fprintf(out, "\n");
 
-    fprintf(out, "My id %s%s%s seqno %d\n",
-            format_address(myid),
-            myipv4 ? " IPv4 " : "",
-            myipv4 ? format_address(myipv4) : "",
-            myseqno);
+    fprintf(out, "My id %s seqno %d\n", format_address(myid), myseqno);
 
     for(i = 0; i < numneighs; i++) {
         if(neighs[i].id[0] == 0xFF)
@@ -742,6 +733,8 @@ struct network *
 add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
 {
     void *p;
+    char ipv4[4];
+    int rc;
 
     if(numnets >= MAXNETS) {
         fprintf(stderr, "Too many networks.\n");
@@ -750,6 +743,16 @@ add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
 
     memset(nets + numnets, 0, sizeof(struct network));
     nets[numnets].ifindex = ifindex;
+    nets[numnets].ipv4 = NULL;
+    if(do_ipv4) {
+        rc = kernel_interface_ipv4(ifname, ifindex, ipv4);
+        if(rc >= 0) {
+            nets[numnets].ipv4 = malloc(4);
+            if(nets[numnets].ipv4)
+                memcpy(nets[numnets].ipv4, ipv4, 4);
+        }
+    }
+
     nets[numnets].wired = wired;
     nets[numnets].cost = cost;
     nets[numnets].activity_time = now.tv_sec;
