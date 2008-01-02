@@ -52,6 +52,7 @@ THE SOFTWARE.
 struct timeval now;
 
 unsigned char myid[16];
+unsigned char *myipv4 = NULL;
 int debug = 0;
 
 static int maxmtu;
@@ -191,6 +192,13 @@ main(int argc, char **argv)
         } else if(strcmp(*arg, "-d") == 0) {
             SHIFTE();
             debug = atoi(*arg);
+        } else if(strcmp(*arg, "-4") == 0) {
+            SHIFTE();
+            myipv4 = malloc(16);
+            if(myipv4 == NULL) goto syntax;
+            rc = parse_address(*arg, myipv4);
+            if(rc < 0) goto syntax;
+            if(!v4mapped(myipv4)) goto syntax;
         } else {
             goto syntax;
         }

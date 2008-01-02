@@ -87,6 +87,7 @@ extern int debug;
 extern int reboot_time;
 
 extern unsigned char myid[16];
+extern unsigned char *myipv4;
 
 extern struct network nets[MAXNETS];
 extern int numnets;
