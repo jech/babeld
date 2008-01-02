@@ -546,12 +546,23 @@ really_send_update(struct network *net,
 {
     if(!export_filter(address, prefix, plen)) {
         if(plen >= 96 && v4mapped(prefix)) {
-            ;
+            const unsigned char *sid;
+            unsigned char v4route[16];
+            if(!myipv4)
+                return;
+            memset(v4route, 0, 8);
+            memcpy(v4route + 8, myipv4 + 12, 4);
+            memcpy(v4route + 12, prefix + 12, 4);
+            start_message(net, 48);
+            sid = message_source_id(net);
+            if(sid == NULL || memcmp(address, sid, 16) != 0)
+                send_message(net, 3, 0xFF, 0, 0, 0xFFFF, address);
+            send_message(net, 5, plen - 96, 0, seqno, metric, v4route);
         } else {
             if(in_prefix(address, prefix, plen)) {
                 send_message(net, 3, plen, 0, seqno, metric, address);
             } else {
-                unsigned const char *sid;
+                const unsigned char *sid;
                 start_message(net, 48);
                 sid = message_source_id(net);
                 if(sid == NULL || memcmp(address, sid, 16) != 0)
