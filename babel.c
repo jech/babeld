@@ -698,8 +698,11 @@ dump_tables(FILE *out)
         int id =
             routes[i].src->plen != 128 ||
             memcmp(routes[i].src->prefix, routes[i].src->address, 16) != 0;
+        const unsigned char *nexthop =
+            memcmp(routes[i].nexthop, routes[i].neigh->address, 16) == 0 ?
+            NULL : routes[i].nexthop;
         fprintf(out, "%s metric %d refmetric %d %s%s seqno %d age %d "
-                "via %s nexthop %s%s\n",
+                "via %s neigh %s%s%s%s\n",
                 format_prefix(routes[i].src->prefix, routes[i].src->plen),
                 routes[i].metric, routes[i].refmetric,
                 id ? "id " : "",
@@ -708,6 +711,8 @@ dump_tables(FILE *out)
                 (int)(now.tv_sec - routes[i].time),
                 routes[i].neigh->network->ifname,
                 format_address(routes[i].neigh->address),
+                nexthop ? " nexthop " : "",
+                nexthop ? format_address(nexthop) : "",
                 routes[i].installed ? " (installed)" :
                 route_feasible(&routes[i]) ? " (feasible)" : "");
     }
