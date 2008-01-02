@@ -37,6 +37,7 @@ struct kernel_route {
 int kernel_setup(int setup);
 int kernel_setup_socket(int setup);
 int kernel_setup_interface(int setup, const char *ifname, int ifindex);
+int kernel_interface_ipv4(const char *ifname, int ifindex, char *addr_r);
 int kernel_interface_mtu(const char *ifname, int ifindex);
 int kernel_interface_wireless(const char *ifname, int ifindex);
 int kernel_route(int operation, const unsigned char *dest, unsigned short plen,

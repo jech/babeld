@@ -221,6 +221,29 @@ kernel_setup_interface(int setup, const char *ifname, int ifindex)
 }
 
 int
+kernel_interface_ipv4(const char *ifname, int ifindex, char *addr_r)
+{
+    struct ifreq req;
+    int s, rc;
+
+    s = socket(PF_INET, SOCK_DGRAM, 0);
+    if(s < 0)
+        return -1;
+
+    memset(&req, 0, sizeof(req));
+    strncpy(req.ifr_name, ifname, sizeof(req.ifr_name));
+    req.ifr_addr.sa_family = AF_INET;
+    rc = ioctl(s, SIOCGIFADDR, &req);
+    if(rc < 0) {
+        close(s);
+        return -1;
+    }
+
+    memcpy(addr_r, &((struct sockaddr_in*)&req.ifr_addr)->sin_addr, 4);
+    return 1;
+}
+
+int
 kernel_interface_mtu(const char *ifname, int ifindex)
 {
     struct ifreq req;
