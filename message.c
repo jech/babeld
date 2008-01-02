@@ -526,15 +526,19 @@ really_send_update(struct network *net,
                    unsigned short seqno, unsigned short metric)
 {
     if(!export_filter(address, prefix, plen)) {
-        if(in_prefix(address, prefix, plen)) {
-            send_message(net, 3, plen, 0, seqno, metric, address);
+        if(plen >= 96 && v4mapped(prefix)) {
+            ;
         } else {
-            unsigned const char *sid;
-            start_message(net, 48);
-            sid = message_source_id(net);
-            if(sid == NULL || memcmp(address, sid, 16) != 0)
-                send_message(net, 3, 0xFF, 0, 0, 0xFFFF, address);
-            send_message(net, 4, plen, 0, seqno, metric, prefix);
+            if(in_prefix(address, prefix, plen)) {
+                send_message(net, 3, plen, 0, seqno, metric, address);
+            } else {
+                unsigned const char *sid;
+                start_message(net, 48);
+                sid = message_source_id(net);
+                if(sid == NULL || memcmp(address, sid, 16) != 0)
+                    send_message(net, 3, 0xFF, 0, 0, 0xFFFF, address);
+                send_message(net, 4, plen, 0, seqno, metric, prefix);
+            }
         }
     }
     satisfy_request(prefix, plen, seqno, hash_id(address), net);
