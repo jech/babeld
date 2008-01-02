@@ -215,6 +215,25 @@ parse_packet(const unsigned char *from, struct network *net,
                 mask_prefix(prefix, address, plen);
                 update_route(current_source, prefix, plen, seqno, metric,
                              neigh, neigh->address);
+            } else if(type == 5) {
+                unsigned char p4[16], prefix[16], nh[16];
+                v4tov6(p4, message + 20);
+                v4tov6(nh, message + 16);
+                debugf("Received IPv4 prefix %s nh %s on %s from %s (%s).\n",
+                       format_prefix(p4, plen),
+                       format_address(nh),
+                       net->ifname,
+                       format_address(neigh->id),
+                       format_address(from));
+                if(plen > 32)
+                    continue;
+                if(!have_current_source)
+                    continue;
+                if(memcmp(current_source, myid, 16) == 0)
+                    continue;
+                mask_prefix(prefix, p4, plen + 96);
+                update_route(current_source, prefix, plen + 96, seqno, metric,
+                             neigh, nh);
             } else {
                 debugf("Received unknown packet type %d from %s (%s).\n",
                        type, format_address(neigh->id), format_address(from));
