@@ -851,7 +851,7 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
     if(rtm->rtm_scope >= RT_SCOPE_LINK)
         return 0;
 
-    if(rtm->rtm_dst_len > maxplen || rtm->rtm_src_len != 0)
+    if(rtm->rtm_src_len != 0)
         return 0;
 
     if(data)
@@ -863,9 +863,11 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
     if(rc < 0)
         return 0;
 
-    if(rtm->rtm_dst_len >= 8 &&
-       (current_route->prefix[0] == 0xFF || current_route->prefix[0] == 0))
-           return 0;
+    if(current_route->plen > maxplen)
+        return 0;
+
+    if(martian_prefix(current_route->prefix, current_route->plen))
+        return 0;
 
     /* Ignore default unreachable routes; no idea where they come from. */
     if(current_route->plen == 0 && current_route->metric >= KERNEL_INFINITY)
