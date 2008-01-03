@@ -136,9 +136,7 @@ set the same IPv4 address on all interfaces of a given node.
 
 On a network gateway, you will want to redistribute the default route:
 
-  # babel -4 -X $IPv4 0 -X 0.0.0.0/0 128 $IPv4 eth0 eth1
-
-Note that ``-x'' doesn't work for IPv4 yet; use ``-X'' instead.
+  # babel -4 -X $IPv4 0 -x 0.0.0.0/0 128 $IPv4 eth0 eth1
 
 
 Setting up a dual-stack network for use with Babel
@@ -157,11 +155,11 @@ on an IPv6 gateway,
 
 on an IPv4 gateway,
 
-  # babel -4 -X $IPv6 0 -X $IPv4 0 -X 0.0.0.0/0 128 $IPv6 eth1
+  # babel -4 -X $IPv6 0 -X $IPv4 0 -x 0.0.0.0/0 128 $IPv6 eth1
 
 and on a gateway to both the IPv6 and IPv4 Internets,
 
-  # babel -4 -X $IPv6 0 -X $IPv4 0 -x ::/0 128 -X 0.0.0.0/0 128 $IPv6 eth1
+  # babel -4 -X $IPv6 0 -X $IPv4 0 -x ::/0 128 -x 0.0.0.0/0 128 $IPv6 eth1
 
 If you use ahcpd, you will want to add the following to
 /etc/ahcp/ahcp-babel-options:
