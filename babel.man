@@ -84,7 +84,9 @@ redistributed routes.
 .BI \-d " level"
 Debug level.  A value of 1 requests a routing table dump at every
 iteration through the daemon's main loop.  A value of 2 additionally
-requests tracing every message sent or received.  The default is 0.
+requests tracing every message sent or received.  A value of
+3 additionally dumps all interactions with the OS kernel.  The default
+is 0.
 .TP
 .BI \-x " network cost"
 Redistribute a route for the given network or host with the given
