@@ -503,9 +503,9 @@ kernel_setup_socket(int setup)
     int rc;
 
     if(setup) {
-        rc = netlink_socket(&nl_listen, RTMGRP_IPV6_ROUTE);
+        rc = netlink_socket(&nl_listen, RTMGRP_IPV6_ROUTE | RTMGRP_IPV4_ROUTE);
         if(rc < 0) {
-            perror("netlink_socket(RTMGRP_IPV6_ROUTE)");
+            perror("netlink_socket(RTMGRP_ROUTE)");
             kernel_socket = -1;
             return -1;
         }
@@ -752,16 +752,27 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
     memset(&route->prefix, 0, sizeof(struct in6_addr));
     memset(&route->gw, 0, sizeof(struct in6_addr));
     route->plen = rtm->rtm_dst_len;
+    if(rtm->rtm_family == AF_INET) route->plen += 96;
     route->metric = KERNEL_INFINITY;
     route->ifindex = 0;
+
+#define COPY_ADDR(d, s) \
+    do { \
+        if(rtm->rtm_family == AF_INET6) \
+            memcpy(d, s, 16); \
+        else if(rtm->rtm_family == AF_INET) \
+            v4tov6(d, s); \
+        else \
+            return -1; \
+    } while(0)
 
     while(RTA_OK(rta, len)) {
         switch (rta->rta_type) {
         case RTA_DST:
-            memcpy(&route->prefix, RTA_DATA(rta), 16);
+            COPY_ADDR(route->prefix, RTA_DATA(rta));
             break;
         case RTA_GATEWAY:
-            memcpy(&route->gw, RTA_DATA(rta), 16);
+            COPY_ADDR(route->gw, RTA_DATA(rta));
             break;
         case RTA_OIF:
             route->ifindex = *(int*)RTA_DATA(rta);
@@ -779,6 +790,7 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
         }
         rta = RTA_NEXT(rta, len);
     }
+#undef COPY_ADDR
 
     if(table != RT_TABLE_MAIN)
         return -1;
@@ -890,11 +902,12 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
 int
 kernel_routes(int maxplen, struct kernel_route *routes, int maxroutes)
 {
-    int rc;
+    int i, rc;
     int maxp = maxplen;
     int maxr = maxroutes;
     int found = 0;
     void *data[4] = { &maxp, &maxr, routes, &found };
+    int families[2] = { AF_INET6, AF_INET };
     struct rtgenmsg g;
 
     if(!nl_setup) {
@@ -911,17 +924,19 @@ kernel_routes(int maxplen, struct kernel_route *routes, int maxroutes)
         }
     }
 
-    memset(&g, 0, sizeof(g));
-    g.rtgen_family = AF_INET6;
-    rc = netlink_send_dump(RTM_GETROUTE, &g, sizeof(g));
-    if(rc < 0)
-        return -1;
+    for(i = 0; i < 2; i++) {
+        memset(&g, 0, sizeof(g));
+        g.rtgen_family = families[i];
+        rc = netlink_send_dump(RTM_GETROUTE, &g, sizeof(g));
+        if(rc < 0)
+            return -1;
 
-    rc = netlink_read(&nl_command, NULL, 1,
-                      filter_kernel_routes, (void *)data);
+        rc = netlink_read(&nl_command, NULL, 1,
+                          filter_kernel_routes, (void *)data);
 
-    if(rc < 0)
-        return -1;
+        if(rc < 0)
+            return -1;
+    }
 
     return found;
 }
