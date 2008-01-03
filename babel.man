@@ -71,15 +71,6 @@ interfaces that have been assigned an IPv4 address.
 Do not perform split-horizon processing on wired interfaces.
 Split-horizon is never performed on wireless interfaces.
 .TP
-.B \-b
-Use a single broadcast
-.I I Heard You
-message for reverse reachability information on wired interfaces
-rather than messages specific to each peer.  This will slightly reduce
-traffic on interfaces with many neighbours, but will disable detection
-of asymmetric links, and is therefore not recommended.  Messages
-specific to each peer are always sent on wireless interfaces.
-.TP
 .BI \-c " cost"
 Add
 .I cost
