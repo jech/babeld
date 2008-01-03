@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2007 by Grégoire Henry, Julien Cristau and Juliusz Chroboczek
+Copyright 2007, 2008 by Grégoire Henry, Julien Cristau and Juliusz Chroboczek
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
