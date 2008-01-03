@@ -4,6 +4,7 @@ babel 0.7 (unreleased)
   * Fixed sending of unicast requests.
   * Don't send poison when receiving a request for an unknown route.
   * Basic filtering infrastructure.
+  * Removed support for broadcast IHU.
 
 16 October 2007: babel 0.6
 
