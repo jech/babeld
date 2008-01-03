@@ -220,35 +220,35 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
                     msg.msg_namelen);
             goto socket_error;
         } else if(nladdr.nl_pid != 0) {
-            debugf("netlink_read: message not sent by kernel.\n");
+            kdebugf("netlink_read: message not sent by kernel.\n");
             return 2;
         }
 
-        debugf("Netlink message: ");
+        kdebugf("Netlink message: ");
 
         for(nh = (struct nlmsghdr *)buf;
             NLMSG_OK(nh, len);
             nh = NLMSG_NEXT(nh, len)) {
-            debugf("%s", (nh->nlmsg_flags & NLM_F_MULTI) ? "[multi] " : "");
+            kdebugf("%s", (nh->nlmsg_flags & NLM_F_MULTI) ? "[multi] " : "");
             if(!answer)
                 done = 1;
             if(nl_ignore && nh->nlmsg_pid == nl_ignore->sockaddr.nl_pid) {
-                debugf("(ignore), ");
+                kdebugf("(ignore), ");
                 continue;
             } else if(answer && (nh->nlmsg_pid != nl->sockaddr.nl_pid ||
                                  nh->nlmsg_seq != nl->seqno)) {
-                debugf("(wrong seqno %d %d /pid %d %d), ",
+                kdebugf("(wrong seqno %d %d /pid %d %d), ",
                        nh->nlmsg_seq, nl->seqno,
                        nh->nlmsg_pid, nl->sockaddr.nl_pid);
                 continue;
             } else if(nh->nlmsg_type == NLMSG_DONE) {
-                debugf("(done)\n");
+                kdebugf("(done)\n");
                 done = 1;
                 break;
             } else if(nh->nlmsg_type == NLMSG_ERROR) {
                 struct nlmsgerr *err = (struct nlmsgerr *)NLMSG_DATA(nh);
                 if(err->error == 0) {
-                    debugf("(ACK)\n");
+                    kdebugf("(ACK)\n");
 		    return 0;
                 } else {
                     errno = -err->error;
@@ -257,16 +257,16 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
                     return -1;
                 }
             } else if(fn) {
-                debugf("(msg -> \"");
+                kdebugf("(msg -> \"");
                 err = fn(nh,data);
-                debugf("\" %d), ", err);
+                kdebugf("\" %d), ", err);
                 if(err < 0) return err;
                 interesting = interesting || err;
                 continue;
             }
-            debugf(", ");
+            kdebugf(", ");
         }
-        debugf("\n");
+        kdebugf("\n");
 
         if(msg.msg_flags & MSG_TRUNC)
             fprintf(stderr, "netlink_read: message truncated\n");
@@ -666,7 +666,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         return rc;
     }
 
-    debugf("kernel_route: %s %s/%d metric %d dev %d nexthop %s\n",
+    kdebugf("kernel_route: %s %s/%d metric %d dev %d nexthop %s\n",
            operation == ROUTE_ADD ? "add" :
            operation == ROUTE_FLUSH ? "flush" : "???",
            format_address(dest), plen, metric, ifindex,
@@ -810,11 +810,11 @@ print_kernel_route(int add, int protocol, int type,
                   addr_prefix, sizeof(addr_prefix)) ||
        !inet_ntop(AF_INET6,route->gw, addr_gw, sizeof(addr_gw)) ||
        !if_indextoname(route->ifindex, ifname)) {
-        debugf("Couldn't format kernel route for printing.");
+        kdebugf("Couldn't format kernel route for printing.");
         return;
     }
 
-    debugf("%s kernel route: dest: %s/%d gw: %s metric: %d if: %s "
+    kdebugf("%s kernel route: dest: %s/%d gw: %s metric: %d if: %s "
            "(proto: %d, type: %d)",
            add == RTM_NEWROUTE ? "Add" : "Delete",
            addr_prefix, route->plen, addr_gw, route->metric, ifname,
@@ -943,7 +943,7 @@ kernel_callback(int (*fn)(void*), void *closure)
 {
     int rc;
 
-    debugf("\nReceived changes in kernel tables.\n");
+    kdebugf("\nReceived changes in kernel tables.\n");
     
     if(nl_listen.sock < 0) {
         rc = kernel_setup_socket(1);
