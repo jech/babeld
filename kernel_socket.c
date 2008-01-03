@@ -313,7 +313,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         ifindex = newifindex;
     }
 
-    debugf("kernel_route: %s %s/%d metric %d dev %d nexthop %s\n",
+    kdebugf("kernel_route: %s %s/%d metric %d dev %d nexthop %s\n",
            operation == ROUTE_ADD ? "add" :
            operation == ROUTE_FLUSH ? "flush" : "change",
            format_address(dest), plen, metric, ifindex,
@@ -551,7 +551,7 @@ socket_read(int sock)
     }
 
     if(buf.rtm.rtm_msglen != rc) {
-        debugf("kernel_callback(length)\n");
+        kdebugf("kernel_callback(length)\n");
         return -1;
     }
 
@@ -583,7 +583,7 @@ kernel_callback(int (*fn)(void*), void *closure)
 
     if(kernel_socket < 0) kernel_setup_socket(1);
 
-    debugf("Reading kernel table modification.");
+    kdebugf("Reading kernel table modification.");
     rc = socket_read(kernel_socket);
     if(rc)
         return fn(closure);
