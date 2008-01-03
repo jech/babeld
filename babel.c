@@ -825,6 +825,6 @@ update_jitter(struct network *net, int urgent)
 {
     unsigned interval = net->hello_interval * 1000;
     if(urgent)
-        interval = MIN(interval, 500);
+        interval = MIN(interval, 100);
     return (interval / 2 + random() % interval);
 }
