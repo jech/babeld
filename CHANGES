@@ -1,4 +1,4 @@
-babel 0.7 (unreleased)
+3 January 2008: babel 0.7
 
   * Implemented support for IPv4.
   * Fixed sending of unicast requests.
