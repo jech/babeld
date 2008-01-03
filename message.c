@@ -525,7 +525,7 @@ send_unicast_request(struct neighbour *neigh,
            prefix ? format_prefix(prefix, plen) : "any",
            hop_count);
 
-    buf[0] = 1;
+    buf[0] = 2;
     if(prefix) {
         buf[1] = plen;
         buf[2] = 0;
