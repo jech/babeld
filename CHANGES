@@ -1,6 +1,7 @@
 babel 0.7 (unreleased)
 
   * Implemented support for IPv4.
+  * Fixed sending of unicast requests.
   * Don't send poison when receiving a request for an unknown route.
   * Basic filtering infrastructure.
 
