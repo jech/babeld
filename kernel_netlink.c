@@ -745,7 +745,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
 static int
 parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
 {
-    int table = RT_TABLE_MAIN;
+    int table = rtm->rtm_table;
     struct rtattr *rta= RTM_RTA(rtm);;
     len -= NLMSG_ALIGN(sizeof(*rtm));
 
@@ -782,6 +782,7 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
 
     if(table != RT_TABLE_MAIN)
         return -1;
+
     return 0;
 }
 
@@ -851,9 +852,6 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
         return 0;
 
     if(rtm->rtm_dst_len > maxplen || rtm->rtm_src_len != 0)
-        return 0;
-
-    if(rtm->rtm_table != RT_TABLE_MAIN)
         return 0;
 
     if(data)
