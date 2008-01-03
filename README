@@ -17,7 +17,7 @@ If compiling for OpenWRT, you will probably want to say something like
   $ make CC=mipsel-linux-gcc PLATFORM_DEFINES='-march=mips32'
 
 
-Setting up a network for use with Babel
+Setting up an IPv6 network for use with Babel
 ***************************************
 
 1. Choose a prefix
@@ -97,5 +97,75 @@ If you find all of this too complicated and error-prone (as I do), you
 may want to consider autoconfiguring your routing domain using AHCP:
 
   http://www.pps.jussieu.fr/~jch/software/ahcp/
+
+
+Setting up an IPv4 network for use with Babel
+*********************************************
+
+1. Choose an IPv4 address for every node
+========================================
+
+Unless you already have a numbering plan in place, you will probably
+want to choose adresses in 192.168.0.0/16:
+
+  IPv4=192.168.19.68
+
+Of course, the IPv4 address for each node must be unique in your network.
+
+2. Set up the interfaces
+=========================
+
+  $ iwconfig eth1 mode ad-hoc channel 11
+  $ iwconfig eth essid "my-wireless-network"
+
+You will need to manually number all of the interfaces that
+participate in IPv4 routing -- unlike IPv6, IPv4 routing doesn't
+support unnumbered interfaces.
+
+  # ip link set eth1 up
+  # ip addr add $IPv4 dev eth1
+
+You don't need to set a netmask -- the default netmask of /32
+(255.255.255.255) is fine for use with Babel.  Also note that you may
+set the same IPv4 address on all interfaces of a given node.
+
+2. Start the routing daemon
+===========================
+
+  # babel -4 -X $IPv4 0 $IPv4 eth1
+
+On a network gateway, you will want to redistribute the default route:
+
+  # babel -4 -X $IPv4 0 -X 0.0.0.0/0 128 $IPv4 eth0 eth1
+
+Note that ``-x'' doesn't work for IPv4 yet; use ``-X'' instead.
+
+
+Setting up a dual-stack network for use with Babel
+**************************************************
+
+Babel is designed to efficiently route both IPv6 and IPv4 at the same
+time; a single route update may contain both IPv6 and IPv4 routes.
+
+On an ordinary node, you will run Babel as
+
+  # babel -4 -X $IPv6 0 -X $IPv4 0 $IPv6 eth1
+
+on an IPv6 gateway,
+
+  # babel -4 -X $IPv6 0 -X $IPv4 0 -x ::/0 128 $IPv6 eth1
+
+on an IPv4 gateway,
+
+  # babel -4 -X $IPv6 0 -X $IPv4 0 -X 0.0.0.0/0 128 $IPv6 eth1
+
+and on a gateway to both the IPv6 and IPv4 Internets,
+
+  # babel -4 -X $IPv6 0 -X $IPv4 0 -x ::/0 128 -X 0.0.0.0/0 128 $IPv6 eth1
+
+If you use ahcpd, you will want to add the following to
+/etc/ahcp/ahcp-babel-options:
+
+  -4 -X 192.168.19.68 0
 
                                         Juliusz Chroboczek
