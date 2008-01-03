@@ -143,7 +143,8 @@ parse_packet(const unsigned char *from, struct network *net,
                 continue;
             net->activity_time = now.tv_sec;
             if(type == 1) {
-                debugf("Received ihu for %s from %s (%s).\n",
+                debugf("Received ihu %d for %s from %s (%s).\n",
+                       metric,
                        format_address(address),
                        format_address(neigh->id),
                        format_address(from));
@@ -822,7 +823,8 @@ send_ihu(struct neighbour *neigh, struct network *net)
 
     if(neigh == NULL) {
         if(broadcast_ihu && net->wired) {
-            debugf("Sending broadcast ihu to %s.\n", net->ifname);
+            debugf("Sending broadcast ihu %d to %s.\n",
+                   net->cost, net->ifname);
             send_message(net, 1, 0xFF, 0, interval, net->cost, ones);
         } else {
             for(i = 0; i < numneighs; i++) {
@@ -841,12 +843,14 @@ send_ihu(struct neighbour *neigh, struct network *net)
 
         net = neigh->network;
 
-        debugf("Sending ihu on %s to %s (%s).\n",
+        rxcost = neighbour_rxcost(neigh);
+
+        debugf("Sending ihu %d on %s to %s (%s).\n",
+               rxcost,
                neigh->network->ifname,
                format_address(neigh->id),
                format_address(neigh->address));
 
-        rxcost = neighbour_rxcost(neigh);
         send_message(net, 1, 128, 0, interval, rxcost, neigh->id);
     }
 }
