@@ -36,7 +36,8 @@ int timeval_compare(const struct timeval *s1, const struct timeval *s2)
     ATTRIBUTE ((pure));
 void timeval_min(struct timeval *d, const struct timeval *s);
 void timeval_min_sec(struct timeval *d, int secs);
-void do_debugf(const char *format, ...) ATTRIBUTE ((format (printf, 1, 2)));
+void do_debugf(int leve, const char *format, ...)
+    ATTRIBUTE ((format (printf, 2, 3)));
 int in_prefix(const unsigned char *address,
               const unsigned char *prefix, unsigned char plen)
     ATTRIBUTE ((pure));
@@ -58,12 +59,20 @@ void v4tov6(unsigned char *dst, const unsigned char *src);
 #if defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L
 #define debugf(...) \
     do { \
-        if(debug >= 2) do_debugf(__VA_ARGS__); \
+        if(debug >= 2) do_debugf(2, __VA_ARGS__);        \
+    } while(0)
+#define kdebugf(...) \
+    do { \
+        if(debug >= 3) do_debugf(3, __VA_ARGS__);        \
     } while(0)
 #elif defined(__GNUC__)
 #define debugf(_args...) \
     do { \
-        if(debug >= 2) do_debugf(_args); \
+        if(debug >= 2) do_debugf(2, _args);      \
+    } while(0)
+#define kdebugf(_args...) \
+    do { \
+        if(debug >= 3) do_debugf(3, _args);      \
     } while(0)
 #else
 #define debugf do_debugf

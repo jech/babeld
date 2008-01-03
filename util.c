@@ -133,11 +133,11 @@ timeval_min_sec(struct timeval *d, int secs)
 }
 
 void
-do_debugf(const char *format, ...)
+do_debugf(int level, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
-    if(debug >= 2)
+    if(debug >= level)
         vfprintf(stderr, format, args);
     va_end(args);
     fflush(stderr);
