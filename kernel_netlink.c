@@ -860,9 +860,6 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
     if(rtm->rtm_protocol == RTPROT_BOOT || rtm->rtm_protocol == RTPROT_BABEL)
         return 0;
 
-    if(rtm->rtm_scope >= RT_SCOPE_LINK)
-        return 0;
-
     if(rtm->rtm_src_len != 0)
         return 0;
 
