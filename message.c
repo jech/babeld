@@ -45,7 +45,6 @@ const unsigned char packet_header[8] = {42, 1};
 int add_cost = 0;
 int parasitic = 0;
 int silent_time = 30;
-int broadcast_ihu = 0;
 int split_horizon = 1;
 
 unsigned short myseqno = 0;
@@ -143,11 +142,11 @@ parse_packet(const unsigned char *from, struct network *net,
                 continue;
             net->activity_time = now.tv_sec;
             if(type == 1) {
-                debugf("Received ihu %d for %s from %s (%s).\n",
+                debugf("Received ihu %d for %s from %s (%s) %d.\n",
                        metric,
                        format_address(address),
                        format_address(neigh->id),
-                       format_address(from));
+                       format_address(from), seqno);
                 if(plen == 0xFF || memcmp(myid, address, 16) == 0) {
                     neigh->txcost = metric;
                     neigh->ihu_time = now;
@@ -816,22 +815,11 @@ send_ihu(struct neighbour *neigh, struct network *net)
         return;
     }
 
-    if(net && net->ihu_interval * 100 <= 0xFFFF)
-        interval = net->ihu_interval * 100;
-    else
-        interval = 0;
-
     if(neigh == NULL) {
-        if(broadcast_ihu && net->wired) {
-            debugf("Sending broadcast ihu %d to %s.\n",
-                   net->cost, net->ifname);
-            send_message(net, 1, 0xFF, 0, interval, net->cost, ones);
-        } else {
-            for(i = 0; i < numneighs; i++) {
-                if(neighs[i].id[0] != 0xFF) {
-                    if(neighs[i].network == net)
-                        send_ihu(&neighs[i], net);
-                }
+        for(i = 0; i < numneighs; i++) {
+            if(neighs[i].id[0] != 0xFF) {
+                if(neighs[i].network == net)
+                    send_ihu(&neighs[i], net);
             }
         }
         net->ihu_time = now.tv_sec;
@@ -844,6 +832,11 @@ send_ihu(struct neighbour *neigh, struct network *net)
         net = neigh->network;
 
         rxcost = neighbour_rxcost(neigh);
+
+        if(net->ihu_interval * 100 <= 0xFFFF)
+            interval = net->ihu_interval * 100;
+        else
+            interval = 0;
 
         debugf("Sending ihu %d on %s to %s (%s).\n",
                rxcost,

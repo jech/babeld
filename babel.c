@@ -184,8 +184,6 @@ main(int argc, char **argv)
                 goto syntax;
         } else if(strcmp(*arg, "-s") == 0) {
             split_horizon = 0;
-        } else if(strcmp(*arg, "-b") == 0) {
-            broadcast_ihu = 1;
         } else if(strcmp(*arg, "-S") == 0) {
             SHIFTE();
             state_file = *arg;
