@@ -40,6 +40,10 @@ THE SOFTWARE.
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 
+#if (__GLIBC__ < 2) || (__GLIBC__ == 2 && __GLIBC_MINOR__ <= 5)
+#define RTA_TABLE 15
+#endif
+
 #include "babel.h"
 #include "kernel.h"
 #include "util.h"
@@ -767,11 +771,9 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
             if(route->metric < 0 || route->metric > KERNEL_INFINITY)
                 route->metric = KERNEL_INFINITY;
             break;
-#ifdef RTA_TABLE
        case RTA_TABLE:
             table = *(int*)RTA_DATA(rta);
             break;
-#endif
         default:
             break;
         }
