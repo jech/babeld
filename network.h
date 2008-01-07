@@ -21,6 +21,7 @@ THE SOFTWARE.
 */
 
 struct network {
+    int up;
     unsigned int ifindex;
     int wired;
     unsigned short cost;
