@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include "babel.h"
 #include "util.h"
 #include "kernel.h"
+#include "network.h"
 #include "source.h"
 #include "neighbour.h"
 #include "route.h"

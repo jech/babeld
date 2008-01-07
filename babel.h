@@ -60,37 +60,14 @@ THE SOFTWARE.
 #endif
 #endif
 
-struct network {
-    unsigned int ifindex;
-    int wired;
-    unsigned short cost;
-    int hello_time;
-    int self_update_time;
-    int update_time;
-    int ihu_time;
-    char ifname[IF_NAMESIZE];
-    unsigned char *ipv4;
-    int buffered;
-    struct timeval flush_time;
-    int bufsize;
-    unsigned char *sendbuf;
-    int bucket_time;
-    unsigned int bucket;
-    int activity_time;
-    unsigned short hello_seqno;
-    unsigned int hello_interval;
-    unsigned int self_update_interval;
-    unsigned int ihu_interval;
-};
-
 extern struct timeval now;
 extern int debug;
 extern int reboot_time;
+extern int do_ipv4;
+extern int wireless_hello_interval, wired_hello_interval, idle_hello_interval;
+extern int idle_time;
 
 extern unsigned char myid[16];
-
-extern struct network nets[MAXNETS];
-extern int numnets;
 
 extern const unsigned char zeroes[16], ones[16];
 
@@ -99,9 +76,3 @@ extern unsigned char protocol_group[16];
 extern int protocol_socket;
 extern int kernel_socket;
 extern int max_request_hopcount;
-
-int network_idle(struct network *net);
-int update_hello_interval(struct network *net);
-unsigned int jitter(struct network *net);
-unsigned int update_jitter(struct network *net, int urgent);
-
