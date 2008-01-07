@@ -136,3 +136,16 @@ update_jitter(struct network *net, int urgent)
         interval = MIN(interval, 100);
     return (interval / 2 + random() % interval);
 }
+
+void
+check_networks(void)
+{
+    int i, rc;
+    for(i = 0; i < numnets; i++) {
+        rc = kernel_interface_operational(nets[i].ifname, nets[i].ifindex);
+        if(rc != nets[i].up) {
+            debugf("Noticed status change for %s.\n", nets[i].ifname);
+            nets[i].up = rc;
+        }
+    }
+}
