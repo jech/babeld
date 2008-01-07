@@ -223,7 +223,17 @@ kernel_setup_interface(int setup, const char *ifname, int ifindex)
 int
 kernel_interface_operational(const char *ifname, int ifindex)
 {
-    return 1;
+    struct ifreq req;
+    int rc;
+    int flags = link_detect ? (IFF_UP | IFF_RUNNING) : IFF_UP;
+
+    memset(&req, 0, sizeof(req));
+    memset(&req, 0, sizeof(req));
+    strncpy(req.ifr_name, ifname, sizeof(req.ifr_name));
+    rc = ioctl(dgram_socket, SIOCGIFFLAGS, &req);
+    if(rc < 0)
+        return -1;
+    return ((req.ifr_flags & flags) == flags);
 }
 
 int
