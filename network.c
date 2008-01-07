@@ -141,8 +141,26 @@ update_jitter(struct network *net, int urgent)
 void
 check_networks(void)
 {
-    int i, rc;
+    int i, rc, changed;
+    unsigned char ipv4[4];
+
     for(i = 0; i < numnets; i++) {
+        rc = kernel_interface_ipv4(nets[i].ifname, nets[i].ifindex, ipv4);
+        if(rc > 0) {
+            if(!nets[i].ipv4 || memcmp(ipv4, nets[i].ipv4, 4) != 0) {
+                if(!nets[i].ipv4)
+                    nets[i].ipv4 = malloc(4);
+                if(nets[i].ipv4)
+                    memcpy(nets[i].ipv4, ipv4, 4);
+                changed = 1;
+            }
+        } else {
+            if(nets[i].ipv4) {
+                free(nets[i].ipv4);
+                nets[i].ipv4 = NULL;
+                changed = 1;
+            }
+        }
         rc = kernel_interface_operational(nets[i].ifname, nets[i].ifindex);
         if((rc > 0) != nets[i].up) {
             debugf("Noticed status change for %s.\n", nets[i].ifname);
@@ -153,6 +171,10 @@ check_networks(void)
             } else {
                 flush_network_routes(&nets[i]);
             }
+        }
+        if(changed) {
+            if(nets[i].up)
+                send_update(&nets[i], 0, NULL, 0);
         }
     }
 }
