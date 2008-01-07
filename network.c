@@ -141,7 +141,7 @@ update_jitter(struct network *net, int urgent)
 void
 check_networks(void)
 {
-    int i, rc, changed;
+    int i, rc, changed = 0;
     unsigned char ipv4[4];
 
     for(i = 0; i < numnets; i++) {
