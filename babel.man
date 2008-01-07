@@ -67,6 +67,9 @@ participates in multiple routing protocols.  The default is 0.
 Participate in IPv4 routing.  IPv4 forwarding will happen on all
 interfaces that have been assigned an IPv4 address.
 .TP
+.B \-l
+Use IFF_RUNNING (carrier sense) when determining interface availability.
+.TP
 .B \-s
 Do not perform split-horizon processing on wired interfaces.
 Split-horizon is never performed on wireless interfaces.
