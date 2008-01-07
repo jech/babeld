@@ -31,6 +31,9 @@ THE SOFTWARE.
 #include "neighbour.h"
 #include "message.h"
 
+struct network nets[MAXNETS];
+int numnets = 0;
+
 struct network *
 add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
 {

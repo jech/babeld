@@ -67,9 +67,6 @@ int wired_hello_interval = -1;
 int idle_hello_interval = -1;
 int update_interval = -1;
 
-struct network nets[MAXNETS];
-int numnets = 0;
-
 const unsigned char zeroes[16] = {0};
 const unsigned char ones[16] =
     {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
