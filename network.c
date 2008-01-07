@@ -47,7 +47,7 @@ add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
     }
 
     memset(nets + numnets, 0, sizeof(struct network));
-    nets[numnets].up = kernel_interface_operational(ifname, ifindex);
+    nets[numnets].up = (kernel_interface_operational(ifname, ifindex) > 0);
     nets[numnets].ifindex = ifindex;
     nets[numnets].ipv4 = NULL;
     if(do_ipv4) {
@@ -143,9 +143,9 @@ check_networks(void)
     int i, rc;
     for(i = 0; i < numnets; i++) {
         rc = kernel_interface_operational(nets[i].ifname, nets[i].ifindex);
-        if(rc != nets[i].up) {
+        if((rc > 0) != nets[i].up) {
             debugf("Noticed status change for %s.\n", nets[i].ifname);
-            nets[i].up = rc;
+            nets[i].up = (rc > 0);
         }
     }
 }
