@@ -44,6 +44,7 @@ struct route *find_installed_route(const unsigned char *prefix,
                                    unsigned char plen);
 void flush_route(struct route *route);
 void flush_neighbour_routes(struct neighbour *neigh);
+void flush_network_routes(struct network *net);
 unsigned int metric_to_kernel(int metric);
 void install_route(struct route *route);
 void uninstall_route(struct route *route);
