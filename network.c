@@ -30,6 +30,7 @@ THE SOFTWARE.
 #include "network.h"
 #include "neighbour.h"
 #include "message.h"
+#include "route.h"
 
 struct network nets[MAXNETS];
 int numnets = 0;
@@ -146,6 +147,12 @@ check_networks(void)
         if((rc > 0) != nets[i].up) {
             debugf("Noticed status change for %s.\n", nets[i].ifname);
             nets[i].up = (rc > 0);
+            if(rc > 0) {
+                send_self_update(&nets[i], 0);
+                send_request(&nets[i], NULL, 0, 0, 0, 0);
+            } else {
+                flush_network_routes(&nets[i]);
+            }
         }
     }
 }
