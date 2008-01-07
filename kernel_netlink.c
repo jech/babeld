@@ -53,6 +53,8 @@ static int old_ipv4_forwarding = -1;
 static int old_accept_redirects = -1;
 static int old_rp_filter = -1;
 
+static int dgram_socket = -1;
+
 static int
 read_proc(char *filename)
 {
@@ -389,6 +391,10 @@ kernel_setup(int setup, int ipv4)
     int rc;
 
     if(setup) {
+        dgram_socket = socket(PF_INET, SOCK_DGRAM, 0);
+        if(dgram_socket < 0)
+            return -1;
+
         rc = netlink_socket(&nl_command, 0);
         if(rc < 0) {
             perror("netlink_socket(0)");
@@ -452,6 +458,9 @@ kernel_setup(int setup, int ipv4)
 
         return 1;
     } else {
+        close(dgram_socket);
+        dgram_socket = -1;
+
         if(old_forwarding >= 0) {
             rc = write_proc("/proc/sys/net/ipv6/conf/all/forwarding",
                             old_forwarding);
@@ -541,20 +550,14 @@ int
 kernel_interface_ipv4(const char *ifname, int ifindex, char *addr_r)
 {
     struct ifreq req;
-    int s, rc;
-
-    s = socket(PF_INET, SOCK_DGRAM, 0);
-    if(s < 0)
-        return -1;
+    int rc;
 
     memset(&req, 0, sizeof(req));
     strncpy(req.ifr_name, ifname, sizeof(req.ifr_name));
     req.ifr_addr.sa_family = AF_INET;
-    rc = ioctl(s, SIOCGIFADDR, &req);
-    if(rc < 0) {
-        close(s);
+    rc = ioctl(dgram_socket, SIOCGIFADDR, &req);
+    if(rc < 0)
         return -1;
-    }
 
     memcpy(addr_r, &((struct sockaddr_in*)&req.ifr_addr)->sin_addr, 4);
     return 1;
@@ -564,19 +567,13 @@ int
 kernel_interface_mtu(const char *ifname, int ifindex)
 {
     struct ifreq req;
-    int s, rc;
-
-    s = socket(PF_INET, SOCK_DGRAM, 0);
-    if(s < 0)
-        return -1;
+    int rc;
 
     memset(&req, 0, sizeof(req));
     strncpy(req.ifr_name, ifname, sizeof(req.ifr_name));
-    rc = ioctl(s, SIOCGIFMTU, &req);
-    if(rc < 0) {
-        close(s);
+    rc = ioctl(dgram_socket, SIOCGIFMTU, &req);
+    if(rc < 0)
         return -1;
-    }
 
     return req.ifr_mtu;
 }
@@ -588,15 +585,11 @@ kernel_interface_wireless(const char *ifname, int ifindex)
 #define SIOCGIWNAME 0x8B01
 #endif
     struct ifreq req;
-    int s, rc;
-
-    s = socket(PF_INET, SOCK_DGRAM, 0);
-    if(s < 0)
-        return -1;
+    int rc;
 
     memset(&req, 0, sizeof(req));
     strncpy(req.ifr_name, ifname, sizeof(req.ifr_name));
-    rc = ioctl(s, SIOCGIWNAME, &req);
+    rc = ioctl(dgram_socket, SIOCGIWNAME, &req);
     if(rc < 0) {
         if(errno == EOPNOTSUPP || errno == EINVAL)
             rc = 0;
@@ -607,7 +600,6 @@ kernel_interface_wireless(const char *ifname, int ifindex)
     } else {
         rc = 1;
     }
-    close(s);
     return rc;
 }
 
