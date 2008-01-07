@@ -1,7 +1,7 @@
 babel 0.8 (unreleased)
 
   * Babel will now automatically check for interfaces' up/down status,
-    and optionally for carrier sense.
+    IPv4 address, and optionally for carrier sense.
 
 3 January 2008: babel 0.7
 
