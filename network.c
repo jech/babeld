@@ -39,7 +39,7 @@ struct network *
 add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
 {
     void *p;
-    char ipv4[4];
+    unsigned char ipv4[4];
     int rc;
 
     if(numnets >= MAXNETS) {

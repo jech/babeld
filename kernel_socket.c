@@ -227,7 +227,7 @@ kernel_interface_operational(const char *ifname, int ifindex)
 }
 
 int
-kernel_interface_ipv4(const char *ifname, int ifindex, char *addr_r)
+kernel_interface_ipv4(const char *ifname, int ifindex, unsigned char *addr_r)
 {
     struct ifreq req;
     int s, rc;
