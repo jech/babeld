@@ -506,6 +506,7 @@ main(int argc, char **argv)
         if(now.tv_sec >= expiry_time) {
             expire_routes();
             expire_requests();
+            check_networks();
             expiry_time = now.tv_sec + 20 + random() % 20;
         }
 
