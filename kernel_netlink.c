@@ -532,6 +532,12 @@ kernel_setup_interface(int setup, const char *ifname, int ifindex)
 }
 
 int
+kernel_interface_operational(const char *ifname, int ifindex)
+{
+    return 1;
+}
+
+int
 kernel_interface_ipv4(const char *ifname, int ifindex, char *addr_r)
 {
     struct ifreq req;
