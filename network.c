@@ -145,7 +145,9 @@ check_networks(void)
     unsigned char ipv4[4];
 
     for(i = 0; i < numnets; i++) {
-        rc = kernel_interface_ipv4(nets[i].ifname, nets[i].ifindex, ipv4);
+        rc = do_ipv4 ?
+            kernel_interface_ipv4(nets[i].ifname, nets[i].ifindex, ipv4) :
+            0;
         if(rc > 0) {
             if(!nets[i].ipv4 || memcmp(ipv4, nets[i].ipv4, 4) != 0) {
                 if(!nets[i].ipv4)
