@@ -386,6 +386,8 @@ main(int argc, char **argv)
 
     /* Make some noise so that others notice us */
     for(i = 0; i < numnets; i++) {
+        if(!nets[i].up)
+            continue;
         gettimeofday(&now, NULL);
         send_hello(&nets[i]);
         send_request(&nets[i], NULL, 0, 0, 0, 0);
@@ -394,6 +396,8 @@ main(int argc, char **argv)
     }
 
     for(i = 0; i < numnets; i++) {
+        if(!nets[i].up)
+            continue;
         gettimeofday(&now, NULL);
         send_hello(&nets[i]);
         send_self_update(&nets[i], 0);
@@ -415,6 +419,8 @@ main(int argc, char **argv)
         if(request_resend_time)
             timeval_min_sec(&tv, request_resend_time);
         for(i = 0; i < numnets; i++) {
+            if(!nets[i].up)
+                continue;
             timeval_min(&tv, &nets[i].flush_time);
             timeval_min_sec(&tv,
                             nets[i].hello_time + nets[i].hello_interval);
@@ -464,6 +470,8 @@ main(int argc, char **argv)
                 }
             } else {
                 for(i = 0; i < numnets; i++) {
+                    if(!nets[i].up)
+                        continue;
                     if(nets[i].ifindex == sin6.sin6_scope_id) {
                         parse_packet((unsigned char*)&sin6.sin6_addr, &nets[i],
                                      buf, rc);
@@ -502,6 +510,8 @@ main(int argc, char **argv)
         }
 
         for(i = 0; i < numnets; i++) {
+            if(!nets[i].up)
+                continue;
             if(now.tv_sec >= nets[i].hello_time + nets[i].hello_interval)
                 send_hello(&nets[i]);
             if(now.tv_sec >= nets[i].ihu_time + nets[i].ihu_interval)
@@ -525,6 +535,8 @@ main(int argc, char **argv)
         }
 
         for(i = 0; i < numnets; i++) {
+            if(!nets[i].up)
+                continue;
             if(nets[i].flush_time.tv_sec != 0) {
                 if(timeval_compare(&now, &nets[i].flush_time) >= 0)
                     flushbuf(&nets[i]);
@@ -546,6 +558,8 @@ main(int argc, char **argv)
         }
     }
     for(i = 0; i < numnets; i++) {
+        if(!nets[i].up)
+            continue;
         /* Retract exported routes. */
         send_self_retract(&nets[i]);
         /* Make sure that we expire quickly from our neighbours'
@@ -556,6 +570,8 @@ main(int argc, char **argv)
         usleep(50000 + random() % 100000);
     }
     for(i = 0; i < numnets; i++) {
+        if(!nets[i].up)
+            continue;
         /* Make sure they got it. */
         send_self_retract(&nets[i]);
         send_hello_noupdate(&nets[i], 1);
@@ -605,8 +621,11 @@ main(int argc, char **argv)
     exit(1);
 
  fail:
-    for(i = 0; i < numnets; i++)
+    for(i = 0; i < numnets; i++) {
+        if(!nets[i].up)
+            continue;
         kernel_setup_interface(0, nets[i].ifname, nets[i].ifindex);
+    }
     kernel_setup_socket(0);
     kernel_setup(0, do_ipv4);
     exit(1);
