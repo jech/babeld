@@ -61,7 +61,7 @@ static int maxmtu;
 int reboot_time;
 
 int idle_time = 320;
-
+int link_detect = 0;
 int wireless_hello_interval = -1;
 int wired_hello_interval = -1;
 int idle_hello_interval = -1;
@@ -188,6 +188,8 @@ main(int argc, char **argv)
             debug = atoi(*arg);
         } else if(strcmp(*arg, "-4") == 0) {
             do_ipv4 = 1;
+        } else if(strcmp(*arg, "-l") == 0) {
+            link_detect = 1;
         } else {
             goto syntax;
         }

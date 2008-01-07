@@ -66,6 +66,7 @@ extern int reboot_time;
 extern int do_ipv4;
 extern int wireless_hello_interval, wired_hello_interval, idle_hello_interval;
 extern int idle_time;
+extern int link_detect;
 
 extern unsigned char myid[16];
 

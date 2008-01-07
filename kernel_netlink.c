@@ -545,6 +545,7 @@ kernel_interface_operational(const char *ifname, int ifindex)
 {
     struct ifreq req;
     int rc;
+    int flags = link_detect ? (IFF_UP | IFF_RUNNING) : IFF_UP;
 
     memset(&req, 0, sizeof(req));
     memset(&req, 0, sizeof(req));
@@ -552,7 +553,7 @@ kernel_interface_operational(const char *ifname, int ifindex)
     rc = ioctl(dgram_socket, SIOCGIFFLAGS, &req);
     if(rc < 0)
         return -1;
-    return ((req.ifr_flags & IFF_UP) != 0);
+    return ((req.ifr_flags & flags) == flags);
 }
 
 int
