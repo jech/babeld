@@ -47,7 +47,7 @@ add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
     }
 
     memset(nets + numnets, 0, sizeof(struct network));
-    nets[numnets].up = 1;
+    nets[numnets].up = kernel_interface_operational(ifname, ifindex);
     nets[numnets].ifindex = ifindex;
     nets[numnets].ipv4 = NULL;
     if(do_ipv4) {
