@@ -126,6 +126,7 @@ unsigned int
 jitter(struct network *net)
 {
     unsigned interval = net->hello_interval * 1000;
+    interval = MIN(interval, 2000);
     return (interval / 2 + random() % interval) / 4;
 }
 
@@ -135,6 +136,8 @@ update_jitter(struct network *net, int urgent)
     unsigned interval = net->hello_interval * 1000;
     if(urgent)
         interval = MIN(interval, 100);
+    else
+        interval = MIN(interval, 4000);
     return (interval / 2 + random() % interval);
 }
 
