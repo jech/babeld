@@ -70,6 +70,9 @@ interfaces that have been assigned an IPv4 address.
 .B \-l
 Use IFF_RUNNING (carrier sense) when determining interface availability.
 .TP
+-B \-w
+Don't optimise wired links, assume all interfaces are wireless.
+.TP
 .B \-s
 Do not perform split-horizon processing on wired interfaces.
 Split-horizon is never performed on wireless interfaces.
@@ -151,14 +154,14 @@ On an access point, you'll probably want to redistribute the default route:
 By default, the daemon optimises traffic on wired interfaces by
 sending fewer scheduled hello messages and performing split-horizon
 processing.  These optimisations can be disabled by using the
-.B -H
+.B \-H
 and
-.B -s
+.B \-s
 options respectively.
 
 By default, detection of asymmetric links is performed on wired
 interfaces just like on wireless ones.  By specifying the
-.B -b
+.B \-b
 option, reverse reachability information will not be sent on wired
 links, which will disable detection of asymmetric links for all wired
 peers, at the benefit of a very slight decrease in traffic.  This is
@@ -166,7 +169,10 @@ not recommended.
 
 No link cost estimation is ever performed on wired interfaces: a wired
 adjacency is assumed to be up if at least two of the last three hello
-messages have been received, and down otherwise.
+messages have been received, and down otherwise.  This can be disabled
+by using the
+.B \-w
+flag.
 .SH FILES
 .TP
 .B /var/lib/babel-state
