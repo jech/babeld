@@ -62,6 +62,7 @@ int reboot_time;
 
 int idle_time = 320;
 int link_detect = 0;
+int all_wireless = 0;
 int wireless_hello_interval = -1;
 int wired_hello_interval = -1;
 int idle_hello_interval = -1;
@@ -190,6 +191,8 @@ main(int argc, char **argv)
             do_ipv4 = 1;
         } else if(strcmp(*arg, "-l") == 0) {
             link_detect = 1;
+        } else if(strcmp(*arg, "-w") == 0) {
+            all_wireless = 1;
         } else {
             goto syntax;
         }
@@ -357,13 +360,17 @@ main(int argc, char **argv)
         /* 40 for IPv6 header, 8 for UDP header, 12 for good luck. */
         mtu -= 60;
 
-        rc = kernel_interface_wireless(*arg, ifindex);
-        if(rc < 0) {
-            fprintf(stderr,
-                    "Warning: "
-                    "couldn't determine whether %s is a wireless interface.\n",
-                    *arg);
+        if(all_wireless) {
             rc = 1;
+        } else {
+            rc = kernel_interface_wireless(*arg, ifindex);
+            if(rc < 0) {
+                fprintf(stderr,
+                        "Warning: couldn't determine whether %s "
+                        "is a wireless interface.\n",
+                        *arg);
+                rc = 1;
+            }
         }
         debugf("Adding %s network %s (%d).\n",
                rc ? "wireless" : "wired", *arg, ifindex);
@@ -617,7 +624,7 @@ main(int argc, char **argv)
             "                "
             "[-h hello] [-H wired_hello] [-i idle_hello]\n"
             "                "
-            "[-u update] [-k metric] [-4] [-s] [-P] [-c cost]\n"
+            "[-u update] [-k metric] [-4] [-s] [-P] [-c cost] [-l] [-w]\n"
             "                "
             "[-d level] [-x net cost] [-X net cost]... id interface...\n",
             argv[0]);
