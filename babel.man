@@ -70,7 +70,7 @@ interfaces that have been assigned an IPv4 address.
 .B \-l
 Use IFF_RUNNING (carrier sense) when determining interface availability.
 .TP
--B \-w
+.B \-w
 Don't optimise wired links, assume all interfaces are wireless.
 .TP
 .B \-s
