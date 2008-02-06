@@ -2,6 +2,8 @@ babel 0.8 (unreleased)
 
   * Babel will now automatically check for interfaces' up/down status,
     IPv4 address, and optionally for carrier sense.
+  * Implemented the -w option, which disables all optimisations for
+    wired interfaces.
 
 3 January 2008: babel 0.7
 
