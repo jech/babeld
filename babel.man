@@ -172,7 +172,7 @@ adjacency is assumed to be up if at least two of the last three hello
 messages have been received, and down otherwise.  This can be disabled
 by using the
 .B \-w
-flag.
+flag, which is recommended if you are running Babel over bridge interfaces.
 .SH FILES
 .TP
 .B /var/lib/babel-state
