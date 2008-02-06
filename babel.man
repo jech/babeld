@@ -133,7 +133,7 @@ be one of your node's IPv6 addresses, and suppose that
 is a wireless interface.  You can participate in a Babel mesh network
 by simply running
 .IP
-# babel -X $IPv6 0 $IPv6 eth1
+# babel \-X $IPv6 0 $IPv6 eth1
 .PP
 
 In order to gateway between multiple interfaces, just list them all on
@@ -144,11 +144,11 @@ the command line:
 If you wish to be reachable by all of your IPv6 addresses, just inject
 them into the routing domain as zero-cost external routes:
 .IP
-# babel -X $otherIPv6 0 $IPv6 eth1
+# babel \-X $otherIPv6 0 $IPv6 eth1
 .PP
 On an access point, you'll probably want to redistribute the default route:
 .IP
-# babel -x ::/0 256 $IPv6 eth1
+# babel \-x ::/0 256 $IPv6 eth1
 .PP
 .SH WIRED INTERFACES
 By default, the daemon optimises traffic on wired interfaces by
@@ -175,7 +175,7 @@ by using the
 flag, which is recommended if you are running Babel over bridge interfaces.
 .SH FILES
 .TP
-.B /var/lib/babel-state
+.B /var/lib/babel\-state
 The default location of the file storing long-term state.
 .SH SIGNALS
 .TP
