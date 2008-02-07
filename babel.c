@@ -193,6 +193,16 @@ main(int argc, char **argv)
             link_detect = 1;
         } else if(strcmp(*arg, "-w") == 0) {
             all_wireless = 1;
+        } else if(strcmp(*arg, "-t") == 0) {
+            SHIFTE();
+            export_table = atoi(*arg);
+            if(export_table < 0 || export_table > 0xFFFF)
+                goto syntax;
+        } else if(strcmp(*arg, "-T") == 0) {
+            SHIFTE();
+            import_table = atoi(*arg);
+            if(import_table < 0 || import_table > 0xFFFF)
+                goto syntax;
         } else {
             goto syntax;
         }
@@ -626,7 +636,9 @@ main(int argc, char **argv)
             "                "
             "[-u update] [-k metric] [-4] [-s] [-P] [-c cost] [-l] [-w]\n"
             "                "
-            "[-d level] [-x net cost] [-X net cost]... id interface...\n",
+            "[-d level] [-t table] [-T table] [-x net cost] [-X net cost]\n"
+            "                "
+            "id interface...\n",
             argv[0]);
     exit(1);
 

@@ -48,6 +48,8 @@ THE SOFTWARE.
 #include "kernel.h"
 #include "util.h"
 
+int export_table = -1, import_table = -1;
+
 static int old_forwarding = -1;
 static int old_ipv4_forwarding = -1;
 static int old_accept_redirects = -1;
@@ -391,6 +393,12 @@ kernel_setup(int setup, int ipv4)
     int rc;
 
     if(setup) {
+        if(export_table < 0)
+            export_table = RT_TABLE_MAIN;
+
+        if(import_table < 0)
+            import_table = RT_TABLE_MAIN;
+
         dgram_socket = socket(PF_INET, SOCK_DGRAM, 0);
         if(dgram_socket < 0)
             return -1;
@@ -697,7 +705,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     rtm = NLMSG_DATA(&buf.nh);
     rtm->rtm_family = ipv4 ? AF_INET : AF_INET6;
     rtm->rtm_dst_len = ipv4 ? plen - 96 : plen;
-    rtm->rtm_table = RT_TABLE_MAIN;
+    rtm->rtm_table = export_table;
     rtm->rtm_scope = RT_SCOPE_UNIVERSE;
     if(metric < KERNEL_INFINITY)
         rtm->rtm_type = RTN_UNICAST;
@@ -800,7 +808,7 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
     }
 #undef COPY_ADDR
 
-    if(table != RT_TABLE_MAIN)
+    if(table != import_table)
         return -1;
 
     return 0;

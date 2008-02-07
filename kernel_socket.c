@@ -45,6 +45,8 @@ THE SOFTWARE.
 #include "kernel.h"
 #include "util.h"
 
+int export_table = -1, import_table = -1;
+
 /* KAME said : "Following two macros are highly depending on KAME Release" */
 #define	IN6_LINKLOCAL_IFINDEX(a)  ((a).s6_addr[2] << 8 | (a).s6_addr[3])
 #define SET_IN6_LINKLOCAL_IFINDEX(a, i)         \
