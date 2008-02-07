@@ -671,14 +671,30 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         if(newmetric == metric && memcmp(newgate, gate, 16) == 0 &&
            newifindex == ifindex)
             return 0;
-        rc = kernel_route(ROUTE_ADD, dest, plen, newgate, newifindex, newmetric,
-                          NULL, 0, 0);
-        if(rc < 0 && errno != EEXIST)
-            return rc;
-        rc = kernel_route(ROUTE_FLUSH, dest, plen, gate, ifindex, metric,
-                          NULL, 0, 0);
-        if(rc < 0 && (errno == ENOENT || errno == ESRCH))
-            rc = 1;
+        /* It is better to add the new route before removing the old
+           one, to avoid losing packets.  However, this only appears
+           to work if the metrics are different. */
+        if(newmetric != metric) {
+            rc = kernel_route(ROUTE_ADD, dest, plen,
+                              newgate, newifindex, newmetric,
+                              NULL, 0, 0);
+            if(rc < 0 && errno != EEXIST)
+                return rc;
+            rc = kernel_route(ROUTE_FLUSH, dest, plen,
+                              gate, ifindex, metric,
+                              NULL, 0, 0);
+            if(rc < 0 && (errno == ENOENT || errno == ESRCH))
+                rc = 1;
+        } else {
+            rc = kernel_route(ROUTE_FLUSH, dest, plen,
+                              gate, ifindex, metric,
+                              NULL, 0, 0);
+            rc = kernel_route(ROUTE_ADD, dest, plen,
+                              newgate, newifindex, newmetric,
+                              NULL, 0, 0);
+            if(rc < 0 && errno == EEXIST)
+                rc = 1;
+        }
         return rc;
     }
 
