@@ -4,6 +4,7 @@ babel 0.8 (unreleased)
     IPv4 address, and optionally for carrier sense.
   * Implemented the -w option, which disables all optimisations for
     wired interfaces.
+  * Implemented support for non-default routing tables.
 
 3 January 2008: babel 0.7
 
