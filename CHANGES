@@ -5,6 +5,8 @@ babel 0.8 (unreleased)
   * Implemented the -w option, which disables all optimisations for
     wired interfaces.
   * Implemented support for non-default routing tables.
+  * Fixed a bug that could spuriously remove IPv4 routes (thanks to
+    Julien Cristau).
 
 3 January 2008: babel 0.7
 
