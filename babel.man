@@ -119,6 +119,12 @@ advertising the local addresses of this machine.  Use of this option
 for any other purpose is discouraged, as it can cause persistent
 routing loops.
 .TP
+.BI \-t " table"
+Use the given kernel routing table for routes inserted by Babel.
+.TP
+.BI \-T " table"
+Export routes from the given kernel routing table.
+.TP
 .I id
 The router-id of this daemon.  This should normally be an IPv6 address
 of this machine, but can be any unique 128-bit string.
