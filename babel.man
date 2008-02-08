@@ -175,10 +175,12 @@ not recommended.
 
 No link cost estimation is ever performed on wired interfaces: a wired
 adjacency is assumed to be up if at least two of the last three hello
-messages have been received, and down otherwise.  This can be disabled
-by using the
+messages have been received, and down otherwise.
+
+All of these optimisations can be disabled by using the
 .B \-w
-flag, which is recommended if you are running Babel over bridge interfaces.
+flag.  This is recommended if you are running Babel over bridge
+interfaces, since such interfaces will be detected as wired interfaces.
 .SH FILES
 .TP
 .B /var/lib/babel\-state
