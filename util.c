@@ -317,7 +317,10 @@ martian_prefix(const unsigned char *prefix, int plen)
     return
         (plen >= 8 && prefix[0] == 0xFF) ||
         (plen >= 10 && prefix[0] == 0xFE && (prefix[1] & 0xC0) == 0x80) ||
-        (plen >= 128 && memcmp(prefix, zeroes, 16) == 0);
+        (plen >= 128 && memcmp(prefix, zeroes, 16) == 0) ||
+        (plen >= 96 && v4mapped(prefix) &&
+         (prefix[12] == 127 || prefix[12] == 0 ||
+          (prefix[12] & 0xF0) == 0xF0 || (prefix[12] & 0xF0) == 0xE0));
 }
 
 int
