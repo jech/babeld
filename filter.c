@@ -224,6 +224,7 @@ parse_filter(gnc_t gnc, void *closure)
         } else if(strcmp(token, "metric") == 0) {
             int metric;
             c = getint(c, &metric, gnc, closure);
+            if(c < -1) goto error;
             if(metric <= 0 || metric > INFINITY)
                 goto error;
             filter->result = metric;
