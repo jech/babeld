@@ -210,7 +210,7 @@ format_prefix(const unsigned char *prefix, unsigned char plen)
 }
 
 int
-parse_address(const char *address, unsigned char *addr_r)
+parse_address(const char *address, unsigned char *addr_r, int *af_r)
 {
     struct in_addr ina;
     struct in6_addr ina6;
@@ -220,12 +220,14 @@ parse_address(const char *address, unsigned char *addr_r)
     if(rc > 0) {
         memcpy(addr_r, v4prefix, 12);
         memcpy(addr_r + 12, &ina, 4);
+        if(af_r) *af_r = AF_INET;
         return 0;
     }
 
     rc = inet_pton(AF_INET6, address, &ina6);
     if(rc > 0) {
         memcpy(addr_r, &ina6, 16);
+        if(af_r) *af_r = AF_INET6;
         return 0;
     }
 
@@ -233,12 +235,14 @@ parse_address(const char *address, unsigned char *addr_r)
 }
 
 int
-parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r)
+parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r,
+          int *af_r)
 {
     char buf[INET6_ADDRSTRLEN];
     char *slash, *end;
     unsigned char prefix[16];
     long plen;
+    int af;
     struct in_addr ina;
     struct in6_addr ina6;
     int rc;
@@ -249,7 +253,7 @@ parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r)
     } else {
         slash = strchr(net, '/');
         if(slash == NULL) {
-            rc = parse_address(net, prefix);
+            rc = parse_address(net, prefix, &af);
             if(rc < 0)
                 return rc;
             plen = 128;
@@ -266,6 +270,7 @@ parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r)
                 if(*end != '\0' || plen < 0 || plen > 32)
                     return -1;
                 plen += 96;
+                af = AF_INET;
             } else {
                 rc = inet_pton(AF_INET6, buf, &ina6);
                 if(rc > 0) {
@@ -273,6 +278,7 @@ parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r)
                     plen = strtol(slash + 1, &end, 0);
                     if(*end != '\0' || plen < 0 || plen > 128)
                         return -1;
+                    af = AF_INET6;
                 } else {
                     return -1;
                 }
@@ -281,6 +287,7 @@ parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r)
     }
     mask_prefix(prefix_r, prefix, plen);
     *plen_r = plen;
+    if(af_r) *af_r = af;
     return 0;
 }
 

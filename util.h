@@ -46,8 +46,9 @@ const unsigned char *mask_prefix(unsigned char *ret,
                                  unsigned char plen);
 const char *format_address(const unsigned char *address);
 const char *format_prefix(const unsigned char *address, unsigned char prefix);
-int parse_address(const char *address, unsigned char *addr_r);
-int parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r);
+int parse_address(const char *address, unsigned char *addr_r, int *af_r);
+int parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r,
+              int *af_r);
 int wait_for_fd(int direction, int fd, int msecs);
 int martian_prefix(const unsigned char *prefix, int plen);
 int v4mapped(const unsigned char *address);
