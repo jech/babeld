@@ -138,7 +138,7 @@ plen2mask(int n, struct in6_addr *dest)
 }
 
 int
-kernel_setup(int setup, int ipv4)
+kernel_setup(int setup)
 {
     int rc;
     if(setup) {

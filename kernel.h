@@ -37,7 +37,7 @@ struct kernel_route {
 
 extern int export_table, import_table;
 
-int kernel_setup(int setup, int ipv4);
+int kernel_setup(int setup);
 int kernel_setup_socket(int setup);
 int kernel_setup_interface(int setup, const char *ifname, int ifindex);
 int kernel_interface_operational(const char *ifname, int ifindex);

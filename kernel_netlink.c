@@ -388,7 +388,7 @@ netlink_send_dump(int type, void *data, int len) {
 }
 
 int
-kernel_setup(int setup, int ipv4)
+kernel_setup(int setup)
 {
     int rc;
 
@@ -422,19 +422,17 @@ kernel_setup(int setup, int ipv4)
             return -1;
         }
 
-        if(ipv4) {
-            old_ipv4_forwarding =
-                read_proc("/proc/sys/net/ipv4/conf/all/forwarding");
-            if(old_ipv4_forwarding < 0) {
-                perror("Couldn't read IPv4 forwarding knob.");
-                return -1;
-            }
+        old_ipv4_forwarding =
+            read_proc("/proc/sys/net/ipv4/conf/all/forwarding");
+        if(old_ipv4_forwarding < 0) {
+            perror("Couldn't read IPv4 forwarding knob.");
+            return -1;
+        }
 
-            rc = write_proc("/proc/sys/net/ipv4/conf/all/forwarding", 1);
-            if(rc < 0) {
-                perror("Couldn't write IPv4 forwarding knob.");
-                return -1;
-            }
+        rc = write_proc("/proc/sys/net/ipv4/conf/all/forwarding", 1);
+        if(rc < 0) {
+            perror("Couldn't write IPv4 forwarding knob.");
+            return -1;
         }
 
 
