@@ -20,10 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#define FILTER_PLEN_EQ 1
-#define FILTER_PLEN_LE 2
-#define FILTER_PLEN_GE 3
-
 #define METRIC_INHERIT (INFINITY + 1)
 
 struct filter {
@@ -32,8 +28,7 @@ struct filter {
     unsigned char *id;
     unsigned char *prefix;
     unsigned char plen;
-    unsigned char filter_plen;
-    unsigned char plen_type;
+    unsigned char plen_ge, plen_le;
     unsigned char *neigh;
     int proto;
     unsigned int result;

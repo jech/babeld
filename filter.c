@@ -158,6 +158,7 @@ parse_filter(gnc_t gnc, void *closure)
     filter = calloc(1, sizeof(struct filter));
     if(filter == NULL)
         goto error;
+    filter->plen_le = 128;
 
     c = gnc(closure);
     if(c < -1)
@@ -183,22 +184,20 @@ parse_filter(gnc_t gnc, void *closure)
             c = getint(c, &p, gnc, closure);
             if(c < -1)
                 goto error;
-            filter->plen_type = FILTER_PLEN_EQ;
-            filter->filter_plen = p;
+            filter->plen_ge = MAX(filter->plen_ge, p);
+            filter->plen_le = MIN(filter->plen_le, p);
         } else if(strcmp(token, "le") == 0) {
             int p;
             c = getint(c, &p, gnc, closure);
             if(c < -1)
                 goto error;
-            filter->plen_type = FILTER_PLEN_LE;
-            filter->filter_plen = p;
+            filter->plen_le = MIN(filter->plen_le, p);
         } else if(strcmp(token, "ge") == 0) {
             int p;
             c = getint(c, &p, gnc, closure);
             if(c < -1)
                 goto error;
-            filter->plen_type = FILTER_PLEN_GE;
-            filter->filter_plen = p;
+            filter->plen_ge = MAX(filter->plen_ge, p);
         } else if(strcmp(token, "neigh") == 0) {
             unsigned char *neigh;
             c = getip(c, &neigh, NULL, gnc, closure);
@@ -242,11 +241,11 @@ parse_filter(gnc_t gnc, void *closure)
         free(token);
     }
     if(filter->af == 0) {
-        if(filter->plen_type)
+        if(filter->plen_le < 128 || filter->plen_ge > 0)
             filter->af = AF_INET6;
     } else if(filter->af == AF_INET) {
-        if(filter->plen_type)
-            filter->filter_plen += 96;
+        filter->plen_le += 96;
+        filter->plen_ge += 96;
     }
     return filter;
  error:
@@ -381,14 +380,12 @@ filter_match(struct filter *f, const unsigned char *id,
         if(!prefix || plen < f->plen || !in_prefix(prefix, f->prefix, f->plen))
             return 0;
     }
-    if(f->plen_type) {
+    if(f->plen_ge > 0 || f->plen_le < 128) {
         if(!prefix)
             return 0;
-        if(f->plen_type == FILTER_PLEN_EQ && plen != f->filter_plen)
+        if(plen > f->plen_le)
             return 0;
-        if(f->plen_type == FILTER_PLEN_LE && plen > f->filter_plen)
-            return 0;
-        if(f->plen_type == FILTER_PLEN_GE && plen < f->filter_plen)
+        if(plen < f->plen_ge)
             return 0;
     }
     if(f->neigh) {
