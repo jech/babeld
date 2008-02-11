@@ -20,8 +20,33 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-int import_filter(const unsigned char *id,
-                  const unsigned char *prefix, unsigned short plen,
-                  const unsigned char *neigh);
-int export_filter(const unsigned char *id,
-                  const unsigned char *prefix, unsigned short plen);
+#define FILTER_PLEN_EQ 1
+#define FILTER_PLEN_LE 2
+#define FILTER_PLEN_GE 3
+
+#define METRIC_INHERIT (INFINITY + 1)
+
+struct filter {
+    int af;
+    unsigned int ifindex;
+    unsigned char *id;
+    unsigned char *prefix;
+    unsigned char plen;
+    unsigned char filter_plen;
+    unsigned char plen_type;
+    unsigned char *neigh;
+    int proto;
+    unsigned int result;
+    struct filter *next;
+};
+
+int parse_config_from_file(char *filename);
+int parse_config_from_string(char *string);
+
+int input_filter(const unsigned char *id,
+                 const unsigned char *prefix, unsigned short plen,
+                 const unsigned char *neigh, unsigned int ifindex);
+int output_filter(const unsigned char *id, const unsigned char *prefix,
+                  unsigned short plen, unsigned int ifindex);
+int redistribute_filter(const unsigned char *prefix, unsigned short plen,
+                        unsigned int ifindex, int proto);

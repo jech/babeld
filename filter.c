@@ -20,22 +20,429 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
 #include "babel.h"
 #include "util.h"
 #include "filter.h"
 
-int
-import_filter(const unsigned char *id,
-              const unsigned char *prefix, unsigned short plen,
-              const unsigned char *neigh)
+struct filter *input_filters = NULL;
+struct filter *output_filters = NULL;
+struct filter *redistribute_filters = NULL;
+
+/* get_next_char callback */
+typedef int (*gnc_t)(void*);
+
+static int
+skip_whitespace(int c, gnc_t gnc, void *closure)
 {
-    return 0;
+    while(c == ' ' || c == '\t')
+        c = gnc(closure);
+    return c;
+}
+
+static int
+skip_to_eol(int c, gnc_t gnc, void *closure)
+{
+    while(c != '\n' && c >= 0)
+        c = gnc(closure);
+    if(c == '\n')
+        c = gnc(closure);
+    return c;
+}
+
+static int
+getword(int c, char **token_r, gnc_t gnc, void *closure)
+{
+    char buf[256];
+    int i = 0;
+
+    c = skip_whitespace(c, gnc, closure);
+    if(c < 0)
+        return c;
+    if(c == '\n')
+        return -2;
+    do {
+        if(i >= 255) return -2;
+        buf[i++] = c;
+        c = gnc(closure);
+    } while(c != ' ' && c != '\t' && c >= 0);
+    buf[i] = '\0';
+    *token_r = strdup(buf);
+    return c;
+}
+
+static int
+getint(int c, int *int_r, gnc_t gnc, void *closure)
+{
+    char *t, *end;
+    int i;
+    c = getword(c, &t, gnc, closure);
+    if(c < -1)
+        return c;
+    i = strtol(t, &end, 0);
+    if(*end != '\0') {
+        free(t);
+        return -2;
+    }
+    free(t);
+    *int_r = i;
+    return c;
+}
+
+static int
+getip(int c, unsigned char **ip_r, int *af_r, gnc_t gnc, void *closure)
+{
+    char *t;
+    unsigned char *ip;
+    unsigned char addr[16];
+    int af, rc;
+
+    c = getword(c, &t, gnc, closure);
+    if(c < -1)
+        return c;
+    rc = parse_address(t, addr, &af);
+    if(rc < 0) {
+        free(t);
+        return -2;
+    }
+    ip = malloc(16);
+    if(ip == NULL)
+        return -2;
+    memcpy(ip, addr, 16);
+    *ip_r = ip;
+    if(af_r)
+        *af_r = af;
+    return c;
+}
+
+static int
+getnet(int c, unsigned char **p_r, unsigned char *plen_r, int *af_r,
+          gnc_t gnc, void *closure)
+{
+    char *t;
+    unsigned char *ip;
+    unsigned char addr[16];
+    unsigned char plen;
+    int af, rc;
+
+    c = getword(c, &t, gnc, closure);
+    if(c < -1)
+        return c;
+    rc = parse_net(t, addr, &plen, &af);
+    if(rc < 0) {
+        free(t);
+        return -2;
+    }
+    ip = malloc(16);
+    if(ip == NULL)
+        return -2;
+    memcpy(ip, addr, 16);
+    *p_r = ip;
+    *plen_r = plen;
+    if(af_r) *af_r = af;
+    return c;
+}
+
+static struct filter error_filter;
+
+static struct filter *
+parse_filter(gnc_t gnc, void *closure)
+{
+    int c;
+    char *token;
+    struct filter *filter;
+
+    filter = calloc(1, sizeof(struct filter));
+    if(filter == NULL)
+        goto error;
+
+    c = gnc(closure);
+    if(c < -1)
+        goto error;
+
+    while(c >= 0 && c != '\n') {
+        c = skip_whitespace(c, gnc, closure);
+        if(c == '#') {
+            c = skip_to_eol(c, gnc, closure);
+            break;
+        }
+        c = getword(c, &token, gnc, closure);
+        if(c < -1)
+            goto error;
+
+        if(strcmp(token, "ip") == 0) {
+            c = getnet(c, &filter->prefix, &filter->plen, &filter->af,
+                       gnc, closure);
+            if(c < -1)
+                goto error;
+        } else if(strcmp(token, "eq") == 0) {
+            int p;
+            c = getint(c, &p, gnc, closure);
+            if(c < -1)
+                goto error;
+            filter->plen_type = FILTER_PLEN_EQ;
+            filter->filter_plen = p;
+        } else if(strcmp(token, "le") == 0) {
+            int p;
+            c = getint(c, &p, gnc, closure);
+            if(c < -1)
+                goto error;
+            filter->plen_type = FILTER_PLEN_LE;
+            filter->filter_plen = p;
+        } else if(strcmp(token, "ge") == 0) {
+            int p;
+            c = getint(c, &p, gnc, closure);
+            if(c < -1)
+                goto error;
+            filter->plen_type = FILTER_PLEN_GE;
+            filter->filter_plen = p;
+        } else if(strcmp(token, "neigh") == 0) {
+            unsigned char *neigh;
+            c = getip(c, &neigh, NULL, gnc, closure);
+            if(c < -1)
+                goto error;
+            filter->neigh = neigh;
+        } else if(strcmp(token, "proto") == 0) {
+            int proto;
+            c = getint(c, &proto, gnc, closure);
+            if(c < -1)
+                goto error;
+            filter->proto = proto;
+        } else if(strcmp(token, "if") == 0) {
+            char *interface;
+            c = getword(c, &interface, gnc, closure);
+            if(c < -1)
+                goto error;
+            filter->ifindex = if_nametoindex(interface);
+        } else if(strcmp(token, "allow") == 0) {
+            filter->result = 0;
+        } else if(strcmp(token, "deny") == 0) {
+            filter->result = INFINITY;
+        } else if(strcmp(token, "metric") == 0) {
+            int metric;
+            c = getint(c, &metric, gnc, closure);
+            if(metric <= 0 || metric > INFINITY)
+                goto error;
+            filter->result = metric;
+        } else if(strcmp(token, "inherit") == 0) {
+            filter->result = METRIC_INHERIT;
+        } else {
+            goto error;
+        }
+        free(token);
+    }
+    if(filter->af == 0) {
+        if(filter->plen_type)
+            filter->af = AF_INET6;
+    } else if(filter->af == AF_INET) {
+        if(filter->plen_type)
+            filter->filter_plen += 96;
+    }
+    return filter;
+ error:
+    free(filter);
+    return &error_filter;
+}
+
+static void
+add_filter(struct filter *filter, struct filter **filters)
+{
+    struct filter *f;
+    if(*filters == NULL) {
+        filter->next = NULL;
+        *filters = filter;
+    } else {
+        f = *filters;
+        while(f->next)
+            f = f->next;
+        filter->next = NULL;
+        f->next = filter;
+    }
+}
+
+static int
+parse_config(gnc_t gnc, void *closure)
+{
+    int kind;
+    int c;
+    char *token;
+    struct filter *filter;
+    c = gnc(closure);
+    if(c < 2)
+        return -1;
+
+    while(c >= 0) {
+        c = skip_whitespace(c, gnc, closure);
+        if(c == '#') {
+            c = skip_to_eol(c, gnc, closure);
+            continue;
+        }
+        if(c == '\n') {
+            c = gnc(closure);
+            continue;
+        }
+        if(c < 0)
+            break;
+        c = getword(c, &token, gnc, closure);
+        if(c < -1)
+            return -1;
+
+        if(strcmp(token, "in") == 0) {
+            kind = 1;
+        } else if(strcmp(token, "out") == 0) {
+            kind = 2;
+        } else if(strcmp(token, "redistribute") == 0) {
+            kind = 3;
+        } else {
+            return -1;
+        }
+
+        filter = parse_filter(gnc, closure);
+        if(filter == &error_filter)
+            return -1;
+
+        if(filter == NULL)
+            continue;
+
+        if(kind == 1)
+            add_filter(filter, &input_filters);
+        else if(kind == 2)
+            add_filter(filter, &output_filters);
+        else if(kind == 3)
+            add_filter(filter, &redistribute_filters);
+        else
+            return -1;
+    }
+    return 1;
 }
 
 int
-export_filter(const unsigned char *id,
-              const unsigned char *prefix, unsigned short plen)
+parse_config_from_file(char *filename)
 {
-    return 0;
+    FILE *f;
+    int rc;
+
+    f = fopen(filename, "r");
+    if(f == NULL)
+        return -1;
+    rc = parse_config((gnc_t)fgetc, f);
+    fclose(f);
+    return rc;
 }
 
+struct string_state {
+    char *string;
+    int n;
+};
+
+static int
+gnc_string(struct string_state *s)
+{
+    if(s->string[s->n] == '\0')
+        return -1;
+    else
+        return s->string[s->n++];
+}
+
+int
+parse_config_from_string(char *string)
+{
+    struct string_state s = { string, 0 };
+    return parse_config((gnc_t)gnc_string, &s);
+}
+
+static int
+filter_match(struct filter *f, const unsigned char *id,
+             const unsigned char *prefix, unsigned short plen,
+             const unsigned char *neigh, unsigned int ifindex, int proto)
+{
+    if(f->af) {
+        if(plen >= 96 && v4mapped(prefix)) {
+            if(f->af == AF_INET6) return 0;
+        } else {
+            if(f->af == AF_INET) return 0;
+        }
+    }
+    if(f->id) {
+        if(!id || memcmp(f->id, id, 16) != 0)
+            return 0;
+    }
+    if(f->prefix) {
+        if(!prefix || plen <= f->plen || !in_prefix(prefix, f->prefix, f->plen))
+            return 0;
+    }
+    if(f->plen_type) {
+        if(!prefix)
+            return 0;
+        if(f->plen_type == FILTER_PLEN_EQ && plen != f->filter_plen)
+            return 0;
+        if(f->plen_type == FILTER_PLEN_LE && plen > f->filter_plen)
+            return 0;
+        if(f->plen_type == FILTER_PLEN_GE && plen < f->filter_plen)
+            return 0;
+    }
+    if(f->neigh) {
+        if(!neigh || memcmp(f->neigh, neigh, 16) != 0)
+            return 0;
+    }
+    if(f->ifindex) {
+        if(!ifindex || f->ifindex != ifindex)
+            return 0;
+    }
+    if(f->proto) {
+        if(!proto || f->proto != proto)
+            return 0;
+    }
+    return 1;
+}
+
+static int
+do_filter(struct filter *f, const unsigned char *id,
+          const unsigned char *prefix, unsigned short plen,
+          const unsigned char *neigh, unsigned int ifindex, int proto)
+{
+    while(f) {
+        if(filter_match(f, id, prefix, plen, neigh, ifindex, proto))
+            return f->result;
+        f = f->next;
+    }
+    return -1;
+}
+
+int
+input_filter(const unsigned char *id,
+             const unsigned char *prefix, unsigned short plen,
+             const unsigned char *neigh, unsigned int ifindex)
+{
+    int res;
+    res = do_filter(input_filters, id, prefix, plen, neigh, ifindex, 0);
+    if(res < 0 || res == METRIC_INHERIT)
+        res = 0;
+    return res;
+}
+
+int
+output_filter(const unsigned char *id, const unsigned char *prefix,
+              unsigned short plen, unsigned int ifindex)
+{
+    int res;
+    res = do_filter(output_filters, id, prefix, plen, NULL, ifindex, 0);
+    if(res < 0 || res == METRIC_INHERIT)
+        res = 0;
+    return res;
+}
+
+int
+redistribute_filter(const unsigned char *prefix, unsigned short plen,
+                    unsigned int ifindex, int proto)
+{
+    int res;
+    res = do_filter(redistribute_filters, NULL, prefix, plen, NULL,
+                    ifindex, proto);
+    if(res < 0)
+        res = INFINITY;
+    return res;
+}
