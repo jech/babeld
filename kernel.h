@@ -26,7 +26,8 @@ struct kernel_route {
     unsigned char prefix[16];
     int plen;
     int metric;
-    int ifindex;
+    unsigned int ifindex;
+    int proto;
     unsigned char gw[16];
 };
 
@@ -48,5 +49,5 @@ int kernel_route(int operation, const unsigned char *dest, unsigned short plen,
                  const unsigned char *gate, int ifindex, unsigned int metric,
                  const unsigned char *newgate, int newifindex,
                  unsigned int newmetric);
-int kernel_routes(int maxplen, struct kernel_route *routes, int maxroutes);
+int kernel_routes(struct kernel_route *routes, int maxroutes);
 int kernel_callback(int (*fn)(void*), void *closure);

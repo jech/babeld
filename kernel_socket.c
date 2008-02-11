@@ -494,7 +494,7 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
 }
 
 int
-kernel_routes(int maxplen, struct kernel_route *routes, int maxroutes)
+kernel_routes(struct kernel_route *routes, int maxroutes)
 {
     int mib[6];
     char *buf, *p;
@@ -532,7 +532,7 @@ kernel_routes(int maxplen, struct kernel_route *routes, int maxroutes)
     while(p < buf + len && i < maxroutes) {
         rtm = (struct rt_msghdr*)p;
         rc = parse_kernel_route(rtm, &routes[i]);
-        if(rc || routes[i].plen > maxplen)
+        if(rc)
             goto cont;
 
         if(debug > 2)

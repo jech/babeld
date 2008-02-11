@@ -787,6 +787,7 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
     if(rtm->rtm_family == AF_INET) route->plen += 96;
     route->metric = KERNEL_INFINITY;
     route->ifindex = 0;
+    route->proto = rtm->rtm_protocol;
 
 #define COPY_ADDR(d, s) \
     do { \
@@ -861,7 +862,6 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
     struct kernel_route *current_route;
     struct kernel_route route;
 
-    int maxplen = 128;
     int maxroutes = 0;
     struct kernel_route *routes = NULL;
     int *found = NULL;
@@ -871,10 +871,9 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
 
     if(data) {
         void **args = (void**)data;
-        maxplen = *(int*)args[0];
-        maxroutes = *(int*)args[1];
-        routes = (struct kernel_route *)args[2];
-        found = (int*)args[3];
+        maxroutes = *(int*)args[0];
+        routes = (struct kernel_route *)args[1];
+        found = (int*)args[2];
     }
 
     len = nh->nlmsg_len;
@@ -904,9 +903,6 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
     if(rc < 0)
         return 0;
 
-    if(current_route->plen > maxplen)
-        return 0;
-
     if(martian_prefix(current_route->prefix, current_route->plen))
         return 0;
 
@@ -929,13 +925,12 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
 
 /* This function should not return routes installed by us. */
 int
-kernel_routes(int maxplen, struct kernel_route *routes, int maxroutes)
+kernel_routes(struct kernel_route *routes, int maxroutes)
 {
     int i, rc;
-    int maxp = maxplen;
     int maxr = maxroutes;
     int found = 0;
-    void *data[4] = { &maxp, &maxr, routes, &found };
+    void *data[3] = { &maxr, routes, &found };
     int families[2] = { AF_INET6, AF_INET };
     struct rtgenmsg g;
 
