@@ -88,10 +88,10 @@ multiple times:
 
   # babel -X $IPv6 0 -X $IPv6-2 0 -X $IPv6-3 0 $IPv6 eth1
 
-On a gateway to the Internet, you'll want to redistribute the default
-route into the mesh network:
+On a gateway to the Internet, you'll want to redistribute some or all
+of your routes into the mesh network:
 
-  # babel -X $IPv6 0 -x default 256 $IPv6 eth1
+  # babel -X $IPv6 0 -C 'redistribute metric 128' $IPv6 eth1
 
 If you find all of this too complicated and error-prone (as I do), you
 may want to consider autoconfiguring your routing domain using AHCP:
@@ -132,11 +132,11 @@ set the same IPv4 address on all interfaces of a given node.
 2. Start the routing daemon
 ===========================
 
-  # babel -4 -X $IPv4 0 $IPv4 eth1
+  # babel -X $IPv4 0 $IPv4 eth1
 
-On a network gateway, you will want to redistribute the default route:
+On a network gateway, you will want to redistribute some routes:
 
-  # babel -4 -X $IPv4 0 -x 0.0.0.0/0 128 $IPv4 eth0 eth1
+  # babel -X $IPv4 0 -C 'redistribute metric 128' $IPv4 eth0 eth1
 
 
 Setting up a dual-stack network for use with Babel
@@ -147,23 +147,15 @@ time; a single route update may contain both IPv6 and IPv4 routes.
 
 On an ordinary node, you will run Babel as
 
-  # babel -4 -X $IPv6 0 -X $IPv4 0 $IPv6 eth1
+  # babel -X $IPv6 0 -X $IPv4 0 $IPv6 eth1
 
-on an IPv6 gateway,
+and on a gateway:
 
-  # babel -4 -X $IPv6 0 -X $IPv4 0 -x ::/0 128 $IPv6 eth1
-
-on an IPv4 gateway,
-
-  # babel -4 -X $IPv6 0 -X $IPv4 0 -x 0.0.0.0/0 128 $IPv6 eth1
-
-and on a gateway to both the IPv6 and IPv4 Internets,
-
-  # babel -4 -X $IPv6 0 -X $IPv4 0 -x ::/0 128 -x 0.0.0.0/0 128 $IPv6 eth1
+  # babel -X $IPv6 0 -X $IPv4 0 -C 'redistribute metric 128' $IPv6 eth1
 
 If you use ahcpd, you will want to add the following to
 /etc/ahcp/ahcp-babel-options:
 
-  -4 -X 192.168.19.68 0
+  -X 192.168.19.68 0
 
                                         Juliusz Chroboczek
