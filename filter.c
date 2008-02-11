@@ -68,7 +68,7 @@ getword(int c, char **token_r, gnc_t gnc, void *closure)
         if(i >= 255) return -2;
         buf[i++] = c;
         c = gnc(closure);
-    } while(c != ' ' && c != '\t' && c >= 0);
+    } while(c != ' ' && c != '\t' && c != '\n' && c >= 0);
     buf[i] = '\0';
     *token_r = strdup(buf);
     return c;
