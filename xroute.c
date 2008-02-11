@@ -24,6 +24,7 @@ THE SOFTWARE.
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <assert.h>
 
 #include "babel.h"
 #include "kernel.h"
@@ -32,73 +33,119 @@ THE SOFTWARE.
 #include "route.h"
 #include "xroute.h"
 #include "util.h"
+#include "filter.h"
 
 struct xroute xroutes[MAXXROUTES];
 int numxroutes = 0;
 
 struct xroute *
-find_exported_xroute(const unsigned char *prefix, unsigned char plen)
+find_xroute(const unsigned char *prefix, unsigned char plen)
 {
     int i;
     for(i = 0; i < numxroutes; i++) {
-        if(xroutes[i].exported) {
-            if(xroutes[i].plen == plen &&
-               memcmp(xroutes[i].prefix, prefix, 16) == 0)
-                return &xroutes[i];
-        }
+        if(xroutes[i].plen == plen &&
+           memcmp(xroutes[i].prefix, prefix, 16) == 0)
+            return &xroutes[i];
     }
     return NULL;
+}
+
+void
+flush_xroute(struct xroute *xroute)
+{
+    int n;
+
+    n = xroute - xroutes;
+    assert(n >= 0 && n < numxroutes);
+
+    if(n != numxroutes - 1)
+        memcpy(xroutes + n, xroutes + numxroutes - 1, sizeof(struct xroute));
+    numxroutes--;
+    VALGRIND_MAKE_MEM_UNDEFINED(xroutes + numxroutes, sizeof(struct xroute));
+}
+
+int
+add_xroute(unsigned char prefix[16], unsigned char plen,
+           unsigned short metric, unsigned int ifindex, int proto)
+{
+    struct xroute *xroute = find_xroute(prefix, plen);
+    if(xroute) {
+        if(xroute->metric <= metric)
+            return 0;
+        if(xroute->forced)
+            return 0;
+        xroute->metric = metric;
+        return 1;
+    }
+
+    if(numxroutes >= MAXXROUTES)
+        return -1;
+
+    memcpy(xroutes[numxroutes].prefix, prefix, 16);
+    xroutes[numxroutes].plen = plen;
+    xroutes[numxroutes].forced = 0;
+    xroutes[numxroutes].metric = metric;
+    xroutes[numxroutes].ifindex = ifindex;
+    xroutes[numxroutes].proto = proto;
+    numxroutes++;
+    return 1;
 }
 
 int
 check_xroutes()
 {
-    int i, j, n, change;
-    struct kernel_route routes[120];
+    int i, j, n, metric, export, change = 0, rc;
+    struct kernel_route routes[240];
 
     debugf("\nChecking kernel routes.\n");
 
-    n = -1;
-    for(i = 0; i < numxroutes; i++)
-        if(xroutes[i].exported < 2)
-            n = MAX(n, xroutes[i].plen);
-
-    if(n < 0)
-        return 0;
-
-    n = kernel_routes(n, routes, 120);
+    n = kernel_routes(routes, 240);
     if(n < 0)
         return -1;
 
-    change = 0;
-    for(i = 0; i < numxroutes; i++) {
-        int export;
-        if(xroutes[i].exported == 2)
+    i = 0;
+    while(i < numxroutes) {
+        if(xroutes[i].forced) {
+            i++;
             continue;
+        }
         export = 0;
-        for(j = 0; j < n; j++) {
-            if(xroutes[i].plen == routes[j].plen &&
-               memcmp(xroutes[i].prefix, routes[j].prefix, 16) == 0) {
-                export = 1;
-                break;
+        metric = redistribute_filter(xroutes[i].prefix, xroutes[i].plen,
+                                     xroutes[i].ifindex, xroutes[i].proto);
+        if((metric < INFINITY && metric == xroutes[i].metric) ||
+           metric == METRIC_INHERIT) {
+            for(j = 0; j < n; j++) {
+                if(xroutes[i].plen == routes[j].plen &&
+                   memcmp(xroutes[i].prefix, routes[j].prefix, 16) == 0 &&
+                   xroutes[i].ifindex == routes[j].ifindex &&
+                   xroutes[i].proto == routes[j].proto) {
+                    if(metric < INFINITY ||
+                       (metric == METRIC_INHERIT &&
+                        xroutes[i].metric == routes[j].metric)) {
+                        export = 1;
+                        break;
+                    }
+                }
             }
         }
-        if(xroutes[i].exported != export) {
-            xroutes[i].exported = export;
-            if(export) {
-                struct route *route;
-                route = find_installed_route(xroutes[i].prefix,
-                                             xroutes[i].plen);
-                if(route)
-                    uninstall_route(route);
-            } else {
-                struct route *route;
-                route = find_best_route(xroutes[i].prefix, xroutes[i].plen);
-                if(route)
-                    install_route(route);
-            }
-            send_update(NULL, 1, xroutes[i].prefix, xroutes[i].plen);
+        if(!export) {
+            flush_xroute(&xroutes[i]);
             change = 1;
+        } else {
+            i++;
+        }
+    }
+
+    for(i = 0; i < n; i++) {
+        metric = redistribute_filter(routes[i].prefix, routes[i].plen,
+                                     routes[i].ifindex, routes[i].proto);
+        if(metric == METRIC_INHERIT)
+            metric = routes[i].metric;
+        if(metric < INFINITY) {
+            rc = add_xroute(routes[i].prefix, routes[i].plen,
+                            metric, routes[i].ifindex, routes[i].proto);
+            if(rc)
+                change = 1;
         }
     }
     return change;

@@ -25,13 +25,14 @@ int check_xroutes(void);
 struct xroute {
     unsigned char prefix[16];
     unsigned char plen;
-    char exported;
+    char forced;
     unsigned short metric;
+    unsigned int ifindex;
+    int proto;
 };
 
 extern struct xroute xroutes[MAXXROUTES];
 extern int numxroutes;
 
-struct xroute *find_exported_xroute(const unsigned char *prefix,
-                                    unsigned char plen);
+struct xroute *find_xroute(const unsigned char *prefix, unsigned char plen);
 int check_xroutes(void);
