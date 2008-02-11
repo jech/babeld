@@ -224,7 +224,8 @@ main(int argc, char **argv)
         rc = parse_config_from_file(config_file);
         if(rc < 0) {
             fprintf(stderr,
-                    "Couldn't parse configuration from file %s.\n", *arg);
+                    "Couldn't parse configuration from file %s.\n",
+                    config_file);
             exit(1);
         }
     }
