@@ -205,6 +205,12 @@ parse_filter(gnc_t gnc, void *closure)
             if(c < -1)
                 goto error;
             filter->neigh = neigh;
+        } else if(strcmp(token, "id") == 0) {
+            unsigned char *id;
+            c = getip(c, &id, NULL, gnc, closure);
+            if(c < -1)
+                goto error;
+            filter->id = id;
         } else if(strcmp(token, "proto") == 0) {
             int proto;
             c = getint(c, &proto, gnc, closure);
