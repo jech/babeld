@@ -30,6 +30,7 @@ THE SOFTWARE.
 #include "neighbour.h"
 #include "request.h"
 #include "message.h"
+#include "network.h"
 #include "filter.h"
 
 int request_resend_time = 0;
@@ -70,8 +71,8 @@ record_request(const unsigned char *prefix, unsigned char plen,
 {
     struct request *request;
 
-    if(import_filter(NULL, prefix, plen, NULL) ||
-       export_filter(NULL, prefix, plen))
+    if(input_filter(NULL, prefix, plen, NULL, network->ifindex) >= INFINITY ||
+       output_filter(NULL, prefix, plen, network->ifindex) >= INFINITY)
         return 0;
 
     request = find_request(prefix, plen, NULL);

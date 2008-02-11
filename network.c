@@ -51,13 +51,11 @@ add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
     nets[numnets].up = (kernel_interface_operational(ifname, ifindex) > 0);
     nets[numnets].ifindex = ifindex;
     nets[numnets].ipv4 = NULL;
-    if(do_ipv4) {
-        rc = kernel_interface_ipv4(ifname, ifindex, ipv4);
-        if(rc >= 0) {
-            nets[numnets].ipv4 = malloc(4);
-            if(nets[numnets].ipv4)
-                memcpy(nets[numnets].ipv4, ipv4, 4);
-        }
+    rc = kernel_interface_ipv4(ifname, ifindex, ipv4);
+    if(rc >= 0) {
+        nets[numnets].ipv4 = malloc(4);
+        if(nets[numnets].ipv4)
+            memcpy(nets[numnets].ipv4, ipv4, 4);
     }
 
     nets[numnets].wired = wired;
@@ -148,9 +146,7 @@ check_networks(void)
     unsigned char ipv4[4];
 
     for(i = 0; i < numnets; i++) {
-        rc = do_ipv4 ?
-            kernel_interface_ipv4(nets[i].ifname, nets[i].ifindex, ipv4) :
-            0;
+        rc = kernel_interface_ipv4(nets[i].ifname, nets[i].ifindex, ipv4);
         if(rc > 0) {
             if(!nets[i].ipv4 || memcmp(ipv4, nets[i].ipv4, 4) != 0) {
                 if(!nets[i].ipv4)

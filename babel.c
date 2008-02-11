@@ -49,11 +49,11 @@ THE SOFTWARE.
 #include "xroute.h"
 #include "message.h"
 #include "request.h"
+#include "filter.h"
 
 struct timeval now;
 
 unsigned char myid[16];
-int do_ipv4 = 0;
 int debug = 0;
 
 static int maxmtu;
@@ -96,11 +96,12 @@ main(int argc, char **argv)
     static unsigned char *buf;
     struct timeval check_neighbours_time;
     int expiry_time, kernel_dump_time;
+    char *config_file = NULL;
     void *vrc;
     unsigned int seed;
     char **arg;
 
-    parse_address("ff02::cca6:c0f9:e182:5373", protocol_group);
+    parse_address("ff02::cca6:c0f9:e182:5373", protocol_group, NULL);
     protocol_port = 8475;
 
 #define SHIFT() do { arg++; } while(0)
@@ -116,7 +117,7 @@ main(int argc, char **argv)
             break;
         } else if(strcmp(*arg, "-m") == 0) {
             SHIFTE();
-            rc = parse_address(*arg, protocol_group);
+            rc = parse_address(*arg, protocol_group, NULL);
             if(rc < 0)
                 goto syntax;
             if(protocol_group[0] != 0xff) {
@@ -132,8 +133,7 @@ main(int argc, char **argv)
         } else if(strcmp(*arg, "-p") == 0) {
             SHIFTE();
             protocol_port = atoi(*arg);
-        } else if(strcmp(*arg, "-x") == 0 || strcmp(*arg, "-X") == 0) {
-            int force = (strcmp(*arg, "-X") == 0);
+        } else if(strcmp(*arg, "-X") == 0) {
             if(numxroutes >= MAXXROUTES) {
                 fprintf(stderr, "Too many exported routes.\n");
                 exit(1);
@@ -141,7 +141,7 @@ main(int argc, char **argv)
             SHIFTE();
             rc = parse_net(*arg,
                            xroutes[numxroutes].prefix,
-                           &xroutes[numxroutes].plen);
+                           &xroutes[numxroutes].plen, NULL);
             if(rc < 0)
                 goto syntax;
             SHIFTE();
@@ -153,7 +153,8 @@ main(int argc, char **argv)
                     goto syntax;
                 xroutes[numxroutes].metric = metric;
             }
-            xroutes[numxroutes].exported = force ? 2 : 0;
+            xroutes[numxroutes].forced = 1;
+            xroutes[numxroutes].ifindex = 0;
             numxroutes++;
         } else if(strcmp(*arg, "-h") == 0) {
             SHIFTE();
@@ -174,11 +175,6 @@ main(int argc, char **argv)
                 goto syntax;
         } else if(strcmp(*arg, "-P") == 0) {
             parasitic = 1;
-        } else if(strcmp(*arg, "-c") == 0) {
-            SHIFTE();
-            add_cost = atoi(*arg);
-            if(add_cost < 0 || add_cost > INFINITY)
-                goto syntax;
         } else if(strcmp(*arg, "-s") == 0) {
             split_horizon = 0;
         } else if(strcmp(*arg, "-S") == 0) {
@@ -187,8 +183,6 @@ main(int argc, char **argv)
         } else if(strcmp(*arg, "-d") == 0) {
             SHIFTE();
             debug = atoi(*arg);
-        } else if(strcmp(*arg, "-4") == 0) {
-            do_ipv4 = 1;
         } else if(strcmp(*arg, "-l") == 0) {
             link_detect = 1;
         } else if(strcmp(*arg, "-w") == 0) {
@@ -203,10 +197,36 @@ main(int argc, char **argv)
             import_table = atoi(*arg);
             if(import_table < 0 || import_table > 0xFFFF)
                 goto syntax;
+        } else if(strcmp(*arg, "-c") == 0) {
+            SHIFTE();
+            config_file = *arg;
+        } else if(strcmp(*arg, "-C") == 0) {
+            int rc;
+            SHIFTE();
+            rc = parse_config_from_string(*arg);
+            if(rc < 0) {
+                fprintf(stderr,
+                        "Couldn't parse configuration from command line.\n");
+                exit(1);
+            }
         } else {
             goto syntax;
         }
         SHIFTE();
+    }
+
+
+    if(!config_file) {
+        if(access("/etc/babel.conf", R_OK) >= 0)
+            config_file = "/etc/babel.conf";
+    }
+    if(config_file) {
+        rc = parse_config_from_file(config_file);
+        if(rc < 0) {
+            fprintf(stderr,
+                    "Couldn't parse configuration from file %s.\n", *arg);
+            exit(1);
+        }
     }
 
     if(wireless_hello_interval <= 0)
@@ -223,7 +243,7 @@ main(int argc, char **argv)
     if(seqno_interval <= 0)
         seqno_interval = MAX(wireless_hello_interval - 1, 2);
 
-    rc = parse_address(*arg, myid);
+    rc = parse_address(*arg, myid, NULL);
     if(rc < 0)
         goto syntax;
     SHIFTE();
@@ -271,7 +291,7 @@ main(int argc, char **argv)
             rc = sscanf(buf, "%99s %d %ld\n", buf2, &s, &t);
             if(rc == 3 && s >= 0 && s <= 0xFFFF) {
                 unsigned char sid[16];
-                rc = parse_address(buf2, sid);
+                rc = parse_address(buf2, sid, NULL);
                 if(rc < 0) {
                     fprintf(stderr, "Couldn't parse babel-state.\n");
                 } else {
@@ -295,7 +315,7 @@ main(int argc, char **argv)
         fprintf(stderr, "Respecting %ld second silent time.\n",
                 (long int)(reboot_time + silent_time - now.tv_sec));
 
-    rc = kernel_setup(1, do_ipv4);
+    rc = kernel_setup(1);
     if(rc < 0) {
         fprintf(stderr, "kernel_setup failed.\n");
         exit(1);
@@ -601,7 +621,7 @@ main(int argc, char **argv)
         kernel_setup_interface(0, nets[i].ifname, nets[i].ifindex);
     }
     kernel_setup_socket(0);
-    kernel_setup(0, do_ipv4);
+    kernel_setup(0);
 
     fd = open(state_file, O_WRONLY | O_TRUNC | O_CREAT, 0644);
     if(fd < 0) {
@@ -632,11 +652,11 @@ main(int argc, char **argv)
             "Syntax: %s "
             "[-m multicast_address] [-p port] [-S state-file]\n"
             "                "
-            "[-h hello] [-H wired_hello] [-i idle_hello]\n"
+            "[-h hello] [-H wired_hello] [-i idle_hello] [-u update]\n"
             "                "
-            "[-u update] [-k metric] [-4] [-s] [-P] [-c cost] [-l] [-w]\n"
+            "[-k metric] [-s] [-P] [-l] [-w] [-d level]\n"
             "                "
-            "[-d level] [-t table] [-T table] [-x net cost] [-X net cost]\n"
+            "[-t table] [-T table] [-X net cost] [-c file] [-C statement]\n"
             "                "
             "id interface...\n",
             argv[0]);
@@ -649,7 +669,7 @@ main(int argc, char **argv)
         kernel_setup_interface(0, nets[i].ifname, nets[i].ifindex);
     }
     kernel_setup_socket(0);
-    kernel_setup(0, do_ipv4);
+    kernel_setup(0);
     exit(1);
 }
 
@@ -728,9 +748,7 @@ dump_tables(FILE *out)
         fprintf(out, "%s metric %d (%s)\n",
                 format_prefix(xroutes[i].prefix, xroutes[i].plen),
                 xroutes[i].metric,
-                xroutes[i].exported ?
-                xroutes[i].exported > 1 ? "forced" : "exported" :
-                "not exported");
+                xroutes[i].forced ? "forced" : "exported");
     }
     for(i = 0; i < numroutes; i++) {
         int id =

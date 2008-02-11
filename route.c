@@ -329,6 +329,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
     struct route *route;
     struct source *src;
     int metric, feasible;
+    int add_metric;
 
     if(martian_prefix(p, plen)) {
         fprintf(stderr, "Rejecting martian route to %s through %s.\n",
@@ -336,7 +337,8 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         return NULL;
     }
 
-    if(import_filter(a, p, plen, neigh->id))
+    add_metric = input_filter(a, p, plen, neigh->id, neigh->network->ifindex);
+    if(add_metric >= INFINITY)
         return NULL;
 
     src = find_source(a, p, plen, 1, seqno);
@@ -345,7 +347,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
 
     feasible = update_feasible(a, p, plen, seqno, refmetric);
     route = find_route(p, plen, neigh, nexthop);
-    metric = MIN((int)refmetric + neighbour_cost(neigh), INFINITY);
+    metric = MIN((int)refmetric + neighbour_cost(neigh) + add_metric, INFINITY);
 
     if(route) {
         struct source *oldsrc;
@@ -426,7 +428,7 @@ consider_route(struct route *route)
     if(!route_feasible(route))
         return;
 
-    if(find_exported_xroute(route->src->prefix, route->src->plen))
+    if(find_xroute(route->src->prefix, route->src->plen))
        return;
 
     installed = find_installed_route(route->src->prefix, route->src->plen);

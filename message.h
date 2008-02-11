@@ -26,7 +26,6 @@ extern unsigned short myseqno;
 extern int seqno_time;
 extern int seqno_interval;
 
-extern int add_cost;
 extern int parasitic;
 extern int silent_time;
 extern int broadcast_ihu;

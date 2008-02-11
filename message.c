@@ -43,7 +43,6 @@ struct timeval update_flush_time = {0, 0};
 
 const unsigned char packet_header[8] = {42, 1};
 
-int add_cost = 0;
 int parasitic = 0;
 int silent_time = 30;
 int split_horizon = 1;
@@ -259,7 +258,7 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
         return;
     }
 
-    xroute = find_exported_xroute(prefix, plen);
+    xroute = find_xroute(prefix, plen);
     if(xroute) {
         if(router_hash == hash_id(myid) && seqno_compare(seqno, myseqno) > 0)
             update_myseqno(1);
@@ -550,7 +549,11 @@ really_send_update(struct network *net,
                    const unsigned char *prefix, unsigned char plen,
                    unsigned short seqno, unsigned short metric)
 {
-    if(!export_filter(address, prefix, plen)) {
+    int add_metric;
+
+    add_metric = output_filter(address, prefix, plen, net->ifindex);
+
+    if(add_metric < INFINITY) {
         if(plen >= 96 && v4mapped(prefix)) {
             const unsigned char *sid;
             unsigned char v4route[16];
@@ -563,7 +566,8 @@ really_send_update(struct network *net,
             sid = message_source_id(net);
             if(sid == NULL || memcmp(address, sid, 16) != 0)
                 send_message(net, 3, 0xFF, 0, 0, 0xFFFF, address);
-            send_message(net, 5, plen - 96, 0, seqno, metric, v4route);
+            send_message(net, 5, plen - 96, 0, seqno, metric + add_metric,
+                         v4route);
         } else {
             if(in_prefix(address, prefix, plen)) {
                 send_message(net, 3, plen, 0, seqno, metric, address);
@@ -573,7 +577,8 @@ really_send_update(struct network *net,
                 sid = message_source_id(net);
                 if(sid == NULL || memcmp(address, sid, 16) != 0)
                     send_message(net, 3, 0xFF, 0, 0, 0xFFFF, address);
-                send_message(net, 4, plen, 0, seqno, metric, prefix);
+                send_message(net, 4, plen, 0, seqno, metric + add_metric,
+                             prefix);
             }
         }
     }
@@ -600,8 +605,8 @@ flushupdates(void)
             struct source *src;
             unsigned short seqno;
             unsigned short metric;
-            xroute = find_exported_xroute(buffered_updates[i].prefix,
-                                          buffered_updates[i].plen);
+            xroute = find_xroute(buffered_updates[i].prefix,
+                                 buffered_updates[i].plen);
             if(xroute) {
                 really_send_update(net, myid,
                                    xroute->prefix, xroute->plen,
@@ -615,7 +620,7 @@ flushupdates(void)
                    net->wired && route->neigh->network == net)
                     continue;
                 seqno = route->seqno;
-                metric = MIN((int)route->metric + add_cost, INFINITY);
+                metric = route->metric;
                 really_send_update(net, route->src->address,
                                    route->src->prefix,
                                    route->src->plen,
@@ -712,7 +717,7 @@ send_update(struct network *net, int urgent,
         if(prefix == NULL) {
             send_self_update(net, 0);
             net->update_time = now.tv_sec;
-        } else if(find_exported_xroute(prefix, plen)) {
+        } else if(find_xroute(prefix, plen)) {
             buffer_update(net, prefix, plen);
         }
         return;
@@ -772,8 +777,7 @@ send_self_update(struct network *net, int force_seqno)
     net->self_update_time = now.tv_sec;
 
     for(i = 0; i < numxroutes; i++) {
-        if(xroutes[i].exported)
-            send_update(net, 0, xroutes[i].prefix, xroutes[i].plen);
+        send_update(net, 0, xroutes[i].prefix, xroutes[i].plen);
     }
 }
 
@@ -799,9 +803,8 @@ send_self_retract(struct network *net)
     seqno_time = now.tv_sec;
     net->self_update_time = now.tv_sec;
     for(i = 0; i < numxroutes; i++) {
-        if(xroutes[i].exported)
-            really_send_update(net, myid, xroutes[i].prefix, xroutes[i].plen,
-                               myseqno, 0xFFFF);
+        really_send_update(net, myid, xroutes[i].prefix, xroutes[i].plen,
+                           myseqno, 0xFFFF);
     }
     schedule_update_flush(net, 1);
 }
