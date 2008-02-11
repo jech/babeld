@@ -70,9 +70,10 @@ record_request(const unsigned char *prefix, unsigned char plen,
                struct network *network, int resend)
 {
     struct request *request;
+    unsigned int ifindex = network ? network->ifindex : 0;
 
-    if(input_filter(NULL, prefix, plen, NULL, network->ifindex) >= INFINITY ||
-       output_filter(NULL, prefix, plen, network->ifindex) >= INFINITY)
+    if(input_filter(NULL, prefix, plen, NULL, ifindex) >= INFINITY ||
+       output_filter(NULL, prefix, plen, ifindex) >= INFINITY)
         return 0;
 
     request = find_request(prefix, plen, NULL);
