@@ -371,7 +371,7 @@ filter_match(struct filter *f, const unsigned char *id,
             return 0;
     }
     if(f->prefix) {
-        if(!prefix || plen <= f->plen || !in_prefix(prefix, f->prefix, f->plen))
+        if(!prefix || plen < f->plen || !in_prefix(prefix, f->prefix, f->plen))
             return 0;
     }
     if(f->plen_type) {
