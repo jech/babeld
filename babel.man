@@ -63,10 +63,6 @@ Specify a value that will be added to routes' metrics before
 installing them in the kernel; this is useful when a single node
 participates in multiple routing protocols.  The default is 0.
 .TP
-.B \-4
-Participate in IPv4 routing.  IPv4 forwarding will happen on all
-interfaces that have been assigned an IPv4 address.
-.TP
 .B \-l
 Use IFF_RUNNING (carrier sense) when determining interface availability.
 .TP
@@ -76,12 +72,6 @@ Don't optimise wired links, assume all interfaces are wireless.
 .B \-s
 Do not perform split-horizon processing on wired interfaces.
 Split-horizon is never performed on wireless interfaces.
-.TP
-.BI \-c " cost"
-Add
-.I cost
-to the metrics of advertised routes.  This is useful for example when
-we are low on battery and hardly eager to forward packets.
 .TP
 .B \-P
 Run in parasitic (passive) mode.  The daemon will only announce
@@ -94,8 +84,8 @@ requests tracing every message sent or received.  A value of
 3 additionally dumps all interactions with the OS kernel.  The default
 is 0.
 .TP
-.BI \-x " network cost"
-Redistribute a route for the given network or host with the given
+.BI \-X " network cost"
+Advertise a route for the given network or host with the given
 cost.
 .I Network
 should be either the string
@@ -110,20 +100,23 @@ should either be a 16-bit unsigned integer, or the string
 .B infinity
 which specifies a blackhole route.  Babel itself uses a cost of 256
 for a lossless wireless link, and a cost of 128 for a functioning
-wired link.
-.TP
-.BI \-X " network cost"
-Advertise a route for the given network or host with the given cost,
-even if it is not currently installed.  This is normally used for
-advertising the local addresses of this machine.  Use of this option
-for any other purpose is discouraged, as it can cause persistent
-routing loops.
+wired link.  This is normally only used for advertising the local
+addresses of this machine.  Use for any other purpose is discrouraged,
+as it can cause persistent routing loops.  Redistributing a static
+route is a safer alternative.
 .TP
 .BI \-t " table"
 Use the given kernel routing table for routes inserted by Babel.
 .TP
 .BI \-T " table"
 Export routes from the given kernel routing table.
+.TP
+.BI \-c " filename"
+Specify the name of the configuration file.  The default is
+.BR /etc/babel.conf .
+.TP
+.BI \-C " statement"
+Specify a configuration statement directly on the command line.
 .TP
 .I id
 The router-id of this daemon.  This should normally be an IPv6 address
@@ -152,9 +145,10 @@ them into the routing domain as zero-cost external routes:
 .IP
 # babel \-X $otherIPv6 0 $IPv6 eth1
 .PP
-On an access point, you'll probably want to redistribute the default route:
+On an access point, you'll probably want to redistribute some routes
+into Babel:
 .IP
-# babel \-x ::/0 256 $IPv6 eth1
+# babel -X $IPv6 \-C 'redistribute metric 256' $IPv6 eth1
 .PP
 .SH WIRED INTERFACES
 By default, the daemon optimises traffic on wired interfaces by
