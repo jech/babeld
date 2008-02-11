@@ -124,6 +124,81 @@ of this machine, but can be any unique 128-bit string.
 .TP
 .IR interface ...
 The list of interfaces on which the protocol should operate.
+.SH CONFIG FILE FORMAT
+The configuration file is a sequence of lines each of which specifies
+a filter entry.  Each of these lines has the following format:
+.IP
+.I filter selector... action
+.PP
+.I Filter
+specifies the filter to which this entry will be added, and can be one of
+.BR in ,
+.BR out ,
+or
+.BR redistribute .
+
+.I Selector
+specifies the conditions under which the given statement matches.  It
+can be one of
+.TP
+.BI ip " prefix"
+This entry only applies to routes in the given prefix.
+.TP
+.BI eq " plen"
+This entry only applies to routes with a prefix length equal to
+.BR plen .
+.TP
+.BI le " plen"
+This entry only applies to routes with a prefix length less or equal to
+.BR plen .
+.TP
+.BI ge " plen"
+This entry only applies to routes with a prefix length greater or equal to
+.BR plen .
+.TP
+.BI neigh " id"
+This entry only applies to routes learned from a neighbour with router-id
+.IR id .
+.TP
+.BI id " id"
+This entry only applies to routes originated by a router with router-id
+.IR id .
+.TP
+.BI proto " p"
+This entry only applies to kernel routes with kernel protocol number
+.IR p .
+.TP
+.BI if " interface"
+For an input filter, this specifies the interface over which the route
+is learned.  For an output filter, this specifies the interface over
+which this route is advertised.  For a redistribute statement, this
+specifies the interface over which the route forwards packets.
+.PP
+.I Action
+specifies the action to be taken when this entry matches.  It can have
+one of the following values:
+.TP
+.B allow
+Allow this route, without changing its metric (or setting its metric
+to 0 in case of a redistribute filter).
+.TP
+.B deny
+Ignore this route.
+.TP
+.BI metric " value"
+For an input or output filter, allow this route after increasing its metric by
+.IR value .
+For a redistribute filter, redistribute this route with metric
+.IR value .
+.TP
+.B inherit
+For a redistribute filter, redistribute this route with the metric
+provided by the kernel.
+.PP
+If
+.I action
+is not specified, it defaults to
+.BR allow .
 .SH EXAMPLES
 Let
 .B $IPv6
@@ -148,7 +223,14 @@ them into the routing domain as zero-cost external routes:
 On an access point, you'll probably want to redistribute some routes
 into Babel:
 .IP
-# babel -X $IPv6 \-C 'redistribute metric 256' $IPv6 eth1
+# babel \-C 'redistribute metric 256' \-X $IPv6 $IPv6 eth1
+.PP
+or
+.IP
+# babel \\
+    \-C 'redistribute proto 11 ip ::/0 le 64 metric 256' \\
+    \-C 'redistribute proto 11 ip 0.0.0.0/0 le 24 metric 256' \\
+    \-X $IPv6 $IPv6 eth1
 .PP
 .SH WIRED INTERFACES
 By default, the daemon optimises traffic on wired interfaces by
@@ -176,6 +258,9 @@ All of these optimisations can be disabled by using the
 flag.  This is recommended if you are running Babel over bridge
 interfaces, since such interfaces will be detected as wired interfaces.
 .SH FILES
+.TP
+.B /etc/babel.conf
+The default location of the configuration file.
 .TP
 .B /var/lib/babel\-state
 The default location of the file storing long-term state.
