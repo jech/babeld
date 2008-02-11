@@ -209,7 +209,6 @@ by simply running
 .IP
 # babel \-X $IPv6 0 $IPv6 eth1
 .PP
-
 In order to gateway between multiple interfaces, just list them all on
 the command line:
 .IP
