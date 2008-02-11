@@ -137,6 +137,8 @@ check_xroutes()
     }
 
     for(i = 0; i < n; i++) {
+        if(martian_prefix(routes[i].prefix, routes[i].plen))
+            continue;
         metric = redistribute_filter(routes[i].prefix, routes[i].plen,
                                      routes[i].ifindex, routes[i].proto);
         if(metric == METRIC_INHERIT)
