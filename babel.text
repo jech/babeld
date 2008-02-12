@@ -3,36 +3,50 @@
                             Juliusz Chroboczek
                            <jch@pps.jussieu.fr>
 
-                              2 January 2008
+                             12 February 2008
 
 
 1. Introduction
 
 Babel is a distance vector protocol that is designed to be robust both on
-classical wired networks and on wireless mesh networks.  By robust, we mean
-that Babel has the following properties:
+classical wired networks and on wireless mesh networks.
+
+Babel operation is similar to that of familiar distance-vector routing
+protocols, such as RIP and RIPng.  Unlike these protocols, Babel decorates
+each update with two additional pieces of data,
+
+  (i) the router-id of the originating router, which uniquely identifies
+      the router that injected this route into the Babel routing domain;
+ (ii) the sequence number of this update, a small integer that is
+      non-decreasing (modulo 2^16) for all updates originated by this
+      router.
+
+These two pieces of data allow Babel to avoid the infamous ``counting to
+infinity'' phenomenon familiar in classical distance-vector protocols by
+using a feasibility condition similar to the one used by the DUAL algorithm
+[DUAL] used by Cisco's EIGRP [EIGRP].  Unlike DUAL, however, Babel doesn't
+use any hard state to make routes feasible; instead, it uses sequenced
+updates in a manner similar to DSDV [DSDV] and AODV [RFC3561].
+
+More precisely, Babel's feasibility condition ensures the following
+properties:
 
    (i) in the absence of multiple gateways to the same destination, Babel
        never causes rooting loops, not even transient ones;
-  (ii) in the presence of multiple gateways to the same destination, loops
-       can only appear if multiple gateways loose external connectivity at
-       the same time; such loops disappear after n updates at most, where
-       n is the size of the loop (there is no ``counting to infinity'');
- (iii) any black holes disappear after at most n updates, where n is the
-       diameter of the network.
-
-These robustness properties are achieved by using a feasibility condition
-similar to the one used by the DUAL algorithm [DUAL] used by Cisco's EIGRP
-[EIGRP].  Unlike DUAL, however, Babel doesn't use any hard state to make
-routes feasible; instead, it uses sequenced updates in a manner similar to
-DSDV [DSDV] and AODV [RFC3561].
+  (ii) in the presence of multiple gateways to the same destination,
+       transient loops may appear; however, such loops disappear after
+       n successful updates at most, where n is the size of the loop;
+       additionally, none of the nodes in that loop can participate in
+       a loop involving the same prefix and the same gateways for the
+       duration of the router-id garbage collection timer.
 
 Additionally, Babel is designed to be a flexible protocol.  A large number
 of parameters are left to the implementer's discretion, such as the
 frequency of link quality sensing ``Hello'' messages, the frequency of
 periodic updates, the link quality estimation algorithm, or the route
-selection policy.  Two implementations with widely differing parameters
-will interoperate reliably.
+selection policy.  This flexibility makes it possible to implement Babel
+simply and efficiently on ``simple'' link-layer technologies, while using
+more complex techniques on wireless links.
 
 
 2. Protocol operation
@@ -224,15 +238,18 @@ If the metric is infinite, the update is in fact a retraction.
 
 2.3.1 Feasibility condition
 
-A source is a pair (id, prefix).  A reference distance is a pair (seqno,
-metric), ordered lexicographically, with the first component inverted.  In
-other words,
+A source is a pair (id, prefix).  A distance is a pair of a sequence number
+and a metric; we say that a distance (seqno, metric) is better than
+a distance (seqno', metric'), written
 
   (seqno, metric) < (seqno', metric')
 
 when
 
   seqno > seqno' or (seqno = seqno' and metric < metric').
+
+In other words, distances are pairs of the form (seqno, metric), ordered
+lexicographically, with the first component inverted.
 
 The reference distance of a source is the minimum, according to the
 previous order, of the reference distances of all the updates ever sent for
@@ -253,7 +270,6 @@ source table entry is updated according to the following rules:
     reset;
   - otherwise, the garbage collection timer for the entry is reset.
 
-
 An entry in the table of sources is purged when its garbage collection
 timer hasn't been reset for 200 seconds.
 
@@ -268,6 +284,7 @@ feasible when one of the following conditions is true:
   - an entry (id, prefix, seqno, metric) exists, and either
       * seqno' > seqno or
       * seqno' = seqno and metric' < metric.
+
 
 2.3.2 The Routing Information Base
 
@@ -416,9 +433,9 @@ octets per destination; and the RIB takes about 50 bytes per entry.  In
 other words, a single Ethernet packet can carry roughly 50 route updates,
 and a megabyte of memory can contain a 20000-entry RIB.
 
-Babel is also a simple protocol.  The current sample implementation
-consists of less than 5000 lines of C code, and compiles to less than
-32 kB of code on a 32-bit CISC architecture.
+Babel is also a simple protocol.  The first implementation consisted of
+less than 4000 lines of C code, and compiled to less than 30 kB of code on
+a 32-bit CISC architecture.
 
 However, in some very constrained environments, such as PDAs, microwave
 ovens or abacuses, it may be desirable to have subset implementations of
@@ -440,8 +457,10 @@ An update (id, prefix, seqno', metric') is DSDV-feasible when
         - seqno > seqno'; or
         - seqno = seqno' and metric < metric'.
 
-Note that the correctness of this condition is dependent on the fact that
-retracted routes are not garbage collected too early.
+The correctness of this condition is dependent on the fact that retracted
+routes are not garbage collected too early.  In other words, an implementation
+that uses DSDV-feasibility MUST keep a RIB entry for a route for at least
+a few minutes after it is retracted.
 
 2.6.2 Parasitic implementations
 
@@ -473,125 +492,210 @@ meaning of a received message does not depend on the transport being used.
 
 A Babel packet has the following structure:
 
-  - magic: 1 octet;
-  - version: 1 octet;
-  - reserved: 6 octets;
-  - body: n * 24 octets.
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |     Magic     |    Version    |          Reserved             |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |                           Reserved                            |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |   Body ...
+     +-+-+-+-+-+-+-+-+-+-+-+-+-
 
-The magic octet has the arbitrary but carefully chosen value 42; packets
-with a first octet different from 42 MUST be silently ignored.  Version has
-the value 1; packets with a second octet different from 1 MUST be silently
-ignored.  The reserved field MUST be sent as 0, and ignored upon reception.
+    Fields:
 
-The body consists of an arbitrary number of messages (up to the link MTU or
-the minimum maximum datagram size, whichever is more) of 24 octets each.
+      Magic     This octet has an arbitrary but carefully chosen value 42;
+                packets with a first octet different from 42 MUST be
+                silently ignored.
+
+      Version   This document specifies version 1 of the Babel protocol.
+                Packets with a second octet different from 1 MUST be
+                silently ignored.
+
+      Reserved  This field MUST be sent as 0, and ignored upon reception.
+
+      Body      This field consists of an arbitrary number of messages (up
+                to the link MTU or the minimum maximum datagram size,
+                whichever is more) of 24 octets each.
 
 
 3.2 Message format
 
-All Babel messages have the same format:
+All Babel messages have a length of 24 octets, and follow the following
+format:
 
-  type: 1 octet;
-  h1: 1 octet;
-  s1: 2 octets;
-  s2: 2 octets;
-  s3: 2 octets;
-  a: 16 octets.
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |     Type      |                                               |
+     +-+-+-+-+-+-+-+-+                                               +
+     |                                                               |
+     +                                                               +
+     |                                                               |
+     +                            body                               +
+     |                                                               |
+     +                                                               +
+     |                                                               |
+     +                                                               +
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-The interpretation of the fields h1, s1, s2, s3 and a depends on the value
-of the type field, and is described in the following paragraphs.
+The Type field indicates the type of the message, and governs the
+interpretation of the body.
 
 Except for Hello messages (Section 3.2.1), all messages can be sent using
 unicast or multicast, and their semantics does not depend on the transport
 being used.  Hello messages may be sent using multicast only.
 
-This document defines the interpretation of messages having a type field
-between 0 and 4 inclusive; unknown messages MUST be silently ignored.
+All implementations of Babel MUST be able to interpret messages of types
+0 to 4; unknown messages MUST be silently ignored.
 
 3.2.1 Hello messages
 
-  type: 1 octet;
-  reserved: 3 octets;
-  seqno: 2 octets;
-  hello interval: 2 octets;
-  id: 16 octets.
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |    Type = 0   |                  Reserved                     |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |            Seqno              |       Hello Interval          |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |                                                               |
+     +                                                               +
+     |                                                               |
+     +                           Router ID                           +
+     |                                                               |
+     +                                                               +
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-The type field is 0, indicating a Hello message.  Seqno indicates the
-sequence number of this hello message; it is incremented by one (modulo
-2^16) every time a hello is sent.  The hello interval indicates a time in
-centiseconds after which the next hello will be scheduled; the sending node
-MAY send the next hello earlier than that, but MUST NOT send the next hello
-later then after 1.5 times this interval.  The id field indicates the
-router id of the router sending this hello; it MUST be unique within the
-routing domain, and SHOULD NOT change over time.
+    Fields:
+
+      Type      Set to 0 to indicate a Hello message.
+
+      Reserved  The reserved field must be set to 0 on emission, and
+                ignored on reception.
+
+      Seqno     Indicates the sequence number of this hello message; it is
+                incremented by one (modulo 2^16) every time a hello is sent
+                by this router on this subnet.
+
+      Hello Interval
+                Indicates the interval in centiseconds after which the next
+                hello will be scheduled; the sending node MAY send the next
+                hello earlier than that, but MUST NOT send it later than
+                after 1.5 times this interval has expired.
+
+      Router ID Indicates the router ID of the sender.
 
 In order to allow accurate link quality measurement, hello messages MUST
 NOT be sent using unicast.
 
 3.2.2 IHU messages
 
-  type: 1 octet;
-  reserved: 3 octets;
-  IHU interval: 2 octets;
-  txcost: 2 octets.
-  id: 16 octets
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |    Type = 1   |                  Reserved                     |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |         IHU Interval          |            Txcost             |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |                                                               |
+     +                                                               +
+     |                                                               |
+     +                     Destination Router ID                     +
+     |                                                               |
+     +                                                               +
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-The type field is 1 to indicate an IHU (``I Heard You'') message.  The IHU
-interval field indicates the interval in centiseconds after which the next
-scheduled multicast IHU message will be sent by this router; an IHU MAY be
-sent earlier than that, but MUST NOT be sent later than after this interval
-plus half the hello interval.
+    Fields:
 
-The txcost field expresses the cost of sending messages from the router
-identified by the id field to the router sending this message.  It is
-specified as a fixed-point number in 16.16 bit format.  The value 0xFF.0xFF
-(infinity) indicates that the link from the router identified by the id
-field to the router sending this message is broken.
+      Type      Set to 1 to indicate an IHU (``I Heard You'') message.
+
+      IHU Interval
+                Indicates the interval in centiseconds after which the next
+                scheduled multicast IHU message will be sent by this
+                router; an IHU MAY be sent earlier than that, but MUST NOT
+                be sent later than after this interval plus half the hello
+                interval.
+
+      Txcost    This fixed-point number in 8.8 bit format specifies the
+                cost, as estimated by the sender, of sending a link-layer
+                frame from the router identified by the Destination Router
+                ID field to the sender of this message.  The value 0xFF.0xFF
+                (infinity) indicates that the link is not operational.
+
+      Destination Router ID
+                This field specifies the router-id of the router to whom
+                this message is addressed.
+
 
 3.2.3 Request message
 
-  type: 1 octet;
-  plen: 1 octet;
-  reserved: 1 octet;
-  hop count: 1 octet;
-  seqno: 2 octets;
-  router-id hash: 2 octets;
-  prefix: 16 octets.
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |    Type = 2   |     Plen      |  Reserved     |   Hop Count   |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |              Seqno            |            Id Hash            |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |                                                               |
+     +                                                               +
+     |                                                               |
+     +                            Prefix                             +
+     |                                                               |
+     +                                                               +
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+    Fields:
+
+      Type      Set to 2 to indicate a Request message.
+
+      Plen      The length of the requested prefix, or 0xFF if this is
+                a wildcard request.
+
+      Hop Count The number of routers this request may be forwarded by.
+
+      Seqno     The requested sequence number.
+
+      Id Hash   A hash of the requested router id.
+
+      Prefix    The requested prefix.
 
 A request message is used for requesting an update from the receiver.
 A reply to a request is a packet consisting of update and prefix messages,
 sent either to the well-known multicast address, or to the source address
 of the packet carrying the request message, at the sender's discretion.
 
-The type field is 2 to indicate a request message.  There are three kinds
-of request messages.
+There are three kinds of request messages.
 
 3.2.3.1 Full table requests
 
-If plen is 0xFF, then this is a request for a full dump of the routing
-table; in this case, hop count must be zero and is ignored on reception.
-When a Babel speaker receives such a request, it responds with a full dump
-of its routing table.
+If Plen is 0xFF, then this is a request for a full dump of the routing
+table; in this case, the Hop Count field must be zero and is ignored on
+reception.  When a Babel speaker receives such a request, it responds with
+a full dump of its routing table.
 
 3.2.3.2 Specific requests
 
-If plen is no more than 128 and hop count is 0, then this is a request for
-a route with the destination specified by prefix and plen.  If the
+If Plen is no more than 128 and hop count is 0, then this is a request for
+a route with the destination specified by Prefix and Plen.  If the
 receiving Babel speaker has selected a route with that destination, it
 replies with an update for this route.  Otherwise, it sends a retraction
 for that destination.
 
 3.2.3.3 Multi-hop requests
 
-Finally, if plen is no more than 128 and hop count is larger than 0, then
+Finally, if Plen is no more than 128 and hop count is larger than 0, then
 this is a multi-hop request for a particular sequence number.  If the
-receiver's router-id matches the router-id hash, and it is exporting
-a route to the requested destination, it increases its sequence number to
-match the seqno field of the request, and sends an update.
+receiver's router-id matches the Id Hash, and it is exporting a route to
+the requested destination, it increases its sequence number to match the
+seqno field of the request, and sends an update.
 
-Otherwise, If the receiver has selected a route with the destination
-specified by prefix and plen, a router id that matches the hash, and
-a sequence number no less than seqno, it replies with an update for that
+Otherwise, if the receiver has selected a route with the destination
+specified by Prefix and Plen, a router id that matches the ID Hash, and
+a sequence number no less than Seqno, it replies with an update for that
 route.  If the receiver has a route for that destination with a different
 router id, it sends an update for that route.
 
@@ -602,55 +706,103 @@ decreasing the hop count by one.  If the hop count is 1, it remains silent.
 A speaker SHOULD keep track of forwarded multi-hop requests, and forward
 the replies whenever a request is satisfied.
 
-Finally, if the receiver has no route to the given destination, it sends
-a retraction for that destination.
+If the receiver has no route to the given destination, it remains silent.
 
 
 3.2.4 Update
 
-  type: 1 octet;
-  plen: 1 octet;
-  reserved: 2 octets;
-  seqno: 2 octets;
-  metric: 2 octets;
-  id: 16 octets.
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |    Type = 3   |     Plen      |            Reserved           |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |              Seqno            |             Metric            |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |                                                               |
+     +                                                               +
+     |                                                               |
+     +                           Router ID                           +
+     |                                                               |
+     +                                                               +
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-The type field is 3 to indicate an update message.  If plen is 0xFF (the
-normal case), the field id establishes the context for the following update
-message; all the other fields MUST then be sent as 0 and ignored upon
-reception.
 
-If plen is between 0 and 0x80, inclusive, the message is an abbreviation
-for an update message followed by a prefix message (Section 3.2.5).  More
-precisely, the message
+    Fields:
+
+      Type      Set to 3 to indicate an Update message.
+
+      Plen      The prefix length of the advertised prefix, or 0xFF.
+
+      Seqno     The sequence number of this advertisement in 8.8 format, or
+                zero.
+
+      Metric    The metric of the advertised route, or zero.
+
+      Router ID The router id of the originator of this route.
+
+If Plen is 0xFF (the normal case), the field Router ID establishes the
+context for the following update message; all the other fields MUST then be
+sent as 0, and ignored upon reception.
+
+If Plen is between 0 and 0x80, inclusive, the message is an abbreviation
+for an update message followed by a prefix message (Section 3.2.5); the
+implicit prefix is then taken to be the prefix of length plen of the
+advertised router id.  More precisely, the message
 
   (3, plen, 0, seqno, metric, id)
 
 is interpreted just like the sequence of two messages
 
   (3, 0xFF, 0, 0, 0, id)
-  (4, plen, 0, seqno, metric, id)
+  (4, plen, 0, seqno, metric, prefix)
+
+where prefix is equal to id masked to plen bits.
+
 
 3.2.5 Prefix information
 
-  type: 1 octet;
-  plen: 1 octet;
-  reserved: 2 octets;
-  seqno: 2 octets;
-  metric: 2 octets;
-  prefix: 16 octets.
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |    Type = 4   |     Plen      |            Reserved           |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |              Seqno            |             Metric            |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |                                                               |
+     +                                                               +
+     |                                                               |
+     +                             Prefix                            +
+     |                                                               |
+     +                                                               +
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-The type field is 4 to indicate a prefix message.  A prefix message MUST
-immediately follow either an update message, or another prefix message.
+    Fields:
 
-The metric field is a fixed-point number in 16.16 bit format, and
-represents an additive metric.  The value 0xFF.0xFF (infinite) indicates
-that this is a route retraction.
+      Type      Set to 4 to indicate a Prefix message.
+
+      Plen      The prefix length of the advertised prefix.
+
+      Seqno     The sequence number of this advertisement.
+
+      Metric    The metric of the advertised route, in 8.8 bit fixed-point
+                format.
+
+      Prefix    The prefix being advertised.
+
+      
+A Prefix message MUST immediately follow either an UPDATE message, or
+another PREFIX message.
+
+The Metric field is a fixed-point number in 8.8 bit format, and represents
+an additive metric.  The value 0xFF.0xFF (infinity) indicates that this is
+a route retraction.
 
 An update message specifies an update for the route to destination (prefix,
-plen), with a sequence number given by the field seqno, a metric given by
-the metric field, and a source indicated by the id field of the preceding
-update message.
+plen), with a sequence number given by the field Seqno, a metric given by
+the Metric field, and a source indicated by the Router ID field of the
+preceding update message.
 
 3.2.6 IPv4 prefix information
 
