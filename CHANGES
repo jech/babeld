@@ -1,4 +1,4 @@
-babel 0.9 (unreleased)
+14 February 2008: babel 0.9
 
   * Implemented a proper configuration language to specify input and
     output filters and redistribution policies.
