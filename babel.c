@@ -273,8 +273,9 @@ main(int argc, char **argv)
     if(fd < 0 && errno != ENOENT)
         perror("open(babel-state)");
     rc = unlink(state_file);
-    if(fd >= 0 && rc < 0) {
+    if(rc < 0)
         perror("unlink(babel-state)");
+    if(fd >= 0 && rc < 0) {
         /* If we couldn't unlink it, it's probably stale. */
         close(fd);
         fd = -1;
