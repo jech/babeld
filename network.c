@@ -37,40 +37,23 @@ struct network nets[MAXNETS];
 int numnets = 0;
 
 struct network *
-add_network(char *ifname, int ifindex, int mtu, int wired, unsigned int cost)
+add_network(char *ifname, int wired, unsigned int cost)
 {
-    void *p;
-    unsigned char ipv4[4];
-    int rc;
-
     if(numnets >= MAXNETS) {
         fprintf(stderr, "Too many networks.\n");
         return NULL;
     }
 
     memset(nets + numnets, 0, sizeof(struct network));
-    nets[numnets].up = (kernel_interface_operational(ifname, ifindex) > 0);
-    nets[numnets].ifindex = ifindex;
+    nets[numnets].up = 0;
+    nets[numnets].ifindex = 0;
     nets[numnets].ipv4 = NULL;
-    rc = kernel_interface_ipv4(ifname, ifindex, ipv4);
-    if(rc >= 0) {
-        nets[numnets].ipv4 = malloc(4);
-        if(nets[numnets].ipv4)
-            memcpy(nets[numnets].ipv4, ipv4, 4);
-    }
-
     nets[numnets].wired = wired;
     nets[numnets].cost = cost;
     nets[numnets].activity_time = now.tv_sec;
-    update_hello_interval(&nets[numnets]);
-    nets[numnets].bufsize = mtu - sizeof(packet_header);
+    nets[numnets].bufsize = 0;
     strncpy(nets[numnets].ifname, ifname, IF_NAMESIZE);
-    p = malloc(nets[numnets].bufsize);
-    if(p == NULL) {
-        perror("malloc");
-        return NULL;
-    }
-    nets[numnets].sendbuf = p;
+    nets[numnets].sendbuf = NULL;
     nets[numnets].buffered = 0;
     nets[numnets].bucket_time = now.tv_sec;
     nets[numnets].bucket = 0;
@@ -143,10 +126,39 @@ update_jitter(struct network *net, int urgent)
 static int
 network_up(struct network *net, int up)
 {
+    int mtu;
+
     if(up == net->up)
         return 0;
 
     net->up = up;
+
+    if(up) {
+        mtu = kernel_interface_mtu(net->ifname, net->ifindex);
+        if(mtu < 0) {
+            fprintf(stderr, "Warning: couldn't get MTU of interface %s (%d).\n",
+                    net->ifname, net->ifindex);
+            mtu = 1280;
+        }
+        /* 40 for IPv6 header, 8 for UDP header, 12 for good luck. */
+        mtu -= 60;
+
+        if(net->sendbuf)
+            free(net->sendbuf);
+        net->bufsize = mtu - sizeof(packet_header);
+        net->sendbuf = malloc(net->bufsize);
+        if(net->sendbuf == NULL) {
+            fprintf(stderr, "Couldn't allocate sendbuf.\n");
+            net->bufsize = 0;
+            return network_up(net, 0);
+        }
+        update_hello_interval(net);
+    } else {
+        net->buffered = 0;
+        net->bufsize = 0;
+        free(net->sendbuf);
+        net->sendbuf = NULL;
+    }
 
     if(!up)
         flush_network_routes(net);

@@ -406,7 +406,7 @@ main(int argc, char **argv)
         }
         debugf("Adding %s network %s (%d).\n",
                rc ? "wireless" : "wired", *arg, ifindex);
-        vrc = add_network(*arg, ifindex, mtu, !rc, rc ? 256 : 128);
+        vrc = add_network(*arg, !rc, rc ? 256 : 128);
         if(vrc == NULL)
             goto fail;
         SHIFT();
@@ -419,6 +419,7 @@ main(int argc, char **argv)
     }
 
     init_signals();
+    check_networks();
     check_xroutes();
     kernel_routes_changed = 0;
     kernel_dump_time = now.tv_sec + 20 + random() % 20;
