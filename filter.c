@@ -221,6 +221,7 @@ parse_filter(gnc_t gnc, void *closure)
             c = getword(c, &interface, gnc, closure);
             if(c < -1)
                 goto error;
+            filter->ifname = strdup(interface);
             filter->ifindex = if_nametoindex(interface);
         } else if(strcmp(token, "allow") == 0) {
             filter->result = 0;
@@ -358,6 +359,24 @@ parse_config_from_string(char *string)
 {
     struct string_state s = { string, 0 };
     return parse_config((gnc_t)gnc_string, &s);
+}
+
+static void
+renumber_filter(struct filter *filter)
+{
+    while(filter) {
+        if(filter->ifname)
+            filter->ifindex = if_nametoindex(filter->ifname);
+        filter = filter->next;
+    }
+}
+
+void
+renumber_filters()
+{
+    renumber_filter(input_filters);
+    renumber_filter(output_filters);
+    renumber_filter(redistribute_filters);
 }
 
 static int

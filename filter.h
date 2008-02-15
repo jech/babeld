@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 struct filter {
     int af;
+    char *ifname;
     unsigned int ifindex;
     unsigned char *id;
     unsigned char *prefix;
@@ -37,6 +38,7 @@ struct filter {
 
 int parse_config_from_file(char *filename);
 int parse_config_from_string(char *string);
+void renumber_filters(void);
 
 int input_filter(const unsigned char *id,
                  const unsigned char *prefix, unsigned short plen,
