@@ -267,6 +267,9 @@ The default location of the file storing long-term state.
 .TP
 .B SIGUSR1
 Dump Babel's routing tables to standard output.
+.TP
+.B SIGUSR2
+Check interfaces and kernel routes right now.
 .SH SECURITY
 Babel is a completely insecure protocol: any attacker able to inject
 IP packets with a link-local source address can disrupt the protocol's
