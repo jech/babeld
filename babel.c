@@ -81,7 +81,7 @@ int protocol_socket = -1;
 int kernel_socket = -1;
 static int kernel_routes_changed = 0;
 
-static volatile sig_atomic_t exiting = 0, dumping = 0;
+static volatile sig_atomic_t exiting = 0, dumping = 0, changed = 0;
 
 static int kernel_routes_callback(void *closure);
 static void init_signals(void);
@@ -524,6 +524,13 @@ main(int argc, char **argv)
             }
         }
 
+        if(changed) {
+            kernel_dump_time = now.tv_sec;
+            check_neighbours_time = now;
+            expiry_time = now.tv_sec;
+            changed = 0;
+        }
+
         if(kernel_routes_changed || now.tv_sec >= kernel_dump_time) {
             rc = check_xroutes();
             if(rc > 0)
@@ -689,6 +696,12 @@ sigdump(int signo)
 }
 
 static void
+sigchanged(int signo)
+{
+    changed = 1;
+}
+
+static void
 init_signals(void)
 {
     struct sigaction sa;
@@ -717,6 +730,12 @@ init_signals(void)
     sa.sa_mask = ss;
     sa.sa_flags = 0;
     sigaction(SIGUSR1, &sa, NULL);
+
+    sigemptyset(&ss);
+    sa.sa_handler = sigchanged;
+    sa.sa_mask = ss;
+    sa.sa_flags = 0;
+    sigaction(SIGUSR2, &sa, NULL);
 
 #ifdef SIGINFO
     sigemptyset(&ss);
