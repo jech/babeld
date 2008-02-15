@@ -31,6 +31,7 @@ THE SOFTWARE.
 #include "neighbour.h"
 #include "message.h"
 #include "route.h"
+#include "filter.h"
 
 struct network nets[MAXNETS];
 int numnets = 0;
@@ -139,16 +140,31 @@ update_jitter(struct network *net, int urgent)
     return (interval / 2 + random() % interval);
 }
 
+static int
+network_up(struct network *net, int up)
+{
+    if(up == net->up)
+        return 0;
+
+    net->up = up;
+
+    if(!up)
+        flush_network_routes(net);
+
+    return 1;
+}
+
 void
 check_networks(void)
 {
-    int i, rc, changed = 0;
+    int i, rc, ifindex, changed = 0, ifindex_changed = 0;
     unsigned char ipv4[4];
 
     for(i = 0; i < numnets; i++) {
         rc = kernel_interface_ipv4(nets[i].ifname, nets[i].ifindex, ipv4);
         if(rc > 0) {
             if(!nets[i].ipv4 || memcmp(ipv4, nets[i].ipv4, 4) != 0) {
+                debugf("Noticed IPv4 change for %s.\n", nets[i].ifname);
                 if(!nets[i].ipv4)
                     nets[i].ipv4 = malloc(4);
                 if(nets[i].ipv4)
@@ -156,26 +172,39 @@ check_networks(void)
                 changed = 1;
             }
         } else {
+            debugf("Noticed IPv4 change for %s.\n", nets[i].ifname);
             if(nets[i].ipv4) {
                 free(nets[i].ipv4);
                 nets[i].ipv4 = NULL;
                 changed = 1;
             }
         }
-        rc = kernel_interface_operational(nets[i].ifname, nets[i].ifindex);
+
+        ifindex = if_nametoindex(nets[i].ifname);
+        if(ifindex != nets[i].ifindex) {
+            debugf("Noticed ifindex change for %s.\n", nets[i].ifname);
+            network_up(&nets[i], 0);
+            nets[i].ifindex = ifindex;
+            changed = 1;
+            ifindex_changed = 1;
+        }
+
+        if(nets[i].ifindex > 0)
+            rc = kernel_interface_operational(nets[i].ifname, nets[i].ifindex);
+        else
+            rc = 0;
         if((rc > 0) != nets[i].up) {
             debugf("Noticed status change for %s.\n", nets[i].ifname);
-            nets[i].up = (rc > 0);
-            if(rc > 0) {
-                send_self_update(&nets[i], 0);
+            network_up(&nets[i], rc > 0);
+            if(rc > 0)
                 send_request(&nets[i], NULL, 0, 0, 0, 0);
-            } else {
-                flush_network_routes(&nets[i]);
-            }
-        }
-        if(changed) {
-            if(nets[i].up)
-                send_update(&nets[i], 0, NULL, 0);
+            changed = 1;
         }
     }
+
+    if(changed)
+        send_update(NULL, 0, NULL, 0);
+
+    if(ifindex_changed)
+        renumber_filters();
 }
