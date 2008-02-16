@@ -57,6 +57,7 @@ add_network(char *ifname, int wired, unsigned int cost)
     nets[numnets].buffered = 0;
     nets[numnets].bucket_time = now.tv_sec;
     nets[numnets].bucket = 0;
+    nets[numnets].hello_interval = 10000;
     nets[numnets].hello_seqno = (random() & 0xFFFF);
     numnets++;
     return &nets[numnets - 1];
