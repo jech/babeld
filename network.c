@@ -127,7 +127,7 @@ update_jitter(struct network *net, int urgent)
     return (interval / 2 + random() % interval);
 }
 
-static int
+int
 network_up(struct network *net, int up)
 {
     int mtu, rc, wired;
@@ -142,6 +142,13 @@ network_up(struct network *net, int up)
         if(net->ifindex <= 0) {
             fprintf(stderr,
                     "Upping unknown interface %s.\n", net->ifname);
+            return network_up(net, 0);
+        }
+
+        rc = kernel_setup_interface(1, net->ifname, net->ifindex);
+        if(rc < 0) {
+            fprintf(stderr, "kernel_setup_interface(%s, %d) failed.\n",
+                    net->ifname, net->ifindex);
             return network_up(net, 0);
         }
 
@@ -207,6 +214,7 @@ network_up(struct network *net, int up)
             if(rc < 0) {
                 perror("setsockopt(IPV6_LEAVE_GROUP)");
             }
+            kernel_setup_interface(0, net->ifname, net->ifindex);
         }
     }
 
@@ -223,25 +231,6 @@ check_networks(void)
     unsigned char ipv4[4];
 
     for(i = 0; i < numnets; i++) {
-        rc = kernel_interface_ipv4(nets[i].ifname, nets[i].ifindex, ipv4);
-        if(rc > 0) {
-            if(!nets[i].ipv4 || memcmp(ipv4, nets[i].ipv4, 4) != 0) {
-                debugf("Noticed IPv4 change for %s.\n", nets[i].ifname);
-                if(!nets[i].ipv4)
-                    nets[i].ipv4 = malloc(4);
-                if(nets[i].ipv4)
-                    memcpy(nets[i].ipv4, ipv4, 4);
-                changed = 1;
-            }
-        } else {
-            debugf("Noticed IPv4 change for %s.\n", nets[i].ifname);
-            if(nets[i].ipv4) {
-                free(nets[i].ipv4);
-                nets[i].ipv4 = NULL;
-                changed = 1;
-            }
-        }
-
         ifindex = if_nametoindex(nets[i].ifname);
         if(ifindex != nets[i].ifindex) {
             debugf("Noticed ifindex change for %s.\n", nets[i].ifname);

@@ -52,4 +52,5 @@ int network_idle(struct network *net);
 int update_hello_interval(struct network *net);
 unsigned int jitter(struct network *net);
 unsigned int update_jitter(struct network *net, int urgent);
+int network_up(struct network *net, int up);
 void check_networks(void);

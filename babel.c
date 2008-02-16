@@ -347,13 +347,6 @@ main(int argc, char **argv)
             goto fail;
         }
 
-        rc = kernel_setup_interface(1, *arg, ifindex);
-        if(rc < 0) {
-            fprintf(stderr, "kernel_setup_interface(%s, %d) failed.\n",
-                    *arg, ifindex);
-            goto fail;
-        }
-
         mtu = kernel_interface_mtu(*arg, ifindex);
         if(mtu < 0) {
             fprintf(stderr, "Warning: couldn't get MTU of interface %s (%d).\n",
@@ -604,7 +597,6 @@ main(int argc, char **argv)
         flushbuf(&nets[i]);
         usleep(50000 + random() % 100000);
         network_up(&nets[i], 0);
-        kernel_setup_interface(0, nets[i].ifname, nets[i].ifindex);
     }
     kernel_setup_socket(0);
     kernel_setup(0);
@@ -653,7 +645,6 @@ main(int argc, char **argv)
         if(!nets[i].up)
             continue;
         network_up(&nets[i], 0);
-        kernel_setup_interface(0, nets[i].ifname, nets[i].ifindex);
     }
     kernel_setup_socket(0);
     kernel_setup(0);
