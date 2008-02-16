@@ -56,8 +56,6 @@ struct timeval now;
 unsigned char myid[16];
 int debug = 0;
 
-static int maxmtu;
-
 int reboot_time;
 
 int idle_time = 320;
@@ -67,6 +65,9 @@ int wireless_hello_interval = -1;
 int wired_hello_interval = -1;
 int idle_hello_interval = -1;
 int update_interval = -1;
+
+unsigned char *receive_buffer = NULL;
+int receive_buffer_size = 0;
 
 const unsigned char zeroes[16] = {0};
 const unsigned char ones[16] =
@@ -92,7 +93,6 @@ main(int argc, char **argv)
 {
     struct sockaddr_in6 sin6;
     int i, rc, fd;
-    static unsigned char *buf;
     struct timeval check_neighbours_time;
     int expiry_time, kernel_dump_time;
     char *config_file = NULL;
@@ -334,45 +334,7 @@ main(int argc, char **argv)
         goto fail;
     }
 
-    /* Just in case. */
-    maxmtu = 1500;
-
     while(*arg) {
-        int ifindex;
-        int mtu;
-
-        ifindex = if_nametoindex(*arg);
-        if(ifindex <= 0) {
-            fprintf(stderr, "Unknown interface %s.\n", *arg);
-            goto fail;
-        }
-
-        mtu = kernel_interface_mtu(*arg, ifindex);
-        if(mtu < 0) {
-            fprintf(stderr, "Warning: couldn't get MTU of interface %s (%d).\n",
-                    *arg, ifindex);
-            mtu = 1280;
-            maxmtu = MAX(maxmtu, 0x10000);
-        } else if(mtu < 1280) {
-            fprintf(stderr,
-                    "Warning: suspiciously low MTU %d on interface %s (%d).\n",
-                    mtu, *arg, ifindex);
-            mtu = 1280;
-            maxmtu = MAX(maxmtu, 0x10000);
-        } else {
-            if(mtu >= 0x10000) {
-                fprintf(stderr,
-                        "Warning: "
-                        "suspiciously high MTU %d on interface %s (%d).\n",
-                        mtu, *arg, ifindex);
-                maxmtu = MAX(maxmtu, mtu);
-                mtu = 32768;
-            }
-        }
-        maxmtu = MAX(maxmtu, mtu);
-        /* 40 for IPv6 header, 8 for UDP header, 12 for good luck. */
-        mtu -= 60;
-
         debugf("Adding network %s.\n", *arg);
         vrc = add_network(*arg);
         if(vrc == NULL)
@@ -380,10 +342,11 @@ main(int argc, char **argv)
         SHIFT();
     }
 
-    buf = malloc(maxmtu);
-    if(buf == NULL) {
-        perror("malloc");
-        goto fail;
+    if(receive_buffer == NULL) {
+        /* No networks currently up ? */
+        resize_receive_buffer(1500);
+        if(receive_buffer == NULL)
+            goto fail;
     }
 
     init_signals();
@@ -471,8 +434,9 @@ main(int argc, char **argv)
             kernel_callback(kernel_routes_callback, NULL);
 
         if(FD_ISSET(protocol_socket, &readfds)) {
-            rc = babel_recv(protocol_socket, buf, maxmtu,
-                              (struct sockaddr*)&sin6, sizeof(sin6));
+            rc = babel_recv(protocol_socket,
+                            receive_buffer, receive_buffer_size,
+                            (struct sockaddr*)&sin6, sizeof(sin6));
             if(rc < 0) {
                 if(errno != EAGAIN && errno != EINTR) {
                     perror("recv");
@@ -484,8 +448,9 @@ main(int argc, char **argv)
                         continue;
                     if(nets[i].ifindex == sin6.sin6_scope_id) {
                         parse_packet((unsigned char*)&sin6.sin6_addr, &nets[i],
-                                     buf, rc);
-                        VALGRIND_MAKE_MEM_UNDEFINED(buf, maxmtu);
+                                     receive_buffer, rc);
+                        VALGRIND_MAKE_MEM_UNDEFINED(receive_buffer,
+                                                    receive_buffer_size);
                         break;
                     }
                 }
@@ -649,6 +614,29 @@ main(int argc, char **argv)
     kernel_setup_socket(0);
     kernel_setup(0);
     exit(1);
+}
+
+void
+resize_receive_buffer(int size)
+{
+    char *new;
+
+    if(size <= receive_buffer_size)
+        return;
+
+    if(receive_buffer == NULL) {
+        receive_buffer = malloc(size);
+        if(receive_buffer == NULL)
+            return;
+        receive_buffer_size = size;
+    }
+
+    new = realloc(receive_buffer, size);
+    if(new == NULL) {
+        perror("malloc(receive_buffer)");
+        return;
+    }
+    receive_buffer_size = size;
 }
 
 static void

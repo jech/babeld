@@ -171,6 +171,8 @@ network_up(struct network *net, int up)
             return network_up(net, 0);
         }
 
+        resize_receive_buffer(mtu);
+
         if(all_wireless) {
             wired = 1;
         } else {
@@ -231,6 +233,25 @@ check_networks(void)
     unsigned char ipv4[4];
 
     for(i = 0; i < numnets; i++) {
+        rc = kernel_interface_ipv4(nets[i].ifname, nets[i].ifindex, ipv4);
+        if(rc > 0) {
+            if(!nets[i].ipv4 || memcmp(ipv4, nets[i].ipv4, 4) != 0) {
+                debugf("Noticed IPv4 change for %s.\n", nets[i].ifname);
+                if(!nets[i].ipv4)
+                    nets[i].ipv4 = malloc(4);
+                if(nets[i].ipv4)
+                    memcpy(nets[i].ipv4, ipv4, 4);
+                changed = 1;
+            }
+        } else {
+            debugf("Noticed IPv4 change for %s.\n", nets[i].ifname);
+            if(nets[i].ipv4) {
+                free(nets[i].ipv4);
+                nets[i].ipv4 = NULL;
+                changed = 1;
+            }
+        }
+
         ifindex = if_nametoindex(nets[i].ifname);
         if(ifindex != nets[i].ifindex) {
             debugf("Noticed ifindex change for %s.\n", nets[i].ifname);
