@@ -127,6 +127,37 @@ update_jitter(struct network *net, int urgent)
     return (interval / 2 + random() % interval);
 }
 
+static int
+check_network_ipv4(struct network *net)
+{
+    unsigned char ipv4[4];
+    int rc;
+
+    if(net->ifindex > 0)
+        rc = kernel_interface_ipv4(net->ifname, net->ifindex, ipv4);
+    else
+        rc = 0;
+
+    if(rc > 0) {
+        if(!net->ipv4 || memcmp(ipv4, net->ipv4, 4) != 0) {
+            debugf("Noticed IPv4 change for %s.\n", net->ifname);
+            if(!net->ipv4)
+                net->ipv4 = malloc(4);
+            if(net->ipv4)
+                memcpy(net->ipv4, ipv4, 4);
+            return 1;
+        }
+    } else {
+        debugf("Noticed IPv4 change for %s.\n", net->ifname);
+        if(net->ipv4) {
+            free(net->ipv4);
+            net->ipv4 = NULL;
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int
 network_up(struct network *net, int up)
 {
@@ -220,6 +251,8 @@ network_up(struct network *net, int up)
         }
     }
 
+    check_network_ipv4(net);
+
     if(!up)
         flush_network_routes(net);
 
@@ -230,28 +263,8 @@ void
 check_networks(void)
 {
     int i, rc, ifindex, changed = 0, ifindex_changed = 0;
-    unsigned char ipv4[4];
 
     for(i = 0; i < numnets; i++) {
-        rc = kernel_interface_ipv4(nets[i].ifname, nets[i].ifindex, ipv4);
-        if(rc > 0) {
-            if(!nets[i].ipv4 || memcmp(ipv4, nets[i].ipv4, 4) != 0) {
-                debugf("Noticed IPv4 change for %s.\n", nets[i].ifname);
-                if(!nets[i].ipv4)
-                    nets[i].ipv4 = malloc(4);
-                if(nets[i].ipv4)
-                    memcpy(nets[i].ipv4, ipv4, 4);
-                changed = 1;
-            }
-        } else {
-            debugf("Noticed IPv4 change for %s.\n", nets[i].ifname);
-            if(nets[i].ipv4) {
-                free(nets[i].ipv4);
-                nets[i].ipv4 = NULL;
-                changed = 1;
-            }
-        }
-
         ifindex = if_nametoindex(nets[i].ifname);
         if(ifindex != nets[i].ifindex) {
             debugf("Noticed ifindex change for %s.\n", nets[i].ifname);
@@ -272,7 +285,10 @@ check_networks(void)
                 send_request(&nets[i], NULL, 0, 0, 0, 0);
             changed = 1;
         }
+
+        check_network_ipv4(&nets[i]);
     }
+
 
     if(changed)
         send_update(NULL, 0, NULL, 0);
