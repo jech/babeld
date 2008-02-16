@@ -603,6 +603,7 @@ main(int argc, char **argv)
         flushupdates();
         flushbuf(&nets[i]);
         usleep(50000 + random() % 100000);
+        network_up(&nets[i], 0);
         kernel_setup_interface(0, nets[i].ifname, nets[i].ifindex);
     }
     kernel_setup_socket(0);
@@ -651,6 +652,7 @@ main(int argc, char **argv)
     for(i = 0; i < numnets; i++) {
         if(!nets[i].up)
             continue;
+        network_up(&nets[i], 0);
         kernel_setup_interface(0, nets[i].ifname, nets[i].ifindex);
     }
     kernel_setup_socket(0);
