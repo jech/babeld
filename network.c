@@ -37,7 +37,7 @@ struct network nets[MAXNETS];
 int numnets = 0;
 
 struct network *
-add_network(char *ifname, int wired, unsigned int cost)
+add_network(char *ifname)
 {
     if(numnets >= MAXNETS) {
         fprintf(stderr, "Too many networks.\n");
@@ -48,8 +48,6 @@ add_network(char *ifname, int wired, unsigned int cost)
     nets[numnets].up = 0;
     nets[numnets].ifindex = 0;
     nets[numnets].ipv4 = NULL;
-    nets[numnets].wired = wired;
-    nets[numnets].cost = cost;
     nets[numnets].activity_time = now.tv_sec;
     nets[numnets].bufsize = 0;
     strncpy(nets[numnets].ifname, ifname, IF_NAMESIZE);
@@ -127,7 +125,7 @@ update_jitter(struct network *net, int urgent)
 static int
 network_up(struct network *net, int up)
 {
-    int mtu;
+    int mtu, rc, wired;
 
     if(up == net->up)
         return 0;
@@ -153,6 +151,25 @@ network_up(struct network *net, int up)
             net->bufsize = 0;
             return network_up(net, 0);
         }
+
+        if(all_wireless) {
+            wired = 1;
+        } else {
+            rc = kernel_interface_wireless(net->ifname, net->ifindex);
+            if(rc < 0) {
+                fprintf(stderr,
+                        "Warning: couldn't determine whether %s (%d) "
+                        "is a wireless interface.\n",
+                        net->ifname, net->ifindex);
+                wired = 0;
+            } else {
+                wired = !rc;
+            }
+        }
+
+        net->wired = wired;
+        net->cost = wired ? 128 : 256;
+
         update_hello_interval(net);
     } else {
         net->buffered = 0;

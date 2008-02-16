@@ -392,21 +392,8 @@ main(int argc, char **argv)
         /* 40 for IPv6 header, 8 for UDP header, 12 for good luck. */
         mtu -= 60;
 
-        if(all_wireless) {
-            rc = 1;
-        } else {
-            rc = kernel_interface_wireless(*arg, ifindex);
-            if(rc < 0) {
-                fprintf(stderr,
-                        "Warning: couldn't determine whether %s "
-                        "is a wireless interface.\n",
-                        *arg);
-                rc = 1;
-            }
-        }
-        debugf("Adding %s network %s (%d).\n",
-               rc ? "wireless" : "wired", *arg, ifindex);
-        vrc = add_network(*arg, !rc, rc ? 256 : 128);
+        debugf("Adding network %s.\n", *arg);
+        vrc = add_network(*arg);
         if(vrc == NULL)
             goto fail;
         SHIFT();
