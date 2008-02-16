@@ -268,6 +268,7 @@ check_networks(void)
         ifindex = if_nametoindex(nets[i].ifname);
         if(ifindex != nets[i].ifindex) {
             debugf("Noticed ifindex change for %s.\n", nets[i].ifname);
+            nets[i].ifindex = 0;
             network_up(&nets[i], 0);
             nets[i].ifindex = ifindex;
             changed = 1;
