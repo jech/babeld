@@ -343,7 +343,7 @@ main(int argc, char **argv)
     }
 
     if(receive_buffer == NULL) {
-        /* No networks currently up ? */
+        fprintf(stderr, "Warning: couldn't find any operational interfaces.\n");
         resize_receive_buffer(1500);
         if(receive_buffer == NULL)
             goto fail;
