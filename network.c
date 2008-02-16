@@ -23,6 +23,11 @@ THE SOFTWARE.
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <net/if.h>
+#include <arpa/inet.h>
 
 #include "babel.h"
 #include "util.h"
@@ -126,6 +131,7 @@ static int
 network_up(struct network *net, int up)
 {
     int mtu, rc, wired;
+    struct ipv6_mreq mreq;
 
     if(up == net->up)
         return 0;
@@ -133,6 +139,12 @@ network_up(struct network *net, int up)
     net->up = up;
 
     if(up) {
+        if(net->ifindex <= 0) {
+            fprintf(stderr,
+                    "Upping unknown interface %s.\n", net->ifname);
+            return network_up(net, 0);
+        }
+
         mtu = kernel_interface_mtu(net->ifname, net->ifindex);
         if(mtu < 0) {
             fprintf(stderr, "Warning: couldn't get MTU of interface %s (%d).\n",
@@ -169,13 +181,33 @@ network_up(struct network *net, int up)
 
         net->wired = wired;
         net->cost = wired ? 128 : 256;
-
         update_hello_interval(net);
+
+        memset(&mreq, 0, sizeof(mreq));
+        memcpy(&mreq.ipv6mr_multiaddr, protocol_group, 16);
+        mreq.ipv6mr_interface = net->ifindex;
+
+        rc = setsockopt(protocol_socket, IPPROTO_IPV6, IPV6_JOIN_GROUP,
+                        (char*)&mreq, sizeof(mreq));
+        if(rc < 0) {
+            perror("setsockopt(IPV6_JOIN_GROUP)");
+            /* But don't bail out for now. */
+        }
     } else {
         net->buffered = 0;
         net->bufsize = 0;
         free(net->sendbuf);
         net->sendbuf = NULL;
+        if(net->ifindex > 0) {
+            memset(&mreq, 0, sizeof(mreq));
+            memcpy(&mreq.ipv6mr_multiaddr, protocol_group, 16);
+            mreq.ipv6mr_interface = net->ifindex;
+            rc = setsockopt(protocol_socket, IPPROTO_IPV6, IPV6_LEAVE_GROUP,
+                            (char*)&mreq, sizeof(mreq));
+            if(rc < 0) {
+                perror("setsockopt(IPV6_LEAVE_GROUP)");
+            }
+        }
     }
 
     if(!up)

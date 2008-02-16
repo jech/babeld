@@ -91,7 +91,6 @@ int
 main(int argc, char **argv)
 {
     struct sockaddr_in6 sin6;
-    struct ipv6_mreq mreq;
     int i, rc, fd;
     static unsigned char *buf;
     struct timeval check_neighbours_time;
@@ -352,17 +351,6 @@ main(int argc, char **argv)
         if(rc < 0) {
             fprintf(stderr, "kernel_setup_interface(%s, %d) failed.\n",
                     *arg, ifindex);
-            goto fail;
-        }
-
-        memset(&mreq, 0, sizeof(mreq));
-        memcpy(&mreq.ipv6mr_multiaddr, protocol_group, 16);
-        mreq.ipv6mr_interface = ifindex;
-
-        rc = setsockopt(protocol_socket, IPPROTO_IPV6, IPV6_JOIN_GROUP,
-                        (char*)&mreq, sizeof(mreq));
-        if(rc < 0) {
-            perror("setsockopt(IPV6_JOIN_GROUP)");
             goto fail;
         }
 
