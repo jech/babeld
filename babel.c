@@ -342,15 +342,14 @@ main(int argc, char **argv)
         SHIFT();
     }
 
+    init_signals();
+    check_networks();
     if(receive_buffer == NULL) {
         fprintf(stderr, "Warning: couldn't find any operational interfaces.\n");
         resize_receive_buffer(1500);
         if(receive_buffer == NULL)
             goto fail;
     }
-
-    init_signals();
-    check_networks();
     check_xroutes();
     kernel_routes_changed = 0;
     kernel_dump_time = now.tv_sec + 20 + random() % 20;
