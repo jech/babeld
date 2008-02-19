@@ -557,6 +557,9 @@ really_send_update(struct network *net,
 {
     int add_metric;
 
+    if(!net->up)
+        return;
+
     add_metric = output_filter(address, prefix, plen, net->ifindex);
 
     if(add_metric < INFINITY) {
