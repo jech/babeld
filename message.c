@@ -402,6 +402,9 @@ send_message(struct network *net,
              unsigned short seqno, unsigned short metric,
              const unsigned char *address)
 {
+    if(net->bufsize == 0)
+        return;
+
     start_message(net, 24);
     accumulate_byte(net, type);
     accumulate_byte(net, plen);
