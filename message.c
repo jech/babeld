@@ -736,9 +736,8 @@ send_update(struct network *net, int urgent,
 
     if(prefix) {
         if(updates > net->bufsize / 24 - 2) {
-            /* Update won't fit in a single packet -- send a full dump. */
-            send_update(net, urgent, NULL, 0);
-            return;
+            /* Update won't fit in current packet */
+            flushupdates();
         }
         debugf("Sending update to %s for %s.\n",
                net->ifname, format_prefix(prefix, plen));
