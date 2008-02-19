@@ -233,6 +233,7 @@ network_up(struct network *net, int up)
             perror("setsockopt(IPV6_JOIN_GROUP)");
             /* But don't bail out for now. */
         }
+        send_hello(net);
     } else {
         net->buffered = 0;
         net->bufsize = 0;
