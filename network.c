@@ -253,9 +253,6 @@ network_up(struct network *net, int up)
 
     check_network_ipv4(net);
 
-    if(!up)
-        flush_network_routes(net);
-
     return 1;
 }
 
