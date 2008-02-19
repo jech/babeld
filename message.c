@@ -722,6 +722,9 @@ send_update(struct network *net, int urgent,
         return;
     }
 
+    if(!net->up)
+        return;
+
     if(parasitic || (silent_time && now.tv_sec < reboot_time + silent_time)) {
         if(prefix == NULL) {
             send_self_update(net, 0);
