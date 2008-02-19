@@ -714,12 +714,13 @@ dump_tables(FILE *out)
         if(neighs[i].id[0] == 0xFF)
             continue;
         fprintf(out, "Neighbour %s ", format_address(neighs[i].id));
-        fprintf(out, "at %s dev %s reach %04x rxcost %d txcost %d.\n",
-               format_address(neighs[i].address),
-               neighs[i].network->ifname,
-               neighs[i].reach,
-               neighbour_rxcost(&neighs[i]),
-               neighs[i].txcost);
+        fprintf(out, "at %s dev %s reach %04x rxcost %d txcost %d%s.\n",
+                format_address(neighs[i].address),
+                neighs[i].network->ifname,
+                neighs[i].reach,
+                neighbour_rxcost(&neighs[i]),
+                neighs[i].txcost,
+                neighs[i].network->up ? "" : " (down)");
     }
     for(i = 0; i < numxroutes; i++) {
         fprintf(out, "%s metric %d (%s)\n",
