@@ -291,6 +291,9 @@ neighbour_cost(struct neighbour *neigh)
 {
     int a, b;
 
+    if(!neigh->network->up)
+        return INFINITY;
+
     a = neigh->txcost;
 
     if(a >= INFINITY)
