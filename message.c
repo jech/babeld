@@ -402,7 +402,7 @@ send_message(struct network *net,
              unsigned short seqno, unsigned short metric,
              const unsigned char *address)
 {
-    if(net->bufsize == 0)
+    if(!net->up)
         return;
 
     start_message(net, 24);
@@ -497,6 +497,9 @@ send_unicast_packet(struct neighbour *neigh, unsigned char *buf, int buflen)
 {
     struct sockaddr_in6 sin6;
     int rc;
+
+    if(!neigh->network->up)
+        return;
 
     if(check_bucket(neigh->network)) {
         memset(&sin6, 0, sizeof(sin6));
