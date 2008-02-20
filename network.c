@@ -261,7 +261,7 @@ network_up(struct network *net, int up)
 void
 check_networks(void)
 {
-    int i, rc, ifindex, changed = 0, ifindex_changed = 0;
+    int i, rc, ifindex, ifindex_changed = 0;
 
     for(i = 0; i < numnets; i++) {
         ifindex = if_nametoindex(nets[i].ifname);
@@ -270,7 +270,6 @@ check_networks(void)
             nets[i].ifindex = 0;
             network_up(&nets[i], 0);
             nets[i].ifindex = ifindex;
-            changed = 1;
             ifindex_changed = 1;
         }
 
@@ -283,15 +282,10 @@ check_networks(void)
             network_up(&nets[i], rc > 0);
             if(rc > 0)
                 send_request(&nets[i], NULL, 0, 0, 0, 0);
-            changed = 1;
         }
 
         check_network_ipv4(&nets[i]);
     }
-
-
-    if(changed)
-        send_update(NULL, 0, NULL, 0);
 
     if(ifindex_changed)
         renumber_filters();
