@@ -58,6 +58,7 @@ struct route *find_best_route(const unsigned char *prefix, unsigned char plen);
 struct route *install_best_route(const unsigned char prefix[16],
                                  unsigned char plen);
 void update_neighbour_metric(struct neighbour *neigh);
+void update_network_metric(struct network *net);
 void update_route_metric(struct route *route);
 struct route *update_route(const unsigned char *a,
                            const unsigned char *p, unsigned char plen,

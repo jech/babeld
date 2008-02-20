@@ -320,6 +320,19 @@ update_neighbour_metric(struct neighbour *neigh)
     }
 }
 
+void
+update_network_metric(struct network *net)
+{
+    int i;
+
+    i = 0;
+    while(i < numroutes) {
+        if(routes[i].neigh->network == net)
+            update_route_metric(&routes[i]);
+        i++;
+    }
+}
+
 /* This is called whenever we receive an update. */
 struct route *
 update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
