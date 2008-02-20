@@ -253,6 +253,7 @@ network_up(struct network *net, int up)
     }
 
     check_network_ipv4(net);
+    update_network_metric(net);
 
     return 1;
 }
