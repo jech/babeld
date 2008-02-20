@@ -234,6 +234,7 @@ network_up(struct network *net, int up)
             /* But don't bail out for now. */
         }
         send_hello(net);
+        send_request(net, NULL, 0, 0, 0, 0);
     } else {
         net->buffered = 0;
         net->bufsize = 0;
@@ -280,8 +281,6 @@ check_networks(void)
         if((rc > 0) != nets[i].up) {
             debugf("Noticed status change for %s.\n", nets[i].ifname);
             network_up(&nets[i], rc > 0);
-            if(rc > 0)
-                send_request(&nets[i], NULL, 0, 0, 0, 0);
         }
 
         check_network_ipv4(&nets[i]);
