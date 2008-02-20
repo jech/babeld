@@ -362,16 +362,6 @@ main(int argc, char **argv)
             continue;
         gettimeofday(&now, NULL);
         send_hello(&nets[i]);
-        send_request(&nets[i], NULL, 0, 0, 0, 0);
-        flushbuf(&nets[i]);
-        usleep(50000 + random() % 100000);
-    }
-
-    for(i = 0; i < numnets; i++) {
-        if(!nets[i].up)
-            continue;
-        gettimeofday(&now, NULL);
-        send_hello(&nets[i]);
         send_self_update(&nets[i], 0);
         send_request(&nets[i], NULL, 0, 0, 0, 0);
         flushbuf(&nets[i]);
