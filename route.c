@@ -112,21 +112,6 @@ flush_neighbour_routes(struct neighbour *neigh)
     }
 }
 
-void
-flush_network_routes(struct network *net)
-{
-    int i;
-
-    i = 0;
-    while(i < numroutes) {
-        if(routes[i].neigh->network == net) {
-            flush_route(routes + i);
-            continue;
-        }
-        i++;
-    }
-}
-
 unsigned int
 metric_to_kernel(int metric)
 {
