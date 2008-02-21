@@ -411,7 +411,9 @@ filter_match(struct filter *f, const unsigned char *id,
         if(!neigh || memcmp(f->neigh, neigh, 16) != 0)
             return 0;
     }
-    if(f->ifindex) {
+    if(f->ifname) {
+        if(!f->ifindex)         /* no such interface */
+            return 0;
         if(!ifindex || f->ifindex != ifindex)
             return 0;
     }
