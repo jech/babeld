@@ -254,7 +254,7 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
                 struct nlmsgerr *err = (struct nlmsgerr *)NLMSG_DATA(nh);
                 if(err->error == 0) {
                     kdebugf("(ACK)\n");
-		    return 0;
+                    return 0;
                 } else {
                     errno = -err->error;
                     perror("netlink_read");
@@ -1187,7 +1187,7 @@ kernel_callback(int (*fn)(int, void*), void *closure)
     int changed;
 
     kdebugf("\nReceived changes in kernel tables.\n");
-    
+
     if(nl_listen.sock < 0) {
         rc = kernel_setup_socket(1);
         if(rc < 0) {
