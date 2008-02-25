@@ -25,6 +25,7 @@ THE SOFTWARE.
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
+#include <netinet/in.h>
 
 #include "babel.h"
 #include "kernel.h"
@@ -34,6 +35,7 @@ THE SOFTWARE.
 #include "xroute.h"
 #include "util.h"
 #include "filter.h"
+#include "network.h"
 
 struct xroute xroutes[MAXXROUTES];
 int numxroutes = 0;
@@ -151,4 +153,27 @@ check_xroutes()
         }
     }
     return change;
+}
+
+int
+check_addresses()
+{
+    int maxaddr = MAXXROUTES;
+    struct in6_addr addresses[MAXXROUTES];
+    int found = 0;
+    int i;
+    int rc;
+
+    for (i = 0; i < numnets; i++) {
+        rc = kernel_addresses(nets[i].ifindex, addresses + found, maxaddr);
+        if (rc < 0)
+            break;
+        for (i = 0; i < rc && numxroutes < MAXXROUTES; i++) {
+            rc = add_xroute(addresses[i].s6_addr, 128, 0, nets[i].ifindex,
+                            RTPROTO_BABEL_LOCAL);
+            if (rc < 0)
+                break;
+        }
+    }
+    return 0;
 }

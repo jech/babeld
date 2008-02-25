@@ -81,10 +81,12 @@ unsigned char protocol_group[16];
 int protocol_socket = -1;
 int kernel_socket = -1;
 static int kernel_routes_changed = 0;
+static int kernel_link_changed = 0;
+static int kernel_addr_changed = 0;
 
 static volatile sig_atomic_t exiting = 0, dumping = 0, changed = 0;
 
-static int kernel_routes_callback(void *closure);
+static int kernel_routes_callback(int changed, void *closure);
 static void init_signals(void);
 static void dump_tables(FILE *out);
 
@@ -352,6 +354,8 @@ main(int argc, char **argv)
     }
     check_xroutes();
     kernel_routes_changed = 0;
+    kernel_link_changed = 0;
+    kernel_addr_changed = 0;
     kernel_dump_time = now.tv_sec + 20 + random() % 20;
     timeval_plus_msec(&check_neighbours_time, &now, 5000 + random() % 5000);
     expiry_time = now.tv_sec + 20 + random() % 20;
@@ -451,6 +455,16 @@ main(int argc, char **argv)
             check_neighbours_time = now;
             expiry_time = now.tv_sec;
             changed = 0;
+        }
+
+        if (kernel_link_changed) {
+            check_networks();
+            kernel_link_changed = 0;
+        }
+
+        if (kernel_addr_changed) {
+            check_addresses();
+            kernel_addr_changed = 0;
         }
 
         if(kernel_routes_changed || now.tv_sec >= kernel_dump_time) {
@@ -744,8 +758,13 @@ dump_tables(FILE *out)
 }
 
 static int
-kernel_routes_callback(void *closure)
+kernel_routes_callback(int changed, void *closure)
 {
-    kernel_routes_changed = 1;
+    if (changed & CHANGE_LINK)
+        kernel_link_changed = 1;
+    if (changed & CHANGE_ADDR)
+        kernel_addr_changed = 1;
+    if (changed & CHANGE_ROUTE)
+        kernel_routes_changed = 1;
     return 1;
 }

@@ -336,3 +336,19 @@ v4tov6(unsigned char *dst, const unsigned char *src)
     memcpy(dst, v4prefix, 12);
     memcpy(dst + 12, src, 4);
 }
+
+char *
+parse_ifflags(unsigned int flags)
+{
+    static char buf[512];
+    buf[0] = '\0';
+    if (flags & IFF_UP)
+        strcat(buf, "UP ");
+    if (flags & IFF_BROADCAST)
+        strcat(buf, "BROADCAST ");
+    if (flags & IFF_RUNNING)
+        strcat(buf, "RUNNING ");
+    if (flags & IFF_MULTICAST)
+        strcat(buf, "MULTICAST ");
+    return buf;
+}

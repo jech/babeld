@@ -21,6 +21,7 @@ THE SOFTWARE.
 */
 
 int check_xroutes(void);
+int check_addresses(void);
 
 struct xroute {
     unsigned char prefix[16];

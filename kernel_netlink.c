@@ -47,6 +47,7 @@ THE SOFTWARE.
 #include "babel.h"
 #include "kernel.h"
 #include "util.h"
+#include "network.h"
 
 int export_table = -1, import_table = -1;
 
@@ -518,9 +519,11 @@ kernel_setup_socket(int setup)
     int rc;
 
     if(setup) {
-        rc = netlink_socket(&nl_listen, RTMGRP_IPV6_ROUTE | RTMGRP_IPV4_ROUTE);
+        rc = netlink_socket(&nl_listen,
+                RTMGRP_IPV6_ROUTE | RTMGRP_IPV4_ROUTE
+              | RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR);
         if(rc < 0) {
-            perror("netlink_socket(RTMGRP_ROUTE)");
+            perror("netlink_socket(RTMGRP_ROUTE | RTMGRP_LINK | RTMGRP_IFADDR)");
             kernel_socket = -1;
             return -1;
         }
@@ -963,10 +966,225 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
     return found;
 }
 
+char *
+parse_ifname_rta(struct ifinfomsg *info, int len)
+{
+    struct rtattr *rta = IFLA_RTA(info);
+    char *ifname = NULL;
+
+    len -= NLMSG_ALIGN(sizeof(*info));
+
+    while(RTA_OK(rta, len)) {
+        switch (rta->rta_type) {
+        case IFLA_IFNAME:
+            ifname = RTA_DATA(rta);
+            break;
+        default:
+            break;
+        }
+        rta = RTA_NEXT(rta, len);
+    }
+    return ifname;
+}
+
 int
-kernel_callback(int (*fn)(void*), void *closure)
+parse_addr_rta(struct ifaddrmsg *addr, int len, struct in6_addr *res)
+{
+    struct rtattr *rta;
+    len -= NLMSG_ALIGN(sizeof(*addr));
+    rta = IFA_RTA(addr);
+
+    while (RTA_OK(rta, len)) {
+        switch(rta->rta_type) {
+            case IFA_LOCAL:
+            case IFA_ADDRESS:
+                switch (addr->ifa_family) {
+                    case AF_INET:
+                        if (res)
+                            v4tov6(res->s6_addr, RTA_DATA(rta));
+                        break;
+                    case AF_INET6:
+                        if (res)
+                            memcpy(res->s6_addr, RTA_DATA(rta), 16);
+                        break;
+                    default:
+                        kdebugf("ifaddr: unexpected address family %d\n", addr->ifa_family);
+                        return -1;
+                        break;
+                }
+                break;
+            default:
+                break;
+        }
+        rta = RTA_NEXT(rta, len);
+    }
+    return 0;
+}
+
+int
+filter_link(struct nlmsghdr *nh, void *data)
+{
+    struct ifinfomsg *info;
+    int len;
+    int ifindex;
+    char *ifname;
+    unsigned int ifflags;
+    int i;
+
+    len = nh->nlmsg_len;
+
+    if(nh->nlmsg_type != RTM_NEWLINK && nh->nlmsg_type != RTM_DELLINK)
+        return 0;
+
+    info = (struct ifinfomsg*)NLMSG_DATA(nh);
+    len -= NLMSG_LENGTH(0);
+
+    ifindex = info->ifi_index;
+    ifflags = info->ifi_flags;
+
+    ifname = parse_ifname_rta(info, len);
+    kdebugf("filter_interfaces: link change on if %s(%d): %s\n",
+            ifname, ifindex, parse_ifflags(ifflags));
+    for (i = 0; i < numnets; i++) {
+        if (!strcmp(nets[i].ifname, ifname)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int
+filter_addresses(struct nlmsghdr *nh, void *data)
 {
     int rc;
+    int maxaddr = 0;
+    struct in6_addr *addrs = NULL;
+    struct in6_addr addr;
+    struct in6_addr *current_addr;
+    int *found = NULL;
+    int len;
+    struct ifaddrmsg *ifa;
+    int index;
+    char ifname[IFNAMSIZ];
+
+    if (data) {
+        void **args = (void **)data;
+        maxaddr = *(int *)args[0];
+        addrs = (struct in6_addr *)args[1];
+        found = (int *)args[2];
+        index = (int)args[3];
+    }
+
+    len = nh->nlmsg_len;
+
+    if (data && *found >= maxaddr)
+        return 0;
+
+    if (nh->nlmsg_type != RTM_NEWADDR &&
+            (data || nh->nlmsg_type != RTM_DELADDR))
+        return 0;
+
+    ifa = (struct ifaddrmsg *)NLMSG_DATA(nh);
+    len -= NLMSG_LENGTH(0);
+
+    if (ifa->ifa_index != index)
+        return 0;
+
+    if (data)
+        current_addr = &addrs[*found];
+    else
+        current_addr = &addr;
+
+    rc = parse_addr_rta(ifa, len, current_addr);
+    if (rc < 0)
+        return 0;
+
+    if (IN6_IS_ADDR_LINKLOCAL(current_addr))
+        return 0;
+
+    if (data) *found = (*found)+1;
+
+    kdebugf("found address on interface %s(%d): %s\n",
+            if_indextoname(index, ifname), index,
+            format_address(current_addr->s6_addr));
+    return 1;
+}
+
+int
+filter_netlink(struct nlmsghdr *nh, void *data)
+{
+    int rc;
+    int *changed = data;
+
+    switch (nh->nlmsg_type) {
+        case RTM_NEWROUTE:
+        case RTM_DELROUTE:
+            rc = filter_kernel_routes(nh, NULL);
+            if (changed && rc > 0)
+                *changed |= CHANGE_ROUTE;
+            return rc;
+        case RTM_NEWLINK:
+        case RTM_DELLINK:
+            rc = filter_link(nh, NULL);
+            if (changed && rc > 0)
+                *changed |= CHANGE_LINK;
+            return rc;
+        case RTM_NEWADDR:
+        case RTM_DELADDR:
+            rc = filter_addresses(nh, NULL);
+            if (changed && rc > 0)
+                *changed |= CHANGE_ADDR;
+            return rc;
+        default:
+            kdebugf("filter_netlink: unexpected message type %d\n",
+                    nh->nlmsg_type);
+            break;
+    }
+    return 0;
+}
+
+int
+kernel_addresses(int ifindex, struct in6_addr *addr, int maxaddr)
+{
+    int maxa = maxaddr;
+    int found = 0;
+    void *data[] = { &maxa, addr, &found, (void *)ifindex };
+    struct rtgenmsg g;
+    int rc;
+
+    if (!nl_setup) {
+        fprintf(stderr, "kernel_addresses: netlink not initialized.\n");
+        errno = ENOSYS;
+        return -1;
+    }
+
+    if (nl_command.sock < 0) {
+        rc = netlink_socket(&nl_command, 0);
+        if (rc < 0) {
+            perror("kernel_addresses: netlink_socket()");
+            return -1;
+        }
+    }
+
+    memset(&g, 0, sizeof(g));
+    g.rtgen_family = AF_UNSPEC;
+    rc = netlink_send_dump(RTM_GETADDR, &g, sizeof(g));
+    if (rc < 0)
+        return -1;
+
+    rc = netlink_read(&nl_command, NULL, 1, filter_addresses, (void*)data);
+
+    if (rc < 0)
+        return -1;
+
+    return found;
+}
+
+int
+kernel_callback(int (*fn)(int, void*), void *closure)
+{
+    int rc;
+    int changed;
 
     kdebugf("\nReceived changes in kernel tables.\n");
     
@@ -977,7 +1195,7 @@ kernel_callback(int (*fn)(void*), void *closure)
             return -1;
         }
     }
-    rc = netlink_read(&nl_listen, &nl_command, 0, filter_kernel_routes, NULL);
+    rc = netlink_read(&nl_listen, &nl_command, 0, filter_netlink, &changed);
 
     if(rc < 0 && nl_listen.sock < 0)
       kernel_setup_socket(1);
@@ -985,7 +1203,7 @@ kernel_callback(int (*fn)(void*), void *closure)
     /* if netlink return 0 (found something interesting) */
     /* or -1 (i.e. IO error), we call... back ! */
     if(rc)
-        return fn(closure);
+        return fn(changed, closure);
 
     return 0;
 }

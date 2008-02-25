@@ -20,7 +20,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include <netinet/in.h>
+
 #define KERNEL_INFINITY 0xFFFF
+
+#define RTPROTO_BABEL_LOCAL 257
 
 struct kernel_route {
     unsigned char prefix[16];
@@ -34,6 +38,10 @@ struct kernel_route {
 #define ROUTE_FLUSH 0
 #define ROUTE_ADD 1
 #define ROUTE_MODIFY 2
+
+#define CHANGE_LINK  (1 << 0)
+#define CHANGE_ROUTE (1 << 1)
+#define CHANGE_ADDR  (1 << 2)
 
 extern int export_table, import_table;
 
@@ -50,4 +58,5 @@ int kernel_route(int operation, const unsigned char *dest, unsigned short plen,
                  const unsigned char *newgate, int newifindex,
                  unsigned int newmetric);
 int kernel_routes(struct kernel_route *routes, int maxroutes);
-int kernel_callback(int (*fn)(void*), void *closure);
+int kernel_callback(int (*fn)(int, void*), void *closure);
+int kernel_addresses(int ifindex, struct in6_addr *addresses, int maxaddr);

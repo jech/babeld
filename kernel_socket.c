@@ -595,7 +595,7 @@ socket_read(int sock)
 }
 
 int
-kernel_callback(int (*fn)(void*), void *closure)
+kernel_callback(int (*fn)(int, void*), void *closure)
 {
     int rc;
 
@@ -604,7 +604,7 @@ kernel_callback(int (*fn)(void*), void *closure)
     kdebugf("Reading kernel table modification.");
     rc = socket_read(kernel_socket);
     if(rc)
-        return fn(closure);
+        return fn(~0, closure);
 
     return 0;
 
