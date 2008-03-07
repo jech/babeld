@@ -262,7 +262,7 @@ neighbour_rxcost(struct neighbour *neigh)
 
     delay = timeval_minus_msec(&now, &neigh->hello_time);
 
-    if((reach & 0xF800) == 0 || delay >= 180000) {
+    if((reach & 0xFFF0) == 0 || delay >= 180000) {
         return INFINITY;
     } else if(neigh->network->wired) {
         /* To lose one hello is a misfortune, to lose two is carelessness. */
