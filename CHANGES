@@ -2,6 +2,8 @@ babel 0.10 (unreleased)
 
   * Automatically adapt to interfaces appearing or disappearing at runtime,
     as is usually the case when running over tunnels or VPNs.
+  * Changed the link quality computation algorithm to not discard very
+    lossy links.
 
 14 February 2008: babel 0.9
 
