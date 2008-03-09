@@ -104,7 +104,7 @@ check_xroutes()
 {
     int i, j, metric, export, change = 0, rc;
     struct kernel_route routes[240];
-    struct in6_addr addresses[240];
+    struct kernel_route addresses[240];
     int numroutes, numaddr;
 
     debugf("\nChecking kernel routes.\n");
@@ -149,9 +149,10 @@ check_xroutes()
                 metric = 0;
             if(metric < INFINITY && metric == xroutes[i].metric) {
                 for(j = 0; j < numaddr; j++) {
-                    if(xroutes[i].plen == 128 &&
+                    if(xroutes[i].plen == addresses[j].plen &&
                        memcmp(xroutes[i].prefix,
-                              addresses[j].s6_addr, 128) == 0) {
+                              addresses[j].prefix, 128) == 0 &&
+                       xroutes[i].ifindex == addresses[j].ifindex) {
                         if(metric < INFINITY) {
                             export = 1;
                             break;
@@ -193,12 +194,14 @@ check_xroutes()
     /* Add any new routes */
 
     for(i = 0; i < numaddr; i++) {
-        metric = redistribute_filter(addresses[i].s6_addr, 128, 0, PROTO_LOCAL);
+        metric = redistribute_filter(addresses[i].prefix, addresses[i].plen,
+                                     addresses[i].ifindex, PROTO_LOCAL);
         if(metric == METRIC_INHERIT)
             metric = 0;
         if(metric < INFINITY) {
             rc = add_xroute(XROUTE_LOCAL,
-                            addresses[i].s6_addr, 128, 0, 0, PROTO_LOCAL);
+                            addresses[i].prefix, addresses[i].plen,
+                            0, addresses[i].ifindex, PROTO_LOCAL);
             if(rc)
                 change = 1;
         }
