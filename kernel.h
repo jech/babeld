@@ -59,4 +59,4 @@ int kernel_route(int operation, const unsigned char *dest, unsigned short plen,
                  unsigned int newmetric);
 int kernel_routes(struct kernel_route *routes, int maxroutes);
 int kernel_callback(int (*fn)(int, void*), void *closure);
-int kernel_addresses(int ifindex, struct in6_addr *addresses, int maxaddr);
+int kernel_addresses(int ifindex, struct kernel_route *routes, int maxroutes);

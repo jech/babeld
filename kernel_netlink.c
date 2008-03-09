@@ -1057,10 +1057,9 @@ int
 filter_addresses(struct nlmsghdr *nh, void *data)
 {
     int rc;
-    int maxaddr = 0;
-    struct in6_addr *addrs = NULL;
+    int maxroutes = 0;
+    struct kernel_route *routes = NULL;
     struct in6_addr addr;
-    struct in6_addr *current_addr;
     int *found = NULL;
     int len;
     struct ifaddrmsg *ifa;
@@ -1069,15 +1068,15 @@ filter_addresses(struct nlmsghdr *nh, void *data)
 
     if (data) {
         void **args = (void **)data;
-        maxaddr = *(int *)args[0];
-        addrs = (struct in6_addr *)args[1];
+        maxroutes = *(int *)args[0];
+        routes = (struct kernel_route*)args[1];
         found = (int *)args[2];
         index = *(int*)args[3];
     }
 
     len = nh->nlmsg_len;
 
-    if (data && *found >= maxaddr)
+    if (data && *found >= maxroutes)
         return 0;
 
     if (nh->nlmsg_type != RTM_NEWADDR &&
@@ -1090,23 +1089,28 @@ filter_addresses(struct nlmsghdr *nh, void *data)
     if (index && ifa->ifa_index != index)
         return 0;
 
-    if (data)
-        current_addr = &addrs[*found];
-    else
-        current_addr = &addr;
-
-    rc = parse_addr_rta(ifa, len, current_addr);
+    rc = parse_addr_rta(ifa, len, &addr);
     if (rc < 0)
         return 0;
 
-    if (IN6_IS_ADDR_LINKLOCAL(current_addr))
+    if (IN6_IS_ADDR_LINKLOCAL(&addr))
         return 0;
-
-    if (data) *found = (*found)+1;
 
     kdebugf("found address on interface %s(%d): %s\n",
             if_indextoname(index, ifname), index,
-            format_address(current_addr->s6_addr));
+            format_address(addr.s6_addr));
+
+    if (data) {
+        struct kernel_route *route = &routes[*found];
+        memcpy(route->prefix, addr.s6_addr, 16);
+        route->plen = 128;
+        route->metric = 0;
+        route->ifindex = index;
+        route->proto = RTPROTO_BABEL_LOCAL;
+        memset(route->gw, 0, 16);
+        *found = (*found)+1;
+    }
+
     return 1;
 }
 
@@ -1144,11 +1148,11 @@ filter_netlink(struct nlmsghdr *nh, void *data)
 }
 
 int
-kernel_addresses(int ifindex, struct in6_addr *addr, int maxaddr)
+kernel_addresses(int ifindex, struct kernel_route *routes, int maxroutes)
 {
-    int maxa = maxaddr;
+    int maxr = maxroutes;
     int found = 0;
-    void *data[] = { &maxa, addr, &found, (void *)&ifindex };
+    void *data[] = { &maxr, routes, &found, (void *)&ifindex };
     struct rtgenmsg g;
     int rc;
 
