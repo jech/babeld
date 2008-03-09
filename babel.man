@@ -86,8 +86,8 @@ requests tracing every message sent or received.  A value of
 is 0.
 .TP
 .BI \-X " network cost"
-Advertise a route for the given network or host with the given
-cost.
+Unconditionally advertise a route for the given network or host with
+the given cost.
 .I Network
 should be either the string
 .BR default ,
@@ -101,10 +101,9 @@ should either be a 16-bit unsigned integer, or the string
 .B infinity
 which specifies a blackhole route.  Babel itself uses a cost of 256
 for a lossless wireless link, and a cost of 128 for a functioning
-wired link.  This is normally only used for advertising the local
-addresses of this machine.  Use for any other purpose is discrouraged,
-as it can cause persistent routing loops.  Redistributing a static
-route is a safer alternative.
+wired link.  This option should not be used, as it may cause
+persistent routing loops.  Redistributing a static route is a safer
+alternative.
 .TP
 .BI \-t " table"
 Use the given kernel routing table for routes inserted by Babel.
@@ -208,6 +207,17 @@ If
 .I action
 is not specified, it defaults to
 .BR allow .
+
+By default,
+.B Babel
+redistributes all local addresses, and no other routes.  In order to
+make sure that only the routes you specify are redistributed, you
+should include the line
+.IP
+redistribute local deny
+.PP
+as the last line in your configuration file.
+
 .SH EXAMPLES
 You can participate in a Babel mesh network by simply running
 .IP
