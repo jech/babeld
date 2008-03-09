@@ -17,145 +17,74 @@ If compiling for OpenWRT, you will probably want to say something like
   $ make CC=mipsel-linux-gcc PLATFORM_DEFINES='-march=mips32'
 
 
-Setting up an IPv6 network for use with Babel
+Setting up a network for use with Babel
 ***************************************
 
-1. Choose a prefix
-==================
+1. Set up every node's interface
+================================
 
-You will want your mesh network to run on a single /64 prefix.  If
-you've already got IPv6 routing with the rest of the Internet (either
-native or using 6to4) and you've got a /64 to spare, use that.
+On every node, set up the wireless interface:
 
-If you don't, you can generate a random prefix.  RFC 4193 defines how
-such prefixes are generated.  The simplest way to make sure that you
-follow the rules is to use the utility ``ahcp-generate-address'',
-which you'll find in the AHCP package.
+  # iwconfig eth1 mode ad-hoc channel 11 essid "my-mesh-network"
+  # ifconfig eth1 up
 
-  $ ahcp-generate-address -p -r
-  fdf0:bb4:f192::
+2. Set up every node's IP addresses
+===================================
 
-This needs to be done only once for the network; the following steps
-need to be repeated for every node.
+You will need to make sure that all of your nodes have a unique IPv6
+address, and/or a unique IPv4 address.
 
+On every node, run something like:
 
-2. Choose a host number
-=======================
+  # ip addr add 192.168.13.33/32 dev eth1
+  # ip -6 addr add $(ahcp-generate-address -r)/128 dev eth1
 
-You will need to choose a unique host number for every node.  You can
-number your nodes sequentially (fdf0:bb4:f192::1, fdf0:bb4:f192::2,
-etc.), generate a node number from the interface's MAC address, or
-choose it randomly.  Again, ``ahcp-generate-address'' knows the rules.
-
-  $ ip -0 addr show dev eth1
-  3: eth1: <BROADCAST,MULTICAST> mtu 1500 qdisc noop qlen 1000
-    link/ieee1394 00:11:d8:00:00:12:34:56 brd ff:ff:ff:ff:ff:ff:ff:ff
-  $ ahcp-generate-address fdf0:bb4:f192:: 00:11:d8:00:00:12:34:56
-  fdf0:bb4:f192:0:211:d8ff:fe00:12
-
-This is your IPv6 address; save it for later use.
-
-  $ IPv6=fdf0:bb4:f192:0:211:d8ff:fe00:12
+You will find the ahcp-generate-address utility, which can generate
+random IPv6 addresses according to RFC 4193, in the ahcpd package.
 
 
-3. Set up the interface
-=======================
-
-Set up the MAC layer's parameters first:
-
-  $ iwconfig eth1 mode ad-hoc channel 11
-  $ iwconfig eth essid "my-wireless-network"
-
-Then the network layer:
-
-  $ ip link set eth1 up
-  $ ip -6 addr add $IPv6 dev eth1
-
-
-4. Start the routing daemon
+3. Start the routing daemon
 ===========================
 
-  $ babel -X $IPv6 0 $IPv6 eth1
+On every node, run Babel, making sure you redistribute the local
+addresses:
+
+  # babel -C 'redistribute local' eth1
 
 If your node has multiple interfaces which you want to participate in
 the Babel network, just list them all:
 
-  # babel -X $IPv6 0 $IPv6 eth0 eth1 sit1
+  # babel -C 'redistribute local' eth0 eth1 sit1
 
-If your node has multiple addresses and you want all of them to
-participate in the routing protocol, just repeat the ``-X'' option
-multiple times:
 
-  # babel -X $IPv6 0 -X $IPv6-2 0 -X $IPv6-3 0 $IPv6 eth1
 
-On a gateway to the Internet, you'll want to redistribute some or all
-of your routes into the mesh network:
+4. Setting up an Internet gateway
+=================================
 
-  # babel -X $IPv6 0 -C 'redistribute metric 128' $IPv6 eth1
+If you have one or more Internet gateways on your mesh network, you
+will want to set them up so that they redistribute the default route.
+You will want to say something like
+
+  # babel -C 'redistribute local' -C 'redistribute metric 128' eth1
+
+You may also be more selective in the routes you redistribute, for
+instance by specifying the interface over which the route goes out:
+
+  # babel -C 'redistribute local' -C 'redistribute if eth0 metric 128' \
+          eth1
+
+or by constraining the prefix length:
+
+  # babel -C 'redistribute local' \
+          -C 'redistribute ip ::/0 eq 128 metric 128' \
+          -C 'redistribute ip 0.0.0.0/0 eq 32 metric 128' \
+          eth1
+
+
 
 If you find all of this too complicated and error-prone (as I do), you
 may want to consider autoconfiguring your routing domain using AHCP:
 
   http://www.pps.jussieu.fr/~jch/software/ahcp/
-
-
-Setting up an IPv4 network for use with Babel
-*********************************************
-
-1. Choose an IPv4 address for every node
-========================================
-
-Unless you already have a numbering plan in place, you will probably
-want to choose adresses in 192.168.0.0/16:
-
-  IPv4=192.168.19.68
-
-Of course, the IPv4 address for each node must be unique in your network.
-
-2. Set up the interfaces
-=========================
-
-  $ iwconfig eth1 mode ad-hoc channel 11
-  $ iwconfig eth essid "my-wireless-network"
-
-You will need to manually number all of the interfaces that
-participate in IPv4 routing -- unlike IPv6, IPv4 routing doesn't
-support unnumbered interfaces.
-
-  # ip link set eth1 up
-  # ip addr add $IPv4 dev eth1
-
-You don't need to set a netmask -- the default netmask of /32
-(255.255.255.255) is fine for use with Babel.  Also note that you may
-set the same IPv4 address on all interfaces of a given node.
-
-2. Start the routing daemon
-===========================
-
-  # babel -X $IPv4 0 $IPv4 eth1
-
-On a network gateway, you will want to redistribute some routes:
-
-  # babel -X $IPv4 0 -C 'redistribute metric 128' $IPv4 eth0 eth1
-
-
-Setting up a dual-stack network for use with Babel
-**************************************************
-
-Babel is designed to efficiently route both IPv6 and IPv4 at the same
-time; a single route update may contain both IPv6 and IPv4 routes.
-
-On an ordinary node, you will run Babel as
-
-  # babel -X $IPv6 0 -X $IPv4 0 $IPv6 eth1
-
-and on a gateway:
-
-  # babel -X $IPv6 0 -X $IPv4 0 -C 'redistribute metric 128' $IPv6 eth1
-
-If you use ahcpd, you will want to add the following to
-/etc/ahcp/ahcp-babel-options:
-
-  -X 192.168.19.68 0
 
                                         Juliusz Chroboczek
