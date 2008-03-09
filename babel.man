@@ -6,8 +6,9 @@ babel \- ad-hoc network routing daemon
 .IR option ...
 [
 .B \-\-
-]
+] [
 .I id
+]
 .IR interface ...
 .SH DESCRIPTION
 Babel is a loop-avoiding distance-vector routing protocol roughly
@@ -118,9 +119,10 @@ Specify the name of the configuration file.  The default is
 .BI \-C " statement"
 Specify a configuration statement directly on the command line.
 .TP
-.I id
-The router-id of this daemon.  This should normally be an IPv6 address
-of this machine, but can be any unique 128-bit string.
+.RI "[ " id " ]"
+The router-id of this daemon.  This should normally be an IPv6 or IPv4
+address of this machine, but can be any unique 128-bit string.  If
+omitted, Babel will try to determine a suitable router-id automatically.
 .TP
 .IR interface ...
 The list of interfaces on which the protocol should operate.
