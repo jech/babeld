@@ -72,7 +72,6 @@ add_xroute(int kind, unsigned char prefix[16], unsigned char plen,
 {
     struct xroute *xroute = find_xroute(prefix, plen);
     if(xroute) {
-
         if(xroute->kind < kind)
             return 0;
         else if(xroute->kind > kind) {
