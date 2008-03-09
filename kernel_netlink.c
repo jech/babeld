@@ -1064,7 +1064,7 @@ filter_addresses(struct nlmsghdr *nh, void *data)
     int *found = NULL;
     int len;
     struct ifaddrmsg *ifa;
-    int index;
+    int index = 0;
     char ifname[IFNAMSIZ];
 
     if (data) {
@@ -1072,7 +1072,7 @@ filter_addresses(struct nlmsghdr *nh, void *data)
         maxaddr = *(int *)args[0];
         addrs = (struct in6_addr *)args[1];
         found = (int *)args[2];
-        index = (int)args[3];
+        index = *(int*)args[3];
     }
 
     len = nh->nlmsg_len;
@@ -1087,7 +1087,7 @@ filter_addresses(struct nlmsghdr *nh, void *data)
     ifa = (struct ifaddrmsg *)NLMSG_DATA(nh);
     len -= NLMSG_LENGTH(0);
 
-    if (ifa->ifa_index != index)
+    if (index && ifa->ifa_index != index)
         return 0;
 
     if (data)
@@ -1148,7 +1148,7 @@ kernel_addresses(int ifindex, struct in6_addr *addr, int maxaddr)
 {
     int maxa = maxaddr;
     int found = 0;
-    void *data[] = { &maxa, addr, &found, (void *)ifindex };
+    void *data[] = { &maxa, addr, &found, (void *)&ifindex };
     struct rtgenmsg g;
     int rc;
 
