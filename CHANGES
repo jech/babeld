@@ -3,6 +3,8 @@ babel 0.10 (unreleased)
   * Implemented the ability to automatically export local addresses (see
     the ``local'' keyword in redistribute specifications).  This should
     avoid the need to explicitly specify -X on the command line.
+  * Babel will now automatically choose a router id if none is
+    specified on the command line.
   * Automatically adapt to interfaces appearing or disappearing at runtime,
     as is usually the case when running over tunnels or VPNs.
   * Changed the link quality computation algorithm to not discard very
