@@ -21,7 +21,6 @@ THE SOFTWARE.
 */
 
 int check_xroutes(void);
-int check_addresses(void);
 
 /* These should come in decreasing order of priority. */
 

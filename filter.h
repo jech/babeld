@@ -22,6 +22,8 @@ THE SOFTWARE.
 
 #define METRIC_INHERIT (INFINITY + 1)
 
+#define PROTO_LOCAL -2
+
 struct filter {
     int af;
     char *ifname;

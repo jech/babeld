@@ -457,23 +457,19 @@ main(int argc, char **argv)
             changed = 0;
         }
 
-        if (kernel_link_changed) {
+        if (kernel_link_changed || kernel_addr_changed) {
             check_networks();
             kernel_link_changed = 0;
         }
 
-        if (kernel_addr_changed) {
-            check_addresses();
-            kernel_addr_changed = 0;
-        }
-
-        if(kernel_routes_changed || now.tv_sec >= kernel_dump_time) {
+        if(kernel_routes_changed || kernel_addr_changed ||
+           now.tv_sec >= kernel_dump_time) {
             rc = check_xroutes();
             if(rc > 0)
                 send_self_update(NULL, 1);
             else if(rc < 0)
                 fprintf(stderr, "Warning: couldn't check exported routes.\n");
-            kernel_routes_changed = 0;
+            kernel_routes_changed = kernel_addr_changed = 0;
             if(kernel_socket >= 0)
                 kernel_dump_time = now.tv_sec + 200 + random() % 200;
             else
@@ -489,7 +485,6 @@ main(int argc, char **argv)
         }
 
         if(now.tv_sec >= expiry_time) {
-            check_addresses();
             check_networks();
             expire_routes();
             expire_requests();
