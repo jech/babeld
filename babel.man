@@ -209,36 +209,34 @@ If
 is not specified, it defaults to
 .BR allow .
 .SH EXAMPLES
-Let
-.B $IPv6
-be one of your node's IPv6 addresses, and suppose that
-.B eth1
-is a wireless interface.  You can participate in a Babel mesh network
-by simply running
+You can participate in a Babel mesh network by simply running
 .IP
-# babel \-X $IPv6 0 $IPv6 eth1
+# babel \-C 'redistribute local' eth1
 .PP
+where
+.B eth1
+is your wireless interface.
+
 In order to gateway between multiple interfaces, just list them all on
 the command line:
 .IP
-# babel $IPv6 eth1 eth0 sit1
+# babel \-C 'redistribute local' eth1 eth0 sit1
 .PP
-If you wish to be reachable by all of your IPv6 addresses, just inject
-them into the routing domain as zero-cost external routes:
-.IP
-# babel \-X $otherIPv6 0 $IPv6 eth1
-.PP
-On an access point, you'll probably want to redistribute some routes
-into Babel:
-.IP
-# babel \-C 'redistribute metric 256' \-X $IPv6 $IPv6 eth1
-.PP
-or
+On an access point, you'll probably want to redistribute some external
+routes into Babel:
 .IP
 # babel \\
+    \-C 'redistribute local' \\
+    \-C 'redistribute metric 256' \\
+    eth1
+.PP
+or, if you want to constrain the routes that you redistribute,
+.IP
+# babel \\
+    \-C 'redistribute local' \\
     \-C 'redistribute proto 11 ip ::/0 le 64 metric 256' \\
     \-C 'redistribute proto 11 ip 0.0.0.0/0 le 24 metric 256' \\
-    \-X $IPv6 $IPv6 eth1
+    eth1
 .PP
 .SH WIRED INTERFACES
 By default, the daemon optimises traffic on wired interfaces by
