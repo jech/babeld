@@ -123,7 +123,8 @@ check_xroutes()
             numroutes += rc;
         }
     } else {
-        fprintf(stderr, "Too many local ddresses -- ignoring kernel routes.\n");
+        fprintf(stderr,
+                "Too many local addresses -- ignoring kernel routes.\n");
     }
 
     /* Check for any routes that need to be flushed */
