@@ -166,7 +166,14 @@ This entry only applies to routes originated by a router with router-id
 .TP
 .BI proto " p"
 This entry only applies to kernel routes with kernel protocol number
-.IR p .
+.IR p .  If neither
+.B proto
+nor
+.B local
+is specified, this entry applies to all non-local kernel routes.
+.TP
+.B local
+This entry only applies to local addresses.
 .TP
 .BI if " interface"
 For an input filter, this specifies the interface over which the route
