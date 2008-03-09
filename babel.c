@@ -94,7 +94,7 @@ int
 main(int argc, char **argv)
 {
     struct sockaddr_in6 sin6;
-    int i, rc, fd;
+    int i, rc, fd, rfd, have_id = 0;
     struct timeval check_neighbours_time;
     int expiry_time, kernel_dump_time;
     char *config_file = NULL;
@@ -245,25 +245,100 @@ main(int argc, char **argv)
     if(seqno_interval <= 0)
         seqno_interval = MAX(wireless_hello_interval - 1, 2);
 
-    rc = parse_address(*arg, myid, NULL);
-    if(rc < 0)
-        goto syntax;
-    SHIFTE();
+    rc = kernel_setup(1);
+    if(rc < 0) {
+        fprintf(stderr, "kernel_setup failed.\n");
+        exit(1);
+    }
+
+    rc = kernel_setup_socket(1);
+    if(rc < 0) {
+        fprintf(stderr, "kernel_setup_socket failed.\n");
+        kernel_setup(0);
+        exit(1);
+    }
 
     gettimeofday(&now, NULL);
 
-    fd = open("/dev/urandom", O_RDONLY);
-    if(fd < 0) {
+    rfd = open("/dev/urandom", O_RDONLY);
+    if(rfd < 0) {
         perror("open(random)");
+    }
+
+    rc = parse_address(*arg, myid, NULL);
+    if(rc >= 0) {
+        have_id = 1;
+        /* Cannot use SHIFTE -- need to goto fail */
+        SHIFT();
+        if(*arg == NULL) {
+            fprintf(stderr, "No interfaces given.\n");
+            goto fail;
+        }
+    } else {
+        struct kernel_route routes[240];
+        rc = kernel_addresses(routes, 240);
+        if(rc > 0) {
+            /* Search for a global IPv6 address */
+            for(i = 0; i < rc; i++) {
+                if(martian_prefix(routes[i].prefix, routes[i].plen))
+                    continue;
+                if(routes[i].plen == 128 &&
+                   (routes[i].prefix[0] & 0xE0) == 0x20) {
+                    memcpy(myid, routes[i].prefix, 16);
+                    have_id = 1;
+                    break;
+                }
+            }
+            /* Try a global Ipv4 address */
+            if(!have_id) {
+                for(i = 0; i < rc; i++) {
+                    if(martian_prefix(routes[i].prefix, routes[i].plen))
+                        continue;
+                    if(routes[i].plen == 128 &&
+                       v4mapped(routes[i].prefix) &&
+                       routes[i].prefix[12] != 10 &&
+                       (routes[i].prefix[12] != 172 ||
+                        routes[i].prefix[13] != 16) &&
+                       (routes[i].prefix[12] != 192 ||
+                        routes[i].prefix[13] != 168)) {
+                        memcpy(myid, routes[i].prefix, 16);
+                        have_id = 1;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    if(!have_id) {
+        if(rfd < 0) {
+            fprintf(stderr, "Couldn't find suitable router-id.\n");
+            goto fail;
+        }
+        fprintf(stderr,
+                "Warning: couldn't find suitable router-id, "
+                "using random value.\n");
+        rc = read(rfd, myid, 16);
+        if(rc < 16) {
+            perror("read(random)");
+            goto fail;
+        } else {
+            have_id = 1;
+        }
+    }
+
+    if(random < 0) {
         memcpy(&seed, myid + 12, 4);
     } else {
-        rc = read(fd, &seed, sizeof(unsigned int));
+        rc = read(rfd, &seed, sizeof(unsigned int));
         if(rc < sizeof(unsigned int)) {
             perror("read(random)");
-            exit(1);
+            goto fail;
         }
-        close(fd);
+        close(rfd);
+        rfd = -1;
     }
+
     seed ^= (now.tv_sec ^ now.tv_usec);
     srandom(seed);
 
@@ -312,23 +387,12 @@ main(int argc, char **argv)
             }
         }
         close(fd);
+        fd = -1;
     }
 
     if(reboot_time + silent_time > now.tv_sec)
         fprintf(stderr, "Respecting %ld second silent time.\n",
                 (long int)(reboot_time + silent_time - now.tv_sec));
-
-    rc = kernel_setup(1);
-    if(rc < 0) {
-        fprintf(stderr, "kernel_setup failed.\n");
-        exit(1);
-    }
-
-    rc = kernel_setup_socket(1);
-    if(rc < 0) {
-        fprintf(stderr, "kernel_setup_socket failed.\n");
-        exit(1);
-    }
 
     protocol_socket = babel_socket(protocol_port);
     if(protocol_socket < 0) {
