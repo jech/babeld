@@ -16,7 +16,7 @@ babel: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o babel $(OBJS) $(LDLIBS)
 
 babel.html: babel.man
-	groff -man -Thtml babel.man > babel.html
+	rman -f html babel.man > babel.html
 
 .PHONY: all install uninstall clean
 
