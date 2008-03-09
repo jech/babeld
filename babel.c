@@ -489,6 +489,7 @@ main(int argc, char **argv)
         }
 
         if(now.tv_sec >= expiry_time) {
+            check_addresses();
             check_networks();
             expire_routes();
             expire_requests();
