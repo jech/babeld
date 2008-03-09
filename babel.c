@@ -154,7 +154,7 @@ main(int argc, char **argv)
                     goto syntax;
                 xroutes[numxroutes].metric = metric;
             }
-            xroutes[numxroutes].forced = 1;
+            xroutes[numxroutes].kind = XROUTE_FORCED;
             xroutes[numxroutes].ifindex = 0;
             numxroutes++;
         } else if(strcmp(*arg, "-h") == 0) {
@@ -731,7 +731,7 @@ dump_tables(FILE *out)
         fprintf(out, "%s metric %d (%s)\n",
                 format_prefix(xroutes[i].prefix, xroutes[i].plen),
                 xroutes[i].metric,
-                xroutes[i].forced ? "forced" : "exported");
+                xroutes[i].kind == XROUTE_FORCED ? "forced" : "exported");
     }
     for(i = 0; i < numroutes; i++) {
         int id =

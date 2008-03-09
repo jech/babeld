@@ -67,14 +67,20 @@ flush_xroute(struct xroute *xroute)
 }
 
 int
-add_xroute(unsigned char prefix[16], unsigned char plen,
+add_xroute(int kind, unsigned char prefix[16], unsigned char plen,
            unsigned short metric, unsigned int ifindex, int proto)
 {
     struct xroute *xroute = find_xroute(prefix, plen);
     if(xroute) {
-        if(xroute->metric <= metric)
+
+        if(xroute->kind < kind)
             return 0;
-        if(xroute->forced)
+        else if(xroute->kind > kind) {
+            flush_xroute(xroute);
+            return add_xroute(kind, prefix, plen, metric, ifindex, proto);
+        }
+
+        if(xroute->metric <= metric)
             return 0;
         xroute->metric = metric;
         return 1;
@@ -83,9 +89,9 @@ add_xroute(unsigned char prefix[16], unsigned char plen,
     if(numxroutes >= MAXXROUTES)
         return -1;
 
+    xroutes[numxroutes].kind = kind;
     memcpy(xroutes[numxroutes].prefix, prefix, 16);
     xroutes[numxroutes].plen = plen;
-    xroutes[numxroutes].forced = 0;
     xroutes[numxroutes].metric = metric;
     xroutes[numxroutes].ifindex = ifindex;
     xroutes[numxroutes].proto = proto;
@@ -107,7 +113,7 @@ check_xroutes()
 
     i = 0;
     while(i < numxroutes) {
-        if(xroutes[i].forced) {
+        if(xroutes[i].kind != XROUTE_REDISTRIBUTED) {
             i++;
             continue;
         }
@@ -146,7 +152,8 @@ check_xroutes()
         if(metric == METRIC_INHERIT)
             metric = routes[i].metric;
         if(metric < INFINITY) {
-            rc = add_xroute(routes[i].prefix, routes[i].plen,
+            rc = add_xroute(XROUTE_REDISTRIBUTED,
+                            routes[i].prefix, routes[i].plen,
                             metric, routes[i].ifindex, routes[i].proto);
             if(rc)
                 change = 1;
@@ -169,7 +176,8 @@ check_addresses()
         if (rc < 0)
             break;
         for (i = 0; i < rc && numxroutes < MAXXROUTES; i++) {
-            rc = add_xroute(addresses[i].s6_addr, 128, 0, nets[i].ifindex,
+            rc = add_xroute(XROUTE_LOCAL,
+                            addresses[i].s6_addr, 128, 0, nets[i].ifindex,
                             RTPROTO_BABEL_LOCAL);
             if (rc < 0)
                 break;
