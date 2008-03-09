@@ -286,10 +286,11 @@ operation.  This is no different from unsecured neighbour discovery
 (ARP in IPv4).
 
 Since Babel uses link-local addresses only, there is no need to update
-firewalls to allow forwarding of Babel protocol packets.  If filtering
-is done on a host, UDP datagrams to the protocol port should be
-allowed.  As Babel uses unicast packets in some cases, it is not
-enough to just allow packets destined to Babel's multicast address.
+firewalls to allow forwarding of Babel protocol packets.  If local
+filtering is being done, UDP datagrams to the port used by the
+protocol should be allowed.  As Babel uses unicast packets in some
+cases, it is not enough to just allow packets destined to Babel's
+multicast address.
 .SH BUGS
 Plenty.  This is experimental software, run at your own risk.
 .SH SEE ALSO
