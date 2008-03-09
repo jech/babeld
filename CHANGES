@@ -3,6 +3,9 @@ babel 0.10 (unreleased)
   * Implemented the ability to automatically export local addresses (see
     the ``local'' keyword in redistribute specifications).  This should
     avoid the need to explicitly specify -X on the command line.
+  * INCOMPATIBLE CHANGE: local routes (local interface addresses) are
+    now exported by default.  Specify ``redistribute local deny'' to
+    avoid that.
   * Babel will now automatically choose a router id if none is
     specified on the command line.
   * Automatically adapt to interfaces appearing or disappearing at runtime,
