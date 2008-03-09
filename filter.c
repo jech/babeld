@@ -475,3 +475,17 @@ redistribute_filter(const unsigned char *prefix, unsigned short plen,
         res = INFINITY;
     return res;
 }
+
+int
+finalise_filters()
+{
+    struct filter *filter = calloc(1, sizeof(struct filter));
+    if(filter == NULL)
+        return -1;
+
+    filter->proto = RTPROT_BABEL_LOCAL;
+    filter->plen_le = 128;
+    add_filter(filter, &redistribute_filters);
+
+    return 1;
+}

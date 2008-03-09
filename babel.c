@@ -231,6 +231,12 @@ main(int argc, char **argv)
         }
     }
 
+    rc = finalise_filters();
+    if(rc < 0) {
+        fprintf(stderr, "Couldn't finalise filters.\n");
+        exit(1);
+    }
+
     if(wireless_hello_interval <= 0)
         wireless_hello_interval = 6;
 
