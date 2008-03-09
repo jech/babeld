@@ -249,14 +249,6 @@ and
 .B \-s
 options respectively.
 
-By default, detection of asymmetric links is performed on wired
-interfaces just like on wireless ones.  By specifying the
-.B \-b
-option, reverse reachability information will not be sent on wired
-links, which will disable detection of asymmetric links for all wired
-peers, at the benefit of a very slight decrease in traffic.  This is
-not recommended.
-
 No link cost estimation is ever performed on wired interfaces: a wired
 adjacency is assumed to be up if at least two of the last three hello
 messages have been received, and down otherwise.
