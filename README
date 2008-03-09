@@ -26,7 +26,7 @@ Setting up a network for use with Babel
 On every node, set up the wireless interface:
 
   # iwconfig eth1 mode ad-hoc channel 11 essid "my-mesh-network"
-  # ifconfig eth1 up
+  # ip link set up dev eth1
 
 2. Set up every node's IP addresses
 ===================================
