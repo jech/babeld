@@ -109,22 +109,12 @@ check_xroutes()
 
     debugf("\nChecking kernel routes.\n");
 
-    numaddr = 0;
-    for(i = 0; i < numnets; i++) {
-        if(!nets[i].up)
-            continue;
-        rc = kernel_addresses(nets[i].ifindex,
-                              addresses + numaddr, 240 - numaddr);
-        if(rc < 0) {
-            fprintf(stderr, "Couldn't get addresses for network %s\n",
-                    nets[i].ifname);
-            continue;
-        }
-        numaddr += rc;
-        if(numaddr >= 240) {
-            fprintf(stderr, "Too many local routes.\n");
-            break;
-        }
+    rc = kernel_addresses(addresses, 240);
+    if(rc < 0) {
+        fprintf(stderr, "Couldn't get local addresses.\n");
+        numaddr = 0;
+    } else {
+        numaddr = rc;
     }
 
     rc = kernel_routes(routes, 240);
