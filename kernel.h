@@ -24,8 +24,6 @@ THE SOFTWARE.
 
 #define KERNEL_INFINITY 0xFFFF
 
-#define RTPROTO_BABEL_LOCAL 257
-
 struct kernel_route {
     unsigned char prefix[16];
     int plen;

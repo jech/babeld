@@ -217,7 +217,7 @@ parse_filter(gnc_t gnc, void *closure)
                 goto error;
             filter->proto = proto;
         } else if(strcmp(token, "local") == 0) {
-            filter->proto = PROTO_LOCAL;
+            filter->proto = RTPROT_BABEL_LOCAL;
         } else if(strcmp(token, "if") == 0) {
             char *interface;
             c = getword(c, &interface, gnc, closure);
@@ -422,7 +422,7 @@ filter_match(struct filter *f, const unsigned char *id,
     if(f->proto) {
         if(!proto || f->proto != proto)
             return 0;
-    } else if(proto == PROTO_LOCAL) {
+    } else if(proto == RTPROT_BABEL_LOCAL) {
         return 0;
     }
     return 1;

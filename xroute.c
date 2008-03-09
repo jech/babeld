@@ -134,7 +134,8 @@ check_xroutes()
             export = 1;
         } else if(xroutes[i].kind == XROUTE_LOCAL) {
             metric = redistribute_filter(xroutes[i].prefix, xroutes[i].plen,
-                                         xroutes[i].ifindex, PROTO_LOCAL);
+                                         xroutes[i].ifindex,
+                                         RTPROT_BABEL_LOCAL);
             if(metric == METRIC_INHERIT)
                 metric = 0;
             if(metric < INFINITY && metric == xroutes[i].metric) {
@@ -187,13 +188,13 @@ check_xroutes()
         if(martian_prefix(addresses[i].prefix, addresses[i].plen))
             continue;
         metric = redistribute_filter(addresses[i].prefix, addresses[i].plen,
-                                     addresses[i].ifindex, PROTO_LOCAL);
+                                     addresses[i].ifindex, RTPROT_BABEL_LOCAL);
         if(metric == METRIC_INHERIT)
             metric = 0;
         if(metric < INFINITY) {
             rc = add_xroute(XROUTE_LOCAL,
                             addresses[i].prefix, addresses[i].plen,
-                            0, addresses[i].ifindex, PROTO_LOCAL);
+                            0, addresses[i].ifindex, RTPROT_BABEL_LOCAL);
             if(rc)
                 change = 1;
         }

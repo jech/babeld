@@ -1101,7 +1101,7 @@ filter_addresses(struct nlmsghdr *nh, void *data)
         route->plen = 128;
         route->metric = 0;
         route->ifindex = ifa->ifa_index;
-        route->proto = RTPROTO_BABEL_LOCAL;
+        route->proto = RTPROT_BABEL_LOCAL;
         memset(route->gw, 0, 16);
         *found = (*found)+1;
     }
