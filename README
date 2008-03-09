@@ -46,16 +46,14 @@ random IPv6 addresses according to RFC 4193, in the ahcpd package.
 3. Start the routing daemon
 ===========================
 
-On every node, run Babel, making sure you redistribute the local
-addresses:
+Run Babel on every node, specifying the set of interfaces it should consider:
 
-  # babel -C 'redistribute local' eth1
+  # babel eth1
 
 If your node has multiple interfaces which you want to participate in
 the Babel network, just list them all:
 
-  # babel -C 'redistribute local' eth0 eth1 sit1
-
+  # babel eth0 eth1 sit1
 
 
 4. Setting up an Internet gateway
@@ -65,22 +63,25 @@ If you have one or more Internet gateways on your mesh network, you
 will want to set them up so that they redistribute the default route.
 You will want to say something like
 
-  # babel -C 'redistribute local' -C 'redistribute metric 128' eth1
+  # babel -C 'redistribute metric 128' eth1
 
 You may also be more selective in the routes you redistribute, for
 instance by specifying the interface over which the route goes out:
 
-  # babel -C 'redistribute local' -C 'redistribute if eth0 metric 128' \
-          eth1
+  # babel -C 'redistribute if eth0 metric 128' eth1
 
 or by constraining the prefix length:
 
-  # babel -C 'redistribute local' \
-          -C 'redistribute ip ::/0 eq 128 metric 128' \
-          -C 'redistribute ip 0.0.0.0/0 eq 32 metric 128' \
+  # babel -C 'redistribute ip ::/0 le 64 metric 128' \
+          -C 'redistribute ip 0.0.0.0/0 le 28 metric 128' \
           eth1
 
+You may also want to constrain which local routes (routes to local
+interface addresses) you advertise:
 
+  # babel -C 'redistribute local if eth1' -C 'redistribute local deny' \
+          -C 'redistribute metric 128' \
+          eth1
 
 If you find all of this too complicated and error-prone (as I do), you
 may want to consider autoconfiguring your routing domain using AHCP:
