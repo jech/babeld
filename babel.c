@@ -298,7 +298,7 @@ main(int argc, char **argv)
                        v4mapped(routes[i].prefix) &&
                        routes[i].prefix[12] != 10 &&
                        (routes[i].prefix[12] != 172 ||
-                        routes[i].prefix[13] != 16) &&
+                        (routes[i].prefix[13] & 0xF0) != 16) &&
                        (routes[i].prefix[12] != 192 ||
                         routes[i].prefix[13] != 168)) {
                         memcpy(myid, routes[i].prefix, 16);
