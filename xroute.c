@@ -103,25 +103,27 @@ check_xroutes()
 {
     int i, j, metric, export, change = 0, rc;
     struct kernel_route routes[240];
-    struct kernel_route addresses[240];
-    int numroutes, numaddr;
+    int numroutes;
 
     debugf("\nChecking kernel routes.\n");
 
-    rc = kernel_addresses(addresses, 240);
+    rc = kernel_addresses(routes, 240);
     if(rc < 0) {
         fprintf(stderr, "Couldn't get local addresses.\n");
-        numaddr = 0;
-    } else {
-        numaddr = rc;
-    }
-
-    rc = kernel_routes(routes, 240);
-    if(rc < 0) {
-        fprintf(stderr, "Couldn't get kernel routes.\n");
         numroutes = 0;
     } else {
         numroutes = rc;
+    }
+
+    if(numroutes <= 240) {
+        rc = kernel_routes(routes + numroutes, 240 - numroutes);
+        if(rc < 0) {
+            fprintf(stderr, "Couldn't get kernel routes.\n");
+        } else {
+            numroutes += rc;
+        }
+    } else {
+        fprintf(stderr, "Too many local ddresses -- ignoring kernel routes.\n");
     }
 
     /* Check for any routes that need to be flushed */
@@ -131,25 +133,6 @@ check_xroutes()
         export = 0;
         if(xroutes[i].kind == XROUTE_FORCED) {
             export = 1;
-        } else if(xroutes[i].kind == XROUTE_LOCAL) {
-            metric = redistribute_filter(xroutes[i].prefix, xroutes[i].plen,
-                                         xroutes[i].ifindex,
-                                         RTPROT_BABEL_LOCAL);
-            if(metric == METRIC_INHERIT)
-                metric = 0;
-            if(metric < INFINITY && metric == xroutes[i].metric) {
-                for(j = 0; j < numaddr; j++) {
-                    if(xroutes[i].plen == addresses[j].plen &&
-                       memcmp(xroutes[i].prefix,
-                              addresses[j].prefix, 128) == 0 &&
-                       xroutes[i].ifindex == addresses[j].ifindex) {
-                        if(metric < INFINITY) {
-                            export = 1;
-                            break;
-                        }
-                    }
-                }
-            }
         } else if(xroutes[i].kind == XROUTE_REDISTRIBUTED) {
             metric = redistribute_filter(xroutes[i].prefix, xroutes[i].plen,
                                          xroutes[i].ifindex, xroutes[i].proto);
@@ -164,7 +147,7 @@ check_xroutes()
                             export = 1;
                             break;
                         } else if(metric == METRIC_INHERIT &&
-                           xroutes[i].metric == routes[j].metric) {
+                           xroutes[i].metric == routes[j].metric * 256) {
                             export = 1;
                             break;
                         }
@@ -183,29 +166,13 @@ check_xroutes()
 
     /* Add any new routes */
 
-    for(i = 0; i < numaddr; i++) {
-        if(martian_prefix(addresses[i].prefix, addresses[i].plen))
-            continue;
-        metric = redistribute_filter(addresses[i].prefix, addresses[i].plen,
-                                     addresses[i].ifindex, RTPROT_BABEL_LOCAL);
-        if(metric == METRIC_INHERIT)
-            metric = 0;
-        if(metric < INFINITY) {
-            rc = add_xroute(XROUTE_LOCAL,
-                            addresses[i].prefix, addresses[i].plen,
-                            0, addresses[i].ifindex, RTPROT_BABEL_LOCAL);
-            if(rc)
-                change = 1;
-        }
-    }
-
     for(i = 0; i < numroutes; i++) {
         if(martian_prefix(routes[i].prefix, routes[i].plen))
             continue;
         metric = redistribute_filter(routes[i].prefix, routes[i].plen,
                                      routes[i].ifindex, routes[i].proto);
         if(metric == METRIC_INHERIT)
-            metric = routes[i].metric;
+            metric = routes[i].metric * 256;
         if(metric < INFINITY) {
             rc = add_xroute(XROUTE_REDISTRIBUTED,
                             routes[i].prefix, routes[i].plen,

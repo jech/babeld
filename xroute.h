@@ -25,8 +25,7 @@ int check_xroutes(void);
 /* These should come in decreasing order of priority. */
 
 #define XROUTE_FORCED 1
-#define XROUTE_LOCAL 2
-#define XROUTE_REDISTRIBUTED 3
+#define XROUTE_REDISTRIBUTED 2
 
 struct xroute {
     unsigned char prefix[16];
