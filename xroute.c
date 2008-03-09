@@ -184,6 +184,8 @@ check_xroutes()
     /* Add any new routes */
 
     for(i = 0; i < numaddr; i++) {
+        if(martian_prefix(addresses[i].prefix, addresses[i].plen))
+            continue;
         metric = redistribute_filter(addresses[i].prefix, addresses[i].plen,
                                      addresses[i].ifindex, PROTO_LOCAL);
         if(metric == METRIC_INHERIT)
