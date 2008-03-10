@@ -60,7 +60,8 @@ interface.  This can be done by running e.g.
 3. Start the routing daemon
 ===========================
 
-Run Babel on every node, specifying the set of interfaces it should consider:
+Run Babel on every node, specifying the set of interfaces that it
+should consider:
 
   # babel eth1
 
