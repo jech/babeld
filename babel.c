@@ -678,12 +678,13 @@ main(int argc, char **argv)
     }
 
     debugf("Exiting...\n");
-    for(i = 0; i < numroutes; i++) {
+    while(numroutes > 0) {
         /* Uninstall and retract all routes. */
-        if(routes[i].installed) {
-            uninstall_route(&routes[i]);
-            send_update(NULL, 1, routes[i].src->prefix, routes[i].src->plen);
+        if(routes[0].installed) {
+            uninstall_route(&routes[0]);
+            send_update(NULL, 1, routes[0].src->prefix, routes[0].src->plen);
         }
+        flush_route(&routes[0]);
     }
     for(i = 0; i < numnets; i++) {
         if(!nets[i].up)
