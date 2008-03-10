@@ -1043,6 +1043,8 @@ filter_link(struct nlmsghdr *nh, void *data)
     ifflags = info->ifi_flags;
 
     ifname = parse_ifname_rta(info, len);
+    if(ifname == NULL)
+        return 0;
     kdebugf("filter_interfaces: link change on if %s(%d): %s\n",
             ifname, ifindex, parse_ifflags(ifflags));
     for (i = 0; i < numnets; i++) {
