@@ -684,6 +684,7 @@ main(int argc, char **argv)
             uninstall_route(&routes[0]);
             send_update(NULL, 1, routes[0].src->prefix, routes[0].src->plen);
         }
+        /* We need to flush the route so network_up won't reinstall it */
         flush_route(&routes[0]);
     }
     for(i = 0; i < numnets; i++) {
