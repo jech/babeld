@@ -65,6 +65,8 @@ int wireless_hello_interval = -1;
 int wired_hello_interval = -1;
 int idle_hello_interval = -1;
 int update_interval = -1;
+int do_daemonise = 0;
+char *logfile = NULL, *pidfile = NULL;
 
 unsigned char *receive_buffer = NULL;
 int receive_buffer_size = 0;
@@ -209,6 +211,14 @@ main(int argc, char **argv)
                         "Couldn't parse configuration from command line.\n");
                 exit(1);
             }
+        } else if(strcmp(*arg, "-D") == 0) {
+            do_daemonise = 1;
+        } else if(strcmp(*arg, "-L") == 0) {
+            SHIFTE();
+            logfile = *arg;
+        } else if(strcmp(*arg, "-I") == 0) {
+            SHIFTE();
+            pidfile = *arg;
         } else {
             goto syntax;
         }
@@ -249,6 +259,80 @@ main(int argc, char **argv)
 
     if(seqno_interval <= 0)
         seqno_interval = MAX(wireless_hello_interval - 1, 2);
+
+    if(do_daemonise) {
+        if(logfile == NULL)
+            logfile = "/var/log/babel.log";
+    }
+    if(logfile) {
+        int lfd = open(logfile, O_CREAT | O_WRONLY | O_APPEND, 0644);
+        if(lfd < 0) {
+            perror("open(logfile)");
+            goto fail;
+        }
+
+        fflush(stdout);
+        fflush(stderr);
+
+        rc = dup2(lfd, 1);
+        if(rc < 0) {
+            perror("dup2(logfile, 1)");
+            goto fail;
+        }
+        rc = dup2(lfd, 2);
+        if(rc < 0) {
+            perror("dup2(logfile, 2)");
+            goto fail;
+        }
+        close(lfd);
+    }
+
+    fd = open("/dev/null", O_RDONLY);
+    if(fd < 0) {
+        perror("open(null)");
+        goto fail;
+    }
+
+    rc = dup2(fd, 0);
+    if(rc < 0) {
+        perror("dup2(null, 0)");
+        goto fail;
+    }
+
+    close(fd);
+
+    if(do_daemonise) {
+        rc = daemonise();
+        if(rc < 0) {
+            perror("daemonise");
+            goto fail_nopid;
+        }
+    }
+
+    if(pidfile) {
+        int pfd, len;
+        char buf[100];
+
+        len = snprintf(buf, 100, "%lu", (unsigned long)getpid());
+        if(len < 0 || len >= 100) {
+            perror("snprintf(getpid)");
+            goto fail_nopid;
+        }
+
+        pfd = open(pidfile, O_WRONLY | O_CREAT | O_EXCL, 0644);
+        if(pfd < 0) {
+            perror("creat(pidfile)");
+            goto fail_nopid;
+        }
+
+        rc = write(pfd, buf, len);
+        if(rc < len) {
+            perror("write(pidfile)");
+            goto fail;
+        }
+
+        close(pfd);
+    }
 
     rc = kernel_setup(1);
     if(rc < 0) {
@@ -658,6 +742,8 @@ main(int argc, char **argv)
         }
         close(fd);
     }
+    if(pidfile)
+        unlink(pidfile);
     debugf("Done.\n");
     return 0;
 
@@ -668,15 +754,20 @@ main(int argc, char **argv)
             "                "
             "[-h hello] [-H wired_hello] [-i idle_hello] [-u update]\n"
             "                "
-            "[-k metric] [-s] [-P] [-l] [-w] [-d level]\n"
+            "[-k metric] [-s] [-p] [-l] [-w] [-d level]\n"
             "                "
             "[-t table] [-T table] [-X net cost] [-c file] [-C statement]\n"
+            "                "
+            "[-D] [-L logfile] [-I pidfile]\n"
             "                "
             "id interface...\n",
             argv[0]);
     exit(1);
 
  fail:
+    if(pidfile)
+        unlink(pidfile);
+ fail_nopid:
     for(i = 0; i < numnets; i++) {
         if(!nets[i].up)
             continue;

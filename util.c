@@ -26,6 +26,7 @@ THE SOFTWARE.
 #include <sys/time.h>
 #include <time.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -352,4 +353,26 @@ parse_ifflags(unsigned int flags)
     if (flags & IFF_MULTICAST)
         strcat(buf, "MULTICAST ");
     return buf;
+}
+
+int
+daemonise()
+{
+    int rc;
+
+    fflush(stdout);
+    fflush(stderr);
+
+    rc = fork();
+    if(rc < 0)
+        return -1;
+
+    if(rc > 0)
+        exit(0);
+
+    rc = setsid();
+    if(rc < 0)
+        return -1;
+
+    return 1;
 }
