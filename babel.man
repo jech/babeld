@@ -281,6 +281,9 @@ The default location of the configuration file.
 .TP
 .B /var/lib/babel\-state
 The default location of the file storing long-term state.
+.TP
+.B /var/log/babel.log
+The default location of the log file.
 .SH SIGNALS
 .TP
 .B SIGUSR1
