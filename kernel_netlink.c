@@ -1160,7 +1160,9 @@ kernel_addresses(struct kernel_route *routes, int maxroutes)
     if (nl_command.sock < 0) {
         rc = netlink_socket(&nl_command, 0);
         if (rc < 0) {
+            int save = errno;
             perror("kernel_addresses: netlink_socket()");
+            errno = save;
             return -1;
         }
     }
