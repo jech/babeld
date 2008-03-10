@@ -483,13 +483,13 @@ send_triggered_update(struct route *route, struct source *oldsrc, int oldmetric)
         send_update(NULL, urgent, route->src->prefix, route->src->plen);
 
     if(oldmetric < INFINITY) {
-        if(newmetric >= INFINITY || newmetric >= oldmetric + 512)
+        if(newmetric >= INFINITY || newmetric >= oldmetric + 384)
             send_request_resend(route->src->prefix, route->src->plen,
                                 route->src->metric >= INFINITY ?
                                 route->src->seqno :
                                 seqno_plus(route->src->seqno, 1),
                                 hash_id(route->src->address));
-        else if(newmetric >= oldmetric + 384)
+        else if(newmetric >= oldmetric + 288)
             send_request(NULL, route->src->prefix, route->src->plen,
                          0, 0, 0);
     }
