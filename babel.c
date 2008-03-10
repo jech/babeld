@@ -693,7 +693,7 @@ main(int argc, char **argv)
         send_self_retract(&nets[i]);
         /* Make sure that we expire quickly from our neighbours'
            association caches. */
-        send_hello_noupdate(&nets[i], 15 * numnets);
+        send_hello_noupdate(&nets[i], numnets);
         flushupdates();
         flushbuf(&nets[i]);
         usleep(5000 + random() % 10000);
