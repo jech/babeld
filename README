@@ -43,6 +43,20 @@ You will find the ahcp-generate-address utility, which can generate
 random IPv6 addresses according to RFC 4193, in the ahcpd package.
 
 
+A note about tunnels and VPNs
+-----------------------------
+
+Some VPN implementations (notably OpenVPN and Linux GRE) do not
+automatically add an IPv6 link-local address to the tunnel interface.
+If you attempt to run Babel over such an interface, it will complain
+that it ``couldn't allocate requested address''.
+
+The solution is to manually add the link-local address to the
+interface.  This can be done by running e.g.
+
+  # ip -6 addr add $(ahcp-generate-address fe80::) dev gre0
+
+
 3. Start the routing daemon
 ===========================
 
