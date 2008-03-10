@@ -109,7 +109,7 @@ check_xroutes()
 
     rc = kernel_addresses(routes, 240);
     if(rc < 0) {
-        fprintf(stderr, "Couldn't get local addresses.\n");
+        perror("kernel_addresses");
         numroutes = 0;
     } else {
         numroutes = rc;
