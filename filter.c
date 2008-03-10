@@ -108,9 +108,14 @@ getip(int c, unsigned char **ip_r, int *af_r, gnc_t gnc, void *closure)
         free(t);
         return -2;
     }
+    free(t);
+
     ip = malloc(16);
-    if(ip == NULL)
+    if(ip == NULL) {
+        free(t);
         return -2;
+    }
+    free(t);
     memcpy(ip, addr, 16);
     *ip_r = ip;
     if(af_r)
@@ -136,6 +141,7 @@ getnet(int c, unsigned char **p_r, unsigned char *plen_r, int *af_r,
         free(t);
         return -2;
     }
+    free(t);
     ip = malloc(16);
     if(ip == NULL)
         return -2;
@@ -308,6 +314,7 @@ parse_config(gnc_t gnc, void *closure)
         } else {
             return -1;
         }
+        free(token);
 
         filter = parse_filter(gnc, closure);
         if(filter == &error_filter)
