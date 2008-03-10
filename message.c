@@ -222,7 +222,7 @@ parse_packet(const unsigned char *from, struct network *net,
                 v4tov6(p4, message + 20);
                 v4tov6(nh, message + 16);
                 debugf("Received update for %s nh %s on %s from %s (%s).\n",
-                       format_prefix(p4, plen),
+                       format_prefix(p4, plen + 96),
                        format_address(nh),
                        net->ifname,
                        format_address(neigh->id),
