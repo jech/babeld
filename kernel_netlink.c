@@ -1185,7 +1185,7 @@ int
 kernel_callback(int (*fn)(int, void*), void *closure)
 {
     int rc;
-    int changed;
+    int changed = 0;
 
     kdebugf("\nReceived changes in kernel tables.\n");
 
