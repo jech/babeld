@@ -162,7 +162,7 @@ parse_packet(const unsigned char *from, struct network *net,
                        plen == 0xFF ?
                        "any" :
                        format_prefix(address, plen),
-                       metric);
+                       hop_count);
                 if(plen == 0xFF) {
                     /* If a neighbour is requesting a full route dump from us,
                        we might as well send it an ihu. */
