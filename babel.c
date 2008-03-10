@@ -91,6 +91,7 @@ static volatile sig_atomic_t exiting = 0, dumping = 0, changed = 0;
 static int kernel_routes_callback(int changed, void *closure);
 static void init_signals(void);
 static void dump_tables(FILE *out);
+static int reopen_logfile();
 
 int
 main(int argc, char **argv)
@@ -264,27 +265,11 @@ main(int argc, char **argv)
         if(logfile == NULL)
             logfile = "/var/log/babel.log";
     }
-    if(logfile) {
-        int lfd = open(logfile, O_CREAT | O_WRONLY | O_APPEND, 0644);
-        if(lfd < 0) {
-            perror("open(logfile)");
-            goto fail;
-        }
 
-        fflush(stdout);
-        fflush(stderr);
-
-        rc = dup2(lfd, 1);
-        if(rc < 0) {
-            perror("dup2(logfile, 1)");
-            goto fail;
-        }
-        rc = dup2(lfd, 2);
-        if(rc < 0) {
-            perror("dup2(logfile, 2)");
-            goto fail;
-        }
-        close(lfd);
+    rc = reopen_logfile();
+    if(rc < 0) {
+        perror("reopen_logfile()");
+        goto fail;
     }
 
     fd = open("/dev/null", O_RDONLY);
@@ -610,6 +595,11 @@ main(int argc, char **argv)
             kernel_dump_time = now.tv_sec;
             check_neighbours_time = now;
             expiry_time = now.tv_sec;
+            rc = reopen_logfile();
+            if(rc < 0) {
+                perror("reopen_logfile");
+                break;
+            }
             changed = 0;
         }
 
@@ -914,6 +904,35 @@ dump_tables(FILE *out)
                 route_feasible(&routes[i]) ? " (feasible)" : "");
     }
     fflush(out);
+}
+
+static int
+reopen_logfile()
+{
+    int lfd, rc;
+
+    if(logfile == NULL)
+        return 0;
+
+    lfd = open(logfile, O_CREAT | O_WRONLY | O_APPEND, 0644);
+    if(lfd < 0)
+        return -1;
+
+    fflush(stdout);
+    fflush(stderr);
+
+    rc = dup2(lfd, 1);
+    if(rc < 0)
+        return -1;
+
+    rc = dup2(lfd, 2);
+    if(rc < 0)
+        return -1;
+
+    if(lfd > 2)
+        close(lfd);
+
+    return 1;
 }
 
 static int
