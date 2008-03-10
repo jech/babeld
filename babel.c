@@ -510,7 +510,7 @@ main(int argc, char **argv)
         send_self_update(&nets[i], 0);
         send_request(&nets[i], NULL, 0, 0, 0, 0);
         flushbuf(&nets[i]);
-        usleep(50000 + random() % 100000);
+        usleep(5000 + random() % 10000);
     }
 
     debugf("Entering main loop.\n");
@@ -695,7 +695,7 @@ main(int argc, char **argv)
         send_hello_noupdate(&nets[i], 15 * numnets);
         flushupdates();
         flushbuf(&nets[i]);
-        usleep(50000 + random() % 100000);
+        usleep(5000 + random() % 10000);
     }
     for(i = 0; i < numnets; i++) {
         if(!nets[i].up)
@@ -705,7 +705,7 @@ main(int argc, char **argv)
         send_hello_noupdate(&nets[i], 1);
         flushupdates();
         flushbuf(&nets[i]);
-        usleep(50000 + random() % 100000);
+        usleep(5000 + random() % 10000);
         network_up(&nets[i], 0);
     }
     kernel_setup_socket(0);
