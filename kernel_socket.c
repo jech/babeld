@@ -226,13 +226,18 @@ int
 kernel_interface_operational(const char *ifname, int ifindex)
 {
     struct ifreq req;
-    int rc;
+    int s, rc;
     int flags = link_detect ? (IFF_UP | IFF_RUNNING) : IFF_UP;
+
+    s = socket(PF_INET, SOCK_DGRAM, 0);
+    if(s < 0)
+        return -1;
 
     memset(&req, 0, sizeof(req));
     memset(&req, 0, sizeof(req));
     strncpy(req.ifr_name, ifname, sizeof(req.ifr_name));
-    rc = ioctl(dgram_socket, SIOCGIFFLAGS, &req);
+    rc = ioctl(s, SIOCGIFFLAGS, &req);
+    close(s);
     if(rc < 0)
         return -1;
     return ((req.ifr_flags & flags) == flags);
@@ -252,8 +257,8 @@ kernel_interface_ipv4(const char *ifname, int ifindex, unsigned char *addr_r)
     strncpy(req.ifr_name, ifname, sizeof(req.ifr_name));
     req.ifr_addr.sa_family = AF_INET;
     rc = ioctl(s, SIOCGIFADDR, &req);
+    close(s);
     if(rc < 0) {
-        close(s);
         return -1;
     }
 
@@ -592,6 +597,13 @@ socket_read(int sock)
 
     return 0;
 
+}
+
+int
+kernel_addresses(struct kernel_route *routes, int maxroutes)
+{
+    errno = ENOSYS;
+    return -1;
 }
 
 int
