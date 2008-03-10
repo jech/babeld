@@ -135,28 +135,27 @@ main(int argc, char **argv)
             SHIFTE();
             protocol_port = atoi(*arg);
         } else if(strcmp(*arg, "-X") == 0) {
-            if(numxroutes >= MAXXROUTES) {
-                fprintf(stderr, "Too many exported routes.\n");
-                exit(1);
-            }
+            int metric;
+            unsigned char prefix[16];
+            unsigned char plen;
+
             SHIFTE();
-            rc = parse_net(*arg,
-                           xroutes[numxroutes].prefix,
-                           &xroutes[numxroutes].plen, NULL);
+            rc = parse_net(*arg, prefix, &plen, NULL);
             if(rc < 0)
                 goto syntax;
             SHIFTE();
             if(strcmp(*arg, "infinity") == 0)
-                xroutes[numxroutes].metric = INFINITY;
+                metric = INFINITY;
             else {
-                int metric = atoi(*arg);
+                metric = atoi(*arg);
                 if(metric < 0 || metric > INFINITY)
                     goto syntax;
-                xroutes[numxroutes].metric = metric;
             }
-            xroutes[numxroutes].kind = XROUTE_FORCED;
-            xroutes[numxroutes].ifindex = 0;
-            numxroutes++;
+            rc = add_xroute(XROUTE_FORCED, prefix, plen, metric, 0, 0);
+            if(rc < 0) {
+                fprintf(stderr, "Couldn't add xroute.\n");
+                exit(1);
+            }
         } else if(strcmp(*arg, "-h") == 0) {
             SHIFTE();
             wireless_hello_interval = atoi(*arg);
