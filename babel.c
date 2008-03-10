@@ -693,7 +693,8 @@ main(int argc, char **argv)
         /* Retract exported routes. */
         send_self_retract(&nets[i]);
         /* Make sure that we expire quickly from our neighbours'
-           association caches. */
+           association caches.  Since we sleep on average 10ms per
+           network, set the hello interval to numnets cs. */
         send_hello_noupdate(&nets[i], numnets);
         flushupdates();
         flushbuf(&nets[i]);
