@@ -282,6 +282,9 @@ main(int argc, char **argv)
     } else {
         struct kernel_route routes[240];
         rc = kernel_addresses(routes, 240);
+        if(rc < 0) {
+            perror("kernel_addresses");
+        }
         if(rc > 0) {
             /* Search for a global IPv6 address */
             for(i = 0; i < rc; i++) {
