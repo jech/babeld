@@ -267,20 +267,22 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
     }
 
     route = find_installed_route(prefix, plen);
-    if(route && route->metric < INFINITY) {
-        if(router_hash == hash_id(route->src->address) &&
-           seqno_compare(seqno, route->seqno) > 0) {
-            if(hop_count > 1) {
-                send_unicast_request(route->neigh, prefix, plen,
-                                     hop_count - 1, seqno, router_hash);
-                record_request(prefix, plen, seqno, router_hash,
-                               neigh->network, 0);
-            }
-        } else {
-            send_update(neigh->network, 1, prefix, plen);
-        }
+    if(!route || route->metric >= INFINITY || route->neigh == neigh)
+        route = find_best_route(prefix, plen, 0);
+    if(!route || route->metric >= INFINITY || route->neigh == neigh)
         return;
+    if(router_hash == hash_id(route->src->address) &&
+       seqno_compare(seqno, route->seqno) > 0) {
+        if(hop_count > 1) {
+            send_unicast_request(route->neigh, prefix, plen,
+                                 hop_count - 1, seqno, router_hash);
+            record_request(prefix, plen, seqno, router_hash,
+                           neigh->network, 0);
+        }
+    } else {
+        send_update(neigh->network, 1, prefix, plen);
     }
+    return;
 }
 
 
