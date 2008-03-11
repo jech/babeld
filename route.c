@@ -450,9 +450,6 @@ consider_route(struct route *route)
     if(installed == NULL)
         goto install;
 
-    if(installed->metric >= route->metric + 288)
-        goto install;
-
     if(installed->metric >= route->metric + 192)
         goto install;
 
