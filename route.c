@@ -527,11 +527,6 @@ trigger_route_change(struct route *route,
 
         return;
     }
-
-    /* consider_route avoids very recent routes, so reconsider newish routes
-       even when their metric didn't decrease. */
-    if(route->metric < oldmetric || route->origtime >= now.tv_sec - 240)
-        consider_route(route);
 }
 
 /* We just lost the installed route to a given destination. */
