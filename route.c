@@ -489,10 +489,16 @@ send_triggered_update(struct route *route, struct source *oldsrc, int oldmetric)
 
     /* Switching sources can cause transient routing loops, so always send
        updates in that case.  Retractions are always urgent. */
+
     if(route->src != oldsrc ||
        (oldmetric < INFINITY && newmetric >= INFINITY))
         urgent = 1;
 
+    /* This is not strictly necessary, but it speeds up reconvergence */
+    if(newmetric >= oldmetric + 512 || oldmetric >= newmetric + 512)
+        urgent = 1;
+
+    /* Make sure that requests are satisfied speedily */
     if(unsatisfied_request(route->src->prefix, route->src->plen,
                            route->seqno, hash_id(route->src->address)))
         urgent = 1;
