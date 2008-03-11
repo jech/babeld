@@ -64,6 +64,8 @@ struct route *update_route(const unsigned char *a,
                            unsigned short seqno, unsigned short refmetric,
                            struct neighbour *neigh,
                            const unsigned char *nexthop);
+void send_unfeasible_request(unsigned short metric, const unsigned char *a,
+                             const unsigned char *prefix, unsigned char plen);
 void consider_route(struct route *route);
 void send_triggered_update(struct route *route,
                            struct source *oldsrc, int oldmetric);

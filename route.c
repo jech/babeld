@@ -384,11 +384,16 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
 
         if(feasible)
             trigger_route_change(route, oldsrc, oldmetric);
-        else if(lost)
+        else
+            send_unfeasible_request(metric, a, p, plen);
+
+        if(lost)
             route_lost(oldsrc, oldmetric);
     } else {
-        if(!feasible)
+        if(!feasible) {
+            send_unfeasible_request(metric, a, p, plen);
             return NULL;
+        }
         if(refmetric >= INFINITY)
             /* Somebody's retracting a route we never saw. */
             return NULL;
@@ -410,6 +415,26 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         consider_route(route);
     }
     return route;
+}
+
+/* We just received an unfeasible update.  If it's any good, send
+   a request for a new seqno. */
+void
+send_unfeasible_request(unsigned short metric, const unsigned char *a,
+                        const unsigned char *prefix, unsigned char plen)
+{
+    struct route *route = find_installed_route(prefix, plen);
+    struct source *src = find_source(a, prefix, plen, 0, 0);
+
+    if(src == NULL)
+        return;
+
+    if(!route || route->metric >= metric + 256) {
+        send_request_resend(prefix, plen,
+                            src->metric >= INFINITY ?
+                            src->seqno : seqno_plus(src->seqno, 1),
+                            hash_id(src->address));
+    }
 }
 
 /* This takes a feasible route and decides whether to install it.  The only
