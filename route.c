@@ -242,7 +242,7 @@ update_feasible(const unsigned char *a,
 
 /* This returns the feasible route with the smallest metric. */
 struct route *
-find_best_route(const unsigned char *prefix, unsigned char plen)
+find_best_route(const unsigned char *prefix, unsigned char plen, int feasible)
 {
     struct route *route = NULL;
     int i;
@@ -252,7 +252,7 @@ find_best_route(const unsigned char *prefix, unsigned char plen)
             continue;
         if(routes[i].time < now.tv_sec - route_timeout_delay)
             continue;
-        if(!route_feasible(&routes[i]))
+        if(feasible && !route_feasible(&routes[i]))
             continue;
         if(route && route->metric <= routes[i].metric)
             continue;
@@ -575,7 +575,7 @@ trigger_route_change(struct route *route,
         if(route->metric > oldmetric) {
             struct route *better_route;
             better_route =
-                find_best_route(route->src->prefix, route->src->plen);
+                find_best_route(route->src->prefix, route->src->plen, 1);
             if(better_route && better_route->metric <= route->metric - 96)
                 consider_route(better_route);
         }
@@ -593,7 +593,7 @@ void
 route_lost(struct source *src, int oldmetric)
 {
     struct route *new_route;
-    new_route = find_best_route(src->prefix, src->plen);
+    new_route = find_best_route(src->prefix, src->plen, 1);
     if(new_route) {
         consider_route(new_route);
     } else {
