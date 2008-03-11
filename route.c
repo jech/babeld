@@ -524,8 +524,9 @@ trigger_route_change(struct route *route,
 
         if(route->installed)
             send_triggered_update(route, oldsrc, oldmetric);
-
-        return;
+    } else {
+        if(route->metric < oldmetric)
+            consider_route(route);
     }
 }
 
