@@ -40,6 +40,8 @@ struct request *find_request(const unsigned char *prefix, unsigned char plen,
 int record_request(const unsigned char *prefix, unsigned char plen,
                    unsigned short seqno, unsigned short router_hash,
                    struct network *net, int resend);
+int unsatisfied_request(const unsigned char *prefix, unsigned char plen,
+                        unsigned short seqno, unsigned short router_hash);
 int satisfy_request(const unsigned char *prefix, unsigned char plen,
                     unsigned short seqno, unsigned short router_hash,
                     struct network *net);

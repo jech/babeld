@@ -115,6 +115,23 @@ record_request(const unsigned char *prefix, unsigned char plen,
 }
 
 int
+unsatisfied_request(const unsigned char *prefix, unsigned char plen,
+                    unsigned short seqno, unsigned short router_hash)
+{
+    struct request *request;
+
+    request = find_request(prefix, plen, NULL);
+    if(request == NULL)
+        return 0;
+
+    if(request->router_hash != router_hash ||
+       seqno_compare(request->seqno, seqno) <= 0)
+        return 1;
+
+    return 0;
+}
+
+int
 satisfy_request(const unsigned char *prefix, unsigned char plen,
                 unsigned short seqno, unsigned short router_hash,
                 struct network *network)
