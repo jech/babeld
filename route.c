@@ -480,7 +480,7 @@ consider_route(struct route *route)
 void
 send_triggered_update(struct route *route, struct source *oldsrc, int oldmetric)
 {
-    int urgent, newmetric;
+    int urgent = 0, newmetric;
 
     if(!route->installed)
         return;
@@ -489,9 +489,13 @@ send_triggered_update(struct route *route, struct source *oldsrc, int oldmetric)
 
     /* Switching sources can cause transient routing loops, so always send
        updates in that case.  Retractions are always urgent. */
-    urgent = (route->src != oldsrc) ||
-        (oldmetric < INFINITY && newmetric >= INFINITY) ||
-        find_request(route->src->prefix, route->src->plen, NULL);
+    if(route->src != oldsrc ||
+       (oldmetric < INFINITY && newmetric >= INFINITY))
+        urgent = 1;
+
+    if(unsatisfied_request(route->src->prefix, route->src->plen,
+                           route->seqno, hash_id(route->src->address)))
+        urgent = 1;
 
     if(urgent ||
        (newmetric >= oldmetric + 256 || oldmetric >= newmetric + 256))
