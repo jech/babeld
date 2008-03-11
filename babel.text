@@ -690,7 +690,11 @@ If Plen is no more than 128 and hop count is 0, then this is a request for
 a route with the destination specified by Prefix and Plen.  If the
 receiving Babel speaker has selected a route with that destination, it
 replies with an update for this route.  Otherwise, it sends a retraction
-for that destination.
+for the given destination.
+
+If Prefix/Plen is an IPv6-mapped IPv4 prefix (i.e. it is within ::ffff:0/96),
+then the request is a request for an IPv4 prefix, and should be satisfied
+with an IPv4 Prefix message (see Section 3.2.6).
 
 3.2.3.3 Multi-hop requests
 
@@ -714,6 +718,9 @@ A speaker SHOULD keep track of forwarded multi-hop requests, and forward
 the replies whenever a request is satisfied.
 
 If the receiver has no route to the given destination, it remains silent.
+
+As above, if Prefix/Plen is an IPv6-mapped IPv4 prefix, then this is
+a request for an IPv4 prefix.
 
 
 3.2.4 Update
@@ -799,23 +806,65 @@ where prefix is equal to id masked to plen bits.
       Prefix    The prefix being advertised.
 
       
-A Prefix message MUST immediately follow either an UPDATE message, or
-another PREFIX message.
+A Prefix message MUST immediately follow either an Update message, another
+Prefix message, or an IPv4 Prefix message.
 
 The Metric field is a fixed-point number in 8.8 bit format, and represents
 an additive metric.  The value 0xFF.0xFF (infinity) indicates that this is
 a route retraction.
 
-An update message specifies an update for the route to destination (prefix,
+A Prefix message specifies an update for the route to destination (prefix,
 plen), with a sequence number given by the field Seqno, a metric given by
 the Metric field, and a source indicated by the Router ID field of the
 preceding update message.
 
+
 3.2.6 IPv4 prefix information
 
-Message type 5 is reserved for IPv4 prefix information.  A message with
-a type of 5 should be silently ignored by an implementation that does not
-implement the IPv4 extensions to Babel.
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |    Type = 5   |     Plen      |            Reserved           |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |              Seqno            |             Metric            |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |                                                               |
+     +                            Reserved                           +
+     |                                                               |
+     +---------------------------------------------------------------+
+     |                            Next Hop                           |
+     +---------------------------------------------------------------+
+     |                             Prefix                            |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+    Fields:
+
+      Type      Set to 5 to indicate an IPv4 Prefix message.
+
+      Plen      The prefix length of the advertised prefix.
+
+      Seqno     The sequence number of this advertisement.
+
+      Metric    The metric of the advertised route, in 8.8 bit fixed-point
+                format.
+
+      Next Hop  The IPv4 address of the sending interface.
+
+      Prefix    The prefix being advertised.
+
+
+An Ipv4 Prefix message MUST immediately follow either an Update message,
+a Prefix message, or another IPv4 Prefix message.
+
+The Metric and Seqno fields are interpreted as in the Prefix message.
+
+An IPv4 Prefix message specifies an update for the route to destination
+(prefix, plen), with a sequence number given by the field Seqno, a metric
+given by the Metric field, a source indicated by the Router ID field of the
+preceding update message, and a next hop specified by the Next Hop field.
+
+A node that does not implement IPv4 MUST silently ignore IPv4 Prefix
+messages, and MUST NOT send IPv4 Prefix messages.
 
 
 4. Sample implementation
