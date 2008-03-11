@@ -698,7 +698,7 @@ receiving Babel speaker has selected a route with that destination, it
 replies with an update for this route.  Otherwise, it sends a retraction
 for the given destination.
 
-If Prefix/Plen is an IPv6-mapped IPv4 prefix (i.e. it is within ::ffff:0/96),
+If Prefix/Plen is an IPv6-mapped IPv4 prefix (i.e. it is within ::ffff:0:0/96),
 then the request is a request for an IPv4 prefix, and should be satisfied
 with an IPv4 Prefix message (see Section 3.2.6).
 
