@@ -205,7 +205,7 @@ network_up(struct network *net, int up)
         resize_receive_buffer(mtu);
 
         if(all_wireless) {
-            wired = 1;
+            wired = 0;
         } else {
             rc = kernel_interface_wireless(net->ifname, net->ifindex);
             if(rc < 0) {
