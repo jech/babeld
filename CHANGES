@@ -1,4 +1,4 @@
-babel 0.10 (unreleased)
+11 March 2008: babel 0.10
 
   * Implemented the ability to automatically export local addresses (see
     the ``local'' keyword in redistribute specifications).  This should
@@ -18,7 +18,7 @@ babel 0.10 (unreleased)
   * Send multi-hop requests more aggressively.
   * Send requests for a new seqno upon receiving an unfeasible update
     if it's better than what we have.
-  * Don't consider the age of routes in route selection.
+  * No longer consider the age of routes in route selection.
   * Added ability to run as a daemon.
 
 14 February 2008: babel 0.9
