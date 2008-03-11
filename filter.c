@@ -112,10 +112,8 @@ getip(int c, unsigned char **ip_r, int *af_r, gnc_t gnc, void *closure)
 
     ip = malloc(16);
     if(ip == NULL) {
-        free(t);
         return -2;
     }
-    free(t);
     memcpy(ip, addr, 16);
     *ip_r = ip;
     if(af_r)
