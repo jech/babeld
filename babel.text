@@ -3,7 +3,7 @@
                             Juliusz Chroboczek
                            <jch@pps.jussieu.fr>
 
-                             12 February 2008
+                               11 March 2008
 
 
 1. Introduction
@@ -419,8 +419,15 @@ network until it receives a new sequence number.
 In order to recover its routes as promptly as possible, a node that has
 lost all feasible routes to a given destination broadcasts a request for
 a new sequence number.  Any neighbouring node that can satisfy the request
-responds with an update; a node that cannot satisfy the request forwards
-the request to its next hop for the given source as a unicast packet.
+responds with an update; a node that cannot satisfy the request but has
+a feasible route to the requested source forwards the request to its next
+hop for the given source as a unicast packet.
+
+A node MAY also send a broadcast or unicast request under other
+circumstances.  We notably recommend sending a broadcast request when the
+metric of its selected route has increased significantly, and a unicast
+request when it receives an unfeasible update with a metric significantly
+smaller than that of its currently selected route.
 
 A node SHOULD maintain a list of forwarded requests, and forward the reply
 (using unicast or multicast) as soon as it arrives.
