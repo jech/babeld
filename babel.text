@@ -420,8 +420,14 @@ In order to recover its routes as promptly as possible, a node that has
 lost all feasible routes to a given destination broadcasts a request for
 a new sequence number.  Any neighbouring node that can satisfy the request
 responds with an update; a node that cannot satisfy the request but has
-a feasible route to the requested source forwards the request to its next
-hop for the given source as a unicast packet.
+a route (feasible or not) to the requested source forwards the request to
+a suitable next hop for the given source as a unicast packet.
+
+Since the request forwarding mechanism does not obey the feasibility
+condition, it may get caught into routing loops; hence, requests carry
+a hop count to limit their propagation.  However, since requests are only
+ever forwarded as unicast packets, the maximum hop count need not be kept
+particularly low.
 
 A node MAY also send a broadcast or unicast request under other
 circumstances.  We notably recommend sending a broadcast request when the
