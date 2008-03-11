@@ -196,7 +196,9 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
         }
     }
 
-    if((neigh->reach & 0xF000) != 0xF000 && (neigh->reach & 0xF000) != 0x0000)
+    /* If this neighbour is marginal, make sure to give it plenty of
+       feedback. */
+    if((neigh->reach & 0xE000) != 0xE000 && (neigh->reach & 0xE000) != 0x0000)
         send_ihu(neigh, NULL);
 
     if((neigh->reach & 0xFC00) == 0xC000) {
