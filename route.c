@@ -240,8 +240,7 @@ update_feasible(const unsigned char *a,
             (src->seqno == seqno && refmetric < src->metric));
 }
 
-/* This returns a feasible route.  The only condition it must satisfy if that
-   if there is a feasible route, then one will be found. */
+/* This returns the feasible route with the smallest metric. */
 struct route *
 find_best_route(const unsigned char *prefix, unsigned char plen)
 {
@@ -255,16 +254,8 @@ find_best_route(const unsigned char *prefix, unsigned char plen)
             continue;
         if(!route_feasible(&routes[i]))
             continue;
-        if(route && route->metric < INFINITY &&
-           route->metric + 512 >= routes[i].metric) {
-            if(route->origtime <= now.tv_sec - 30 &&
-               routes[i].origtime >= now.tv_sec - 30)
-                continue;
-            if(route->metric < routes[i].metric)
-                continue;
-            if(route->origtime > routes[i].origtime)
-                continue;
-        }
+        if(route && route->metric <= routes[i].metric)
+            continue;
         route = &routes[i];
     }
     return route;
@@ -461,10 +452,6 @@ consider_route(struct route *route)
 
     if(installed->metric >= route->metric + 288)
         goto install;
-
-    /* Avoid routes that haven't been around for some time */
-    if(route->origtime >= now.tv_sec - 30)
-        return;
 
     if(installed->metric >= route->metric + 192)
         goto install;
