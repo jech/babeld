@@ -268,7 +268,7 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
 
     route = find_installed_route(prefix, plen);
     if(!route || route->metric >= INFINITY || route->neigh == neigh)
-        route = find_best_route(prefix, plen, 0);
+        route = find_best_route(prefix, plen, 0, neigh);
     if(!route || route->metric >= INFINITY || route->neigh == neigh)
         return;
     if(router_hash == hash_id(route->src->address) &&

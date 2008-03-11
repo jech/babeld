@@ -54,7 +54,7 @@ int update_feasible(const unsigned char *a,
                     const unsigned char *p, unsigned char plen,
                     unsigned short seqno, unsigned short refmetric);
 struct route *find_best_route(const unsigned char *prefix, unsigned char plen,
-                              int feasible);
+                              int feasible, struct neighbour *exclude);
 struct route *install_best_route(const unsigned char prefix[16],
                                  unsigned char plen);
 void update_neighbour_metric(struct neighbour *neigh);
