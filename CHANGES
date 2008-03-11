@@ -13,7 +13,9 @@ babel 0.10 (unreleased)
     as is usually the case when running over tunnels or VPNs.
   * Changed the link quality computation algorithm to not discard very
     lossy links.
-  * Made sending of multi-hop requests very slightly more aggressive.
+  * Multi-hop requests will now be forwarded to an unfeasible successor
+    under some circumstances.
+  * Send multi-hop requests more aggressively.
   * Send requests for a new seqno upon receiving an unfeasible update
     if it's better than what we have.
   * Don't consider the age of routes in route selection.
