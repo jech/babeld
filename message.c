@@ -251,7 +251,7 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
                unsigned short seqno, unsigned short router_hash)
 {
     struct xroute *xroute;
-    struct route *route;
+    struct route *route, *best_route;
 
     if(hop_count == 0) {
         send_update(neigh->network, 1, prefix, plen);
@@ -266,9 +266,16 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
         return;
     }
 
+    /* We usually want to send the request to our selected successor,
+       but avoid it if we suspect it's dead.  So pick the best successor
+       (feasible of not) if our selected successor's metric is too large. */
     route = find_installed_route(prefix, plen);
-    if(!route || route->metric >= INFINITY || route->neigh == neigh)
-        route = find_best_route(prefix, plen, 0, neigh);
+    best_route = find_best_route(prefix, plen, 0, neigh);
+    if(!route || route->neigh == neigh || route->metric == INFINITY)
+        route = best_route;
+    else if(route && best_route && route->metric >= best_route->metric + 256)
+        route = best_route;
+
     if(!route || route->metric >= INFINITY || route->neigh == neigh)
         return;
     if(router_hash == hash_id(route->src->address) &&
