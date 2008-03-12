@@ -3,7 +3,7 @@
                             Juliusz Chroboczek
                            <jch@pps.jussieu.fr>
 
-                               11 March 2008
+                               12 March 2008
 
 
 1. Introduction
@@ -423,17 +423,17 @@ responds with an update; a node that cannot satisfy the request but has
 a route (feasible or not) to the requested source forwards the request to
 a suitable next hop for the given source as a unicast packet.
 
-Since the request forwarding mechanism does not obey the feasibility
-condition, it may get caught into routing loops; hence, requests carry
-a hop count to limit their propagation.  However, since requests are only
-ever forwarded as unicast packets, the maximum hop count need not be kept
-particularly low.
+Since the request forwarding mechanism does not necessarily obey the
+feasibility condition, it may get caught into routing loops; hence,
+requests carry a hop count to limit their propagation.  However, since
+requests are only ever forwarded as unicast packets, the maximum hop count
+need not be kept particularly low.
 
 A node MAY also send a broadcast or unicast request under other
-circumstances.  We notably recommend sending a broadcast request when the
-metric of its selected route has increased significantly, and a unicast
-request when it receives an unfeasible update with a metric significantly
-smaller than that of its currently selected route.
+circumstances.  We recommend sending a broadcast request when the metric of
+its selected route has increased significantly, and a unicast request when
+it receives an unfeasible update with a metric significantly smaller than
+that of its currently selected route.
 
 A node SHOULD maintain a list of forwarded requests, and forward the reply
 (using unicast or multicast) as soon as it arrives.
@@ -719,10 +719,11 @@ than Seqno, it replies with an update for that route.
 
 Otherwise, if the receiver has selected a route to the given destination,
 with matching router-id, but a too small seqno, if the hop count is at
-least 2, it forwards the request as a unicast packet to some suitably
-chosen successor (feasible or not) after decreasing the hop count by one.
-If the hop count is 1, it remains silent.  A speaker SHOULD keep track of
-forwarded multi-hop requests, and forward the replies whenever a request is
+least 2, it forwards the request as a unicast packet either to the selected
+successor if it is not the requestor, and otherwise to some other successor
+(feasible or not) after decreasing the hop count by one.  If the hop count
+is 1, it remains silent.  A speaker SHOULD keep track of forwarded
+multi-hop requests, and forward the replies whenever a request is
 satisfied.
 
 If the receiver has no route to the given destination (feasible or not), it
