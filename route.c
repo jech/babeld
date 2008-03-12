@@ -476,9 +476,8 @@ send_unfeasible_request(unsigned short metric, const unsigned char *a,
     }
 }
 
-/* This takes a feasible route and decides whether to install it.  The only
-   condition that it must satisfy is that if there is no currently installed
-   route, then one will be installed. */
+/* This takes a feasible route and decides whether to install it. */
+
 void
 consider_route(struct route *route)
 {
