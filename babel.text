@@ -688,15 +688,16 @@ There are three kinds of request messages.
 If Plen is 0xFF, then this is a request for a full dump of the routing
 table; in this case, the Hop Count field must be zero and is ignored on
 reception.  When a Babel speaker receives such a request, it responds with
-a full dump of its routing table.
+a full dump of its routing table, including recently retracted routes.
 
 3.2.3.2 Specific requests
 
 If Plen is no more than 128 and hop count is 0, then this is a request for
 a route with the destination specified by Prefix and Plen.  If the
 receiving Babel speaker has selected a route with that destination, it
-replies with an update for this route.  Otherwise, it sends a retraction
-for the given destination.
+replies with an update for this route.  If the Babel speaker has recently
+retracted a route with this destination, it sends a retreaction.
+Otherwise, it remains silent.
 
 If Prefix/Plen is an IPv6-mapped IPv4 prefix (i.e. it is within ::ffff:0:0/96),
 then the request is a request for an IPv4 prefix, and should be satisfied
@@ -706,24 +707,26 @@ with an IPv4 Prefix message (see Section 3.2.6).
 
 Finally, if Plen is no more than 128 and hop count is larger than 0, then
 this is a multi-hop request for a particular sequence number.  If the
-receiver's router-id matches the Id Hash, and it is exporting a route to
-the requested destination, it increases its sequence number to match the
-seqno field of the request, and sends an update.
+receiver is currently exporting a route to the required destination, it
+first checks whether the router-id matches the Id Hash; if so, it increases
+its sequence number to match the seqno field of the request.  It then sends
+an update.
 
 Otherwise, if the receiver has selected a route with the destination
-specified by Prefix and Plen, a router id that matches the ID Hash, and
-a sequence number no less than Seqno, it replies with an update for that
-route.  If the receiver has a route for that destination with a different
-router id, it sends an update for that route.
+specified by Prefix and Plen, if either the selected route's router id
+doesn't match the router hash, or the route has a sequence number no less
+than Seqno, it replies with an update for that route.
 
 Otherwise, if the receiver has selected a route to the given destination,
 with matching router-id, but a too small seqno, if the hop count is at
-least 2, it forwards the request as unicast to its selected successor after
-decreasing the hop count by one.  If the hop count is 1, it remains silent.
-A speaker SHOULD keep track of forwarded multi-hop requests, and forward
-the replies whenever a request is satisfied.
+least 2, it forwards the request as a unicast packet to some suitably
+chosen successor (feasible or not) after decreasing the hop count by one.
+If the hop count is 1, it remains silent.  A speaker SHOULD keep track of
+forwarded multi-hop requests, and forward the replies whenever a request is
+satisfied.
 
-If the receiver has no route to the given destination, it remains silent.
+If the receiver has no route to the given destination (feasible or not), it
+remains silent.
 
 As above, if Prefix/Plen is an IPv6-mapped IPv4 prefix, then this is
 a request for an IPv4 prefix.
