@@ -274,18 +274,20 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
             struct route *successor_route;
 
             /* We usually want to send the request to our selected successor,
-               but not when we suspect that it's dead.  So pick the best
-               successor (feasible of not) if our selected successor's
-               metric is suspiciously large. */
+               but not when it's the requestor, and not when we suspect that
+               it's dead.  So pick the best successor (feasible or not)
+               if our selected successor's metric is suspiciously large. */
 
             successor_route = find_best_route(prefix, plen, 0, neigh);
-            if(!successor_route || successor_route->metric >= INFINITY)
+            if(!successor_route || successor_route->metric >= INFINITY ||
+               successor_route->neigh == neigh)
                 successor_route = route;
             else if(route && successor_route &&
                successor_route->metric + 256 >= route->metric)
                 successor_route = route;
 
-            if(!successor_route || successor_route->metric >= INFINITY)
+            if(!successor_route || successor_route->metric >= INFINITY ||
+               successor_route->neigh == neigh)
                 return;
 
             send_unicast_request(successor_route->neigh, prefix, plen,
