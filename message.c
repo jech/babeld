@@ -281,8 +281,7 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
             successor_route = find_best_route(prefix, plen, 0, neigh);
             if(!successor_route || successor_route->metric >= INFINITY)
                 successor_route = route;
-
-            if(route && successor_route &&
+            else if(route && successor_route &&
                successor_route->metric + 256 >= route->metric)
                 successor_route = route;
 
