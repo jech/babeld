@@ -251,45 +251,56 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
                unsigned short seqno, unsigned short router_hash)
 {
     struct xroute *xroute;
-    struct route *route, *best_route;
-
-    if(hop_count == 0) {
-        send_update(neigh->network, 1, prefix, plen);
-        return;
-    }
+    struct route *route;
 
     xroute = find_xroute(prefix, plen);
     if(xroute) {
-        if(router_hash == hash_id(myid) && seqno_compare(seqno, myseqno) > 0)
-            update_myseqno(1);
+        if(hop_count > 0 && router_hash == hash_id(myid)) {
+            if(seqno_compare(seqno, myseqno) > 0)
+                update_myseqno(1);
+        }
         send_update(neigh->network, 1, prefix, plen);
         return;
     }
 
-    /* We usually want to send the request to our selected successor,
-       but avoid it if we suspect it's dead.  So pick the best successor
-       (feasible of not) if our selected successor's metric is too large. */
     route = find_installed_route(prefix, plen);
-    best_route = find_best_route(prefix, plen, 0, neigh);
-    if(!route || route->neigh == neigh || route->metric == INFINITY)
-        route = best_route;
-    else if(route && best_route && route->metric >= best_route->metric + 256)
-        route = best_route;
 
-    if(!route || route->metric >= INFINITY || route->neigh == neigh)
-        return;
-    if(router_hash == hash_id(route->src->address) &&
-       seqno_compare(seqno, route->seqno) > 0) {
+    if(hop_count > 0 &&
+       (!route || route->metric >= INFINITY ||
+        (router_hash == hash_id(route->src->address) &&
+         seqno_compare(seqno, route->seqno) > 0))) {
+        /* No route, or the route we have is not fresh enough. */
         if(hop_count > 1) {
-            send_unicast_request(route->neigh, prefix, plen,
+            struct route *successor_route;
+
+            /* We usually want to send the request to our selected successor,
+               but not when we suspect that it's dead.  So pick the best
+               successor (feasible of not) if our selected successor's
+               metric is suspiciously large. */
+
+            successor_route = find_best_route(prefix, plen, 0, neigh);
+            if(!successor_route || successor_route->metric >= INFINITY)
+                successor_route = route;
+
+            if(route && successor_route &&
+               successor_route->metric + 256 >= route->metric)
+                successor_route = route;
+
+            if(!successor_route || successor_route->metric >= INFINITY)
+                return;
+
+            send_unicast_request(successor_route->neigh, prefix, plen,
                                  hop_count - 1, seqno, router_hash);
             record_request(prefix, plen, seqno, router_hash,
                            neigh->network, 0);
         }
-    } else {
-        send_update(neigh->network, 1, prefix, plen);
+        return;
     }
-    return;
+
+    /* We do send replies for recently retracted routes, to satisfy
+       nodes whose routes are about to expire. */
+    if(route)
+        send_update(neigh->network, 1, prefix, plen);
 }
 
 
