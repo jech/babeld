@@ -271,26 +271,27 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
          seqno_compare(seqno, route->seqno) > 0))) {
         /* No route, or the route we have is not fresh enough. */
         if(hop_count > 1) {
-            struct route *successor_route;
+            struct neighbour *successor = NULL;
 
-            /* We usually want to send the request to our selected successor,
-               but not when it's the requestor, and not when we suspect that
-               it's dead.  So pick the best successor (feasible or not)
-               if our selected successor's metric is suspiciously large. */
+            if(route && route->metric < INFINITY)
+                successor = route->neigh;
 
-            successor_route = find_best_route(prefix, plen, 0, neigh);
-            if(!successor_route || successor_route->metric >= INFINITY ||
-               successor_route->neigh == neigh)
-                successor_route = route;
-            else if(route && successor_route &&
-               successor_route->metric + 256 >= route->metric)
-                successor_route = route;
+            if(!successor || successor == neigh) {
+                struct route *other_route;
+                /* We're about to forward a request to the requestor.
+                   Try to find a different neighbour to forward the
+                   request to. */
 
-            if(!successor_route || successor_route->metric >= INFINITY ||
-               successor_route->neigh == neigh)
+                other_route = find_best_route(prefix, plen, 0, neigh);
+                if(other_route && other_route->metric < INFINITY)
+                    successor = other_route->neigh;
+            }
+
+            if(!successor || successor == neigh)
+                /* Give up */
                 return;
 
-            send_unicast_request(successor_route->neigh, prefix, plen,
+            send_unicast_request(successor, prefix, plen,
                                  hop_count - 1, seqno, router_hash);
             record_request(prefix, plen, seqno, router_hash,
                            neigh->network, 0);
