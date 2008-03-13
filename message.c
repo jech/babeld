@@ -466,7 +466,7 @@ send_hello_noupdate(struct network *net, unsigned interval)
     debugf("Sending hello (%d) to %s.\n", interval, net->ifname);
     net->hello_seqno = seqno_plus(net->hello_seqno, 1);
     delay_jitter(&net->hello_time, &net->hello_timeout,
-                 net->hello_interval * 1000);
+                 net->hello_interval);
     send_message(net, 0, 0, 0, net->hello_seqno,
                  interval > 0xFFFF ? 0 : interval,
                  myid);
