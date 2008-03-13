@@ -251,8 +251,13 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
     xroute = find_xroute(prefix, plen);
     if(xroute) {
         if(hop_count > 0 && router_hash == hash_id(myid)) {
-            if(seqno_compare(seqno, myseqno) > 0)
+            if(seqno_compare(seqno, myseqno) > 0) {
+                if(seqno_minus(seqno, myseqno) > 100) {
+                    /* Hopelessly out-of-date request */
+                    return;
+                }
                 update_myseqno(1);
+            }
         }
         send_update(neigh->network, 1, prefix, plen);
         return;
