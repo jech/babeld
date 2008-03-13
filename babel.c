@@ -528,14 +528,14 @@ main(int argc, char **argv)
         for(i = 0; i < numnets; i++) {
             if(!nets[i].up)
                 continue;
-            timeval_min(&tv, &nets[i].flush_time);
+            timeval_min(&tv, &nets[i].flush_timeout);
             timeval_min(&tv, &nets[i].hello_timeout);
             if(!network_idle(&nets[i])) {
                 timeval_min(&tv, &nets[i].self_update_timeout);
                 timeval_min(&tv, &nets[i].update_timeout);
             }
         }
-        timeval_min(&tv, &update_flush_time);
+        timeval_min(&tv, &update_flush_timeout);
         FD_ZERO(&readfds);
         if(timeval_compare(&tv, &now) > 0) {
             timeval_minus(&tv, &tv, &now);
@@ -653,16 +653,16 @@ main(int argc, char **argv)
         if(now.tv_sec >= request_resend_time)
             resend_requests();
 
-        if(update_flush_time.tv_sec != 0) {
-            if(now.tv_sec >= update_flush_time.tv_sec)
+        if(update_flush_timeout.tv_sec != 0) {
+            if(now.tv_sec >= update_flush_timeout.tv_sec)
                 flushupdates();
         }
 
         for(i = 0; i < numnets; i++) {
             if(!nets[i].up)
                 continue;
-            if(nets[i].flush_time.tv_sec != 0) {
-                if(timeval_compare(&now, &nets[i].flush_time) >= 0)
+            if(nets[i].flush_timeout.tv_sec != 0) {
+                if(timeval_compare(&now, &nets[i].flush_timeout) >= 0)
                     flushbuf(&nets[i]);
             }
         }

@@ -36,7 +36,7 @@ struct network {
     char ifname[IF_NAMESIZE];
     unsigned char *ipv4;
     int buffered;
-    struct timeval flush_time;
+    struct timeval flush_timeout;
     int bufsize;
     unsigned char *sendbuf;
     int bucket_time;

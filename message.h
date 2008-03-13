@@ -31,7 +31,7 @@ extern int silent_time;
 extern int broadcast_ihu;
 extern int split_horizon;
 
-extern struct timeval update_flush_time;
+extern struct timeval update_flush_timeout;
 extern const unsigned char packet_header[8];
 
 unsigned short hash_id(const unsigned char *id) ATTRIBUTE ((pure));

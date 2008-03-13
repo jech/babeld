@@ -39,7 +39,7 @@ THE SOFTWARE.
 #include "message.h"
 #include "filter.h"
 
-struct timeval update_flush_time = {0, 0};
+struct timeval update_flush_timeout = {0, 0};
 
 const unsigned char packet_header[8] = {42, 1};
 
@@ -361,19 +361,19 @@ flushbuf(struct network *net)
     }
     VALGRIND_MAKE_MEM_UNDEFINED(net->sendbuf, net->bufsize);
     net->buffered = 0;
-    net->flush_time.tv_sec = 0;
-    net->flush_time.tv_usec = 0;
+    net->flush_timeout.tv_sec = 0;
+    net->flush_timeout.tv_usec = 0;
 }
 
 static void
 schedule_flush(struct network *net)
 {
     int msecs = jitter(net);
-    if(net->flush_time.tv_sec != 0 &&
-       timeval_minus_msec(&net->flush_time, &now) < msecs)
+    if(net->flush_timeout.tv_sec != 0 &&
+       timeval_minus_msec(&net->flush_timeout, &now) < msecs)
         return;
-    net->flush_time.tv_usec = (now.tv_usec + msecs * 1000) % 1000000;
-    net->flush_time.tv_sec = now.tv_sec + (now.tv_usec / 1000 + msecs) / 1000;
+    net->flush_timeout.tv_usec = (now.tv_usec + msecs * 1000) % 1000000;
+    net->flush_timeout.tv_sec = now.tv_sec + (now.tv_usec / 1000 + msecs) / 1000;
 }
 
 void
@@ -381,11 +381,12 @@ schedule_flush_now(struct network *net)
 {
     /* Almost now */
     int msecs = 5 + random() % 5;
-    if(net->flush_time.tv_sec != 0 &&
-       timeval_minus_msec(&net->flush_time, &now) < msecs)
+    if(net->flush_timeout.tv_sec != 0 &&
+       timeval_minus_msec(&net->flush_timeout, &now) < msecs)
         return;
-    net->flush_time.tv_usec = (now.tv_usec + msecs * 1000) % 1000000;
-    net->flush_time.tv_sec = now.tv_sec + (now.tv_usec / 1000 + msecs) / 1000;
+    net->flush_timeout.tv_usec = (now.tv_usec + msecs * 1000) % 1000000;
+    net->flush_timeout.tv_sec =
+        now.tv_sec + (now.tv_usec / 1000 + msecs) / 1000;
 }
 
 static void
@@ -674,8 +675,8 @@ flushupdates(void)
         VALGRIND_MAKE_MEM_UNDEFINED(&buffered_updates,
                                     sizeof(buffered_updates));
     }
-    update_flush_time.tv_sec = 0;
-    update_flush_time.tv_usec = 0;
+    update_flush_timeout.tv_sec = 0;
+    update_flush_timeout.tv_usec = 0;
 }
 
 static void
@@ -683,11 +684,12 @@ schedule_update_flush(struct network *net, int urgent)
 {
     int msecs;
     msecs = update_jitter(net, urgent);
-    if(update_flush_time.tv_sec != 0 &&
-       timeval_minus_msec(&update_flush_time, &now) < msecs)
+    if(update_flush_timeout.tv_sec != 0 &&
+       timeval_minus_msec(&update_flush_timeout, &now) < msecs)
         return;
-    update_flush_time.tv_usec = (now.tv_usec + msecs * 1000) % 1000000;
-    update_flush_time.tv_sec = now.tv_sec + (now.tv_usec / 1000 + msecs) / 1000;
+    update_flush_timeout.tv_usec = (now.tv_usec + msecs * 1000) % 1000000;
+    update_flush_timeout.tv_sec =
+        now.tv_sec + (now.tv_usec / 1000 + msecs) / 1000;
 }
 
 static void
