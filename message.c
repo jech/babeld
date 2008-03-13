@@ -247,6 +247,7 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
 {
     struct xroute *xroute;
     struct route *route;
+    struct neighbour *successor = NULL;
 
     xroute = find_xroute(prefix, plen);
     if(xroute) {
@@ -264,45 +265,42 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
     }
 
     route = find_installed_route(prefix, plen);
-
-    if(hop_count > 0 &&
-       (!route || route->metric >= INFINITY ||
-        (router_hash == hash_id(route->src->address) &&
-         seqno_compare(seqno, route->seqno) > 0))) {
-        /* No route, or the route we have is not fresh enough. */
-        if(hop_count > 1) {
-            struct neighbour *successor = NULL;
-
-            if(route && route->metric < INFINITY)
-                successor = route->neigh;
-
-            if(!successor || successor == neigh) {
-                struct route *other_route;
-                /* We're about to forward a request to the requestor.
-                   Try to find a different neighbour to forward the
-                   request to. */
-
-                other_route = find_best_route(prefix, plen, 0, neigh);
-                if(other_route && other_route->metric < INFINITY)
-                    successor = other_route->neigh;
-            }
-
-            if(!successor || successor == neigh)
-                /* Give up */
-                return;
-
-            send_unicast_request(successor, prefix, plen,
-                                 hop_count - 1, seqno, router_hash);
-            record_request(prefix, plen, seqno, router_hash,
-                           neigh->network, 0);
-        }
+    if(route &&
+       (hop_count == 0 ||
+        (route->metric < INFINITY &&
+         (router_hash != hash_id(route->src->address) ||
+          seqno_compare(seqno, route->seqno) <= 0)))) {
+        /* We can satisfy this request straight away.  Note that in the
+           hop_count=0 case, we do send a recent retraction, in order to
+           reply to nodes whose routes are about to expire. */
+        send_update(neigh->network, 1, prefix, plen);
         return;
     }
 
-    /* We do send replies for recently retracted routes, to satisfy
-       nodes whose routes are about to expire. */
-    if(route)
-        send_update(neigh->network, 1, prefix, plen);
+    if(hop_count <= 1)
+        return;
+
+    /* Let's forward this request. */
+    if(route && route->metric < INFINITY)
+        successor = route->neigh;
+
+    if(!successor || successor == neigh) {
+        struct route *other_route;
+        /* We're about to forward a request to the requestor.  Try to
+           find a different neighbour to forward the request to. */
+
+        other_route = find_best_route(prefix, plen, 0, neigh);
+        if(other_route && other_route->metric < INFINITY)
+            successor = other_route->neigh;
+    }
+
+    if(!successor || successor == neigh)
+        /* Give up */
+        return;
+
+    send_unicast_request(successor, prefix, plen, hop_count - 1,
+                         seqno, router_hash);
+    record_request(prefix, plen, seqno, router_hash, neigh->network, 0);
 }
 
 
