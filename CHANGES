@@ -3,7 +3,7 @@ babel 0.11 (unreleased)
   * Implemented sub-second hello and update intervals.
   * Fixed a bug that could prevent the best route from being selected
     for extended periods of time.
-  * Implemented protection about out-of-date requests being sent and
+  * Implemented protection against out-of-date requests being sent and
     forwarded when a node loses its sequence number.
 
 11 March 2008: babel 0.10
