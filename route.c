@@ -585,8 +585,9 @@ trigger_route_change(struct route *route,
         if(route->installed)
             send_triggered_update(route, oldsrc, oldmetric);
     } else {
-        if(route->metric < oldmetric)
-            consider_route(route);
+        /* Reconsider routes even when their metric didn't decrease,
+           they may not have been feasible before. */
+        consider_route(route);
     }
 }
 
