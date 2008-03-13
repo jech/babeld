@@ -48,7 +48,7 @@ int silent_time = 30;
 int split_horizon = 1;
 
 unsigned short myseqno = 0;
-int seqno_time = 0;
+struct timeval seqno_time = {0, 0};
 int seqno_interval = -1;
 
 struct buffered_update {
@@ -788,9 +788,9 @@ send_update(struct network *net, int urgent,
 void
 update_myseqno(int force)
 {
-    if(force || seqno_time + (seqno_interval + 500) / 1000 < now.tv_sec) {
+    if(force || timeval_minus_msec(&now, &seqno_time) >= seqno_interval) {
         myseqno = seqno_plus(myseqno, 1);
-        seqno_time = now.tv_sec;
+        seqno_time = now;
     }
 }
 
@@ -838,7 +838,7 @@ send_self_retract(struct network *net)
     debugf("Retracting self on %s.\n", net->ifname);
 
     myseqno = seqno_plus(myseqno, 1);
-    seqno_time = now.tv_sec;
+    seqno_time = now;
     delay_jitter(&net->self_update_time, &net->self_update_timeout,
                  net->self_update_interval);
     for(i = 0; i < numxroutes; i++) {

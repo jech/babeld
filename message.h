@@ -23,7 +23,7 @@ THE SOFTWARE.
 #define MAX_BUFFERED_UPDATES 200
 
 extern unsigned short myseqno;
-extern int seqno_time;
+extern struct timeval seqno_time;
 extern int seqno_interval;
 
 extern int parasitic;
