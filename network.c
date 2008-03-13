@@ -130,7 +130,7 @@ void
 delay_jitter(struct timeval *time, struct timeval *timeout, int msecs)
 {
     int delay;
-    delay = msecs * 2 / 3 + random() % MAX(msecs / 3, 10);
+    delay = msecs * 2 / 3 + random() % (msecs * 2 / 3);
 
     *time = now;
     timeval_plus_msec(timeout, &now, delay);
