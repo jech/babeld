@@ -243,6 +243,14 @@ network_up(struct network *net, int up)
             perror("setsockopt(IPV6_JOIN_GROUP)");
             /* But don't bail out for now. */
         }
+        delay_jitter(&net->hello_time, &net->hello_timeout,
+                     net->hello_interval * 1000);
+        delay_jitter(&net->ihu_time, &net->ihu_timeout,
+                     net->ihu_interval * 1000);
+        delay_jitter(&net->self_update_time, &net->self_update_timeout,
+                     net->self_update_interval * 1000);
+        delay_jitter(&net->update_time, &net->update_timeout,
+                     update_interval * 1000);
         send_hello(net);
         send_request(net, NULL, 0, 0, 0, 0);
     } else {
