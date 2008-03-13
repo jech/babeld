@@ -719,7 +719,7 @@ than Seqno, it replies with an update for that route.
 
 Otherwise, if the receiver has selected a route to the given destination,
 with matching router-id, but a too small seqno, if the hop count is at
-least 2, it forwards the request as a unicast packet either to the selected
+least 2, it forwards the request as a unicast packet to the selected
 successor if it is not the requestor, and otherwise to some other successor
 (feasible or not) after decreasing the hop count by one.  If the hop count
 is 1, it remains silent.  A speaker SHOULD keep track of forwarded
