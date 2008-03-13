@@ -133,6 +133,48 @@ timeval_min_sec(struct timeval *d, int secs)
     }
 }
 
+int
+parse_msec(const char *string)
+{
+    unsigned int in, fl;
+    int i, j;
+
+    in = fl = 0;
+    i = 0;
+    while(string[i] == ' ' || string[i] == '\t')
+        i++;
+    while(string[i] >= '0' && string[i] <= '9') {
+        in = in * 10 + string[i] - '0';
+        i++;
+    }
+    if(string[i] == '.') {
+        i++;
+        j = 0;
+        while(string[i] >= '0' && string[i] <= '9') {
+            fl = fl * 10 + string[i] - '0';
+            i++;
+            j++;
+        }
+
+        while(j > 3) {
+            fl /= 10;
+            j--;
+        }
+        while(j < 3) {
+            fl *= 10;
+            j++;
+        }
+    }
+
+    while(string[i] == ' ' || string[i] == '\t')
+        i++;
+
+    if(string[i] == '\0')
+        return in * 1000 + fl;
+
+    return -1;
+}
+
 void
 do_debugf(int level, const char *format, ...)
 {
