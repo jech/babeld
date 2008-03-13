@@ -476,7 +476,7 @@ send_hello(struct network *net)
 {
     int changed;
     changed = update_hello_interval(net);
-    send_hello_noupdate(net, net->hello_interval * 100);
+    send_hello_noupdate(net, (net->hello_interval + 9) / 10);
     if(changed)
         send_ihu(NULL, net);
 }
@@ -752,7 +752,7 @@ send_update(struct network *net, int urgent,
         if(prefix == NULL) {
             send_self_update(net, 0);
             delay_jitter(&net->update_time, &net->update_timeout,
-                         update_interval * 1000);
+                         update_interval);
         } else if(find_xroute(prefix, plen)) {
             buffer_update(net, prefix, plen);
         }
@@ -780,7 +780,7 @@ send_update(struct network *net, int urgent,
             if(routes[i].installed)
                 buffer_update(net, routes[i].src->prefix, routes[i].src->plen);
         delay_jitter(&net->update_time, &net->update_timeout,
-                     update_interval * 1000);
+                     update_interval);
     }
     schedule_update_flush(net, urgent);
 }
@@ -788,7 +788,7 @@ send_update(struct network *net, int urgent,
 void
 update_myseqno(int force)
 {
-    if(force || seqno_time + seqno_interval < now.tv_sec) {
+    if(force || seqno_time + (seqno_interval + 500) / 1000 < now.tv_sec) {
         myseqno = seqno_plus(myseqno, 1);
         seqno_time = now.tv_sec;
     }
@@ -813,7 +813,7 @@ send_self_update(struct network *net, int force_seqno)
     debugf("Sending self update to %s.\n", net->ifname);
 
     delay_jitter(&net->self_update_time, &net->self_update_timeout,
-                 net->self_update_interval * 1000);
+                 net->self_update_interval);
     for(i = 0; i < numxroutes; i++) {
         send_update(net, 0, xroutes[i].prefix, xroutes[i].plen);
     }
@@ -881,7 +881,7 @@ send_ihu(struct neighbour *neigh, struct network *net)
             }
         }
         delay_jitter(&net->ihu_time, &net->ihu_timeout,
-                     net->ihu_interval * 1000);
+                     net->ihu_interval);
     } else {
         int rxcost;
 
@@ -892,8 +892,8 @@ send_ihu(struct neighbour *neigh, struct network *net)
 
         rxcost = neighbour_rxcost(neigh);
 
-        if(net->ihu_interval * 100 <= 0xFFFF)
-            interval = net->ihu_interval * 100;
+        if((net->ihu_interval + 9) / 10 <= 0xFFFF)
+            interval = (net->ihu_interval + 9) / 10;
         else
             interval = 0;
 

@@ -161,16 +161,16 @@ main(int argc, char **argv)
             }
         } else if(strcmp(*arg, "-h") == 0) {
             SHIFTE();
-            wireless_hello_interval = atoi(*arg);
+            wireless_hello_interval = atoi(*arg) * 1000;
         } else if(strcmp(*arg, "-H") == 0) {
             SHIFTE();
-            wired_hello_interval = atoi(*arg);
+            wired_hello_interval = atoi(*arg) * 1000;
         } else if(strcmp(*arg, "-i") == 0) {
             SHIFTE();
-            idle_hello_interval = atoi(*arg);
+            idle_hello_interval = atoi(*arg) * 1000;
         } else if(strcmp(*arg, "-u") == 0) {
             SHIFTE();
-            update_interval = atoi(*arg);
+            update_interval = atoi(*arg) * 1000;
         } else if(strcmp(*arg, "-k") == 0) {
             SHIFTE();
             kernel_metric = atoi(*arg);
@@ -248,18 +248,18 @@ main(int argc, char **argv)
     }
 
     if(wireless_hello_interval <= 0)
-        wireless_hello_interval = 6;
+        wireless_hello_interval = 6000;
 
     if(wired_hello_interval <= 0)
-        wired_hello_interval = 30;
+        wired_hello_interval = 30000;
 
     if(update_interval <= 0)
         update_interval =
             MIN(MAX(wireless_hello_interval * 5, wired_hello_interval),
-                70);
+                70000);
 
     if(seqno_interval <= 0)
-        seqno_interval = MAX(wireless_hello_interval - 1, 2);
+        seqno_interval = MAX(wireless_hello_interval - 100, 2000);
 
     if(do_daemonise) {
         if(logfile == NULL)

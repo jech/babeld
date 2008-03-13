@@ -60,7 +60,6 @@ add_network(char *ifname)
     nets[numnets].buffered = 0;
     nets[numnets].bucket_time = now.tv_sec;
     nets[numnets].bucket = 0;
-    nets[numnets].hello_interval = 10000;
     nets[numnets].hello_seqno = (random() & 0xFFFF);
     numnets++;
     return &nets[numnets - 1];
@@ -101,7 +100,7 @@ update_hello_interval(struct network *net)
     }
 
     net->self_update_interval =
-        MAX(15 + net->hello_interval / 2, net->hello_interval);
+        MAX(15000 + net->hello_interval / 2, net->hello_interval);
 
     return rc;
 }
@@ -111,7 +110,7 @@ update_hello_interval(struct network *net)
 unsigned int
 jitter(struct network *net)
 {
-    unsigned interval = net->hello_interval * 1000;
+    unsigned interval = net->hello_interval;
     interval = MIN(interval, 2000);
     return (interval / 2 + random() % interval) / 4;
 }
@@ -119,7 +118,7 @@ jitter(struct network *net)
 unsigned int
 update_jitter(struct network *net, int urgent)
 {
-    unsigned interval = net->hello_interval * 1000;
+    unsigned interval = net->hello_interval;
     if(urgent)
         interval = MIN(interval, 100);
     else
@@ -244,13 +243,13 @@ network_up(struct network *net, int up)
             /* But don't bail out for now. */
         }
         delay_jitter(&net->hello_time, &net->hello_timeout,
-                     net->hello_interval * 1000);
+                     net->hello_interval);
         delay_jitter(&net->ihu_time, &net->ihu_timeout,
-                     net->ihu_interval * 1000);
+                     net->ihu_interval);
         delay_jitter(&net->self_update_time, &net->self_update_timeout,
-                     net->self_update_interval * 1000);
+                     net->self_update_interval);
         delay_jitter(&net->update_time, &net->update_timeout,
-                     update_interval * 1000);
+                     update_interval);
         send_hello(net);
         send_request(net, NULL, 0, 0, 0, 0);
     } else {
