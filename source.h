@@ -20,6 +20,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#define SOURCE_GC_TIME 200
+
 struct source {
     unsigned char address[16];
     unsigned char prefix[16];

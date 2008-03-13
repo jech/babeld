@@ -228,7 +228,7 @@ update_feasible(const unsigned char *a,
     if(src == NULL)
         return 1;
 
-    if(src->time < now.tv_sec - 200)
+    if(src->time < now.tv_sec - SOURCE_GC_TIME)
         /* Never mind what is probably stale data */
         return 1;
 
