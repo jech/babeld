@@ -33,7 +33,7 @@ THE SOFTWARE.
 #include "network.h"
 #include "filter.h"
 
-int request_resend_time = 0;
+struct timeval request_resend_time = {0, 0};
 struct request *recorded_requests = NULL;
 
 static int
@@ -83,8 +83,8 @@ record_request(const unsigned char *prefix, unsigned char plen,
         else if(resend)
             request->resend = resend;
         request->time = now.tv_sec;
-        request_resend_time = MIN(request_resend_time,
-                                  request->time + request->resend);
+        timeval_min_sec(&request_resend_time,
+                        request->time + request->resend);
         if(request->router_hash == router_hash &&
            seqno_compare(request->seqno, seqno) > 0) {
             return 0;
@@ -107,7 +107,7 @@ record_request(const unsigned char *prefix, unsigned char plen,
         request->time = now.tv_sec;
         request->resend = resend;
         if(resend)
-            request_resend_time = MIN(request_resend_time, now.tv_sec + resend);
+            timeval_min_sec(&request_resend_time, now.tv_sec + resend);
         request->next = recorded_requests;
         recorded_requests = request;
         return 1;
@@ -187,25 +187,20 @@ expire_requests()
         recompute_request_resend_time();
 }
 
-int
+void
 recompute_request_resend_time()
 {
     struct request *request;
-    int resend = 0;
+    struct timeval resend = {0, 0};
 
     request = recorded_requests;
     while(request) {
-        if(request->resend) {
-            if(resend)
-                resend = MIN(resend, request->time + request->resend);
-            else
-                resend = request->time + request->resend;
-        }
+        if(request->resend)
+            timeval_min_sec(&resend, request->time + request->resend);
         request = request->next;
     }
 
     request_resend_time = resend;
-    return resend;
 }
 
 void

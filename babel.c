@@ -531,8 +531,7 @@ main(int argc, char **argv)
 
         tv = check_neighbours_time;
         timeval_min_sec(&tv, expiry_time);
-        if(request_resend_time)
-            timeval_min_sec(&tv, request_resend_time);
+        timeval_min(&tv, &request_resend_time);
         for(i = 0; i < numnets; i++) {
             if(!nets[i].up)
                 continue;
@@ -658,7 +657,7 @@ main(int argc, char **argv)
             }
         }
 
-        if(now.tv_sec >= request_resend_time)
+        if(timeval_compare(&now, &request_resend_time) >= 0)
             resend_requests();
 
         if(update_flush_timeout.tv_sec != 0) {
