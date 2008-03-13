@@ -771,8 +771,9 @@ send_update(struct network *net, int urgent,
         buffer_update(net, prefix, plen);
     } else {
         send_self_update(net, 0);
-        /* Avoid sending full route dumps more than once per second */
-        if(now.tv_sec - net->update_time.tv_sec < 1)
+        /* Don't send full route dumps more than ten times per second */
+        if(net->update_time.tv_sec > 0 &&
+           timeval_minus_msec(&now, &net->update_time) < 100)
             return;
         debugf("Sending update to %s for any.\n", net->ifname);
         for(i = 0; i < numroutes; i++)
