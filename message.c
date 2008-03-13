@@ -464,7 +464,8 @@ send_hello_noupdate(struct network *net, unsigned interval)
 {
     debugf("Sending hello (%d) to %s.\n", interval, net->ifname);
     net->hello_seqno = seqno_plus(net->hello_seqno, 1);
-    net->hello_time = now.tv_sec;
+    delay_jitter(&net->hello_time, &net->hello_timeout,
+                 net->hello_interval * 1000);
     send_message(net, 0, 0, 0, net->hello_seqno,
                  interval > 0xFFFF ? 0 : interval,
                  myid);
@@ -750,7 +751,8 @@ send_update(struct network *net, int urgent,
     if(parasitic || (silent_time && now.tv_sec < reboot_time + silent_time)) {
         if(prefix == NULL) {
             send_self_update(net, 0);
-            net->update_time = now.tv_sec;
+            delay_jitter(&net->update_time, &net->update_timeout,
+                         update_interval * 1000);
         } else if(find_xroute(prefix, plen)) {
             buffer_update(net, prefix, plen);
         }
@@ -769,13 +771,15 @@ send_update(struct network *net, int urgent,
         buffer_update(net, prefix, plen);
     } else {
         send_self_update(net, 0);
-        if(now.tv_sec - net->update_time < 1)
+        /* Avoid sending full route dumps more than once per second */
+        if(now.tv_sec - net->update_time.tv_sec < 1)
             return;
         debugf("Sending update to %s for any.\n", net->ifname);
         for(i = 0; i < numroutes; i++)
             if(routes[i].installed)
                 buffer_update(net, routes[i].src->prefix, routes[i].src->plen);
-        net->update_time = now.tv_sec;
+        delay_jitter(&net->update_time, &net->update_timeout,
+                     update_interval * 1000);
     }
     schedule_update_flush(net, urgent);
 }
@@ -807,8 +811,8 @@ send_self_update(struct network *net, int force_seqno)
 
     debugf("Sending self update to %s.\n", net->ifname);
 
-    net->self_update_time = now.tv_sec;
-
+    delay_jitter(&net->self_update_time, &net->self_update_timeout,
+                 net->self_update_interval * 1000);
     for(i = 0; i < numxroutes; i++) {
         send_update(net, 0, xroutes[i].prefix, xroutes[i].plen);
     }
@@ -834,7 +838,8 @@ send_self_retract(struct network *net)
 
     myseqno = seqno_plus(myseqno, 1);
     seqno_time = now.tv_sec;
-    net->self_update_time = now.tv_sec;
+    delay_jitter(&net->self_update_time, &net->self_update_timeout,
+                 net->self_update_interval);
     for(i = 0; i < numxroutes; i++) {
         really_send_update(net, myid, xroutes[i].prefix, xroutes[i].plen,
                            myseqno, 0xFFFF);
@@ -874,7 +879,8 @@ send_ihu(struct neighbour *neigh, struct network *net)
                     send_ihu(&neighs[i], net);
             }
         }
-        net->ihu_time = now.tv_sec;
+        delay_jitter(&net->ihu_time, &net->ihu_timeout,
+                     net->ihu_interval * 1000);
     } else {
         int rxcost;
 

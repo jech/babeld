@@ -128,7 +128,7 @@ update_jitter(struct network *net, int urgent)
 }
 
 void
-timeout_jitter(struct timeval *time, struct timeval *timeout, int msecs)
+delay_jitter(struct timeval *time, struct timeval *timeout, int msecs)
 {
     int delay;
     delay = msecs * 3 / 2 + random() % MAX(msecs / 3, 10);

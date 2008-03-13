@@ -79,5 +79,6 @@ extern unsigned char protocol_group[16];
 extern int protocol_socket;
 extern int kernel_socket;
 extern int max_request_hopcount;
+extern int update_interval;
 
 void resize_receive_buffer(int size);

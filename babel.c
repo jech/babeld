@@ -529,12 +529,10 @@ main(int argc, char **argv)
             if(!nets[i].up)
                 continue;
             timeval_min(&tv, &nets[i].flush_time);
-            timeval_min_sec(&tv,
-                            nets[i].hello_time + nets[i].hello_interval);
+            timeval_min(&tv, &nets[i].hello_timeout);
             if(!network_idle(&nets[i])) {
-                timeval_min_sec(&tv, nets[i].self_update_time +
-                                nets[i].self_update_interval);
-                timeval_min_sec(&tv, nets[i].update_time + update_interval);
+                timeval_min(&tv, &nets[i].self_update_timeout);
+                timeval_min(&tv, &nets[i].update_timeout);
             }
         }
         timeval_min(&tv, &update_flush_time);
@@ -640,17 +638,15 @@ main(int argc, char **argv)
         for(i = 0; i < numnets; i++) {
             if(!nets[i].up)
                 continue;
-            if(now.tv_sec >= nets[i].hello_time + nets[i].hello_interval)
+            if(timeval_compare(&now, &nets[i].hello_timeout) >= 0)
                 send_hello(&nets[i]);
-            if(now.tv_sec >= nets[i].ihu_time + nets[i].ihu_interval)
+            if(timeval_compare(&now, &nets[i].ihu_timeout) >= 0)
                 send_ihu(NULL, &nets[i]);
             if(!network_idle(&nets[i])) {
-                if(now.tv_sec >= nets[i].update_time + update_interval)
+                if(timeval_compare(&now, &nets[i].update_timeout) >= 0)
                     send_update(&nets[i], 0, NULL, 0);
-                if(now.tv_sec >=
-                   nets[i].self_update_time + nets[i].self_update_interval) {
+                if(timeval_compare(&now, &nets[i].self_update_timeout) >= 0)
                     send_self_update(&nets[i], 0);
-                }
             }
         }
 
