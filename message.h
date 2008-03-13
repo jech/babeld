@@ -37,6 +37,9 @@ extern const unsigned char packet_header[8];
 unsigned short hash_id(const unsigned char *id) ATTRIBUTE ((pure));
 void parse_packet(const unsigned char *from, struct network *net,
                   const unsigned char *packet, int len);
+void handle_request(struct neighbour *neigh, const unsigned char *prefix,
+                    unsigned char plen, unsigned char hop_count,
+                    unsigned short seqno, unsigned short router_hash);
 void flushbuf(struct network *net);
 void send_hello_noupdate(struct network *net, unsigned interval);
 void send_hello(struct network *net);

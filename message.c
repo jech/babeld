@@ -59,11 +59,6 @@ struct buffered_update buffered_updates[MAX_BUFFERED_UPDATES];
 struct network *update_net = NULL;
 int updates = 0;
 
-static void
-handle_request(struct neighbour *neigh, const unsigned char *prefix,
-               unsigned char plen, unsigned char hop_count,
-               unsigned short seqno, unsigned short router_hash);
-
 unsigned short
 hash_id(const unsigned char *id)
 {
@@ -245,7 +240,7 @@ parse_packet(const unsigned char *from, struct network *net,
     return;
 }
 
-static void
+void
 handle_request(struct neighbour *neigh, const unsigned char *prefix,
                unsigned char plen, unsigned char hop_count,
                unsigned short seqno, unsigned short router_hash)
