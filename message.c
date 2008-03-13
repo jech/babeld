@@ -514,7 +514,10 @@ send_request_resend(const unsigned char *prefix, unsigned char plen,
 {
     send_request(NULL, prefix, plen, 127, seqno, router_hash);
     record_request(prefix, plen, seqno, router_hash, NULL,
-                   MIN(wireless_hello_interval / 2, 2000));
+                   MAX(10,
+                       MIN(wireless_hello_interval / 2,
+                           MIN(wired_hello_interval / 2,
+                               2000))));
 }
 
 static void
