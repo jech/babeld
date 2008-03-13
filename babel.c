@@ -654,7 +654,7 @@ main(int argc, char **argv)
             resend_requests();
 
         if(update_flush_timeout.tv_sec != 0) {
-            if(now.tv_sec >= update_flush_timeout.tv_sec)
+            if(timeval_compare(&now, &update_flush_timeout) >= 0)
                 flushupdates();
         }
 
