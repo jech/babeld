@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#define REQUEST_TIMEOUT 128
+#define REQUEST_TIMEOUT 125000
 
 struct request {
     unsigned char prefix[16];
@@ -28,7 +28,7 @@ struct request {
     unsigned short seqno;
     unsigned short router_hash;
     struct network *network;
-    int time;
+    struct timeval time;
     int resend;
     struct request *next;
 };

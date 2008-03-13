@@ -82,9 +82,12 @@ record_request(const unsigned char *prefix, unsigned char plen,
             request->resend = MIN(request->resend, resend);
         else if(resend)
             request->resend = resend;
-        request->time = now.tv_sec;
-        timeval_min_sec(&request_resend_time,
-                        request->time + request->resend);
+        request->time = now;
+        if(request->resend) {
+            struct timeval timeout;
+            timeval_plus_msec(&timeout, &request->time, request->resend);
+            timeval_min(&request_resend_time, &timeout);
+        }
         if(request->router_hash == router_hash &&
            seqno_compare(request->seqno, seqno) > 0) {
             return 0;
@@ -104,10 +107,13 @@ record_request(const unsigned char *prefix, unsigned char plen,
         request->seqno = seqno;
         request->router_hash = router_hash;
         request->network = network;
-        request->time = now.tv_sec;
+        request->time = now;
         request->resend = resend;
-        if(resend)
-            timeval_min_sec(&request_resend_time, now.tv_sec + resend);
+        if(request->resend) {
+            struct timeval timeout;
+            timeval_plus_msec(&timeout, &request->time, request->resend);
+            timeval_min(&request_resend_time, &timeout);
+        }
         request->next = recorded_requests;
         recorded_requests = request;
         return 1;
@@ -168,7 +174,7 @@ expire_requests()
     previous = NULL;
     request = recorded_requests;
     while(request) {
-        if(request->time < now.tv_sec - REQUEST_TIMEOUT) {
+        if(timeval_minus_msec(&now, &request->time) >= REQUEST_TIMEOUT) {
             if(previous == NULL) {
                 recorded_requests = request->next;
                 free(request);
@@ -195,8 +201,11 @@ recompute_request_resend_time()
 
     request = recorded_requests;
     while(request) {
-        if(request->resend)
-            timeval_min_sec(&resend, request->time + request->resend);
+        if(request->resend) {
+            struct timeval timeout;
+            timeval_plus_msec(&timeout, &request->time, request->resend);
+            timeval_min(&request_resend_time, &timeout);
+        }
         request = request->next;
     }
 
@@ -210,10 +219,14 @@ resend_requests()
 
     request = recorded_requests;
     while(request) {
-        if(request->resend && now.tv_sec >= request->time + request->resend) {
-            send_request(NULL, request->prefix, request->plen, 127,
-                         request->seqno, request->router_hash);
-            request->resend = 2 * request->resend;
+        if(request->resend) {
+            struct timeval timeout;
+            timeval_plus_msec(&timeout, &request->time, request->resend);
+            if(timeval_compare(&now, &timeout) >= 0) {
+                send_request(NULL, request->prefix, request->plen, 127,
+                             request->seqno, request->router_hash);
+                request->resend *= 2;
+            }
         }
         request = request->next;
     }
