@@ -127,6 +127,16 @@ update_jitter(struct network *net, int urgent)
     return (interval / 2 + random() % interval);
 }
 
+void
+timeout_jitter(struct timeval *time, struct timeval *timeout, int msecs)
+{
+    int delay;
+    delay = msecs * 3 / 2 + random() % MAX(msecs / 3, 10);
+
+    *time = now;
+    timeval_plus_msec(timeout, &now, delay);
+}
+
 static int
 check_network_ipv4(struct network *net)
 {
