@@ -270,8 +270,10 @@ network_up(struct network *net, int up)
         }
     }
 
-    check_network_ipv4(net);
     update_network_metric(net);
+    rc = check_network_ipv4(net);
+    if(up && rc > 0)
+        send_update(net, 0, NULL, 0);
 
     return 1;
 }
@@ -300,7 +302,11 @@ check_networks(void)
             network_up(&nets[i], rc > 0);
         }
 
-        check_network_ipv4(&nets[i]);
+        rc = check_network_ipv4(&nets[i]);
+        if(rc > 0) {
+            send_request(&nets[i], NULL, 0, 0, 0, 0);
+            send_update(&nets[i], 0, NULL, 0);
+         }
     }
 
     if(ifindex_changed)
