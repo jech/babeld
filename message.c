@@ -280,6 +280,12 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
     if(hop_count <= 1)
         return;
 
+    if(router_hash == hash_id(route->src->address) &&
+       seqno_minus(seqno, route->seqno) > 100) {
+        /* Hopelessly out-of-date */
+        return;
+    }
+
     /* Let's forward this request. */
     if(route && route->metric < INFINITY)
         successor = route->neigh;
