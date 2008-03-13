@@ -469,7 +469,7 @@ send_unfeasible_request(unsigned short seqno, unsigned short metric,
     if(src == NULL)
         return;
 
-    if(seqno_minus(src->seqno, seqno) < 5) {
+    if(seqno_minus(src->seqno, seqno) < 100) {
         /* Probably a source that lost its seqno.  Let it time-out. */
         return;
     }
