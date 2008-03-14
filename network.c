@@ -229,7 +229,7 @@ network_up(struct network *net, int up)
         }
 
         net->wired = wired;
-        net->cost = wired ? 128 : 256;
+        net->cost = wired ? 112 : 256;
         update_hello_interval(net);
 
         memset(&mreq, 0, sizeof(mreq));
