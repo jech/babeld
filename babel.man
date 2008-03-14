@@ -100,7 +100,7 @@ is omitted, it defaults to 128 (a host route).
 should either be a 16-bit unsigned integer, or the string
 .B infinity
 which specifies a blackhole route.  Babel itself uses a cost of 256
-for a lossless wireless link, and a cost of 128 for a functioning
+for a lossless wireless link, and a cost of 96 for a functioning
 wired link.  This option should not be used, as it may cause
 persistent routing loops.  Redistributing a static route is a safer
 alternative.
