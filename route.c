@@ -516,7 +516,7 @@ consider_route(struct route *route)
     if(installed->src != route->src)
         return;
 
-    if(installed->metric >= route->metric + 96)
+    if(installed->metric >= route->metric + 64)
         goto install;
 
     return;
