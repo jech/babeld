@@ -240,7 +240,10 @@ network_up(struct network *net, int up)
                         (char*)&mreq, sizeof(mreq));
         if(rc < 0) {
             perror("setsockopt(IPV6_JOIN_GROUP)");
-            /* But don't bail out for now. */
+            /* This is probably due to a missing link-local address,
+               so down this network, and wait until the main loop
+               tries to up it again. */
+            return network_up(net, 0);
         }
         delay_jitter(&net->hello_time, &net->hello_timeout,
                      net->hello_interval);
@@ -263,9 +266,8 @@ network_up(struct network *net, int up)
             mreq.ipv6mr_interface = net->ifindex;
             rc = setsockopt(protocol_socket, IPPROTO_IPV6, IPV6_LEAVE_GROUP,
                             (char*)&mreq, sizeof(mreq));
-            if(rc < 0) {
+            if(rc < 0)
                 perror("setsockopt(IPV6_LEAVE_GROUP)");
-            }
             kernel_setup_interface(0, net->ifname, net->ifindex);
         }
     }
