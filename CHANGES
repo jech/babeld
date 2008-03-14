@@ -5,6 +5,7 @@ babel 0.11 (unreleased)
     for extended periods of time.
   * Implemented protection against out-of-date requests being sent and
     forwarded when a node loses its sequence number.
+  * Reduced the cost of wired networks down to 96 from 128.
 
 11 March 2008: babel 0.10
 
