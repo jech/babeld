@@ -267,9 +267,9 @@ main(int argc, char **argv)
                 70000);
 
     if(seqno_interval <= 0)
-        seqno_interval = MAX(1000,
-                             MIN(wireless_hello_interval - 100,
-                                 wired_hello_interval / 4 - 100));
+        /* This should be slightly less than the self_update_interval */
+        seqno_interval = MAX(1000, update_interval * 4 / 10);
+
 
     if(do_daemonise) {
         if(logfile == NULL)
