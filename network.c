@@ -100,7 +100,7 @@ update_hello_interval(struct network *net)
     }
 
     net->self_update_interval =
-        MAX(15000 + net->hello_interval / 2, net->hello_interval);
+        MAX(update_interval / 2, net->hello_interval);
 
     return rc;
 }
