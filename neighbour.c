@@ -175,9 +175,7 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
         neigh->hello_seqno = hello;
         neigh->reach >>= 1;
         neigh->reach |= 0x8000;
-        if((neigh->reach & 0xFC00) == 0xFC00)
-            return rc;
-        else
+        if((neigh->reach & 0xFC00) != 0xFC00)
             rc = 1;
     }
 
