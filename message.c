@@ -737,7 +737,7 @@ void
 send_update(struct network *net, int urgent,
             const unsigned char *prefix, unsigned char plen)
 {
-    int i;
+    int i, selfonly;
     struct request *request;
 
     if(prefix) {
@@ -758,8 +758,6 @@ send_update(struct network *net, int urgent,
     if(net == NULL) {
         for(i = 0; i < numnets; i++) {
             send_update(&nets[i], urgent, prefix, plen);
-            if(!nets[i].up)
-                continue;
         }
         return;
     }
@@ -767,37 +765,35 @@ send_update(struct network *net, int urgent,
     if(!net->up)
         return;
 
-    if(parasitic || (silent_time && now.tv_sec < reboot_time + silent_time)) {
-        if(prefix == NULL) {
-            send_self_update(net, 0);
-            delay_jitter(&net->update_time, &net->update_timeout,
-                         update_interval);
-        } else if(find_xroute(prefix, plen)) {
-            buffer_update(net, prefix, plen);
-        }
-        return;
-    }
+    selfonly =
+        parasitic || (silent_time && now.tv_sec < reboot_time + silent_time);
 
-    silent_time = 0;
+    if(!selfonly)
+        silent_time = 0;
 
     if(prefix) {
         if(updates > net->bufsize / 24 - 2) {
             /* Update won't fit in current packet */
             flushupdates();
         }
-        debugf("Sending update to %s for %s.\n",
-               net->ifname, format_prefix(prefix, plen));
-        buffer_update(net, prefix, plen);
+        if(!selfonly || find_xroute(prefix, plen)) {
+            debugf("Sending update to %s for %s.\n",
+                   net->ifname, format_prefix(prefix, plen));
+            buffer_update(net, prefix, plen);
+        }
     } else {
         send_self_update(net, 0);
         /* Don't send full route dumps more than ten times per second */
         if(net->update_time.tv_sec > 0 &&
            timeval_minus_msec(&now, &net->update_time) < 100)
             return;
-        debugf("Sending update to %s for any.\n", net->ifname);
-        for(i = 0; i < numroutes; i++)
-            if(routes[i].installed)
-                buffer_update(net, routes[i].src->prefix, routes[i].src->plen);
+        if(!selfonly) {
+            debugf("Sending update to %s for any.\n", net->ifname);
+            for(i = 0; i < numroutes; i++)
+                if(routes[i].installed)
+                    buffer_update(net,
+                                  routes[i].src->prefix, routes[i].src->plen);
+        }
         delay_jitter(&net->update_time, &net->update_timeout,
                      update_interval);
     }
