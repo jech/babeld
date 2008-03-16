@@ -426,44 +426,33 @@ start_message(struct network *net, int bytes)
 }
 
 static void
-accumulate_byte(struct network *net, unsigned char byte)
-{
-    net->sendbuf[net->buffered] = byte;
-    net->buffered++;
-}
-
-static void
-accumulate_short(struct network *net, unsigned short s)
-{
-    *(uint16_t *)(net->sendbuf + net->buffered) = htons(s);
-    net->buffered += 2;
-}
-
-static void
-accumulate_data(struct network *net,
-                const unsigned char *data, unsigned int len)
-{
-    memcpy(net->sendbuf + net->buffered, data, len);
-    net->buffered += len;
-}
-
-static void
 send_message(struct network *net,
              unsigned char type,  unsigned char plen, unsigned char hop_count,
              unsigned short seqno, unsigned short metric,
              const unsigned char *address)
 {
+    unsigned char *buf;
+    int n;
+
     if(!net->up)
         return;
 
     start_message(net, 24);
-    accumulate_byte(net, type);
-    accumulate_byte(net, plen);
-    accumulate_byte(net, 0);
-    accumulate_byte(net, hop_count);
-    accumulate_short(net, seqno);
-    accumulate_short(net, metric);
-    accumulate_data(net, address, 16);
+    buf = net->sendbuf;
+    n = net->buffered;
+
+    buf[n++] = type;
+    buf[n++] = plen;
+    buf[n++] = 0;
+    buf[n++] = hop_count;
+    buf[n++] = (seqno >> 8) & 0xFF;
+    buf[n++] = seqno & 0xFF;
+    buf[n++] = (metric >> 8) & 0xFF;
+    buf[n++] = metric & 0xFF;
+    memcpy(buf + n, address, 16);
+    n += 16;
+    net->buffered = n;
+
     schedule_flush(net);
 }
 
