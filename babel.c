@@ -56,7 +56,7 @@ struct timeval now;
 unsigned char myid[16];
 int debug = 0;
 
-int reboot_time;
+time_t reboot_time;
 
 int idle_time = 320;
 int link_detect = 0;
@@ -99,7 +99,7 @@ main(int argc, char **argv)
     struct sockaddr_in6 sin6;
     int i, rc, fd, rfd, have_id = 0;
     struct timeval check_neighbours_time;
-    int expiry_time, kernel_dump_time;
+    time_t expiry_time, kernel_dump_time;
     char *config_file = NULL;
     void *vrc;
     unsigned int seed;

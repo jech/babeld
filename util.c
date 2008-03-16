@@ -125,7 +125,7 @@ timeval_min(struct timeval *d, const struct timeval *s)
 }
 
 void
-timeval_min_sec(struct timeval *d, int secs)
+timeval_min_sec(struct timeval *d, time_t secs)
 {
     if(d->tv_sec == 0 || d->tv_sec > secs) {
         d->tv_sec = secs;

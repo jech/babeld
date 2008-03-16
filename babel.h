@@ -64,7 +64,7 @@ THE SOFTWARE.
 
 extern struct timeval now;
 extern int debug;
-extern int reboot_time;
+extern time_t reboot_time;
 extern int wireless_hello_interval, wired_hello_interval, idle_hello_interval;
 extern int idle_time;
 extern int link_detect;

@@ -27,8 +27,8 @@ struct route {
     unsigned short seqno;
     struct neighbour *neigh;
     unsigned char nexthop[16];
-    int time;
-    int origtime;
+    time_t time;
+    time_t origtime;
     int installed;
 };
 

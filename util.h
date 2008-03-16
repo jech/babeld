@@ -35,7 +35,7 @@ void timeval_plus_msec(struct timeval *d,
 int timeval_compare(const struct timeval *s1, const struct timeval *s2)
     ATTRIBUTE ((pure));
 void timeval_min(struct timeval *d, const struct timeval *s);
-void timeval_min_sec(struct timeval *d, int secs);
+void timeval_min_sec(struct timeval *d, time_t secs);
 int parse_msec(const char *string);
 void do_debugf(int leve, const char *format, ...)
     ATTRIBUTE ((format (printf, 2, 3)));

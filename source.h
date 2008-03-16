@@ -28,7 +28,7 @@ struct source {
     unsigned char plen;
     unsigned short seqno;
     unsigned short metric;
-    int time;
+    time_t time;
 };
 
 int source_match(struct source *src,

@@ -39,9 +39,9 @@ struct network {
     struct timeval flush_timeout;
     int bufsize;
     unsigned char *sendbuf;
-    int bucket_time;
+    time_t bucket_time;
     unsigned int bucket;
-    int activity_time;
+    time_t activity_time;
     unsigned short hello_seqno;
     unsigned int hello_interval;
     unsigned int self_update_interval;
