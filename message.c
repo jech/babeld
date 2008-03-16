@@ -513,11 +513,17 @@ send_request(struct network *net,
 }
 
 void
-send_request_resend(const unsigned char *prefix, unsigned char plen,
+send_request_resend(struct neighbour *neigh,
+                    const unsigned char *prefix, unsigned char plen,
                     unsigned short seqno, unsigned short router_hash)
 {
-    send_request(NULL, prefix, plen, 127, seqno, router_hash);
-    record_request(prefix, plen, seqno, router_hash, NULL,
+    if(neigh)
+        send_unicast_request(neigh, prefix, plen, 127, seqno, router_hash);
+    else
+        send_request(NULL, prefix, plen, 127, seqno, router_hash);
+
+    record_request(prefix, plen, seqno, router_hash,
+                   neigh ? neigh->network : NULL,
                    MAX(10,
                        MIN(wireless_hello_interval / 2,
                            MIN(wired_hello_interval / 2,

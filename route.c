@@ -475,7 +475,7 @@ send_unfeasible_request(unsigned short seqno, unsigned short metric,
     }
 
     if(!route || route->metric >= metric + 256) {
-        send_request_resend(prefix, plen,
+        send_request_resend(NULL, prefix, plen,
                             src->metric >= INFINITY ?
                             src->seqno : seqno_plus(src->seqno, 1),
                             hash_id(src->address));
@@ -562,7 +562,7 @@ send_triggered_update(struct route *route, struct source *oldsrc, int oldmetric)
 
     if(oldmetric < INFINITY) {
         if(newmetric >= INFINITY || newmetric >= oldmetric + 384)
-            send_request_resend(route->src->prefix, route->src->plen,
+            send_request_resend(NULL, route->src->prefix, route->src->plen,
                                 route->src->metric >= INFINITY ?
                                 route->src->seqno :
                                 seqno_plus(route->src->seqno, 1),
@@ -609,7 +609,7 @@ route_lost(struct source *src, int oldmetric)
         /* Complain loudly. */
         send_update(NULL, 1, src->prefix, src->plen);
         if(oldmetric < INFINITY)
-            send_request_resend(src->prefix, src->plen,
+            send_request_resend(NULL, src->prefix, src->plen,
                                 src->metric >= INFINITY ?
                                 src->seqno : seqno_plus(src->seqno, 1),
                                 hash_id(src->address));
