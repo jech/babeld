@@ -257,19 +257,22 @@ main(int argc, char **argv)
 
     if(wireless_hello_interval <= 0)
         wireless_hello_interval = 6000;
+    wireless_hello_interval = MAX(wireless_hello_interval, 5);
 
     if(wired_hello_interval <= 0)
         wired_hello_interval = 30000;
+    wired_hello_interval = MAX(wired_hello_interval, 5);
 
     if(update_interval <= 0)
         update_interval =
             MIN(MAX(wireless_hello_interval * 5, wired_hello_interval),
                 70000);
+    update_interval = MAX(update_interval, 20);
 
     if(seqno_interval <= 0)
         /* This should be slightly less than the self_update_interval */
         seqno_interval = MAX(1000, update_interval * 4 / 10);
-
+    seqno_interval = MAX(seqno_interval, 20);
 
     if(do_daemonise) {
         if(logfile == NULL)
