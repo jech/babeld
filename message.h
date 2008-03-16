@@ -58,7 +58,6 @@ void send_update(struct network *net, int urgent,
                  const unsigned char *prefix, unsigned char plen);
 void update_myseqno(int force);
 void send_self_update(struct network *net, int force_seqno);
-void send_neighbour_update(struct neighbour *neigh, struct network *net);
 void send_ihu(struct neighbour *neigh, struct network *net);
 void schedule_flush_now(struct network *net);
 void flushupdates(void);

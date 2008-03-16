@@ -839,16 +839,6 @@ send_self_update(struct network *net, int force_seqno)
 }
 
 void
-send_neighbour_update(struct neighbour *neigh, struct network *net)
-{
-    int i;
-    for(i = 0; i < numroutes; i++) {
-        if(routes[i].installed && routes[i].neigh == neigh)
-            send_update(net, 0, routes[i].src->prefix, routes[i].src->plen);
-    }
-}
-
-void
 send_ihu(struct neighbour *neigh, struct network *net)
 {
     int i;
