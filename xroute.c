@@ -99,7 +99,7 @@ add_xroute(int kind, unsigned char prefix[16], unsigned char plen,
 }
 
 int
-check_xroutes()
+check_xroutes(int send_updates)
 {
     int i, j, metric, export, change = 0, rc;
     struct kernel_route routes[240];
@@ -159,6 +159,8 @@ check_xroutes()
 
         if(!export) {
             flush_xroute(&xroutes[i]);
+            if(send_updates)
+                send_update(NULL, 1, xroutes[i].prefix, xroutes[i].plen);
             change = 1;
         } else {
             i++;
@@ -180,6 +182,8 @@ check_xroutes()
                             metric, routes[i].ifindex, routes[i].proto);
             if(rc)
                 change = 1;
+            if(send_updates)
+                send_update(NULL, 1, xroutes[i].prefix, xroutes[i].plen);
         }
     }
     return change;

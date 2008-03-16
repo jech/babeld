@@ -503,7 +503,7 @@ main(int argc, char **argv)
         if(receive_buffer == NULL)
             goto fail;
     }
-    check_xroutes();
+    check_xroutes(0);
     kernel_routes_changed = 0;
     kernel_link_changed = 0;
     kernel_addr_changed = 0;
@@ -617,10 +617,8 @@ main(int argc, char **argv)
 
         if(kernel_routes_changed || kernel_addr_changed ||
            now.tv_sec >= kernel_dump_time) {
-            rc = check_xroutes();
-            if(rc > 0)
-                send_self_update(NULL, 1);
-            else if(rc < 0)
+            rc = check_xroutes(1);
+            if(rc < 0)
                 fprintf(stderr, "Warning: couldn't check exported routes.\n");
             kernel_routes_changed = kernel_addr_changed = 0;
             if(kernel_socket >= 0)

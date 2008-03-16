@@ -20,8 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-int check_xroutes(void);
-
 /* These should come in decreasing order of priority. */
 
 #define XROUTE_FORCED 1
@@ -42,4 +40,4 @@ extern int numxroutes;
 struct xroute *find_xroute(const unsigned char *prefix, unsigned char plen);
 int add_xroute(int kind, unsigned char prefix[16], unsigned char plen,
                unsigned short metric, unsigned int ifindex, int proto);
-int check_xroutes(void);
+int check_xroutes(int send_updates);
