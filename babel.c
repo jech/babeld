@@ -515,12 +515,15 @@ main(int argc, char **argv)
     for(i = 0; i < numnets; i++) {
         if(!nets[i].up)
             continue;
+        /* Apply jitter before we send the first message. */
+        usleep(5000 + random() % 10000);
         gettimeofday(&now, NULL);
         send_hello(&nets[i]);
         send_self_update(&nets[i], 0);
+        /* Make sure the update is sent before the request. */
+        flushupdates();
         send_request(&nets[i], NULL, 0, 0, 0, 0);
         flushbuf(&nets[i]);
-        usleep(5000 + random() % 10000);
     }
 
     debugf("Entering main loop.\n");
