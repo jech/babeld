@@ -5,7 +5,8 @@ babel 0.11 (unreleased)
     for extended periods of time.
   * Implemented protection against out-of-date requests being sent and
     forwarded when a node loses its sequence number.
-  * Reduced the cost of wired networks down to 96 from 128.
+  * INCOMPATIBLE CHANGE: reduced the cost of wired networks down to 96
+    from 128.
   * Tweaked the frequency at which a router's seqno increases, to make
     it more likely that a feasible route will be available when needed.
 
