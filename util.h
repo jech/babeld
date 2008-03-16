@@ -69,7 +69,7 @@ int daemonise(void);
     do { \
         if(debug >= 3) do_debugf(3, __VA_ARGS__);        \
     } while(0)
-#elif defined(__GNUC__)
+#elif defined __GNUC__
 #define debugf(_args...) \
     do { \
         if(debug >= 2) do_debugf(2, _args);      \
