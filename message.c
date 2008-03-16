@@ -420,7 +420,7 @@ schedule_unicast_flush(void)
 static void
 start_message(struct network *net, int bytes)
 {
-    assert(net->buffered % 8 == 0);
+    assert(net->buffered % 24 == 0);
     if(net->bufsize - net->buffered < bytes)
         flushbuf(net);
 }
