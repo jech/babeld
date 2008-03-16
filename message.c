@@ -517,17 +517,20 @@ send_request_resend(struct neighbour *neigh,
                     const unsigned char *prefix, unsigned char plen,
                     unsigned short seqno, unsigned short router_hash)
 {
+    int time;
+
     if(neigh)
         send_unicast_request(neigh, prefix, plen, 127, seqno, router_hash);
     else
         send_request(NULL, prefix, plen, 127, seqno, router_hash);
 
+    time = 2000;
+    time = MIN(time, wireless_hello_interval / 2);
+    time = MIN(time, wired_hello_interval / 2);
+    time = MAX(time, 10);
     record_request(prefix, plen, seqno, router_hash,
-                   neigh ? neigh->network : NULL,
-                   MAX(10,
-                       MIN(wireless_hello_interval / 2,
-                           MIN(wired_hello_interval / 2,
-                               2000))));
+                   neigh ? neigh->network : NULL, time);
+
 }
 
 static void
