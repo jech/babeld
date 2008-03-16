@@ -9,6 +9,8 @@ babel 0.11 (unreleased)
     from 128.
   * Tweaked the frequency at which a router's seqno increases, to make
     it more likely that a feasible route will be available when needed.
+  * Fixed a bug that could delay noticing that a network is no longer
+    idle when running Babel with the -i flag.
 
 11 March 2008: babel 0.10
 
