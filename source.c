@@ -81,6 +81,16 @@ find_source(const unsigned char *a, const unsigned char *p, unsigned char plen,
     return src;
 }
 
+/* It is the caller's responsibility to check that no routes point at
+   this source. */
+void
+flush_source(struct source *src)
+{
+    memset(src, 0, sizeof(*src));
+    VALGRIND_MAKE_MEM_UNDEFINED(src, sizeof(*src));
+    src->valid = 0;
+}
+
 struct source *
 find_recent_source(const unsigned char *p, unsigned char plen)
 {
