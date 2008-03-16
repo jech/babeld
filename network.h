@@ -54,7 +54,7 @@ extern int numnets;
 struct network *add_network(char *ifname);
 int network_idle(struct network *net);
 int update_hello_interval(struct network *net);
-unsigned int jitter(struct network *net);
+unsigned int jitter(struct network *net, int urgent);
 unsigned int update_jitter(struct network *net, int urgent);
 void delay_jitter(struct timeval *time, struct timeval *timeout, int msecs);
 int network_up(struct network *net, int up);

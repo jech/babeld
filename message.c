@@ -373,7 +373,7 @@ flushbuf(struct network *net)
 static void
 schedule_flush(struct network *net)
 {
-    int msecs = jitter(net);
+    int msecs = jitter(net, 0);
     if(net->flush_timeout.tv_sec != 0 &&
        timeval_minus_msec(&net->flush_timeout, &now) < msecs)
         return;

@@ -108,10 +108,13 @@ update_hello_interval(struct network *net)
 /* This should be no more than half the hello interval, so that hellos
    aren't sent late.  The result is in milliseconds. */
 unsigned int
-jitter(struct network *net)
+jitter(struct network *net, int urgent)
 {
     unsigned interval = net->hello_interval;
-    interval = MIN(interval, 2000);
+    if(urgent)
+        interval = MIN(interval, 100);
+    else
+        interval = MIN(interval, 2000);
     return (interval / 2 + random() % interval) / 4;
 }
 
