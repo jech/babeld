@@ -26,6 +26,7 @@ struct source {
     unsigned char address[16];
     unsigned char prefix[16];
     unsigned char plen;
+    unsigned char valid;
     unsigned short seqno;
     unsigned short metric;
     time_t time;

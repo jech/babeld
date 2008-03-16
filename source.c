@@ -37,6 +37,8 @@ find_source(const unsigned char *a, const unsigned char *p, unsigned char plen,
 {
     int i;
     for(i = 0; i < numsrcs; i++) {
+        if(!srcs[i].valid)
+            continue;
         /* This should really be a hash table.  For now, check the
            last byte first. */
         if(srcs[i].address[15] != a[15])
@@ -54,6 +56,7 @@ find_source(const unsigned char *a, const unsigned char *p, unsigned char plen,
         fprintf(stderr, "Too many sources.\n");
         return NULL;
     }
+    srcs[numsrcs].valid = 1;
     memcpy(srcs[numsrcs].address, a, 16);
     memcpy(srcs[numsrcs].prefix, p, 16);
     srcs[numsrcs].plen = plen;
@@ -70,6 +73,8 @@ find_recent_source(const unsigned char *p, unsigned char plen)
     struct source *src = NULL;
 
     for(i = 0; i < numsrcs; i++) {
+        if(!srcs[i].valid)
+            continue;
         if(!source_match(&srcs[i], p, plen))
             continue;
         if(!src || src->time < srcs[i].time)
