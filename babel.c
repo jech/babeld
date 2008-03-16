@@ -99,7 +99,7 @@ main(int argc, char **argv)
     struct sockaddr_in6 sin6;
     int i, rc, fd, rfd, have_id = 0;
     struct timeval check_neighbours_time;
-    time_t expiry_time, kernel_dump_time;
+    time_t expiry_time, source_expiry_time, kernel_dump_time;
     char *config_file = NULL;
     void *vrc;
     unsigned int seed;
@@ -510,6 +510,7 @@ main(int argc, char **argv)
     kernel_dump_time = now.tv_sec + 20 + random() % 20;
     timeval_plus_msec(&check_neighbours_time, &now, 5000 + random() % 5000);
     expiry_time = now.tv_sec + 20 + random() % 20;
+    source_expiry_time = now.tv_sec + 200 + random() % 200;
 
     /* Make some noise so that others notice us */
     for(i = 0; i < numnets; i++) {
@@ -536,6 +537,7 @@ main(int argc, char **argv)
 
         tv = check_neighbours_time;
         timeval_min_sec(&tv, expiry_time);
+        timeval_min_sec(&tv, source_expiry_time);
         timeval_min_sec(&tv, kernel_dump_time);
         timeval_min(&tv, &request_resend_time);
         for(i = 0; i < numnets; i++) {
@@ -644,6 +646,11 @@ main(int argc, char **argv)
             expire_routes();
             expire_requests();
             expiry_time = now.tv_sec + 20 + random() % 20;
+        }
+
+        if(now.tv_sec >= source_expiry_time) {
+            expire_sources();
+            source_expiry_time = now.tv_sec + 200 + random() % 200;
         }
 
         for(i = 0; i < numnets; i++) {
