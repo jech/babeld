@@ -69,7 +69,7 @@ find_source(const unsigned char *id, const unsigned char *p, unsigned char plen,
 
     if(!src) {
         if(numsrcs >= MAXSRCS) {
-            rc = flush_old_sources();
+            rc = expire_sources();
             if(rc)
                 goto again;
             fprintf(stderr, "Too many sources.\n");
@@ -157,7 +157,7 @@ update_source(struct source *src,
 }
 
 int
-flush_old_sources()
+expire_sources()
 {
     int i, changed, rc;
 
