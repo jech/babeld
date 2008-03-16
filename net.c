@@ -28,6 +28,8 @@ THE SOFTWARE.
 #include <netinet/in.h>
 #include <errno.h>
 
+#include "babel.h"
+#include "util.h"
 #include "net.h"
 
 int
@@ -126,6 +128,19 @@ babel_send(int s,
     msg.msg_namelen = slen;
     msg.msg_iov = iovec;
     msg.msg_iovlen = 2;
+
+ again:
     rc = sendmsg(s, &msg, 0);
+    if(rc < 0) {
+        if(errno == EINTR)
+            goto again;
+        else if(errno == EAGAIN) {
+            int rc2;
+            rc2 = wait_for_fd(1, s, 5);
+            if(rc2 > 0)
+                goto again;
+            errno = EAGAIN;
+        }
+    }
     return rc;
 }
