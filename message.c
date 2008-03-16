@@ -444,11 +444,31 @@ send_message(struct network *net,
     schedule_flush(net);
 }
 
+/* Flush buffers if they contain any hellos.  This avoids sending multiple
+   hellos in a single packet, which breaks link quality estimation. */
+int
+flush_hellos(struct network *net)
+{
+    int i;
+    assert(net->buffered % 24 == 0);
+
+    for(i = 0; i < net->buffered / 25; i++) {
+        const unsigned char *message;
+        message = (const unsigned char*)(net->sendbuf + i * 24);
+        if(message[0] == 0) {
+            flushbuf(net);
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void
 send_hello_noupdate(struct network *net, unsigned interval)
 {
     debugf("Sending hello (%d) to %s.\n", interval, net->ifname);
     net->hello_seqno = seqno_plus(net->hello_seqno, 1);
+    flush_hellos(net);
     delay_jitter(&net->hello_time, &net->hello_timeout,
                  net->hello_interval);
     send_message(net, 0, 0, 0, net->hello_seqno,
