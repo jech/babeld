@@ -842,7 +842,6 @@ void
 send_ihu(struct neighbour *neigh, struct network *net)
 {
     int i;
-    unsigned short interval;
 
     if(neigh == NULL && net == NULL) {
         for(i = 0; i < numnets; i++) {
@@ -863,7 +862,7 @@ send_ihu(struct neighbour *neigh, struct network *net)
         delay_jitter(&net->ihu_time, &net->ihu_timeout,
                      net->ihu_interval);
     } else {
-        int rxcost;
+        int rxcost, interval;
 
         if(net && neigh->network != net)
             return;
@@ -872,10 +871,7 @@ send_ihu(struct neighbour *neigh, struct network *net)
 
         rxcost = neighbour_rxcost(neigh);
 
-        if((net->ihu_interval + 9) / 10 <= 0xFFFF)
-            interval = (net->ihu_interval + 9) / 10;
-        else
-            interval = 0;
+        interval = (net->ihu_interval + 9) / 10;
 
         debugf("Sending ihu %d on %s to %s (%s).\n",
                rxcost,
@@ -883,6 +879,7 @@ send_ihu(struct neighbour *neigh, struct network *net)
                format_address(neigh->id),
                format_address(neigh->address));
 
-        send_message(net, 1, 128, 0, interval, rxcost, neigh->id);
+        send_message(net, 1, 128, 0, interval < 0xFFFF ? interval : 0,
+                     rxcost, neigh->id);
     }
 }
