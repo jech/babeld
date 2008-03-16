@@ -35,7 +35,9 @@ struct source *
 find_source(const unsigned char *a, const unsigned char *p, unsigned char plen,
             int create, unsigned short seqno)
 {
+    struct source *src;
     int i;
+
     for(i = 0; i < numsrcs; i++) {
         if(!srcs[i].valid)
             continue;
@@ -52,18 +54,31 @@ find_source(const unsigned char *a, const unsigned char *p, unsigned char plen,
     if(!create)
         return NULL;
 
-    if(numsrcs >= MAXSRCS) {
-        fprintf(stderr, "Too many sources.\n");
-        return NULL;
+    src = NULL;
+
+    for(i = 0; i < numsrcs; i++) {
+        if(srcs[i].valid == 0) {
+            src = &srcs[i];
+            break;
+        }
     }
-    srcs[numsrcs].valid = 1;
-    memcpy(srcs[numsrcs].address, a, 16);
-    memcpy(srcs[numsrcs].prefix, p, 16);
-    srcs[numsrcs].plen = plen;
-    srcs[numsrcs].seqno = seqno;
-    srcs[numsrcs].metric = INFINITY;
-    srcs[numsrcs].time = now.tv_sec;
-    return &srcs[numsrcs++];
+
+    if(!src) {
+        if(numsrcs >= MAXSRCS) {
+            fprintf(stderr, "Too many sources.\n");
+            return NULL;
+        }
+        src = &srcs[numsrcs++];
+    }
+
+    src->valid = 1;
+    memcpy(src->address, a, 16);
+    memcpy(src->prefix, p, 16);
+    src->plen = plen;
+    src->seqno = seqno;
+    src->metric = INFINITY;
+    src->time = now.tv_sec;
+    return src;
 }
 
 struct source *
