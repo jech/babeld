@@ -10,9 +10,11 @@ babel 0.11 (unreleased)
   * Tweaked the frequency at which a router's seqno increases, to make
     it more likely that a feasible route will be available when needed.
   * Implemented garbage collection of old sources.
+  * Implemented coalescing of unicast messages.
   * Fixed a bug that could delay noticing that a network is no longer
     idle when running Babel with the -i flag.
-  * Implemented coalescing of unicast messages.
+  * Fixed a bug that could cause incorrect metrics to be advertised
+    when output filtering was used.
   * Fixed some minor issues with the ordering of outgoing messages.
 
 11 March 2008: babel 0.10
