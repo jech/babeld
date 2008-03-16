@@ -412,11 +412,8 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         }
 
         route->src = src;
-        if(feasible && refmetric < INFINITY) {
+        if(feasible && refmetric < INFINITY)
             route->time = now.tv_sec;
-            if(route->refmetric >= INFINITY)
-                route->origtime = now.tv_sec;
-        }
         route->seqno = seqno;
         route->refmetric = refmetric;
         change_route_metric(route, metric);
@@ -450,7 +447,6 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         route->neigh = neigh;
         memcpy(route->nexthop, nexthop, 16);
         route->time = now.tv_sec;
-        route->origtime = now.tv_sec;
         route->installed = 0;
         numroutes++;
         consider_route(route);

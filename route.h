@@ -28,7 +28,6 @@ struct route {
     struct neighbour *neigh;
     unsigned char nexthop[16];
     time_t time;
-    time_t origtime;
     int installed;
 };
 
