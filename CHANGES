@@ -44,7 +44,7 @@ babel 0.11 (unreleased)
 
   * Implemented a proper configuration language to specify input and
     output filters and redistribution policies.
-  * Incompatible change: the flags -4, -x and -c are no longer supported.
+  * INCOMPATIBLE CHANGE: the flags -4, -x and -c are no longer supported.
 
 8 February 2008: babel 0.8
 
