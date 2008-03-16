@@ -125,6 +125,7 @@ parse_packet(const unsigned char *from, struct network *net,
                    format_address(address),
                    format_address(from));
             net->activity_time = now.tv_sec;
+            update_hello_interval(net);
             neigh = add_neighbour(address, from, net);
             if(neigh == NULL)
                 continue;
