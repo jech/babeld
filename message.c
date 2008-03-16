@@ -269,7 +269,7 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
     if(route &&
        (hop_count == 0 ||
         (route->metric < INFINITY &&
-         (router_hash != hash_id(route->src->address) ||
+         (router_hash != hash_id(route->src->id) ||
           seqno_compare(seqno, route->seqno) <= 0)))) {
         /* We can satisfy this request straight away.  Note that in the
            hop_count=0 case, we do send a recent retraction, in order to
@@ -281,7 +281,7 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
     if(hop_count <= 1)
         return;
 
-    if(route && router_hash == hash_id(route->src->address) &&
+    if(route && router_hash == hash_id(route->src->id) &&
        seqno_minus(seqno, route->seqno) > 100) {
         /* Hopelessly out-of-date */
         return;
@@ -594,7 +594,7 @@ message_source_id(struct network *net)
 
 static void
 really_send_update(struct network *net,
-                   const unsigned char *address,
+                   const unsigned char *id,
                    const unsigned char *prefix, unsigned char plen,
                    unsigned short seqno, unsigned short metric)
 {
@@ -603,7 +603,7 @@ really_send_update(struct network *net,
     if(!net->up)
         return;
 
-    add_metric = output_filter(address, prefix, plen, net->ifindex);
+    add_metric = output_filter(id, prefix, plen, net->ifindex);
 
     if(add_metric < INFINITY) {
         if(plen >= 96 && v4mapped(prefix)) {
@@ -616,25 +616,25 @@ really_send_update(struct network *net,
             memcpy(v4route + 12, prefix + 12, 4);
             start_message(net, 48);
             sid = message_source_id(net);
-            if(sid == NULL || memcmp(address, sid, 16) != 0)
-                send_message(net, 3, 0xFF, 0, 0, 0xFFFF, address);
+            if(sid == NULL || memcmp(id, sid, 16) != 0)
+                send_message(net, 3, 0xFF, 0, 0, 0xFFFF, id);
             send_message(net, 5, plen - 96, 0, seqno, metric + add_metric,
                          v4route);
         } else {
-            if(in_prefix(address, prefix, plen)) {
-                send_message(net, 3, plen, 0, seqno, metric, address);
+            if(in_prefix(id, prefix, plen)) {
+                send_message(net, 3, plen, 0, seqno, metric, id);
             } else {
                 const unsigned char *sid;
                 start_message(net, 48);
                 sid = message_source_id(net);
-                if(sid == NULL || memcmp(address, sid, 16) != 0)
-                    send_message(net, 3, 0xFF, 0, 0, 0xFFFF, address);
+                if(sid == NULL || memcmp(id, sid, 16) != 0)
+                    send_message(net, 3, 0xFF, 0, 0, 0xFFFF, id);
                 send_message(net, 4, plen, 0, seqno, metric + add_metric,
                              prefix);
             }
         }
     }
-    satisfy_request(prefix, plen, seqno, hash_id(address), net);
+    satisfy_request(prefix, plen, seqno, hash_id(id), net);
 }
 
 void
@@ -672,7 +672,7 @@ flushupdates(void)
                     continue;
                 seqno = route->seqno;
                 metric = route->metric;
-                really_send_update(net, route->src->address,
+                really_send_update(net, route->src->id,
                                    route->src->prefix,
                                    route->src->plen,
                                    seqno, metric);
@@ -682,7 +682,7 @@ flushupdates(void)
             src = find_recent_source(buffered_updates[i].prefix,
                                      buffered_updates[i].plen);
             if(src) {
-                really_send_update(net, src->address, src->prefix, src->plen,
+                really_send_update(net, src->id, src->prefix, src->plen,
                                    src->metric >= INFINITY ?
                                    src->seqno : seqno_plus(src->seqno, 1),
                                    INFINITY);
@@ -751,7 +751,7 @@ send_update(struct network *net, int urgent,
             if(route) {
                 urgent = 1;
                 satisfy_request(prefix, plen, route->seqno,
-                                hash_id(route->src->address), net);
+                                hash_id(route->src->id), net);
             }
         }
     }

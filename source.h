@@ -23,7 +23,7 @@ THE SOFTWARE.
 #define SOURCE_GC_TIME 200
 
 struct source {
-    unsigned char address[16];
+    unsigned char id[16];
     unsigned char prefix[16];
     unsigned char plen;
     unsigned char valid;
@@ -34,7 +34,7 @@ struct source {
 
 int source_match(struct source *src,
                  const unsigned char *p, unsigned char plen);
-struct source *find_source(const unsigned char *a,
+struct source *find_source(const unsigned char *id,
                            const unsigned char *p,
                            unsigned char plen,
                            int create, unsigned short seqno);

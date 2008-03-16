@@ -34,7 +34,7 @@ struct source srcs[MAXSRCS];
 int numsrcs = 0;
 
 struct source *
-find_source(const unsigned char *a, const unsigned char *p, unsigned char plen,
+find_source(const unsigned char *id, const unsigned char *p, unsigned char plen,
             int create, unsigned short seqno)
 {
     struct source *src;
@@ -45,9 +45,9 @@ find_source(const unsigned char *a, const unsigned char *p, unsigned char plen,
             continue;
         /* This should really be a hash table.  For now, check the
            last byte first. */
-        if(srcs[i].address[15] != a[15])
+        if(srcs[i].id[15] != id[15])
             continue;
-        if(memcmp(srcs[i].address, a, 16) != 0)
+        if(memcmp(srcs[i].id, id, 16) != 0)
             continue;
         if(source_match(&srcs[i], p, plen))
            return &srcs[i];
@@ -79,7 +79,7 @@ find_source(const unsigned char *a, const unsigned char *p, unsigned char plen,
     }
 
     src->valid = 1;
-    memcpy(src->address, a, 16);
+    memcpy(src->id, id, 16);
     memcpy(src->prefix, p, 16);
     src->plen = plen;
     src->seqno = seqno;

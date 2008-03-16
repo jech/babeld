@@ -49,7 +49,7 @@ void uninstall_route(struct route *route);
 void change_route(struct route *old, struct route *new);
 void change_route_metric(struct route *route, int newmetric);
 int route_feasible(struct route *route);
-int update_feasible(const unsigned char *a,
+int update_feasible(const unsigned char *id,
                     const unsigned char *p, unsigned char plen,
                     unsigned short seqno, unsigned short refmetric);
 struct route *find_best_route(const unsigned char *prefix, unsigned char plen,

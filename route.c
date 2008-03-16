@@ -214,17 +214,17 @@ change_route_metric(struct route *route, int newmetric)
 int
 route_feasible(struct route *route)
 {
-    return update_feasible(route->src->address,
+    return update_feasible(route->src->id,
                            route->src->prefix, route->src->plen,
                            route->seqno, route->refmetric);
 }
 
 int
-update_feasible(const unsigned char *a,
+update_feasible(const unsigned char *id,
                 const unsigned char *p, unsigned char plen,
                 unsigned short seqno, unsigned short refmetric)
 {
-    struct source *src = find_source(a, p, plen, 0, 0);
+    struct source *src = find_source(id, p, plen, 0, 0);
     if(src == NULL)
         return 1;
 
@@ -404,9 +404,9 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
             debugf("Unfeasible update for installed route to %s "
                    "(%s %d %d -> %s %d %d).\n",
                    format_prefix(src->prefix, src->plen),
-                   format_address(route->src->address),
+                   format_address(route->src->id),
                    route->seqno, route->refmetric,
-                   format_address(src->address), seqno, refmetric);
+                   format_address(src->id), seqno, refmetric);
             uninstall_route(route);
             lost = 1;
         }
@@ -477,7 +477,7 @@ send_unfeasible_request(struct neighbour *neigh,
         send_request_resend(neigh, prefix, plen,
                             src->metric >= INFINITY ?
                             src->seqno : seqno_plus(src->seqno, 1),
-                            hash_id(src->address));
+                            hash_id(src->id));
     }
 }
 
@@ -552,7 +552,7 @@ send_triggered_update(struct route *route, struct source *oldsrc, int oldmetric)
 
     /* Make sure that requests are satisfied speedily */
     if(unsatisfied_request(route->src->prefix, route->src->plen,
-                           route->seqno, hash_id(route->src->address)))
+                           route->seqno, hash_id(route->src->id)))
         urgent = 1;
 
     if(urgent ||
@@ -567,7 +567,7 @@ send_triggered_update(struct route *route, struct source *oldsrc, int oldmetric)
                                 route->src->metric >= INFINITY ?
                                 route->src->seqno :
                                 seqno_plus(route->src->seqno, 1),
-                                hash_id(route->src->address));
+                                hash_id(route->src->id));
         } else if(newmetric >= oldmetric + 288) {
             /* Ensure that the update goes out before the request */
             flushupdates();
@@ -618,7 +618,7 @@ route_lost(struct source *src, int oldmetric)
             send_request_resend(NULL, src->prefix, src->plen,
                                 src->metric >= INFINITY ?
                                 src->seqno : seqno_plus(src->seqno, 1),
-                                hash_id(src->address));
+                                hash_id(src->id));
     }
 }
 

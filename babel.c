@@ -894,7 +894,7 @@ dump_tables(FILE *out)
     for(i = 0; i < numroutes; i++) {
         int id =
             routes[i].src->plen != 128 ||
-            memcmp(routes[i].src->prefix, routes[i].src->address, 16) != 0;
+            memcmp(routes[i].src->prefix, routes[i].src->id, 16) != 0;
         const unsigned char *nexthop =
             memcmp(routes[i].nexthop, routes[i].neigh->address, 16) == 0 ?
             NULL : routes[i].nexthop;
@@ -903,7 +903,7 @@ dump_tables(FILE *out)
                 format_prefix(routes[i].src->prefix, routes[i].src->plen),
                 routes[i].metric, routes[i].refmetric,
                 id ? "id " : "",
-                id ? format_address(routes[i].src->address) : "",
+                id ? format_address(routes[i].src->id) : "",
                 (int)routes[i].seqno,
                 (int)(now.tv_sec - routes[i].time),
                 routes[i].neigh->network->ifname,
