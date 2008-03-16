@@ -562,15 +562,20 @@ send_triggered_update(struct route *route, struct source *oldsrc, int oldmetric)
         send_update(NULL, urgent, route->src->prefix, route->src->plen);
 
     if(oldmetric < INFINITY) {
-        if(newmetric >= INFINITY || newmetric >= oldmetric + 384)
+        if(newmetric >= INFINITY || newmetric >= oldmetric + 384) {
+            /* Ensure that the update goes out before the request */
+            flushupdates();
             send_request_resend(NULL, route->src->prefix, route->src->plen,
                                 route->src->metric >= INFINITY ?
                                 route->src->seqno :
                                 seqno_plus(route->src->seqno, 1),
                                 hash_id(route->src->address));
-        else if(newmetric >= oldmetric + 288)
+        } else if(newmetric >= oldmetric + 288) {
+            /* Ensure that the update goes out before the request */
+            flushupdates();
             send_request(NULL, route->src->prefix, route->src->plen,
                          0, 0, 0);
+        }
     }
 }
 
@@ -609,6 +614,8 @@ route_lost(struct source *src, int oldmetric)
     } else {
         /* Complain loudly. */
         send_update(NULL, 1, src->prefix, src->plen);
+        /* Ensure the update goes out before the request */
+        flushupdates();
         if(oldmetric < INFINITY)
             send_request_resend(NULL, src->prefix, src->plen,
                                 src->metric >= INFINITY ?
