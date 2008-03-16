@@ -414,7 +414,7 @@ main(int argc, char **argv)
         }
     }
 
-    if(random < 0) {
+    if(rfd < 0) {
         memcpy(&seed, myid + 12, 4);
     } else {
         rc = read(rfd, &seed, sizeof(unsigned int));
