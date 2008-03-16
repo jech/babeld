@@ -681,8 +681,8 @@ main(int argc, char **argv)
     }
 
     debugf("Exiting...\n");
+    /* Uninstall and retract all routes. */
     while(numroutes > 0) {
-        /* Uninstall and retract all routes. */
         if(routes[0].installed) {
             uninstall_route(&routes[0]);
             send_update(NULL, 1, routes[0].src->prefix, routes[0].src->plen);
@@ -690,16 +690,21 @@ main(int argc, char **argv)
         /* We need to flush the route so network_up won't reinstall it */
         flush_route(&routes[0]);
     }
+    while(numxroutes > 0) {
+        xroutes[0].metric = INFINITY;
+        send_update(NULL, 1, xroutes[0].prefix, xroutes[0].plen);
+        flush_xroute(&xroutes[0]);
+    }
+
+    flushupdates();
+
     for(i = 0; i < numnets; i++) {
         if(!nets[i].up)
             continue;
-        /* Retract exported routes. */
-        send_self_retract(&nets[i]);
         /* Make sure that we expire quickly from our neighbours'
            association caches.  Since we sleep on average 10ms per
-           network, set the hello interval to numnets cs. */
+           network, set the hello interval to numnets centiseconds. */
         send_hello_noupdate(&nets[i], numnets);
-        flushupdates();
         flushbuf(&nets[i]);
         usleep(5000 + random() % 10000);
     }
@@ -707,9 +712,7 @@ main(int argc, char **argv)
         if(!nets[i].up)
             continue;
         /* Make sure they got it. */
-        send_self_retract(&nets[i]);
         send_hello_noupdate(&nets[i], 1);
-        flushupdates();
         flushbuf(&nets[i]);
         usleep(5000 + random() % 10000);
         network_up(&nets[i], 0);

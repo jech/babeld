@@ -38,6 +38,7 @@ extern struct xroute xroutes[MAXXROUTES];
 extern int numxroutes;
 
 struct xroute *find_xroute(const unsigned char *prefix, unsigned char plen);
+void flush_xroute(struct xroute *xroute);
 int add_xroute(int kind, unsigned char prefix[16], unsigned char plen,
                unsigned short metric, unsigned int ifindex, int proto);
 int check_xroutes(int send_updates);
