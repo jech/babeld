@@ -533,6 +533,7 @@ main(int argc, char **argv)
 
         tv = check_neighbours_time;
         timeval_min_sec(&tv, expiry_time);
+        timeval_min_sec(&tv, kernel_dump_time);
         timeval_min(&tv, &request_resend_time);
         for(i = 0; i < numnets; i++) {
             if(!nets[i].up)
