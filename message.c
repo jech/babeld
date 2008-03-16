@@ -464,7 +464,7 @@ flush_hellos(struct network *net)
     int i;
     assert(net->buffered % 24 == 0);
 
-    for(i = 0; i < net->buffered / 25; i++) {
+    for(i = 0; i < net->buffered / 24; i++) {
         const unsigned char *message;
         message = (const unsigned char*)(net->sendbuf + i * 24);
         if(message[0] == 0) {
