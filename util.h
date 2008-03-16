@@ -36,7 +36,7 @@ int timeval_compare(const struct timeval *s1, const struct timeval *s2)
     ATTRIBUTE ((pure));
 void timeval_min(struct timeval *d, const struct timeval *s);
 void timeval_min_sec(struct timeval *d, time_t secs);
-int parse_msec(const char *string);
+int parse_msec(const char *string) ATTRIBUTE ((pure));
 void do_debugf(int leve, const char *format, ...)
     ATTRIBUTE ((format (printf, 2, 3)));
 int in_prefix(const unsigned char *address,
@@ -51,8 +51,8 @@ int parse_address(const char *address, unsigned char *addr_r, int *af_r);
 int parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r,
               int *af_r);
 int wait_for_fd(int direction, int fd, int msecs);
-int martian_prefix(const unsigned char *prefix, int plen);
-int v4mapped(const unsigned char *address);
+int martian_prefix(const unsigned char *prefix, int plen) ATTRIBUTE ((pure));
+int v4mapped(const unsigned char *address) ATTRIBUTE ((pure));
 void v4tov6(unsigned char *dst, const unsigned char *src);
 char *parse_ifflags(unsigned int flags);
 int daemonise(void);
