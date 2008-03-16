@@ -282,8 +282,10 @@ update_route_metric(struct route *route)
                         INFINITY);
     }
 
-    change_route_metric(route, newmetric);
-    trigger_route_change(route, route->src, oldmetric);
+    if(newmetric != oldmetric) {
+        change_route_metric(route, newmetric);
+        trigger_route_change(route, route->src, oldmetric);
+    }
 }
 
 void
