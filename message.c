@@ -692,6 +692,7 @@ really_send_update(struct network *net,
     add_metric = output_filter(id, prefix, plen, net->ifindex);
 
     if(add_metric < INFINITY) {
+        metric = MIN(metric + add_metric, INFINITY);
         if(plen >= 96 && v4mapped(prefix)) {
             const unsigned char *sid;
             unsigned char v4route[16];
@@ -704,8 +705,7 @@ really_send_update(struct network *net,
             sid = message_source_id(net);
             if(sid == NULL || memcmp(id, sid, 16) != 0)
                 send_message(net, 3, 0xFF, 0, 0, 0xFFFF, id);
-            send_message(net, 5, plen - 96, 0, seqno, metric + add_metric,
-                         v4route);
+            send_message(net, 5, plen - 96, 0, seqno, metric, v4route);
         } else {
             if(in_prefix(id, prefix, plen)) {
                 send_message(net, 3, plen, 0, seqno, metric, id);
@@ -715,8 +715,7 @@ really_send_update(struct network *net,
                 sid = message_source_id(net);
                 if(sid == NULL || memcmp(id, sid, 16) != 0)
                     send_message(net, 3, 0xFF, 0, 0, 0xFFFF, id);
-                send_message(net, 4, plen, 0, seqno, metric + add_metric,
-                             prefix);
+                send_message(net, 4, plen, 0, seqno, metric, prefix);
             }
         }
     }
