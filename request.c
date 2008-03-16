@@ -83,21 +83,14 @@ record_request(const unsigned char *prefix, unsigned char plen,
         else if(resend)
             request->resend = resend;
         request->time = now;
-        if(request->resend) {
-            struct timeval timeout;
-            timeval_plus_msec(&timeout, &request->time, request->resend);
-            timeval_min(&request_resend_time, &timeout);
-        }
         if(request->router_hash == router_hash &&
            seqno_compare(request->seqno, seqno) > 0) {
             return 0;
-        } else {
-            request->router_hash = router_hash;
-            request->seqno = seqno;
-            if(request->network != network)
-                request->network = NULL;
-            return 1;
         }
+        request->router_hash = router_hash;
+        request->seqno = seqno;
+        if(request->network != network)
+            request->network = NULL;
     } else {
         request = malloc(sizeof(struct request));
         if(request == NULL)
@@ -109,15 +102,16 @@ record_request(const unsigned char *prefix, unsigned char plen,
         request->network = network;
         request->time = now;
         request->resend = resend;
-        if(request->resend) {
-            struct timeval timeout;
-            timeval_plus_msec(&timeout, &request->time, request->resend);
-            timeval_min(&request_resend_time, &timeout);
-        }
         request->next = recorded_requests;
         recorded_requests = request;
-        return 1;
     }
+
+    if(request->resend) {
+        struct timeval timeout;
+        timeval_plus_msec(&timeout, &request->time, request->resend);
+        timeval_min(&request_resend_time, &timeout);
+    }
+    return 1;
 }
 
 int
