@@ -836,35 +836,6 @@ send_self_update(struct network *net, int force_seqno)
 }
 
 void
-send_self_retract(struct network *net)
-{
-    int i;
-
-    if(net == NULL) {
-        for(i = 0; i < numnets; i++) {
-            if(!nets[i].up)
-                continue;
-            send_self_retract(&nets[i]);
-        }
-        return;
-    }
-
-    flushupdates();
-
-    debugf("Retracting self on %s.\n", net->ifname);
-
-    myseqno = seqno_plus(myseqno, 1);
-    seqno_time = now;
-    delay_jitter(&net->self_update_time, &net->self_update_timeout,
-                 net->self_update_interval);
-    for(i = 0; i < numxroutes; i++) {
-        really_send_update(net, myid, xroutes[i].prefix, xroutes[i].plen,
-                           myseqno, 0xFFFF);
-    }
-    schedule_update_flush(net, 1);
-}
-
-void
 send_neighbour_update(struct neighbour *neigh, struct network *net)
 {
     int i;
