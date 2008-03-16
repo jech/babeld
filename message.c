@@ -503,6 +503,10 @@ send_request(struct network *net,
         return;
     }
 
+    /* Make sure any buffered updates go out before this request. */
+    if(!net || update_net == net)
+        flushupdates();
+
     debugf("Sending request to %s for %s (%d hops).\n",
            net->ifname, prefix ? format_prefix(prefix, plen) : "any",
            hop_count);
@@ -567,6 +571,11 @@ send_unicast_request(struct neighbour *neigh,
                      unsigned short router_hash)
 {
     unsigned char buf[24];
+
+    /* Make sure any buffered updates go out before this request. */
+    if(update_net == neigh->network)
+        flushupdates();
+    flushbuf(neigh->network);
 
     debugf("Sending unicast request to %s (%s) for %s (%d hops).\n",
            format_address(neigh->id),
