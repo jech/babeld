@@ -691,6 +691,8 @@ main(int argc, char **argv)
     }
 
     debugf("Exiting...\n");
+    usleep(5000 + random() % 10000);
+
     /* Uninstall and retract all routes. */
     while(numroutes > 0) {
         if(routes[0].installed) {
