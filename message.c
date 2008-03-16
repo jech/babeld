@@ -638,7 +638,6 @@ flushupdates(void)
     int i;
 
     if(updates > 0) {
-        /* Ensure that we won't be recursively called by flushbuf. */
         int n = updates;
         struct network *net = update_net;
         updates = 0;
