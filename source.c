@@ -88,14 +88,26 @@ find_source(const unsigned char *id, const unsigned char *p, unsigned char plen,
     return src;
 }
 
-/* It is the caller's responsibility to check that no routes point at
-   this source. */
-void
+int
 flush_source(struct source *src)
 {
+    int i;
+
+    for(i = 0; i < numroutes; i++) {
+        if(routes[i].src == src)
+            return 0;
+    }
+
     memset(src, 0, sizeof(*src));
     VALGRIND_MAKE_MEM_UNDEFINED(src, sizeof(*src));
     src->valid = 0;
+
+    while(numsrcs > 0 && !srcs[numsrcs - 1].valid) {
+        numsrcs--;
+        VALGRIND_MAKE_MEM_UNDEFINED(&srcs[numsrcs], sizeof(srcs[numsrcs]));
+    }
+
+    return 1;
 }
 
 struct source *
@@ -147,7 +159,7 @@ update_source(struct source *src,
 int
 flush_old_sources()
 {
-    int i, j, changed;
+    int i, changed, rc;
 
     changed = 0;
 
@@ -156,21 +168,8 @@ flush_old_sources()
             continue;
         if(srcs[i].time >= now.tv_sec - SOURCE_GC_TIME)
             continue;
-        for(j = 0; j < numroutes; j++) {
-            if(routes[j].src == &srcs[i])
-                goto nocando;
-        }
-        flush_source(&srcs[i]);
-        changed = 1;
-    nocando:
-        ;
-    }
-
-    if(changed) {
-        while(numsrcs > 0 && !srcs[numsrcs - 1].valid) {
-            numsrcs--;
-            VALGRIND_MAKE_MEM_UNDEFINED(&srcs[numsrcs], sizeof(srcs[numsrcs]));
-        }
+        rc = flush_source(&srcs[i]);
+        changed = changed || rc;
     }
 
     return changed;
