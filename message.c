@@ -444,27 +444,6 @@ send_message(struct network *net,
     schedule_flush(net);
 }
 
-static const unsigned char *
-message_source_id(struct network *net)
-{
-    int i;
-    assert(net->buffered % 24 == 0);
-
-    i = net->buffered / 24 - 1;
-    while(i >= 0) {
-        const unsigned char *message;
-        message = (const unsigned char*)(net->sendbuf + i * 24);
-        if(message[0] == 3)
-            return message + 8;
-        else if(message[0] == 4)
-            i--;
-        else
-            break;
-    }
-
-    return NULL;
-}
-
 void
 send_hello_noupdate(struct network *net, unsigned interval)
 {
@@ -589,6 +568,28 @@ send_unicast_request(struct neighbour *neigh,
         memcpy(buf + 8, ones, 16);
     }
     send_unicast_packet(neigh, buf, 24);
+}
+
+/* Return the source-id of the last buffered update message. */
+static const unsigned char *
+message_source_id(struct network *net)
+{
+    int i;
+    assert(net->buffered % 24 == 0);
+
+    i = net->buffered / 24 - 1;
+    while(i >= 0) {
+        const unsigned char *message;
+        message = (const unsigned char*)(net->sendbuf + i * 24);
+        if(message[0] == 3)
+            return message + 8;
+        else if(message[0] == 4)
+            i--;
+        else
+            break;
+    }
+
+    return NULL;
 }
 
 static void
