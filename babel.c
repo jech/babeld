@@ -420,7 +420,7 @@ main(int argc, char **argv)
         rc = read(rfd, &seed, sizeof(unsigned int));
         if(rc < sizeof(unsigned int)) {
             perror("read(random)");
-            goto fail;
+            memcpy(&seed, myid + 12, 4);
         }
         close(rfd);
         rfd = -1;
