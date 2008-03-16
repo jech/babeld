@@ -27,6 +27,8 @@ THE SOFTWARE.
 #include "babel.h"
 #include "util.h"
 #include "source.h"
+#include "network.h"
+#include "route.h"
 
 struct source srcs[MAXSRCS];
 int numsrcs = 0;
@@ -36,7 +38,7 @@ find_source(const unsigned char *a, const unsigned char *p, unsigned char plen,
             int create, unsigned short seqno)
 {
     struct source *src;
-    int i;
+    int i, rc;
 
     for(i = 0; i < numsrcs; i++) {
         if(!srcs[i].valid)
@@ -54,6 +56,8 @@ find_source(const unsigned char *a, const unsigned char *p, unsigned char plen,
     if(!create)
         return NULL;
 
+ again:
+
     src = NULL;
 
     for(i = 0; i < numsrcs; i++) {
@@ -65,6 +69,9 @@ find_source(const unsigned char *a, const unsigned char *p, unsigned char plen,
 
     if(!src) {
         if(numsrcs >= MAXSRCS) {
+            rc = flush_old_sources();
+            if(rc)
+                goto again;
             fprintf(stderr, "Too many sources.\n");
             return NULL;
         }
@@ -135,4 +142,36 @@ update_source(struct source *src,
         src->metric = metric;
     }
     src->time = now.tv_sec;
+}
+
+int
+flush_old_sources()
+{
+    int i, j, changed;
+
+    changed = 0;
+
+    for(i = 0; i < numsrcs; i++) {
+        if(!srcs[i].valid)
+            continue;
+        if(srcs[i].time >= now.tv_sec - SOURCE_GC_TIME)
+            continue;
+        for(j = 0; j < numroutes; j++) {
+            if(routes[j].src == &srcs[i])
+                goto nocando;
+        }
+        flush_source(&srcs[i]);
+        changed = 1;
+    nocando:
+        ;
+    }
+
+    if(changed) {
+        while(numsrcs > 0 && !srcs[numsrcs - 1].valid) {
+            numsrcs--;
+            VALGRIND_MAKE_MEM_UNDEFINED(&srcs[numsrcs], sizeof(srcs[numsrcs]));
+        }
+    }
+
+    return changed;
 }

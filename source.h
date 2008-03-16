@@ -43,3 +43,4 @@ struct source *find_recent_source(const unsigned char *p,
                                   unsigned char plen);
 void update_source(struct source *src,
                    unsigned short seqno, unsigned short metric);
+int flush_old_sources(void);
