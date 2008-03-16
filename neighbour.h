@@ -21,12 +21,13 @@ THE SOFTWARE.
 */
 
 struct neighbour {
+    /* This is -1 when unknown, and -2 for an invalid neighbour,
+       so don't make it unsigned */
+    int hello_seqno;
     unsigned char id[16];
     unsigned char address[16];
     unsigned short reach;
     unsigned short txcost;
-    /* This is -1 when unknown, so don't make it unsigned */
-    int hello_seqno;
     struct timeval hello_time;
     struct timeval ihu_time;
     unsigned short hello_interval; /* in centiseconds */

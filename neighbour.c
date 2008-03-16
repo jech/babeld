@@ -37,14 +37,20 @@ THE SOFTWARE.
 struct neighbour neighs[MAXNEIGHBOURS];
 int numneighs = 0;
 
+static int
+neighbour_valid(struct neighbour *neigh)
+{
+    return neigh->hello_seqno != -2;
+}
+
 void
 flush_neighbour(struct neighbour *neigh)
 {
     flush_neighbour_routes(neigh);
     memset(neigh, 0, sizeof(*neigh));
     VALGRIND_MAKE_MEM_UNDEFINED(neigh, sizeof(*neigh));
-    neigh->id[0] = 0xFF;
-    while(numneighs > 0 && neighs[numneighs - 1].id[0] == 0xFF) {
+    neigh->hello_seqno = -2;
+    while(numneighs > 0 && !neighbour_valid(&neighs[numneighs - 1])) {
        numneighs--;
        VALGRIND_MAKE_MEM_UNDEFINED(&neighs[numneighs],
                                    sizeof(neighs[numneighs]));
@@ -56,7 +62,7 @@ find_neighbour(const unsigned char *address, struct network *net)
 {
     int i;
     for(i = 0; i < numneighs; i++) {
-        if(neighs[i].id[0] == 0xFF)
+        if(!neighbour_valid(&neighs[i]))
             continue;
         if(memcmp(address, neighs[i].address, 16) == 0 &&
            neighs[i].network == net)
@@ -73,11 +79,6 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
     const struct timeval zero = {0, 0};
     int i;
 
-    if(id[0] == 0xFF) {
-        fprintf(stderr, "Received neighbour announcement with id[0] = FF.\n");
-        return NULL;
-    }
-
     neigh = find_neighbour(address, net);
     if(neigh) {
         if(memcmp(neigh->id, id, 16) == 0) {
@@ -92,7 +93,7 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
     debugf("Creating neighbour %s (%s).\n",
            format_address(id), format_address(address));
     for(i = 0; i < numneighs; i++) {
-        if(neighs[i].id[0] == 0xFF)
+        if(!neighbour_valid(&neighs[i]))
             neigh = &neighs[i];
     }
     if(!neigh) {
@@ -102,6 +103,7 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
         }
         neigh = &neighs[numneighs++];
     }
+    neigh->hello_seqno = -1;
     memcpy(neigh->id, id, 16);
     memcpy(neigh->address, address, 16);
     neigh->reach = 0;
@@ -110,7 +112,6 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
     neigh->hello_time = zero;
     neigh->hello_interval = 0;
     neigh->ihu_interval = 0;
-    neigh->hello_seqno = -1;
     neigh->network = net;
     send_hello(net);
     return neigh;
@@ -220,7 +221,7 @@ check_neighbours()
     debugf("Checking neighbours.\n");
 
     for(i = 0; i < numneighs; i++) {
-        if(neighs[i].id[0] == 0xFF)
+        if(!neighbour_valid(&neighs[i]))
             continue;
 
         changed = update_neighbour(&neighs[i], -1, 0);
