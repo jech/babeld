@@ -565,7 +565,7 @@ main(int argc, char **argv)
                     FD_ZERO(&readfds);
                 } else {
                     perror("select");
-                    sleep(1);
+                    usleep(1000000);
                     continue;
                 }
             }
@@ -586,7 +586,7 @@ main(int argc, char **argv)
             if(rc < 0) {
                 if(errno != EAGAIN && errno != EINTR) {
                     perror("recv");
-                    sleep(1);
+                    usleep(1000000);
                 }
             } else {
                 for(i = 0; i < numnets; i++) {
@@ -692,6 +692,7 @@ main(int argc, char **argv)
 
     debugf("Exiting...\n");
     usleep(5000 + random() % 10000);
+    gettimeofday(&now, NULL);
 
     /* Uninstall and retract all routes. */
     while(numroutes > 0) {
@@ -719,6 +720,7 @@ main(int argc, char **argv)
         send_hello_noupdate(&nets[i], numnets);
         flushbuf(&nets[i]);
         usleep(5000 + random() % 10000);
+        gettimeofday(&now, NULL);
     }
     for(i = 0; i < numnets; i++) {
         if(!nets[i].up)
@@ -727,6 +729,7 @@ main(int argc, char **argv)
         send_hello_noupdate(&nets[i], 1);
         flushbuf(&nets[i]);
         usleep(5000 + random() % 10000);
+        gettimeofday(&now, NULL);
         network_up(&nets[i], 0);
     }
     kernel_setup_socket(0);
