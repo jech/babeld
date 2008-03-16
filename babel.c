@@ -521,9 +521,8 @@ main(int argc, char **argv)
         gettimeofday(&now, NULL);
         send_hello(&nets[i]);
         send_self_update(&nets[i], 0);
-        /* Make sure the update is sent before the request. */
-        flushupdates();
         send_request(&nets[i], NULL, 0, 0, 0, 0);
+        flushupdates();
         flushbuf(&nets[i]);
     }
 
