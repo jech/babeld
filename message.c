@@ -59,6 +59,12 @@ struct buffered_update buffered_updates[MAX_BUFFERED_UPDATES];
 struct network *update_net = NULL;
 int updates = 0;
 
+#define UNICAST_BUFSIZE 1024
+int unicast_buffered = 0;
+unsigned char *unicast_buffer = NULL;
+struct neighbour *unicast_neighbour = NULL;
+struct timeval unicast_flush_timeout = {0, 0};
+
 unsigned short
 hash_id(const unsigned char *id)
 {
@@ -378,7 +384,8 @@ schedule_flush(struct network *net)
        timeval_minus_msec(&net->flush_timeout, &now) < msecs)
         return;
     net->flush_timeout.tv_usec = (now.tv_usec + msecs * 1000) % 1000000;
-    net->flush_timeout.tv_sec = now.tv_sec + (now.tv_usec / 1000 + msecs) / 1000;
+    net->flush_timeout.tv_sec =
+        now.tv_sec + (now.tv_usec / 1000 + msecs) / 1000;
 }
 
 void
@@ -391,6 +398,22 @@ schedule_flush_now(struct network *net)
         return;
     net->flush_timeout.tv_usec = (now.tv_usec + msecs * 1000) % 1000000;
     net->flush_timeout.tv_sec =
+        now.tv_sec + (now.tv_usec / 1000 + msecs) / 1000;
+}
+
+static void
+schedule_unicast_flush(void)
+{
+    int msecs;
+
+    if(!unicast_neighbour)
+        return;
+    msecs = jitter(unicast_neighbour->network, 1);
+    if(unicast_flush_timeout.tv_sec != 0 &&
+       timeval_minus_msec(&unicast_flush_timeout, &now) < msecs)
+        return;
+    unicast_flush_timeout.tv_usec = (now.tv_usec + msecs * 1000) % 1000000;
+    unicast_flush_timeout.tv_sec =
         now.tv_sec + (now.tv_usec / 1000 + msecs) / 1000;
 }
 
@@ -537,31 +560,88 @@ send_request_resend(struct neighbour *neigh,
 
 }
 
-static void
-send_unicast_packet(struct neighbour *neigh, unsigned char *buf, int buflen)
+void
+flush_unicast(int dofree)
 {
     struct sockaddr_in6 sin6;
     int rc;
 
-    if(!neigh->network->up)
-        return;
+    if(unicast_buffered == 0)
+        goto done;
 
-    if(check_bucket(neigh->network)) {
+    if(!unicast_neighbour->network->up)
+        goto done;
+
+    /* Preserve ordering of messages */
+    flushbuf(unicast_neighbour->network);
+
+    if(check_bucket(unicast_neighbour->network)) {
         memset(&sin6, 0, sizeof(sin6));
         sin6.sin6_family = AF_INET6;
-        memcpy(&sin6.sin6_addr, neigh->address, 16);
+        memcpy(&sin6.sin6_addr, unicast_neighbour->address, 16);
         sin6.sin6_port = htons(protocol_port);
-        sin6.sin6_scope_id = neigh->network->ifindex;
+        sin6.sin6_scope_id = unicast_neighbour->network->ifindex;
         rc = babel_send(protocol_socket,
                         packet_header, sizeof(packet_header),
-                        buf, buflen,
+                        unicast_buffer, unicast_buffered,
                         (struct sockaddr*)&sin6, sizeof(sin6));
         if(rc < 0)
             perror("send(unicast)");
     } else {
-        fprintf(stderr, "Warning: bucket full, dropping packet to %s.\n",
-                neigh->network->ifname);
+        fprintf(stderr,
+                "Warning: bucket full, dropping unicast packet"
+                "to %s (%s) if %s.\n",
+                format_address(unicast_neighbour->id),
+                format_address(unicast_neighbour->address),
+                unicast_neighbour->network->ifname);
     }
+
+ done:
+    VALGRIND_MAKE_MEM_UNDEFINED(unicast_buffer, UNICAST_BUFSIZE);
+    unicast_buffered = 0;
+    if(dofree && unicast_buffer) {
+        free(unicast_buffer);
+        unicast_buffer = NULL;
+    }
+    unicast_neighbour = NULL;
+    unicast_flush_timeout.tv_sec = 0;
+    unicast_flush_timeout.tv_usec = 0;
+}
+
+static void
+send_unicast_message(struct neighbour *neigh,
+                     unsigned char type,
+                     unsigned char plen, unsigned char hop_count,
+                     unsigned short seqno, unsigned short metric,
+                     const unsigned char *address)
+{
+    if(unicast_neighbour) {
+        if(neigh != unicast_neighbour ||
+           unicast_buffered + 24 >=
+           MIN(UNICAST_BUFSIZE, neigh->network->bufsize))
+        flush_unicast(0);
+    }
+
+    if(!unicast_buffer)
+        unicast_buffer = malloc(UNICAST_BUFSIZE);
+    if(!unicast_buffer) {
+        perror("malloc(unicast_buffer)");
+        return;
+    }
+
+    assert(unicast_buffered % 24 == 0);
+    unicast_buffer[unicast_buffered++] = type;
+    unicast_buffer[unicast_buffered++] = plen;
+    unicast_buffer[unicast_buffered++] = 0;
+    unicast_buffer[unicast_buffered++] = hop_count;
+    unicast_buffer[unicast_buffered++] = (seqno >> 8) & 0xFF;
+    unicast_buffer[unicast_buffered++] = seqno & 0xFF;
+    unicast_buffer[unicast_buffered++] = (metric >> 8) & 0xFF;
+    unicast_buffer[unicast_buffered++] = metric & 0xFF;
+    memcpy(unicast_buffer + unicast_buffered, address, 16);
+    unicast_buffered += 16;
+
+    schedule_unicast_flush();
 }
 
 void
@@ -570,12 +650,9 @@ send_unicast_request(struct neighbour *neigh,
                      unsigned char hop_count, unsigned short seqno,
                      unsigned short router_hash)
 {
-    unsigned char buf[24];
-
     /* Make sure any buffered updates go out before this request. */
     if(update_net == neigh->network)
         flushupdates();
-    flushbuf(neigh->network);
 
     debugf("Sending unicast request to %s (%s) for %s (%d hops).\n",
            format_address(neigh->id),
@@ -583,20 +660,11 @@ send_unicast_request(struct neighbour *neigh,
            prefix ? format_prefix(prefix, plen) : "any",
            hop_count);
 
-    buf[0] = 2;
-    if(prefix) {
-        buf[1] = plen;
-        buf[2] = 0;
-        buf[3] = hop_count;
-        *(uint16_t*)(buf + 4) = seqno;
-        *(uint16_t*)(buf + 6) = router_hash;
-        memcpy(buf + 8, prefix, 16);
-    } else {
-        buf[1] = 0xFF;
-        memset(buf + 2, 0, 6);
-        memcpy(buf + 8, ones, 16);
-    }
-    send_unicast_packet(neigh, buf, 24);
+    if(prefix)
+        send_unicast_message(neigh,
+                             2, plen, hop_count, seqno, router_hash, prefix);
+    else
+        send_unicast_message(neigh, 2, 0xFF, 0, 0, 0, ones);
 }
 
 /* Return the source-id of the last buffered update message. */

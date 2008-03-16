@@ -34,6 +34,9 @@ extern int split_horizon;
 extern struct timeval update_flush_timeout;
 extern const unsigned char packet_header[8];
 
+extern struct neighbour *unicast_neighbour;
+extern struct timeval unicast_flush_timeout;
+
 unsigned short hash_id(const unsigned char *id) ATTRIBUTE ((pure));
 void parse_packet(const unsigned char *from, struct network *net,
                   const unsigned char *packet, int len);
@@ -50,6 +53,7 @@ void send_request(struct network *net,
 void send_request_resend(struct neighbour *neigh,
                          const unsigned char *prefix, unsigned char plen,
                          unsigned short seqno, unsigned short router_hash);
+void flush_unicast(int dofree);
 void send_unicast_request(struct neighbour *neigh,
                           const unsigned char *prefix, unsigned char plen,
                           unsigned char hop_count, unsigned short seqno,

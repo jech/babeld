@@ -47,6 +47,8 @@ void
 flush_neighbour(struct neighbour *neigh)
 {
     flush_neighbour_routes(neigh);
+    if(unicast_neighbour == neigh)
+        flush_unicast(1);
     memset(neigh, 0, sizeof(*neigh));
     VALGRIND_MAKE_MEM_UNDEFINED(neigh, sizeof(*neigh));
     neigh->hello_seqno = -2;

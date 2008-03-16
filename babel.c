@@ -553,6 +553,7 @@ main(int argc, char **argv)
             }
         }
         timeval_min(&tv, &update_flush_timeout);
+        timeval_min(&tv, &unicast_flush_timeout);
         FD_ZERO(&readfds);
         if(timeval_compare(&tv, &now) > 0) {
             timeval_minus(&tv, &tv, &now);
@@ -676,6 +677,11 @@ main(int argc, char **argv)
         if(update_flush_timeout.tv_sec != 0) {
             if(timeval_compare(&now, &update_flush_timeout) >= 0)
                 flushupdates();
+        }
+
+        if(unicast_flush_timeout.tv_sec != 0) {
+            if(timeval_compare(&now, &unicast_flush_timeout) >= 0)
+                flush_unicast(1);
         }
 
         for(i = 0; i < numnets; i++) {
