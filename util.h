@@ -79,6 +79,8 @@ int daemonise(void);
         if(debug >= 3) do_debugf(3, _args);      \
     } while(0)
 #else
-#define debugf do_debugf
+/* Disable debugging code */
+static void debugf(const char *format, ...) { return; }
+static void kdebugf(const char *format, ...) { return; }
 #endif
 
