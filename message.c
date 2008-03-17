@@ -939,7 +939,7 @@ send_ihu(struct neighbour *neigh, struct network *net)
 
     if(neigh == NULL) {
         for(i = 0; i < numneighs; i++) {
-            if(neighs[i].id[0] != 0xFF) {
+            if(neighs[i].hello_seqno != -2) {
                 if(neighs[i].network == net)
                     send_ihu(&neighs[i], net);
             }
