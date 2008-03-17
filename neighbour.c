@@ -214,6 +214,28 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
     return rc;
 }
 
+static int
+reset_txcost(struct neighbour *neigh)
+{
+    int delay;
+
+    delay = timeval_minus_msec(&now, &neigh->ihu_time);
+
+    if(neigh->ihu_interval > 0 && delay < neigh->ihu_interval * 10 * 3)
+        return 0;
+
+    /* If we're losing a lot of packets, we probably lost an IHU too */
+    if(delay >= 180000 || (neigh->reach & 0xFFF0) == 0 ||
+       (neigh->ihu_interval > 0 &&
+        delay >= neigh->ihu_interval * 10 * 10)) {
+        neigh->txcost = INFINITY;
+        neigh->ihu_time = now;
+        return 1;
+    }
+
+    return 0;
+}
+
 int
 check_neighbours()
 {
@@ -236,13 +258,7 @@ check_neighbours()
 
         delay = timeval_minus_msec(&now, &neighs[i].ihu_time);
 
-        if(delay >= 180000 ||
-           (neighs[i].ihu_interval > 0 &&
-            delay >= neighs[i].ihu_interval * 10 * 4)) {
-            neighs[i].txcost = INFINITY;
-            neighs[i].ihu_time = now;
-            changed = 1;
-        }
+        changed = changed || reset_txcost(&neighs[i]);
 
         if(changed)
             update_neighbour_metric(&neighs[i]);
@@ -296,6 +312,7 @@ neighbour_cost(struct neighbour *neigh)
     if(!neigh->network->up)
         return INFINITY;
 
+    reset_txcost(neigh);
     a = neigh->txcost;
 
     if(a >= INFINITY)
