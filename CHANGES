@@ -15,6 +15,8 @@ babel 0.11 (unreleased)
     idle when running Babel with the -i flag.
   * Fixed a bug that could cause incorrect metrics to be advertised
     when output filtering was used.
+  * Fixed a bug that could cause incorrect link costs to be computed when
+    a neighbour reduces its hello interval.
   * Fixed some minor issues with the ordering of outgoing messages.
 
 11 March 2008: babel 0.10
