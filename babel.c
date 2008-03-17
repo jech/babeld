@@ -512,7 +512,7 @@ main(int argc, char **argv)
     kernel_link_changed = 0;
     kernel_addr_changed = 0;
     kernel_dump_time = now.tv_sec + 20 + random() % 20;
-    timeval_plus_msec(&check_neighbours_timeout, &now, 5000 + random() % 5000);
+    schedule_neighbours_check(5000, 1);
     expiry_time = now.tv_sec + 20 + random() % 20;
     source_expiry_time = now.tv_sec + 200 + random() % 200;
 
@@ -640,9 +640,8 @@ main(int argc, char **argv)
         if(timeval_compare(&check_neighbours_timeout, &now) < 0) {
             int msecs;
             msecs = check_neighbours();
-            msecs = MAX(msecs, 500);
-            timeval_plus_msec(&check_neighbours_timeout, &now,
-                              msecs / 2 + random() % msecs);
+            msecs = MAX(msecs, 10);
+            schedule_neighbours_check(msecs, 1);
         }
 
         if(now.tv_sec >= expiry_time) {

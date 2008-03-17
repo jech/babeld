@@ -138,6 +138,8 @@ parse_packet(const unsigned char *from, struct network *net,
             changed = update_neighbour(neigh, seqno, metric);
             if(changed)
                 update_neighbour_metric(neigh);
+            if(metric > 0)
+                schedule_neighbours_check(metric * 10, 0);
         } else {
             neigh = find_neighbour(from, net);
             if(neigh == NULL)
@@ -154,6 +156,8 @@ parse_packet(const unsigned char *from, struct network *net,
                     neigh->ihu_time = now;
                     neigh->ihu_interval = seqno;
                     update_neighbour_metric(neigh);
+                    if(seqno > 0)
+                        schedule_neighbours_check(seqno * 10 * 3, 0);
                 }
             } else if(type == 2) {
                 debugf("Received request on %s from %s (%s) for %s "
