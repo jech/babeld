@@ -618,7 +618,10 @@ send_unicast_message(struct neighbour *neigh,
         return;
     }
 
+    unicast_neighbour = neigh;
+
     assert(unicast_buffered % 24 == 0);
+
     unicast_buffer[unicast_buffered++] = type;
     unicast_buffer[unicast_buffered++] = plen;
     unicast_buffer[unicast_buffered++] = 0;
