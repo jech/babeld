@@ -99,11 +99,11 @@ is omitted, it defaults to 128 (a host route).
 .I Cost
 should either be a 16-bit unsigned integer, or the string
 .B infinity
-which specifies a blackhole route.  Babel itself uses a cost of 256
-for a lossless wireless link, and a cost of 96 for a functioning
-wired link.  This option should not be used, as it may cause
-persistent routing loops.  Redistributing a static route is a safer
-alternative.
+which specifies a blackhole route (see
+.I Metrics
+below).  This option should not be used, as
+it may cause persistent routing loops.  Redistributing a static route
+is a safer alternative.
 .TP
 .BI \-t " table"
 Use the given kernel routing table for routes inserted by Babel.
@@ -134,6 +134,12 @@ omitted, Babel will try to determine a suitable router-id automatically.
 .TP
 .IR interface ...
 The list of interfaces on which the protocol should operate.
+.SH METRICS
+.B Babel
+manipulates costs and metrics that are 16-bit unsigned integers, with
+the value 65535 representing infinity.  A cost of 256 is interpreted
+as a wireless hop with no packet losses.  A cost of 255 or less is
+interpreted as a wired link.
 .SH CONFIG FILE FORMAT
 The configuration file is a sequence of lines each of which specifies
 a filter entry.  Each of these lines has the following format:
