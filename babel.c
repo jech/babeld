@@ -897,7 +897,7 @@ dump_tables(FILE *out)
     fprintf(out, "My id %s seqno %d\n", format_address(myid), myseqno);
 
     for(i = 0; i < numneighs; i++) {
-        if(neighs[i].id[0] == 0xFF)
+        if(neighs[i].hello_seqno == -2)
             continue;
         fprintf(out, "Neighbour %s ", format_address(neighs[i].id));
         fprintf(out, "at %s dev %s reach %04x rxcost %d txcost %d%s.\n",
