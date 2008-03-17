@@ -42,9 +42,9 @@ int neighbour_valid(struct neighbour *neigh);
 void flush_neighbour(struct neighbour *neigh);
 struct neighbour *find_neighbour(const unsigned char *address,
                                  struct network *net);
-struct neighbour *
-add_neighbour(const unsigned char *id, const unsigned char *address,
-              struct network *net);
+struct neighbour *add_neighbour(const unsigned char *id,
+                                const unsigned char *address,
+                                struct network *net);
 int update_neighbour(struct neighbour *neigh, int hello, int hello_interval);
 int check_neighbours(void);
 int neighbour_rxcost(struct neighbour *neigh);
