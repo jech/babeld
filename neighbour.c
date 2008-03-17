@@ -37,7 +37,7 @@ THE SOFTWARE.
 struct neighbour neighs[MAXNEIGHBOURS];
 int numneighs = 0;
 
-static int
+int
 neighbour_valid(struct neighbour *neigh)
 {
     return neigh->hello_seqno != -2;
