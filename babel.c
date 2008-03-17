@@ -800,6 +800,19 @@ main(int argc, char **argv)
     exit(1);
 }
 
+/* Schedule a neighbours check after roughly 3/2 msecs have elapsed. */
+void
+schedule_neighbours_check(int msecs, int override)
+{
+    struct timeval timeout;
+
+    timeval_plus_msec(&timeout, &now, msecs + random() % msecs);
+    if(override)
+        check_neighbours_timeout = timeout;
+    else
+        timeval_min(&check_neighbours_timeout, &timeout);
+}
+
 void
 resize_receive_buffer(int size)
 {

@@ -81,4 +81,5 @@ extern int kernel_socket;
 extern int max_request_hopcount;
 extern int update_interval;
 
+void schedule_neighbours_check(int msecs, int override);
 void resize_receive_buffer(int size);
