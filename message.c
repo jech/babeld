@@ -942,10 +942,10 @@ send_ihu(struct neighbour *neigh, struct network *net)
 
     if(neigh == NULL) {
         for(i = 0; i < numneighs; i++) {
-            if(neighs[i].hello_seqno != -2) {
-                if(neighs[i].network == net)
-                    send_ihu(&neighs[i], net);
-            }
+            if(!neighbour_valid(&neighs[i]))
+                continue;
+            if(neighs[i].network == net)
+                send_ihu(&neighs[i], net);
         }
     } else {
         int rxcost, interval;
@@ -976,7 +976,7 @@ send_marginal_ihu(struct network *net)
 {
     int i;
     for(i = 0; i < numneighs; i++) {
-        if(neighs[i].hello_seqno == -2 || (net && neighs[i].network != net))
+        if(!neighbour_valid(&neighs[i]) || (net && neighs[i].network != net))
             continue;
         if(neighs[i].txcost >= 384 || (neighs[i].reach & 0xF000) != 0xF000)
             send_ihu(&neighs[i], net);
