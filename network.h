@@ -31,8 +31,6 @@ struct network {
     struct timeval self_update_timeout;
     struct timeval update_time;
     struct timeval update_timeout;
-    struct timeval ihu_time;
-    struct timeval ihu_timeout;
     char ifname[IF_NAMESIZE];
     unsigned char *ipv4;
     int buffered;
@@ -45,7 +43,6 @@ struct network {
     unsigned short hello_seqno;
     unsigned int hello_interval;
     unsigned int self_update_interval;
-    unsigned int ihu_interval;
 };
 
 extern struct network nets[MAXNETS];

@@ -196,16 +196,12 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
         }
     }
 
-    /* If this neighbour is marginal, make sure to give it plenty of
-       feedback. */
-    if((neigh->reach & 0xE000) != 0xE000 && (neigh->reach & 0xE000) != 0x0000)
-        send_ihu(neigh, NULL);
-
     if((neigh->reach & 0xFC00) == 0xC000) {
         /* This is a newish neighbour.  If we don't have another route to it,
            request a full route dump.  This assumes that the neighbour's id
            is also its IP address and that it is exporting a route to itself. */
         struct route *route = NULL;
+        send_ihu(neigh, NULL);
         if(!martian_prefix(neigh->id, 128))
            route = find_installed_route(neigh->id, 128);
         if(!route || route->metric >= INFINITY || route->neigh == neigh)

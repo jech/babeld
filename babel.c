@@ -661,8 +661,6 @@ main(int argc, char **argv)
                 continue;
             if(timeval_compare(&now, &nets[i].hello_timeout) >= 0)
                 send_hello(&nets[i]);
-            if(timeval_compare(&now, &nets[i].ihu_timeout) >= 0)
-                send_ihu(NULL, &nets[i]);
             if(!network_idle(&nets[i])) {
                 if(timeval_compare(&now, &nets[i].update_timeout) >= 0)
                     send_update(&nets[i], 0, NULL, 0);

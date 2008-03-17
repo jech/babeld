@@ -94,11 +94,6 @@ update_hello_interval(struct network *net)
         }
     }
 
-    if(net->ihu_interval != 3 * net->hello_interval) {
-        net->ihu_interval = 3 * net->hello_interval;
-        rc = 1;
-    }
-
     net->self_update_interval =
         MAX(update_interval / 2, net->hello_interval);
 
@@ -250,8 +245,6 @@ network_up(struct network *net, int up)
         }
         delay_jitter(&net->hello_time, &net->hello_timeout,
                      net->hello_interval);
-        delay_jitter(&net->ihu_time, &net->ihu_timeout,
-                     net->ihu_interval);
         delay_jitter(&net->self_update_time, &net->self_update_timeout,
                      net->self_update_interval);
         delay_jitter(&net->update_time, &net->update_timeout,

@@ -167,7 +167,7 @@ parse_packet(const unsigned char *from, struct network *net,
                        hop_count);
                 if(plen == 0xFF) {
                     /* If a neighbour is requesting a full route dump from us,
-                       we might as well send it an ihu. */
+                       we might as well send it an IHU. */
                     send_ihu(neigh, NULL);
                     send_update(neigh->network, 0, NULL, 0);
                 } else {
@@ -494,8 +494,11 @@ send_hello(struct network *net)
     int changed;
     changed = update_hello_interval(net);
     send_hello_noupdate(net, (net->hello_interval + 9) / 10);
-    if(changed)
+    /* Send full IHU every 3 hellos, and marginal IHU each time */
+    if(changed || net->hello_seqno % 3 == 0)
         send_ihu(NULL, net);
+    else
+        send_marginal_ihu(net);
 }
 
 void
@@ -944,8 +947,6 @@ send_ihu(struct neighbour *neigh, struct network *net)
                     send_ihu(&neighs[i], net);
             }
         }
-        delay_jitter(&net->ihu_time, &net->ihu_timeout,
-                     net->ihu_interval);
     } else {
         int rxcost, interval;
 
@@ -956,7 +957,7 @@ send_ihu(struct neighbour *neigh, struct network *net)
 
         rxcost = neighbour_rxcost(neigh);
 
-        interval = (net->ihu_interval + 9) / 10;
+        interval = (net->hello_interval * 3 + 9) / 10;
 
         debugf("Sending ihu %d on %s to %s (%s).\n",
                rxcost,
@@ -966,5 +967,18 @@ send_ihu(struct neighbour *neigh, struct network *net)
 
         send_message(net, 1, 128, 0, interval < 0xFFFF ? interval : 0,
                      rxcost, neigh->id);
+    }
+}
+
+/* Send IHUs to all marginal neighbours */
+void
+send_marginal_ihu(struct network *net)
+{
+    int i;
+    for(i = 0; i < numneighs; i++) {
+        if(neighs[i].hello_seqno == -2 || (net && neighs[i].network != net))
+            continue;
+        if(neighs[i].txcost >= 384 || (neighs[i].reach & 0xF000) != 0xF000)
+            send_ihu(&neighs[i], net);
     }
 }
