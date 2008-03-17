@@ -86,6 +86,8 @@ static int kernel_routes_changed = 0;
 static int kernel_link_changed = 0;
 static int kernel_addr_changed = 0;
 
+struct timeval check_neighbours_timeout;
+
 static volatile sig_atomic_t exiting = 0, dumping = 0, changed = 0;
 
 static int kernel_routes_callback(int changed, void *closure);
@@ -98,7 +100,6 @@ main(int argc, char **argv)
 {
     struct sockaddr_in6 sin6;
     int i, rc, fd, rfd, have_id = 0;
-    struct timeval check_neighbours_time;
     time_t expiry_time, source_expiry_time, kernel_dump_time;
     char *config_file = NULL;
     void *vrc;
@@ -511,7 +512,7 @@ main(int argc, char **argv)
     kernel_link_changed = 0;
     kernel_addr_changed = 0;
     kernel_dump_time = now.tv_sec + 20 + random() % 20;
-    timeval_plus_msec(&check_neighbours_time, &now, 5000 + random() % 5000);
+    timeval_plus_msec(&check_neighbours_timeout, &now, 5000 + random() % 5000);
     expiry_time = now.tv_sec + 20 + random() % 20;
     source_expiry_time = now.tv_sec + 200 + random() % 200;
 
@@ -537,7 +538,7 @@ main(int argc, char **argv)
 
         gettimeofday(&now, NULL);
 
-        tv = check_neighbours_time;
+        tv = check_neighbours_timeout;
         timeval_min_sec(&tv, expiry_time);
         timeval_min_sec(&tv, source_expiry_time);
         timeval_min_sec(&tv, kernel_dump_time);
@@ -609,7 +610,7 @@ main(int argc, char **argv)
 
         if(changed) {
             kernel_dump_time = now.tv_sec;
-            check_neighbours_time = now;
+            check_neighbours_timeout = now;
             expiry_time = now.tv_sec;
             rc = reopen_logfile();
             if(rc < 0) {
@@ -636,11 +637,11 @@ main(int argc, char **argv)
                 kernel_dump_time = now.tv_sec + 20 + random() % 20;
         }
 
-        if(timeval_compare(&check_neighbours_time, &now) < 0) {
+        if(timeval_compare(&check_neighbours_timeout, &now) < 0) {
             int msecs;
             msecs = check_neighbours();
             msecs = MAX(msecs, 500);
-            timeval_plus_msec(&check_neighbours_time, &now,
+            timeval_plus_msec(&check_neighbours_timeout, &now,
                               msecs / 2 + random() % msecs);
         }
 
