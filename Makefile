@@ -15,8 +15,16 @@ OBJS = babel.o net.o kernel.o util.o network.o source.o neighbour.o \
 babel: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o babel $(OBJS) $(LDLIBS)
 
+.SUFFIXES: .man .html
+
+.man.html:
+	rman -f html $< | \
+	sed -e "s|<a href='babel.8'|<a href=\"babel.html\"|" \
+            -e "s|<a href='\\(ahcp[-a-z]*\\).8'|<a href=\"../ahcp/\1.html\"|" \
+	    -e "s|<a href='[^']*8'>\\(.*(8)\\)</a>|\1|" \
+	> $@
+
 babel.html: babel.man
-	rman -f html babel.man > babel.html
 
 .PHONY: all install uninstall clean
 
