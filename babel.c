@@ -815,24 +815,26 @@ schedule_neighbours_check(int msecs, int override)
 void
 resize_receive_buffer(int size)
 {
-    char *new;
-
     if(size <= receive_buffer_size)
         return;
 
     if(receive_buffer == NULL) {
         receive_buffer = malloc(size);
-        if(receive_buffer == NULL)
+        if(receive_buffer == NULL) {
+            perror("malloc(receive_buffer)");
             return;
+        }
+        receive_buffer_size = size;
+    } else {
+        unsigned char *new;
+        new = realloc(receive_buffer, size);
+        if(new == NULL) {
+            perror("realloc(receive_buffer)");
+            return;
+        }
+        new = receive_buffer;
         receive_buffer_size = size;
     }
-
-    new = realloc(receive_buffer, size);
-    if(new == NULL) {
-        perror("malloc(receive_buffer)");
-        return;
-    }
-    receive_buffer_size = size;
 }
 
 static void
