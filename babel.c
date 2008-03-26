@@ -832,7 +832,7 @@ resize_receive_buffer(int size)
             perror("realloc(receive_buffer)");
             return;
         }
-        new = receive_buffer;
+        receive_buffer = new;
         receive_buffer_size = size;
     }
 }
