@@ -11,6 +11,7 @@ babel 0.11 (unreleased)
     it more likely that a feasible route will be available when needed.
   * Implemented garbage collection of old sources.
   * Implemented coalescing of unicast messages.
+  * Fixed a bug that could cause a crash when a link's MTU changes.
   * Fixed a bug that could delay noticing that a network is no longer
     idle when running Babel with the -i flag.
   * Fixed a bug that could cause incorrect metrics to be advertised
