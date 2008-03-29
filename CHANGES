@@ -1,4 +1,4 @@
-babel 0.11 (unreleased)
+29 March 2008: babel 0.11
 
   * Implemented sub-second hello and update intervals.
   * Fixed a bug that could prevent the best route from being selected
