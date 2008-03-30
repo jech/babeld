@@ -37,6 +37,7 @@ THE SOFTWARE.
 #include "message.h"
 #include "resend.h"
 #include "filter.h"
+#include "local.h"
 
 struct route *routes = NULL;
 int numroutes = 0, maxroutes = 0;
@@ -85,6 +86,8 @@ flush_route(struct route *route)
         uninstall_route(route);
         lost = 1;
     }
+
+    local_notify_route(route, 1);
 
     src = route->src;
 
@@ -155,6 +158,7 @@ install_route(struct route *route)
             return;
     }
     route->installed = 1;
+    local_notify_route(route, 0);
 }
 
 void
@@ -173,6 +177,7 @@ uninstall_route(struct route *route)
         perror("kernel_route(FLUSH)");
 
     route->installed = 0;
+    local_notify_route(route, 0);
 }
 
 /* This is equivalent to uninstall_route followed with install_route,
@@ -201,6 +206,8 @@ switch_routes(struct route *old, struct route *new)
         old->installed = 0;
         new->installed = 1;
     }
+    local_notify_route(old, 0);
+    local_notify_route(new, 0);
 }
 
 void
@@ -226,6 +233,7 @@ change_route_metric(struct route *route, int newmetric)
         }
     }
     route->metric = newmetric;
+    local_notify_route(route, 0);
 }
 
 int
