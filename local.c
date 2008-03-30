@@ -89,7 +89,7 @@ local_notify_self()
     if(local_socket < 0)
         return;
 
-    rc = snprintf(buf, 512, "self %s", format_address(myid));
+    rc = snprintf(buf, 512, "self id %s\n", format_address(myid));
 
     if(rc < 0 || rc >= 512)
         goto fail;
@@ -114,8 +114,8 @@ local_notify_neighbour(struct neighbour *neigh, int flush)
         return;
 
     rc = snprintf(buf, 512,
-                  "%sneighbour %s address %s "
-                  "dev %s reach %04x rxcost %d txcost %d cost %d\n",
+                  "%sneighbour id %s address %s "
+                  "if %s reach %04x rxcost %d txcost %d cost %d\n",
                   flush ? " flush" : "",
                   format_address(neigh->id),
                   format_address(neigh->address),
@@ -147,7 +147,7 @@ local_notify_xroute(struct xroute *xroute, int flush)
     if(local_socket < 0)
         return;
 
-    rc = snprintf(buf, 512, "%sxroute %s metric %d\n",
+    rc = snprintf(buf, 512, "%sxroute prefix %s metric %d\n",
                   flush ? "flush " : "",
                   format_prefix(xroute->prefix, xroute->plen),
                   xroute->metric);
@@ -175,7 +175,7 @@ local_notify_route(struct route *route, int flush)
         return;
 
     rc = snprintf(buf, 512,
-                  "%sroute %s installed %s "
+                  "%sroute prefix %s installed %s "
                   "id %s metric %d refmetric %d via %s if %s neigh %s\n",
                   flush ? "flush " : "",
                   format_prefix(route->src->prefix, route->src->plen),
