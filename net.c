@@ -24,7 +24,9 @@ THE SOFTWARE.
 #include <fcntl.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/types.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <errno.h>
 
@@ -151,4 +153,52 @@ babel_send(int s,
         }
     }
     return rc;
+}
+
+int
+tcp_server_socket(int port, int local)
+{
+    struct sockaddr_in6 sin6;
+    int s, rc, saved_errno;
+    int one = 1;
+
+    s = socket(PF_INET6, SOCK_STREAM, 0);
+    if(s < 0)
+        return -1;
+
+    rc = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+    if(rc < 0)
+        goto fail;
+
+    rc = fcntl(s, F_GETFL, 0);
+    if(rc < 0)
+        goto fail;
+
+    rc = fcntl(s, F_SETFL, (rc | O_NONBLOCK));
+    if(rc < 0)
+        goto fail;
+
+    memset(&sin6, 0, sizeof(sin6));
+    sin6.sin6_family = AF_INET6;
+    sin6.sin6_port = htons(port);
+    if(local) {
+        rc = inet_pton(AF_INET6, "::1", &sin6.sin6_addr);
+        if(rc < 0)
+            goto fail;
+    }
+    rc = bind(s, (struct sockaddr*)&sin6, sizeof(sin6));
+    if(rc < 0)
+        goto fail;
+
+    rc = listen(s, 2);
+    if(rc < 0)
+        goto fail;
+
+    return s;
+
+ fail:
+    saved_errno = errno;
+    close(s);
+    errno = saved_errno;
+    return -1;
 }
