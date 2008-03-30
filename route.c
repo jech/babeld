@@ -87,7 +87,7 @@ flush_route(struct route *route)
         lost = 1;
     }
 
-    local_notify_route(route, 1);
+    local_notify_route(route, LOCAL_FLUSH);
 
     src = route->src;
 
@@ -158,7 +158,7 @@ install_route(struct route *route)
             return;
     }
     route->installed = 1;
-    local_notify_route(route, 0);
+    local_notify_route(route, LOCAL_CHANGE);
 }
 
 void
@@ -177,7 +177,7 @@ uninstall_route(struct route *route)
         perror("kernel_route(FLUSH)");
 
     route->installed = 0;
-    local_notify_route(route, 0);
+    local_notify_route(route, LOCAL_CHANGE);
 }
 
 /* This is equivalent to uninstall_route followed with install_route,
@@ -206,8 +206,8 @@ switch_routes(struct route *old, struct route *new)
         old->installed = 0;
         new->installed = 1;
     }
-    local_notify_route(old, 0);
-    local_notify_route(new, 0);
+    local_notify_route(old, LOCAL_CHANGE);
+    local_notify_route(new, LOCAL_CHANGE);
 }
 
 void
@@ -233,7 +233,7 @@ change_route_metric(struct route *route, int newmetric)
         }
     }
     route->metric = newmetric;
-    local_notify_route(route, 0);
+    local_notify_route(route, LOCAL_CHANGE);
 }
 
 int
@@ -440,6 +440,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         route->time = now.tv_sec;
         route->installed = 0;
         numroutes++;
+        local_notify_route(route, LOCAL_ADD);
         consider_route(route);
     }
     return route;

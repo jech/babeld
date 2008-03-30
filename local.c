@@ -83,13 +83,13 @@ write_timeout(int fd, const void *buf, int len)
 void
 local_notify_self()
 {
-   char buf[512];
+    char buf[512];
     int rc;
     
     if(local_socket < 0)
         return;
 
-    rc = snprintf(buf, 512, "self id %s\n", format_address(myid));
+    rc = snprintf(buf, 512, "add self id %s\n", format_address(myid));
 
     if(rc < 0 || rc >= 512)
         goto fail;
@@ -104,8 +104,19 @@ local_notify_self()
     return;
 }
 
+static char *
+local_kind(int kind)
+{
+    switch(kind) {
+    case LOCAL_FLUSH: return "flush";
+    case LOCAL_CHANGE: return "change";
+    case LOCAL_ADD: return "add";
+    default: return "???";
+    }
+}
+
 void
-local_notify_neighbour(struct neighbour *neigh, int flush)
+local_notify_neighbour(struct neighbour *neigh, int kind)
 {
     char buf[512];
     int rc;
@@ -114,9 +125,9 @@ local_notify_neighbour(struct neighbour *neigh, int flush)
         return;
 
     rc = snprintf(buf, 512,
-                  "%sneighbour id %s address %s "
+                  "%s neighbour id %s address %s "
                   "if %s reach %04x rxcost %d txcost %d cost %d\n",
-                  flush ? " flush" : "",
+                  local_kind(kind),
                   format_address(neigh->id),
                   format_address(neigh->address),
                   neigh->network->ifname,
@@ -139,7 +150,7 @@ local_notify_neighbour(struct neighbour *neigh, int flush)
 }
 
 void
-local_notify_xroute(struct xroute *xroute, int flush)
+local_notify_xroute(struct xroute *xroute, int kind)
 {
     char buf[512];
     int rc;
@@ -147,8 +158,8 @@ local_notify_xroute(struct xroute *xroute, int flush)
     if(local_socket < 0)
         return;
 
-    rc = snprintf(buf, 512, "%sxroute prefix %s metric %d\n",
-                  flush ? "flush " : "",
+    rc = snprintf(buf, 512, "%s xroute prefix %s metric %d\n",
+                  local_kind(kind),
                   format_prefix(xroute->prefix, xroute->plen),
                   xroute->metric);
     
@@ -166,7 +177,7 @@ local_notify_xroute(struct xroute *xroute, int flush)
 }
 
 void
-local_notify_route(struct route *route, int flush)
+local_notify_route(struct route *route, int kind)
 {
     char buf[512];
     int rc;
@@ -175,9 +186,9 @@ local_notify_route(struct route *route, int flush)
         return;
 
     rc = snprintf(buf, 512,
-                  "%sroute prefix %s installed %s "
+                  "%s route prefix %s installed %s "
                   "id %s metric %d refmetric %d via %s if %s neigh %s\n",
-                  flush ? "flush " : "",
+                  local_kind(kind),
                   format_prefix(route->src->prefix, route->src->plen),
                   route->installed ? "yes" : "no",
                   format_address(route->src->id),
@@ -209,9 +220,9 @@ local_dump()
 
     local_notify_self();
     for(i = 0; i < numneighs; i++)
-        local_notify_neighbour(&neighs[i], 0);
+        local_notify_neighbour(&neighs[i], LOCAL_ADD);
     for(i = 0; i < numxroutes; i++)
-        local_notify_xroute(&xroutes[i], 0);
+        local_notify_xroute(&xroutes[i], LOCAL_ADD);
     for(i = 0; i < numroutes; i++)
-        local_notify_route(&routes[i], 0);
+        local_notify_route(&routes[i], LOCAL_ADD);
 }

@@ -140,8 +140,6 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
     neigh->hello_interval = 0;
     neigh->ihu_interval = 0;
     neigh->network = net;
-    neigh->next = neighs;
-    neighs = neigh;
     send_hello(net);
     return neigh;
 }
@@ -237,7 +235,7 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
             send_unicast_request(neigh, NULL, 0, 0, 0, 0);
     }
     if(rc)
-        local_notify_neighbour(neigh, 0);
+        local_notify_neighbour(neigh, LOCAL_CHANGE);
     return rc;
 }
 
@@ -257,7 +255,7 @@ reset_txcost(struct neighbour *neigh)
         delay >= neigh->ihu_interval * 10 * 10)) {
         neigh->txcost = INFINITY;
         neigh->ihu_time = now;
-        local_notify_neighbour(neigh, 0);
+        local_notify_neighbour(neigh, LOCAL_CHANGE);
         return 1;
     }
 
