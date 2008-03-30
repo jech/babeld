@@ -36,6 +36,7 @@ THE SOFTWARE.
 #include "util.h"
 #include "filter.h"
 #include "network.h"
+#include "local.h"
 
 struct xroute *xroutes;
 int numxroutes = 0;
@@ -60,6 +61,8 @@ flush_xroute(struct xroute *xroute)
 
     n = xroute - xroutes;
     assert(n >= 0 && n < numxroutes);
+
+    local_notify_xroute(xroute, 1);
 
     if(n != numxroutes - 1)
         memcpy(xroutes + n, xroutes + numxroutes - 1, sizeof(struct xroute));
@@ -97,6 +100,7 @@ add_xroute(int kind, unsigned char prefix[16], unsigned char plen,
         if(xroute->metric <= metric)
             return 0;
         xroute->metric = metric;
+        local_notify_xroute(xroute, 0);
         return 1;
     }
 
@@ -119,6 +123,7 @@ add_xroute(int kind, unsigned char prefix[16], unsigned char plen,
     xroutes[numxroutes].ifindex = ifindex;
     xroutes[numxroutes].proto = proto;
     numxroutes++;
+    local_notify_xroute(&xroutes[numxroutes - 1], 0);
     return 1;
 }
 
