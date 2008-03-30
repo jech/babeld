@@ -319,7 +319,8 @@ neighbour_cost(struct neighbour *neigh)
         return INFINITY;
 
     if(a <= 256 && b <= 256) {
-        return MAX(a, b);
+        /* Wired link */
+        return a;
     } else {
         /* a = 256/alpha, b = 256/beta, where alpha and beta are the expected
            probabilities of a packet getting through in the direct and reverse
