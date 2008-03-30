@@ -50,6 +50,7 @@ THE SOFTWARE.
 #include "message.h"
 #include "resend.h"
 #include "filter.h"
+#include "local.h"
 
 struct timeval now;
 
@@ -89,6 +90,8 @@ static int kernel_addr_changed = 0;
 struct timeval check_neighbours_timeout;
 
 static volatile sig_atomic_t exiting = 0, dumping = 0, changed = 0;
+
+int local_server_socket = -1, local_socket = -1;
 
 static int kernel_routes_callback(int changed, void *closure);
 static void init_signals(void);
@@ -502,6 +505,12 @@ main(int argc, char **argv)
         SHIFT();
     }
 
+    local_server_socket = tcp_server_socket(33123, 1);
+    if(local_server_socket < 0) {
+        perror("local_server_socket");
+        goto fail;
+    }
+
     init_signals();
     resize_receive_buffer(1500);
     check_networks();
@@ -560,13 +569,23 @@ main(int argc, char **argv)
         timeval_min(&tv, &unicast_flush_timeout);
         FD_ZERO(&readfds);
         if(timeval_compare(&tv, &now) > 0) {
+            int maxfd = 0;
             timeval_minus(&tv, &tv, &now);
             FD_SET(protocol_socket, &readfds);
+            maxfd = MAX(maxfd, protocol_socket);
             if(kernel_socket < 0) kernel_setup_socket(1);
-            if(kernel_socket >= 0)
+            if(kernel_socket >= 0) {
                 FD_SET(kernel_socket, &readfds);
-            rc = select(MAX(protocol_socket, kernel_socket) + 1,
-                        &readfds, NULL, NULL, &tv);
+                maxfd = MAX(maxfd, kernel_socket);
+            }
+            if(local_socket >= 0) {
+                FD_SET(local_socket, &readfds);
+                maxfd = MAX(maxfd, local_socket);
+            } else if(local_server_socket >= 0) {
+                FD_SET(local_server_socket, &readfds);
+                maxfd = MAX(maxfd, local_server_socket);
+            }
+            rc = select(maxfd + 1, &readfds, NULL, NULL, &tv);
             if(rc < 0) {
                 if(errno != EINTR) {
                     perror("select");
@@ -606,6 +625,31 @@ main(int argc, char **argv)
                         break;
                     }
                 }
+            }
+        }
+
+        if(local_server_socket >= 0 &&
+           FD_ISSET(local_server_socket, &readfds)) {
+            if(local_socket >= 0) {
+                close(local_socket);
+                local_socket = -1;
+            }
+            local_socket = accept(local_server_socket, NULL, NULL);
+            if(local_socket < 0) {
+                if(errno != EINTR && errno != EAGAIN)
+                    perror("accept(local_server_socket)");
+            } else {
+                local_dump();
+            }
+        }
+
+        if(local_socket >= 0 && FD_ISSET(local_socket, &readfds)) {
+            rc = local_read(local_socket);
+            if(rc <= 0) {
+                if(rc < 0)
+                    perror("read(local_socket)");
+                close(local_socket);
+                local_socket = -1;
             }
         }
 
