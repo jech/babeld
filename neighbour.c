@@ -33,6 +33,7 @@ THE SOFTWARE.
 #include "source.h"
 #include "route.h"
 #include "message.h"
+#include "local.h"
 
 struct neighbour *neighs = NULL;
 
@@ -65,6 +66,15 @@ flush_neighbour(struct neighbour *neigh)
     flush_neighbour_routes(neigh);
     if(unicast_neighbour == neigh)
         flush_unicast(1);
+    memset(neigh, 0, sizeof(*neigh));
+    VALGRIND_MAKE_MEM_UNDEFINED(neigh, sizeof(*neigh));
+    neigh->hello_seqno = -2;
+    while(numneighs > 0 && !neighbour_valid(&neighs[numneighs - 1])) {
+       numneighs--;
+       VALGRIND_MAKE_MEM_UNDEFINED(&neighs[numneighs],
+                                   sizeof(neighs[numneighs]));
+    }
+}
 
     if(neighs == neigh) {
         neighs = neigh->next;
@@ -226,6 +236,8 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
         if(!route || route->metric >= INFINITY || route->neigh == neigh)
             send_unicast_request(neigh, NULL, 0, 0, 0, 0);
     }
+    if(rc)
+        local_notify_neighbour(neigh, 0);
     return rc;
 }
 
@@ -245,6 +257,7 @@ reset_txcost(struct neighbour *neigh)
         delay >= neigh->ihu_interval * 10 * 10)) {
         neigh->txcost = INFINITY;
         neigh->ihu_time = now;
+        local_notify_neighbour(neigh, 0);
         return 1;
     }
 
