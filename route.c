@@ -194,6 +194,9 @@ change_route_metric(struct route *route, int newmetric)
 {
     int rc;
 
+    if(route->metric == newmetric)
+        return;
+
     if(route->installed) {
         rc = kernel_route(ROUTE_MODIFY,
                           route->src->prefix, route->src->plen,
