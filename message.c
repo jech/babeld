@@ -35,7 +35,7 @@ THE SOFTWARE.
 #include "neighbour.h"
 #include "route.h"
 #include "xroute.h"
-#include "request.h"
+#include "resend.h"
 #include "message.h"
 #include "filter.h"
 

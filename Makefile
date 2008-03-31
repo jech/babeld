@@ -7,10 +7,10 @@ DEFINES = $(PLATFORM_DEFINES)
 CFLAGS = $(CDEBUGFLAGS) $(DEFINES) $(EXTRA_DEFINES)
 
 SRCS = babel.c net.c kernel.c util.c network.c source.c neighbour.c \
-       route.c xroute.c message.c request.c filter.c
+       route.c xroute.c message.c resend.c filter.c
 
 OBJS = babel.o net.o kernel.o util.o network.o source.o neighbour.o \
-       route.o xroute.o message.o request.o filter.o
+       route.o xroute.o message.o resend.o filter.o
 
 babel: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o babel $(OBJS) $(LDLIBS)

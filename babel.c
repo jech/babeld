@@ -48,7 +48,7 @@ THE SOFTWARE.
 #include "route.h"
 #include "xroute.h"
 #include "message.h"
-#include "request.h"
+#include "resend.h"
 #include "filter.h"
 
 struct timeval now;

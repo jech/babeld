@@ -28,7 +28,7 @@ THE SOFTWARE.
 #include "babel.h"
 #include "util.h"
 #include "neighbour.h"
-#include "request.h"
+#include "resend.h"
 #include "message.h"
 #include "network.h"
 #include "filter.h"
