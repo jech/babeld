@@ -60,6 +60,8 @@ void send_unicast_request(struct neighbour *neigh,
                           unsigned short router_hash);
 void send_update(struct network *net, int urgent,
                  const unsigned char *prefix, unsigned char plen);
+void send_update_resend(struct network *net,
+                        const unsigned char *prefix, unsigned char plen);
 void update_myseqno(int force);
 void send_self_update(struct network *net, int force_seqno);
 void send_ihu(struct neighbour *neigh, struct network *net);

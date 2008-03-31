@@ -898,6 +898,22 @@ send_update(struct network *net, int urgent,
 }
 
 void
+send_update_resend(struct network *net,
+                   const unsigned char *prefix, unsigned char plen)
+{
+    int delay;
+
+    send_update(net, 1, prefix, plen);
+
+    delay = 2000;
+    delay = MIN(delay, wireless_hello_interval / 2);
+    delay = MIN(delay, wired_hello_interval / 2);
+    delay = MAX(delay, 10);
+    record_resend(RESEND_REQUEST, prefix, plen, 0, 0, NULL, delay);
+}
+
+
+void
 update_myseqno(int force)
 {
     if(force || timeval_minus_msec(&now, &seqno_time) >= seqno_interval) {
