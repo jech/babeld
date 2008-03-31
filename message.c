@@ -317,7 +317,8 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
 
     send_unicast_request(successor, prefix, plen, hop_count - 1,
                          seqno, router_hash);
-    record_request(prefix, plen, seqno, router_hash, neigh->network, 0);
+    record_resend(RESEND_REQUEST, prefix, plen, seqno, router_hash,
+                  neigh->network, 0);
 }
 
 
@@ -551,7 +552,7 @@ send_request_resend(struct neighbour *neigh,
     time = MIN(time, wireless_hello_interval / 2);
     time = MIN(time, wired_hello_interval / 2);
     time = MAX(time, 10);
-    record_request(prefix, plen, seqno, router_hash,
+    record_resend(RESEND_REQUEST, prefix, plen, seqno, router_hash,
                    neigh ? neigh->network : NULL, time);
 
 }

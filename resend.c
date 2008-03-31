@@ -73,11 +73,11 @@ find_request(const unsigned char *prefix, unsigned char plen,
 }
 
 int
-record_request(const unsigned char *prefix, unsigned char plen,
-               unsigned short seqno, unsigned short router_hash,
-               struct network *network, int delay)
+record_resend(int kind, const unsigned char *prefix, unsigned char plen,
+              unsigned short seqno, unsigned short router_hash,
+              struct network *network, int delay)
 {
-    struct resend *request;
+    struct resend *resend;
     unsigned int ifindex = network ? network->ifindex : 0;
 
     if(input_filter(NULL, prefix, plen, NULL, ifindex) >= INFINITY ||
@@ -87,42 +87,42 @@ record_request(const unsigned char *prefix, unsigned char plen,
     if(delay >= 0xFFFF)
         delay = 0xFFFF;
 
-    request = find_request(prefix, plen, NULL);
-    if(request) {
-        if(request->delay && delay)
-            request->delay = MIN(request->delay, delay);
+    resend = find_resend(kind, prefix, plen, NULL);
+    if(resend) {
+        if(resend->delay && delay)
+            resend->delay = MIN(resend->delay, delay);
         else if(delay)
-            request->delay = delay;
-        request->time = now;
-        request->max = 128;
-        if(request->router_hash == router_hash &&
-           seqno_compare(request->seqno, seqno) > 0) {
+            resend->delay = delay;
+        resend->time = now;
+        resend->max = kind == RESEND_REQUEST ? 128 : UPDATE_MAX;
+        if(resend->router_hash == router_hash &&
+           seqno_compare(resend->seqno, seqno) > 0) {
             return 0;
         }
-        request->router_hash = router_hash;
-        request->seqno = seqno;
-        if(request->network != network)
-            request->network = NULL;
+        resend->router_hash = router_hash;
+        resend->seqno = seqno;
+        if(resend->network != network)
+            resend->network = NULL;
     } else {
-        request = malloc(sizeof(struct resend));
-        if(request == NULL)
+        resend = malloc(sizeof(struct resend));
+        if(resend == NULL)
             return -1;
-        request->kind = RESEND_REQUEST;
-        request->max = 128;
-        request->delay = delay;
-        memcpy(request->prefix, prefix, 16);
-        request->plen = plen;
-        request->seqno = seqno;
-        request->router_hash = router_hash;
-        request->network = network;
-        request->time = now;
-        request->next = to_resend;
-        to_resend = request;
+        resend->kind = kind;
+        resend->max = kind == RESEND_REQUEST ? 128 : UPDATE_MAX;
+        resend->delay = delay;
+        memcpy(resend->prefix, prefix, 16);
+        resend->plen = plen;
+        resend->seqno = seqno;
+        resend->router_hash = router_hash;
+        resend->network = network;
+        resend->time = now;
+        resend->next = to_resend;
+        to_resend = resend;
     }
 
-    if(request->delay) {
+    if(resend->delay) {
         struct timeval timeout;
-        timeval_plus_msec(&timeout, &request->time, request->delay);
+        timeval_plus_msec(&timeout, &resend->time, resend->delay);
         timeval_min(&resend_time, &timeout);
     }
     return 1;
@@ -235,21 +235,32 @@ recompute_resend_time()
 void
 do_resend()
 {
-    struct resend *request;
+    struct resend *resend;
 
-    request = to_resend;
-    while(request) {
-        if(!resend_expired(request) && request->delay > 0 && request->max > 0) {
+    resend = to_resend;
+    while(resend) {
+        if(!resend_expired(resend) && resend->delay > 0 && resend->max > 0) {
             struct timeval timeout;
-            timeval_plus_msec(&timeout, &request->time, request->delay);
+            timeval_plus_msec(&timeout, &resend->time, resend->delay);
             if(timeval_compare(&now, &timeout) >= 0) {
-                send_request(NULL, request->prefix, request->plen, 127,
-                             request->seqno, request->router_hash);
-                request->delay *= 2;
-                request->max--;
+                switch(resend->kind) {
+                case RESEND_REQUEST:
+                    send_request(resend->network,
+                                 resend->prefix, resend->plen, 127,
+                                 resend->seqno, resend->router_hash);
+                    resend->delay *= 2;
+                    break;
+                case RESEND_UPDATE:
+                    send_update(resend->network, 1,
+                                resend->prefix, resend->plen);
+                    /* No back-off for updates */
+                    break;
+                default: abort();
+                }
+                resend->max--;
             }
         }
-        request = request->next;
+        resend = resend->next;
     }
     recompute_resend_time();
 }

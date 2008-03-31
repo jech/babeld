@@ -21,6 +21,7 @@ THE SOFTWARE.
 */
 
 #define REQUEST_TIMEOUT 125000
+#define UPDATE_MAX 4
 
 #define RESEND_REQUEST 1
 #define RESEND_UPDATE 2
@@ -42,7 +43,7 @@ extern struct timeval resend_time;
 
 struct resend *find_request(const unsigned char *prefix, unsigned char plen,
                             struct resend **previous_return);
-int record_request(const unsigned char *prefix, unsigned char plen,
+int record_resend(int kind, const unsigned char *prefix, unsigned char plen,
                    unsigned short seqno, unsigned short router_hash,
                    struct network *net, int delay);
 int unsatisfied_request(const unsigned char *prefix, unsigned char plen,
