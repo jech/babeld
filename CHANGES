@@ -1,6 +1,7 @@
 babel 0.12 (unreleased):
   * Retractions are now sent multiple times, which should speed-up
     convergence in presence of packet loss.
+  * Added some protection against clock stepping.
 
 29 March 2008: babel 0.11
 
