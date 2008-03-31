@@ -542,7 +542,7 @@ main(int argc, char **argv)
         timeval_min_sec(&tv, expiry_time);
         timeval_min_sec(&tv, source_expiry_time);
         timeval_min_sec(&tv, kernel_dump_time);
-        timeval_min(&tv, &request_resend_time);
+        timeval_min(&tv, &resend_time);
         for(i = 0; i < numnets; i++) {
             if(!nets[i].up)
                 continue;
@@ -669,8 +669,8 @@ main(int argc, char **argv)
             }
         }
 
-        if(timeval_compare(&now, &request_resend_time) >= 0)
-            resend_requests();
+        if(timeval_compare(&now, &resend_time) >= 0)
+            do_resend();
 
         if(update_flush_timeout.tv_sec != 0) {
             if(timeval_compare(&now, &update_flush_timeout) >= 0)

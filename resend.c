@@ -33,7 +33,7 @@ THE SOFTWARE.
 #include "network.h"
 #include "filter.h"
 
-struct timeval request_resend_time = {0, 0};
+struct timeval resend_time = {0, 0};
 struct request *recorded_requests = NULL;
 
 static int
@@ -109,7 +109,7 @@ record_request(const unsigned char *prefix, unsigned char plen,
     if(request->resend) {
         struct timeval timeout;
         timeval_plus_msec(&timeout, &request->time, request->resend);
-        timeval_min(&request_resend_time, &timeout);
+        timeval_min(&resend_time, &timeout);
     }
     return 1;
 }
@@ -152,7 +152,7 @@ satisfy_request(const unsigned char *prefix, unsigned char plen,
         else
             previous->next = request->next;
         free(request);
-        recompute_request_resend_time();
+        recompute_resend_time();
         return 1;
     }
 
@@ -184,11 +184,11 @@ expire_requests()
         }
     }
     if(recompute)
-        recompute_request_resend_time();
+        recompute_resend_time();
 }
 
 void
-recompute_request_resend_time()
+recompute_resend_time()
 {
     struct request *request;
     struct timeval resend = {0, 0};
@@ -198,16 +198,16 @@ recompute_request_resend_time()
         if(request->resend) {
             struct timeval timeout;
             timeval_plus_msec(&timeout, &request->time, request->resend);
-            timeval_min(&request_resend_time, &timeout);
+            timeval_min(&resend_time, &timeout);
         }
         request = request->next;
     }
 
-    request_resend_time = resend;
+    resend_time = resend;
 }
 
 void
-resend_requests()
+do_resend()
 {
     struct request *request;
 
@@ -224,5 +224,5 @@ resend_requests()
         }
         request = request->next;
     }
-    recompute_request_resend_time();
+    recompute_resend_time();
 }

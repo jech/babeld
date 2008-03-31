@@ -33,7 +33,7 @@ struct request {
     struct request *next;
 };
 
-extern struct timeval request_resend_time;
+extern struct timeval resend_time;
 
 struct request *find_request(const unsigned char *prefix, unsigned char plen,
                              struct request **previous_return);
@@ -47,5 +47,5 @@ int satisfy_request(const unsigned char *prefix, unsigned char plen,
                     struct network *net);
 
 void expire_requests(void);
-void recompute_request_resend_time(void);
-void resend_requests(void);
+void recompute_resend_time(void);
+void do_resend(void);
