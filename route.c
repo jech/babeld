@@ -545,7 +545,7 @@ send_triggered_update(struct route *route, struct source *oldsrc, int oldmetric)
     if(route->src != oldsrc || (oldmetric < INFINITY && newmetric >= INFINITY))
         /* Switching sources can cause transient routing loops.
            Retractions are always urgent. */
-        urgent = 1;
+        urgent = 2;
     else if(newmetric >= 8 * 256 && oldmetric >= 8 * 256)
         /* Don't be noisy about far-away nodes */
         urgent = -1;
@@ -555,14 +555,18 @@ send_triggered_update(struct route *route, struct source *oldsrc, int oldmetric)
     /* Make sure that requests are satisfied speedily */
     if(unsatisfied_request(route->src->prefix, route->src->plen,
                            route->seqno, hash_id(route->src->id)))
-        urgent = 1;
+        urgent = MAX(urgent, 1);
 
     if(urgent < 0)
         return;
 
     if(urgent ||
-       (newmetric >= oldmetric + 256 || oldmetric >= newmetric + 256))
-        send_update(NULL, urgent, route->src->prefix, route->src->plen);
+       (newmetric >= oldmetric + 256 || oldmetric >= newmetric + 256)) {
+        if(urgent >= 2)
+            send_update_resend(NULL, route->src->prefix, route->src->plen);
+        else
+            send_update(NULL, urgent, route->src->prefix, route->src->plen);
+    }
 
     if(oldmetric < INFINITY) {
         if(newmetric >= INFINITY || newmetric >= oldmetric + 384) {
@@ -612,7 +616,7 @@ route_lost(struct source *src, int oldmetric)
         consider_route(new_route);
     } else {
         /* Complain loudly. */
-        send_update(NULL, 1, src->prefix, src->plen);
+        send_update_resend(NULL, src->prefix, src->plen);
         if(oldmetric < INFINITY)
             send_request_resend(NULL, src->prefix, src->plen,
                                 src->metric >= INFINITY ?
