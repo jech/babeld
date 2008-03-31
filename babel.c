@@ -669,8 +669,10 @@ main(int argc, char **argv)
             }
         }
 
-        if(timeval_compare(&now, &resend_time) >= 0)
-            do_resend();
+        if(resend_time.tv_sec != 0) {
+            if(timeval_compare(&now, &resend_time) >= 0)
+                do_resend();
+        }
 
         if(update_flush_timeout.tv_sec != 0) {
             if(timeval_compare(&now, &update_flush_timeout) >= 0)
