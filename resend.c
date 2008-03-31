@@ -37,31 +37,39 @@ struct timeval resend_time = {0, 0};
 struct resend *to_resend = NULL;
 
 static int
-request_match(struct resend *request,
-              const unsigned char *prefix, unsigned char plen)
+resend_match(struct resend *resend,
+             int kind, const unsigned char *prefix, unsigned char plen)
 {
-    return request->plen == plen && memcmp(request->prefix, prefix, 16) == 0;
+    return (resend->kind == kind &&
+            resend->plen == plen && memcmp(resend->prefix, prefix, 16) == 0);
+}
+
+static struct resend *
+find_resend(int kind, const unsigned char *prefix, unsigned char plen,
+             struct resend **previous_return)
+{
+    struct resend *current, *previous;
+
+    previous = NULL;
+    current = to_resend;
+    while(current) {
+        if(resend_match(current, kind, prefix, plen)) {
+            if(previous_return)
+                *previous_return = previous;
+            return current;
+        }
+        previous = current;
+        current = current->next;
+    }
+
+    return NULL;
 }
 
 struct resend *
 find_request(const unsigned char *prefix, unsigned char plen,
              struct resend **previous_return)
 {
-    struct resend *request, *previous;
-
-    previous = NULL;
-    request = to_resend;
-    while(request) {
-        if(request_match(request, prefix, plen)) {
-            if(previous_return)
-                *previous_return = previous;
-            return request;
-        }
-        previous = request;
-        request = request->next;
-    }
-
-    return NULL;
+    return find_resend(RESEND_REQUEST, prefix, plen, previous_return);
 }
 
 int
