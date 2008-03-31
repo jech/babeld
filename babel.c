@@ -647,7 +647,7 @@ main(int argc, char **argv)
         if(now.tv_sec >= expiry_time) {
             check_networks();
             expire_routes();
-            expire_requests();
+            expire_resend();
             expiry_time = now.tv_sec + 20 + random() % 20;
         }
 

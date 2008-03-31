@@ -75,7 +75,7 @@ find_request(const unsigned char *prefix, unsigned char plen,
 int
 record_request(const unsigned char *prefix, unsigned char plen,
                unsigned short seqno, unsigned short router_hash,
-               struct network *network, int resend)
+               struct network *network, int delay)
 {
     struct resend *request;
     unsigned int ifindex = network ? network->ifindex : 0;
@@ -84,13 +84,17 @@ record_request(const unsigned char *prefix, unsigned char plen,
        output_filter(NULL, prefix, plen, ifindex) >= INFINITY)
         return 0;
 
+    if(delay >= 0xFFFF)
+        delay = 0xFFFF;
+
     request = find_request(prefix, plen, NULL);
     if(request) {
-        if(request->resend && resend)
-            request->resend = MIN(request->resend, resend);
-        else if(resend)
-            request->resend = resend;
+        if(request->delay && delay)
+            request->delay = MIN(request->delay, delay);
+        else if(delay)
+            request->delay = delay;
         request->time = now;
+        request->max = 128;
         if(request->router_hash == router_hash &&
            seqno_compare(request->seqno, seqno) > 0) {
             return 0;
@@ -104,20 +108,21 @@ record_request(const unsigned char *prefix, unsigned char plen,
         if(request == NULL)
             return -1;
         request->kind = RESEND_REQUEST;
+        request->max = 128;
+        request->delay = delay;
         memcpy(request->prefix, prefix, 16);
         request->plen = plen;
         request->seqno = seqno;
         request->router_hash = router_hash;
         request->network = network;
         request->time = now;
-        request->resend = resend;
         request->next = to_resend;
         to_resend = request;
     }
 
-    if(request->resend) {
+    if(request->delay) {
         struct timeval timeout;
-        timeval_plus_msec(&timeout, &request->time, request->resend);
+        timeval_plus_msec(&timeout, &request->time, request->delay);
         timeval_min(&resend_time, &timeout);
     }
     return 1;
@@ -168,28 +173,40 @@ satisfy_request(const unsigned char *prefix, unsigned char plen,
     return 0;
 }
 
-void
-expire_requests()
+static int
+resend_expired(struct resend *resend)
 {
-    struct resend *request, *previous;
+    switch(resend->kind) {
+    case RESEND_REQUEST:
+        return timeval_minus_msec(&now, &resend->time) >= REQUEST_TIMEOUT;
+    case RESEND_UPDATE:
+        return resend->max <= 0;
+    default: abort();
+    }
+}
+
+void
+expire_resend()
+{
+    struct resend *current, *previous;
     int recompute = 0;
 
     previous = NULL;
-    request = to_resend;
-    while(request) {
-        if(timeval_minus_msec(&now, &request->time) >= REQUEST_TIMEOUT) {
+    current = to_resend;
+    while(current) {
+        if(resend_expired(current)) {
             if(previous == NULL) {
-                to_resend = request->next;
-                free(request);
-                request = to_resend;
+                to_resend = current->next;
+                free(current);
+                current = to_resend;
             } else {
-                previous->next = request->next;
-                free(request);
-                request = previous->next;
+                previous->next = current->next;
+                free(current);
+                current = previous->next;
             }
             recompute = 1;
         } else {
-            request = request->next;
+            current = current->next;
         }
     }
     if(recompute)
@@ -204,9 +221,9 @@ recompute_resend_time()
 
     request = to_resend;
     while(request) {
-        if(request->resend) {
+        if(!resend_expired(request) && request->delay > 0 && request->max > 0) {
             struct timeval timeout;
-            timeval_plus_msec(&timeout, &request->time, request->resend);
+            timeval_plus_msec(&timeout, &request->time, request->delay);
             timeval_min(&resend_time, &timeout);
         }
         request = request->next;
@@ -222,13 +239,14 @@ do_resend()
 
     request = to_resend;
     while(request) {
-        if(request->resend) {
+        if(!resend_expired(request) && request->delay > 0 && request->max > 0) {
             struct timeval timeout;
-            timeval_plus_msec(&timeout, &request->time, request->resend);
+            timeval_plus_msec(&timeout, &request->time, request->delay);
             if(timeval_compare(&now, &timeout) >= 0) {
                 send_request(NULL, request->prefix, request->plen, 127,
                              request->seqno, request->router_hash);
-                request->resend *= 2;
+                request->delay *= 2;
+                request->max--;
             }
         }
         request = request->next;

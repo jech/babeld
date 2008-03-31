@@ -26,14 +26,15 @@ THE SOFTWARE.
 #define RESEND_UPDATE 2
 
 struct resend {
-    int kind;
+    unsigned char kind;
+    unsigned char max;
+    unsigned short delay;
+    struct timeval time;
     unsigned char prefix[16];
     unsigned char plen;
     unsigned short seqno;
     unsigned short router_hash;
     struct network *network;
-    struct timeval time;
-    int resend;
     struct resend *next;
 };
 
@@ -43,13 +44,13 @@ struct resend *find_request(const unsigned char *prefix, unsigned char plen,
                             struct resend **previous_return);
 int record_request(const unsigned char *prefix, unsigned char plen,
                    unsigned short seqno, unsigned short router_hash,
-                   struct network *net, int resend);
+                   struct network *net, int delay);
 int unsatisfied_request(const unsigned char *prefix, unsigned char plen,
                         unsigned short seqno, unsigned short router_hash);
 int satisfy_request(const unsigned char *prefix, unsigned char plen,
                     unsigned short seqno, unsigned short router_hash,
                     struct network *net);
 
-void expire_requests(void);
+void expire_resend(void);
 void recompute_resend_time(void);
 void do_resend(void);
