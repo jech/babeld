@@ -158,9 +158,9 @@ check_xroutes(int send_updates)
         }
 
         if(!export) {
-            flush_xroute(&xroutes[i]);
             if(send_updates)
                 send_update(NULL, 1, xroutes[i].prefix, xroutes[i].plen);
+            flush_xroute(&xroutes[i]);
             change = 1;
         } else {
             i++;
