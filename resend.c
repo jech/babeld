@@ -179,9 +179,8 @@ resend_expired(struct resend *resend)
     switch(resend->kind) {
     case RESEND_REQUEST:
         return timeval_minus_msec(&now, &resend->time) >= REQUEST_TIMEOUT;
-    case RESEND_UPDATE:
+    default:
         return resend->max <= 0;
-    default: abort();
     }
 }
 
