@@ -34,23 +34,23 @@ THE SOFTWARE.
 #include "filter.h"
 
 struct timeval resend_time = {0, 0};
-struct request *recorded_requests = NULL;
+struct resend *to_resend = NULL;
 
 static int
-request_match(struct request *request,
+request_match(struct resend *request,
               const unsigned char *prefix, unsigned char plen)
 {
     return request->plen == plen && memcmp(request->prefix, prefix, 16) == 0;
 }
 
-struct request *
+struct resend *
 find_request(const unsigned char *prefix, unsigned char plen,
-             struct request **previous_return)
+             struct resend **previous_return)
 {
-    struct request *request, *previous;
+    struct resend *request, *previous;
 
     previous = NULL;
-    request = recorded_requests;
+    request = to_resend;
     while(request) {
         if(request_match(request, prefix, plen)) {
             if(previous_return)
@@ -69,7 +69,7 @@ record_request(const unsigned char *prefix, unsigned char plen,
                unsigned short seqno, unsigned short router_hash,
                struct network *network, int resend)
 {
-    struct request *request;
+    struct resend *request;
     unsigned int ifindex = network ? network->ifindex : 0;
 
     if(input_filter(NULL, prefix, plen, NULL, ifindex) >= INFINITY ||
@@ -92,7 +92,7 @@ record_request(const unsigned char *prefix, unsigned char plen,
         if(request->network != network)
             request->network = NULL;
     } else {
-        request = malloc(sizeof(struct request));
+        request = malloc(sizeof(struct resend));
         if(request == NULL)
             return -1;
         memcpy(request->prefix, prefix, 16);
@@ -102,8 +102,8 @@ record_request(const unsigned char *prefix, unsigned char plen,
         request->network = network;
         request->time = now;
         request->resend = resend;
-        request->next = recorded_requests;
-        recorded_requests = request;
+        request->next = to_resend;
+        to_resend = request;
     }
 
     if(request->resend) {
@@ -118,7 +118,7 @@ int
 unsatisfied_request(const unsigned char *prefix, unsigned char plen,
                     unsigned short seqno, unsigned short router_hash)
 {
-    struct request *request;
+    struct resend *request;
 
     request = find_request(prefix, plen, NULL);
     if(request == NULL)
@@ -136,7 +136,7 @@ satisfy_request(const unsigned char *prefix, unsigned char plen,
                 unsigned short seqno, unsigned short router_hash,
                 struct network *network)
 {
-    struct request *request, *previous;
+    struct resend *request, *previous;
 
     request = find_request(prefix, plen, &previous);
     if(request == NULL)
@@ -148,7 +148,7 @@ satisfy_request(const unsigned char *prefix, unsigned char plen,
     if(request->router_hash != router_hash ||
        seqno_compare(request->seqno, seqno) <= 0) {
         if(previous == NULL)
-            recorded_requests = request->next;
+            to_resend = request->next;
         else
             previous->next = request->next;
         free(request);
@@ -162,17 +162,17 @@ satisfy_request(const unsigned char *prefix, unsigned char plen,
 void
 expire_requests()
 {
-    struct request *request, *previous;
+    struct resend *request, *previous;
     int recompute = 0;
 
     previous = NULL;
-    request = recorded_requests;
+    request = to_resend;
     while(request) {
         if(timeval_minus_msec(&now, &request->time) >= REQUEST_TIMEOUT) {
             if(previous == NULL) {
-                recorded_requests = request->next;
+                to_resend = request->next;
                 free(request);
-                request = recorded_requests;
+                request = to_resend;
             } else {
                 previous->next = request->next;
                 free(request);
@@ -190,10 +190,10 @@ expire_requests()
 void
 recompute_resend_time()
 {
-    struct request *request;
+    struct resend *request;
     struct timeval resend = {0, 0};
 
-    request = recorded_requests;
+    request = to_resend;
     while(request) {
         if(request->resend) {
             struct timeval timeout;
@@ -209,9 +209,9 @@ recompute_resend_time()
 void
 do_resend()
 {
-    struct request *request;
+    struct resend *request;
 
-    request = recorded_requests;
+    request = to_resend;
     while(request) {
         if(request->resend) {
             struct timeval timeout;

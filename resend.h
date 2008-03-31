@@ -22,7 +22,7 @@ THE SOFTWARE.
 
 #define REQUEST_TIMEOUT 125000
 
-struct request {
+struct resend {
     unsigned char prefix[16];
     unsigned char plen;
     unsigned short seqno;
@@ -30,13 +30,13 @@ struct request {
     struct network *network;
     struct timeval time;
     int resend;
-    struct request *next;
+    struct resend *next;
 };
 
 extern struct timeval resend_time;
 
-struct request *find_request(const unsigned char *prefix, unsigned char plen,
-                             struct request **previous_return);
+struct resend *find_request(const unsigned char *prefix, unsigned char plen,
+                            struct resend **previous_return);
 int record_request(const unsigned char *prefix, unsigned char plen,
                    unsigned short seqno, unsigned short router_hash,
                    struct network *net, int resend);

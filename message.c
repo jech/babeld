@@ -834,7 +834,7 @@ send_update(struct network *net, int urgent,
             const unsigned char *prefix, unsigned char plen)
 {
     int i, selfonly;
-    struct request *request;
+    struct resend *request;
 
     if(prefix) {
         /* This is needed here, since really_send_update only handles the
