@@ -255,7 +255,7 @@ do_resend()
                     break;
                 default: abort();
                 }
-                resend->delay *= 2;
+                resend->delay = MIN(0xFFFF, resend->delay * 2);
                 resend->max--;
             }
         }
