@@ -255,7 +255,6 @@ reset_txcost(struct neighbour *neigh)
         delay >= neigh->ihu_interval * 10 * 10)) {
         neigh->txcost = INFINITY;
         neigh->ihu_time = now;
-        local_notify_neighbour(neigh, LOCAL_CHANGE);
         return 1;
     }
 
@@ -288,8 +287,8 @@ check_neighbours()
 
         changed = changed || reset_txcost(neigh);
 
-        if(changed)
-            update_neighbour_metric(neigh);
+        if(changed) {
+            update_neighbour_metric(&neighs[i]);
 
         if(neigh->hello_interval > 0)
             msecs = MIN(msecs, neigh->hello_interval * 10);
