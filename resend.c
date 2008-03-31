@@ -248,15 +248,14 @@ do_resend()
                     send_request(resend->network,
                                  resend->prefix, resend->plen, 127,
                                  resend->seqno, resend->router_hash);
-                    resend->delay *= 2;
                     break;
                 case RESEND_UPDATE:
                     send_update(resend->network, 1,
                                 resend->prefix, resend->plen);
-                    /* No back-off for updates */
                     break;
                 default: abort();
                 }
+                resend->delay *= 2;
                 resend->max--;
             }
         }
