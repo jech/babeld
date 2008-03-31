@@ -909,7 +909,7 @@ send_update_resend(struct network *net,
     delay = MIN(delay, wireless_hello_interval / 2);
     delay = MIN(delay, wired_hello_interval / 2);
     delay = MAX(delay, 10);
-    record_resend(RESEND_REQUEST, prefix, plen, 0, 0, NULL, delay);
+    record_resend(RESEND_UPDATE, prefix, plen, 0, 0, NULL, delay);
 }
 
 
