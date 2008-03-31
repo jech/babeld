@@ -219,8 +219,11 @@ local_dump()
         return;
 
     local_notify_self();
-    for(i = 0; i < numneighs; i++)
+    for(i = 0; i < numneighs; i++) {
+        if(!neighbour_valid(&neighs[i]))
+            continue;
         local_notify_neighbour(&neighs[i], LOCAL_ADD);
+    }
     for(i = 0; i < numxroutes; i++)
         local_notify_xroute(&xroutes[i], LOCAL_ADD);
     for(i = 0; i < numroutes; i++)
