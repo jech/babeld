@@ -903,6 +903,8 @@ send_update_resend(struct network *net,
 {
     int delay;
 
+    assert(prefix != NULL);
+
     send_update(net, 1, prefix, plen);
 
     delay = 2000;
