@@ -22,7 +22,11 @@ THE SOFTWARE.
 
 #define REQUEST_TIMEOUT 125000
 
+#define RESEND_REQUEST 1
+#define RESEND_UPDATE 2
+
 struct resend {
+    int kind;
     unsigned char prefix[16];
     unsigned char plen;
     unsigned short seqno;

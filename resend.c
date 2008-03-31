@@ -95,6 +95,7 @@ record_request(const unsigned char *prefix, unsigned char plen,
         request = malloc(sizeof(struct resend));
         if(request == NULL)
             return -1;
+        request->kind = RESEND_REQUEST;
         memcpy(request->prefix, prefix, 16);
         request->plen = plen;
         request->seqno = seqno;
