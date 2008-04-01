@@ -166,7 +166,7 @@ expire_sources()
     for(i = 0; i < numsrcs; i++) {
         if(!srcs[i].valid)
             continue;
-        if(srcs[i].time >= now.tv_sec - SOURCE_GC_TIME)
+        if(srcs[i].time < now.tv_sec - SOURCE_GC_TIME)
             continue;
         rc = flush_source(&srcs[i]);
         changed = changed || rc;
