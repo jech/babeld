@@ -183,7 +183,7 @@ check_xroutes(int send_updates)
             if(rc)
                 change = 1;
             if(send_updates)
-                send_update(NULL, 1, xroutes[i].prefix, xroutes[i].plen);
+                send_update(NULL, 1, routes[i].prefix, routes[i].plen);
         }
     }
     return change;
