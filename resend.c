@@ -161,11 +161,10 @@ satisfy_request(const unsigned char *prefix, unsigned char plen,
 
     if(request->router_hash != router_hash ||
        seqno_compare(request->seqno, seqno) <= 0) {
-        if(previous == NULL)
-            to_resend = request->next;
-        else
-            previous->next = request->next;
-        free(request);
+        /* We cannot remove the request, as we may be walking the list right
+           now.  Mark it as expired, so that expire_resend will remove it. */
+        request->max = 0;
+        request->time.tv_sec = 0;
         recompute_resend_time();
         return 1;
     }
