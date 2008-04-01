@@ -22,6 +22,9 @@ THE SOFTWARE.
 
 #define MAX_BUFFERED_UPDATES 200
 
+#define BUCKET_TOKENS_MAX 200
+#define BUCKET_TOKENS_PER_SEC 40
+
 extern unsigned short myseqno;
 extern struct timeval seqno_time;
 extern int seqno_interval;

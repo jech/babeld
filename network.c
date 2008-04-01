@@ -59,7 +59,7 @@ add_network(char *ifname)
     nets[numnets].sendbuf = NULL;
     nets[numnets].buffered = 0;
     nets[numnets].bucket_time = now.tv_sec;
-    nets[numnets].bucket = 0;
+    nets[numnets].bucket = BUCKET_TOKENS_MAX;
     nets[numnets].hello_seqno = (random() & 0xFFFF);
     numnets++;
     return &nets[numnets - 1];

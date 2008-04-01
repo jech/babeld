@@ -329,17 +329,18 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
 static int
 check_bucket(struct network *net)
 {
-    if(net->bucket > 0 && now.tv_sec > net->bucket_time) {
-        net->bucket =
-            MIN(MAX((int)net->bucket - 40 * (now.tv_sec - net->bucket_time),
-                    0),
-                400);
+    if(net->bucket <= 0) {
+        int seconds = now.tv_sec - net->bucket_time;
+        if(seconds > 0) {
+            net->bucket = MIN(BUCKET_TOKENS_MAX,
+                              seconds * BUCKET_TOKENS_PER_SEC);
+        }
+        /* Reset bucket time unconditionally, in case clock is stepped. */
+        net->bucket_time = now.tv_sec;
     }
 
-    net->bucket_time = now.tv_sec;
-
-    if(net->bucket < 400) {
-        net->bucket++;
+    if(net->bucket > 0) {
+        net->bucket--;
         return 1;
     } else {
         return 0;
