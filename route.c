@@ -636,7 +636,8 @@ expire_routes(void)
     while(i < numroutes) {
         struct route *route = &routes[i];
 
-        if(route->time < now.tv_sec - route_gc_delay) {
+        if(route->time > now.tv_sec || /* clock stepped */
+           route->time < now.tv_sec - route_gc_delay) {
             flush_route(route);
             continue;
         }

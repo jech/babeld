@@ -247,6 +247,7 @@ check_neighbours()
         changed = update_neighbour(&neighs[i], -1, 0);
 
         if(neighs[i].reach == 0 ||
+           neighs[i].hello_time.tv_sec > now.tv_sec || /* clock stepped */
            timeval_minus_msec(&now, &neighs[i].hello_time) > 300000) {
             flush_neighbour(&neighs[i]);
             continue;
