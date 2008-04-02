@@ -400,9 +400,9 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         oldmetric = route->metric;
 
         /* If a successor switches sources, we must accept his update even
-           if it makes a route unfeasible in order to break any routing loops.
-           It's not clear to me (jch) what is the best approach if the
-           successor sticks to the same source but increases its metric. */
+           if it makes a route unfeasible in order to break any routing loops
+           in a timely manner.  If the source remains the same, we ignore
+           the update but send a request for a new seqno. */
         if(!feasible && route->installed) {
             debugf("Unfeasible update for installed route to %s "
                    "(%s %d %d -> %s %d %d).\n",
@@ -410,6 +410,10 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
                    format_address(route->src->id),
                    route->seqno, route->refmetric,
                    format_address(src->id), seqno, refmetric);
+            if(src == route->src) {
+                send_unfeasible_request(neigh, 1, seqno, metric, a, p, plen);
+                return route;
+            }
             uninstall_route(route);
             lost = 1;
         }
