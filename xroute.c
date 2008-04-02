@@ -180,10 +180,11 @@ check_xroutes(int send_updates)
             rc = add_xroute(XROUTE_REDISTRIBUTED,
                             routes[i].prefix, routes[i].plen,
                             metric, routes[i].ifindex, routes[i].proto);
-            if(rc)
+            if(rc) {
                 change = 1;
-            if(send_updates)
-                send_update(NULL, 1, routes[i].prefix, routes[i].plen);
+                if(send_updates)
+                    send_update(NULL, 0, routes[i].prefix, routes[i].plen);
+            }
         }
     }
     return change;
