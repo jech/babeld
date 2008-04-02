@@ -52,6 +52,7 @@ struct timeval seqno_time = {0, 0};
 int seqno_interval = -1;
 
 struct buffered_update {
+    unsigned char id[16];
     unsigned char prefix[16];
     unsigned char plen;
 };
@@ -235,8 +236,14 @@ parse_packet(const unsigned char *from, struct network *net,
                        format_address(from));
                 if(plen > 32)
                     continue;
-                if(!have_current_source)
+                if(!have_current_source) {
+                    fprintf(stderr, "Received IPv4 prefix with no source "
+                            "on %s from %s (%s).\n",
+                            net->ifname,
+                            format_address(neigh->id),
+                            format_address(from));
                     continue;
+                }
                 if(memcmp(current_source, myid, 16) == 0)
                     continue;
                 mask_prefix(prefix, p4, plen + 96);
@@ -683,7 +690,7 @@ message_source_id(struct network *net)
         message = (const unsigned char*)(net->sendbuf + i * 24);
         if(message[0] == 3)
             return message + 8;
-        else if(message[0] == 4)
+        else if(message[0] == 4 || message[0] == 5)
             i--;
         else
             break;
@@ -736,9 +743,34 @@ really_send_update(struct network *net,
     satisfy_request(prefix, plen, seqno, hash_id(id), net);
 }
 
+static int
+compare_buffered_updates(const void *av, const void *bv)
+{
+    const struct buffered_update *a = av, *b = bv;
+    int rc, v4a, v4b;
+
+    rc = memcmp(a->id, b->id, 16);
+    if(rc != 0)
+        return rc;
+
+    v4a = (a->plen >= 96 && v4mapped(a->prefix));
+    v4b = (b->plen >= 96 && v4mapped(b->prefix));
+
+    if(v4a > v4b)
+        return 1;
+    else if(v4b < v4a)
+        return -1;
+
+    return 0;
+}
+
 void
 flushupdates(void)
 {
+    struct xroute *xroute;
+    struct route *route;
+    const unsigned char *last_prefix = NULL;
+    unsigned char last_plen = 0xFF;
     int i;
 
     if(updates > 0) {
@@ -749,18 +781,43 @@ flushupdates(void)
 
         debugf("  (flushing %d buffered updates)\n", n);
 
+        /* In order to send fewer update messages, we want to send updates
+           with the same router-id together, with IPv6 going out before IPv4. */
+
         for(i = 0; i < n; i++) {
-            struct xroute *xroute;
-            struct route *route;
-            struct source *src;
+            route = find_installed_route(buffered_updates[i].prefix,
+                                         buffered_updates[i].plen);
+            if(route)
+                memcpy(buffered_updates[i].id, route->src->id, 16);
+            else
+                memcpy(buffered_updates[i].id, myid, 16);
+        }
+
+        qsort(buffered_updates, n, sizeof(struct buffered_update),
+              compare_buffered_updates);
+
+        for(i = 0; i < n; i++) {
             unsigned short seqno;
             unsigned short metric;
+
+            /* The same update may be scheduled multiple times before it is
+               sent out.  Since our buffer is now sorted, it is enough to
+               compare with the previous update. */
+
+            if(last_prefix) {
+                if(buffered_updates[i].plen == last_plen &&
+                   memcmp(buffered_updates[i].prefix, last_prefix, 16) == 0)
+                    continue;
+            }
+
             xroute = find_xroute(buffered_updates[i].prefix,
                                  buffered_updates[i].plen);
             if(xroute) {
                 really_send_update(net, myid,
                                    xroute->prefix, xroute->plen,
                                    myseqno, xroute->metric);
+                last_prefix = xroute->prefix;
+                last_plen = xroute->plen;
                 continue;
             }
             route = find_installed_route(buffered_updates[i].prefix,
@@ -776,15 +833,8 @@ flushupdates(void)
                                    route->src->plen,
                                    seqno, metric);
                 update_source(route->src, seqno, metric);
-                continue;
-            }
-            src = find_recent_source(buffered_updates[i].prefix,
-                                     buffered_updates[i].plen);
-            if(src) {
-                really_send_update(net, src->id, src->prefix, src->plen,
-                                   src->metric >= INFINITY ?
-                                   src->seqno : seqno_plus(src->seqno, 1),
-                                   INFINITY);
+                last_prefix = route->src->prefix;
+                last_plen = route->src->plen;
                 continue;
             }
         }
@@ -872,21 +922,17 @@ send_update(struct network *net, int urgent,
         silent_time = 0;
 
     if(prefix) {
-        if(updates > net->bufsize / 24 - 2) {
-            /* Update won't fit in current packet */
-            flushupdates();
-        }
         if(!selfonly || find_xroute(prefix, plen)) {
             debugf("Sending update to %s for %s.\n",
                    net->ifname, format_prefix(prefix, plen));
             buffer_update(net, prefix, plen);
         }
     } else {
-        send_self_update(net, 0);
         /* Don't send full route dumps more than ten times per second */
         if(net->update_time.tv_sec > 0 &&
            timeval_minus_msec(&now, &net->update_time) < 100)
             return;
+        send_self_update(net, 0);
         if(!selfonly) {
             debugf("Sending update to %s for any.\n", net->ifname);
             for(i = 0; i < numroutes; i++)

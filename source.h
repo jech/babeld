@@ -39,8 +39,6 @@ struct source *find_source(const unsigned char *id,
                            unsigned char plen,
                            int create, unsigned short seqno);
 int flush_source(struct source *src);
-struct source *find_recent_source(const unsigned char *p,
-                                  unsigned char plen);
 void update_source(struct source *src,
                    unsigned short seqno, unsigned short metric);
 int expire_sources(void);

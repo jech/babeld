@@ -110,23 +110,6 @@ flush_source(struct source *src)
     return 1;
 }
 
-struct source *
-find_recent_source(const unsigned char *p, unsigned char plen)
-{
-    int i;
-    struct source *src = NULL;
-
-    for(i = 0; i < numsrcs; i++) {
-        if(!srcs[i].valid)
-            continue;
-        if(!source_match(&srcs[i], p, plen))
-            continue;
-        if(!src || src->time < srcs[i].time)
-            src = &srcs[i];
-    }
-    return src;
-}
-
 int
 source_match(struct source *src,
              const unsigned char *p, unsigned char plen)
