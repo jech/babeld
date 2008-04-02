@@ -196,6 +196,17 @@ network_up(struct network *net, int up)
                     net->ifname, net->ifindex);
             mtu = 1280;
         }
+
+        /* We need to be able to fit at least two messages into a packet,
+           so MTUs below 116 require lower layer fragmentation. */
+        /* In IPv6, the minimum MTU is 1280, and every host must be able
+           to reassemble up to 1500 bytes, but I'd rather not rely on this. */
+        if(mtu < 128) {
+            fprintf(stderr, "Suspiciously low MTU %d on interface %s (%d).\n",
+                    mtu, net->ifname, net->ifindex);
+            mtu = 128;
+        }
+
         /* 40 for IPv6 header, 8 for UDP header, 12 for good luck. */
         mtu -= 60;
 
