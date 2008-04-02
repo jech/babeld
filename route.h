@@ -71,7 +71,7 @@ void send_unfeasible_request(struct neighbour *neigh,
 void consider_route(struct route *route);
 void send_triggered_update(struct route *route,
                            struct source *oldsrc, int oldmetric);
-void trigger_route_change(struct route *route,
-                          struct source *oldsrc, unsigned short oldmetric);
+void route_changed(struct route *route,
+                   struct source *oldsrc, unsigned short oldmetric);
 void route_lost(struct source *src, int oldmetric);
 void expire_routes(void);

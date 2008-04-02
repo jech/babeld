@@ -287,7 +287,7 @@ update_route_metric(struct route *route)
 
     if(newmetric != oldmetric) {
         change_route_metric(route, newmetric);
-        trigger_route_change(route, route->src, oldmetric);
+        route_changed(route, route->src, oldmetric);
     }
 }
 
@@ -422,7 +422,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         change_route_metric(route, metric);
 
         if(feasible)
-            trigger_route_change(route, oldsrc, oldmetric);
+            route_changed(route, oldsrc, oldmetric);
         else
             send_unfeasible_request(neigh, seqno, metric, a, p, plen);
 
@@ -585,8 +585,8 @@ send_triggered_update(struct route *route, struct source *oldsrc, int oldmetric)
 /* A route has just changed.  Decide whether to switch to a different route or
    send an update. */
 void
-trigger_route_change(struct route *route,
-                     struct source *oldsrc, unsigned short oldmetric)
+route_changed(struct route *route,
+              struct source *oldsrc, unsigned short oldmetric)
 {
     if(route->installed) {
         if(route->metric > oldmetric) {
