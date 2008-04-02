@@ -207,12 +207,11 @@ network_up(struct network *net, int up)
             mtu = 128;
         }
 
-        /* 40 for IPv6 header, 8 for UDP header, 12 for good luck. */
-        mtu -= 60;
-
         if(net->sendbuf)
             free(net->sendbuf);
-        net->bufsize = mtu - sizeof(packet_header);
+
+        /* 40 for IPv6 header, 8 for UDP header, 12 for good luck. */
+        net->bufsize = mtu - sizeof(packet_header) - 60;
         net->sendbuf = malloc(net->bufsize);
         if(net->sendbuf == NULL) {
             fprintf(stderr, "Couldn't allocate sendbuf.\n");
