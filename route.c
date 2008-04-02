@@ -424,13 +424,13 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         if(feasible)
             route_changed(route, oldsrc, oldmetric);
         else
-            send_unfeasible_request(neigh, seqno, metric, a, p, plen);
+            send_unfeasible_request(neigh, 0, seqno, metric, a, p, plen);
 
         if(lost)
             route_lost(oldsrc, oldmetric);
     } else {
         if(!feasible) {
-            send_unfeasible_request(neigh, seqno, metric, a, p, plen);
+            send_unfeasible_request(neigh, 0, seqno, metric, a, p, plen);
             return NULL;
         }
         if(refmetric >= INFINITY)
@@ -460,7 +460,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
 /* We just received an unfeasible update.  If it's any good, send
    a request for a new seqno. */
 void
-send_unfeasible_request(struct neighbour *neigh,
+send_unfeasible_request(struct neighbour *neigh, int force,
                         unsigned short seqno, unsigned short metric,
                         const unsigned char *a,
                         const unsigned char *prefix, unsigned char plen)
@@ -476,7 +476,7 @@ send_unfeasible_request(struct neighbour *neigh,
         return;
     }
 
-    if(!route || route->metric >= metric + 256) {
+    if(force || !route || route->metric >= metric + 256) {
         send_request_resend(neigh, prefix, plen,
                             src->metric >= INFINITY ?
                             src->seqno : seqno_plus(src->seqno, 1),
