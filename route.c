@@ -105,7 +105,7 @@ flush_neighbour_routes(struct neighbour *neigh)
     i = 0;
     while(i < numroutes) {
         if(routes[i].neigh == neigh) {
-            flush_route(routes + i);
+            flush_route(&routes[i]);
             continue;
         }
         i++;
