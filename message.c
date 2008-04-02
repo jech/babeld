@@ -710,6 +710,9 @@ really_send_update(struct network *net,
     if(!net->up)
         return;
 
+    if(metric < INFINITY)
+        satisfy_request(prefix, plen, seqno, hash_id(id), net);
+
     add_metric = output_filter(id, prefix, plen, net->ifindex);
 
     if(add_metric < INFINITY) {
@@ -740,7 +743,6 @@ really_send_update(struct network *net,
             }
         }
     }
-    satisfy_request(prefix, plen, seqno, hash_id(id), net);
 }
 
 static int
@@ -887,9 +889,8 @@ send_update(struct network *net, int urgent,
            case where network is not null. */
         request = find_request(prefix, plen, NULL);
         if(request) {
-            struct route *route;
-            route = find_installed_route(prefix, plen);
-            if(route) {
+            struct route *route = find_installed_route(prefix, plen);
+            if(route && route->metric < INFINITY) {
                 urgent = 1;
                 satisfy_request(prefix, plen, route->seqno,
                                 hash_id(route->src->id), net);
