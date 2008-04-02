@@ -539,41 +539,43 @@ consider_route(struct route *route)
 void
 send_triggered_update(struct route *route, struct source *oldsrc, int oldmetric)
 {
-    int urgent = 0, newmetric;
+    int urgent = 0, newmetric, diff;
 
     if(!route->installed)
         return;
 
     newmetric = route->metric;
+    diff =
+        newmetric >= oldmetric ? newmetric - oldmetric : oldmetric - newmetric;
 
     if(route->src != oldsrc || (oldmetric < INFINITY && newmetric >= INFINITY))
         /* Switching sources can cause transient routing loops.
            Retractions are always urgent. */
         urgent = 2;
-    else if(newmetric >= 8 * 256 && oldmetric >= 8 * 256)
+    else if(newmetric >= 6 * 256 && oldmetric >= 6 * 256)
         /* Don't be noisy about far-away nodes */
         urgent = -1;
-    else if(newmetric >= oldmetric + 512 || oldmetric >= newmetric + 512)
+    else if(diff >= 512)
         urgent = 1;
 
     /* Make sure that requests are satisfied speedily */
-    if(unsatisfied_request(route->src->prefix, route->src->plen,
-                           route->seqno, hash_id(route->src->id)))
-        urgent = MAX(urgent, 1);
-
-    if(urgent < 0)
-        return;
-
-    if(urgent ||
-       (newmetric >= oldmetric + 256 || oldmetric >= newmetric + 256)) {
-        if(urgent >= 2)
-            send_update_resend(NULL, route->src->prefix, route->src->plen);
-        else
-            send_update(NULL, urgent, route->src->prefix, route->src->plen);
+    if(urgent < 1) {
+        if(unsatisfied_request(route->src->prefix, route->src->plen,
+                               route->seqno, hash_id(route->src->id)))
+            urgent = 1;
     }
 
+    if(urgent < 0 || (!urgent && diff < 256))
+        /* Never mind. */
+        return;
+
+    if(urgent >= 2)
+        send_update_resend(NULL, route->src->prefix, route->src->plen);
+    else
+        send_update(NULL, urgent, route->src->prefix, route->src->plen);
+
     if(oldmetric < INFINITY) {
-        if(newmetric >= INFINITY || newmetric >= oldmetric + 384) {
+        if(newmetric >= oldmetric + 384) {
             send_request_resend(NULL, route->src->prefix, route->src->plen,
                                 route->src->metric >= INFINITY ?
                                 route->src->seqno :
