@@ -46,7 +46,7 @@ void flush_neighbour_routes(struct neighbour *neigh);
 unsigned int metric_to_kernel(int metric);
 void install_route(struct route *route);
 void uninstall_route(struct route *route);
-void change_route(struct route *old, struct route *new);
+void switch_route(struct route *old, struct route *new);
 void change_route_metric(struct route *route, int newmetric);
 int route_feasible(struct route *route);
 int update_feasible(const unsigned char *id,

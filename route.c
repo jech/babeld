@@ -166,7 +166,7 @@ uninstall_route(struct route *route)
    must be the same. */
 
 void
-change_route(struct route *old, struct route *new)
+switch_routes(struct route *old, struct route *new)
 {
     int rc;
 
@@ -528,7 +528,7 @@ consider_route(struct route *route)
     return;
 
  install:
-    change_route(installed, route);
+    switch_routes(installed, route);
     if(installed && route->installed)
         send_triggered_update(route, installed->src, installed->metric);
     else
