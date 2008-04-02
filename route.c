@@ -620,14 +620,13 @@ route_lost(struct source *src, int oldmetric)
     new_route = find_best_route(src->prefix, src->plen, 1, NULL);
     if(new_route) {
         consider_route(new_route);
-    } else {
+    } else if(oldmetric < INFINITY) {
         /* Complain loudly. */
         send_update_resend(NULL, src->prefix, src->plen);
-        if(oldmetric < INFINITY)
-            send_request_resend(NULL, src->prefix, src->plen,
-                                src->metric >= INFINITY ?
-                                src->seqno : seqno_plus(src->seqno, 1),
-                                hash_id(src->id));
+        send_request_resend(NULL, src->prefix, src->plen,
+                            src->metric >= INFINITY ?
+                            src->seqno : seqno_plus(src->seqno, 1),
+                            hash_id(src->id));
     }
 }
 
