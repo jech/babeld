@@ -863,18 +863,10 @@ static void
 buffer_update(struct network *net,
               const unsigned char *prefix, unsigned char plen)
 {
-    int i;
-
     if(update_net && update_net != net)
         flushupdates();
 
     update_net = net;
-
-    for(i = 0; i < updates; i++) {
-        if(buffered_updates[i].plen == plen &&
-           memcmp(buffered_updates[i].prefix, prefix, 16) == 0)
-            return;
-    }
 
     if(updates >= MAX_BUFFERED_UPDATES)
         flushupdates();
