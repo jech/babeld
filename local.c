@@ -22,6 +22,7 @@ THE SOFTWARE.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <errno.h>
 
@@ -213,10 +214,15 @@ local_notify_route(struct route *route, int kind)
 void
 local_dump()
 {
-    int i;
+    int i, rc;
+    const char *header = "BABEL 0.0\n";
 
     if(local_socket < 0)
         return;
+
+    rc = write_timeout(local_socket, header, strlen(header));
+    if(rc < 0)
+        goto fail;
 
     local_notify_self();
     for(i = 0; i < numneighs; i++) {
@@ -228,4 +234,9 @@ local_dump()
         local_notify_xroute(&xroutes[i], LOCAL_ADD);
     for(i = 0; i < numroutes; i++)
         local_notify_route(&routes[i], LOCAL_ADD);
+    return;
+
+ fail:
+    shutdown(local_socket, 1);
+    return;
 }
