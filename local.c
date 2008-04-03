@@ -90,7 +90,8 @@ local_notify_self()
     if(local_socket < 0)
         return;
 
-    rc = snprintf(buf, 512, "add self id %s\n", format_address(myid));
+    rc = snprintf(buf, 512, "add self alamakota id %s\n",
+                  format_address(myid));
 
     if(rc < 0 || rc >= 512)
         goto fail;
@@ -126,9 +127,12 @@ local_notify_neighbour(struct neighbour *neigh, int kind)
         return;
 
     rc = snprintf(buf, 512,
-                  "%s neighbour id %s address %s "
+                  "%s neighbour %lx id %s address %s "
                   "if %s reach %04x rxcost %d txcost %d cost %d\n",
                   local_kind(kind),
+                  /* Neighbours never move aroundin memory , so we can use the
+                     address as a unique identifier. */
+                  (unsigned long int)neigh,
                   format_address(neigh->id),
                   format_address(neigh->address),
                   neigh->network->ifname,
@@ -159,8 +163,9 @@ local_notify_xroute(struct xroute *xroute, int kind)
     if(local_socket < 0)
         return;
 
-    rc = snprintf(buf, 512, "%s xroute prefix %s metric %d\n",
+    rc = snprintf(buf, 512, "%s xroute %s prefix %s metric %d\n",
                   local_kind(kind),
+                  format_prefix(xroute->prefix, xroute->plen),
                   format_prefix(xroute->prefix, xroute->plen),
                   xroute->metric);
     
@@ -187,9 +192,12 @@ local_notify_route(struct route *route, int kind)
         return;
 
     rc = snprintf(buf, 512,
-                  "%s route prefix %s installed %s "
+                  "%s route %s-%s-%lx prefix %s installed %s "
                   "id %s metric %d refmetric %d via %s if %s neigh %s\n",
                   local_kind(kind),
+                  format_prefix(route->src->prefix, route->src->plen),
+                  format_address(route->src->id),
+                  (unsigned long)route->neigh,
                   format_prefix(route->src->prefix, route->src->plen),
                   route->installed ? "yes" : "no",
                   format_address(route->src->id),
