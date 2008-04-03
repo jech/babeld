@@ -75,6 +75,14 @@ babel_socket(int port)
     if(rc < 0)
         goto fail;
 
+    rc = fcntl(s, F_GETFD, 0);
+    if(rc < 0)
+        goto fail;
+
+    rc = fcntl(s, F_SETFD, rc | FD_CLOEXEC);
+    if(rc < 0)
+        goto fail;
+
     memset(&sin6, 0, sizeof(sin6));
     sin6.sin6_family = AF_INET6;
     sin6.sin6_port = htons(port);
