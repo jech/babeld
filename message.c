@@ -713,9 +713,6 @@ really_send_update(struct network *net,
     if(!net->up)
         return;
 
-    if(metric < INFINITY)
-        satisfy_request(prefix, plen, seqno, hash_id(id), net);
-
     add_metric = output_filter(id, prefix, plen, net->ifindex);
 
     if(add_metric < INFINITY) {
@@ -828,11 +825,13 @@ flushupdates(void)
             route = find_installed_route(buffered_updates[i].prefix,
                                          buffered_updates[i].plen);
             if(route) {
-                if(split_horizon &&
-                   net->wired && route->neigh->network == net)
-                    continue;
                 seqno = route->seqno;
                 metric = route->metric;
+                if(metric < INFINITY)
+                    satisfy_request(route->src->prefix, route->src->plen,
+                                    seqno, hash_id(route->src->id), net);
+                if(split_horizon && net->wired && route->neigh->network == net)
+                    continue;
                 really_send_update(net, route->src->id,
                                    route->src->prefix,
                                    route->src->plen,
@@ -888,7 +887,7 @@ send_update(struct network *net, int urgent,
     struct resend *request;
 
     if(prefix) {
-        /* This is needed here, since really_send_update only handles the
+        /* This is needed here, since flushupdates only handles the
            case where network is not null. */
         request = find_request(prefix, plen, NULL);
         if(request) {
