@@ -3,6 +3,8 @@ babel 0.12 (unreleased):
   * Retractions are now sent multiple times, which should speed-up
     convergence in presence of packet loss.
   * Optimised the sending of updates to make them smaller.
+  * Don't forward requests multiple times; this should reduce the
+    noise due to requests with no increase in convergence time.
   * Fixed a bug that could cause a crash when resending requests.
   * Added some protection against clock stepping.
 
