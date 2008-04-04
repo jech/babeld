@@ -180,7 +180,7 @@ request_redundant(struct network *net,
         return 1;
 
     if(timeval_minus_msec(&now, &request->time) <
-       (net ? MIN(net->hello_interval, 10000) : 10000))
+       (net ? MIN(net->hello_interval, 1000) : 1000))
         /* Fairly recent. */
         return 1;
 
