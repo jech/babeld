@@ -304,6 +304,9 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
         return;
     }
 
+    if(request_redundant(neigh->network, prefix, plen, seqno, router_hash))
+        return;
+
     /* Let's try to forward this request. */
     if(route && route->metric < INFINITY)
         successor = route->neigh;
