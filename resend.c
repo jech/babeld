@@ -135,7 +135,7 @@ unsatisfied_request(const unsigned char *prefix, unsigned char plen,
     struct resend *request;
 
     request = find_request(prefix, plen, NULL);
-    if(request == NULL)
+    if(request == NULL || resend_expired(request))
         return 0;
 
     if(request->router_hash != router_hash ||
