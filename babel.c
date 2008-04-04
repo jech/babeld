@@ -499,13 +499,11 @@ main(int argc, char **argv)
     }
 
     init_signals();
+    resize_receive_buffer(1500);
     check_networks();
-    if(receive_buffer == NULL) {
-        fprintf(stderr, "Warning: couldn't find any operational interfaces.\n");
-        resize_receive_buffer(1500);
-        if(receive_buffer == NULL)
-            goto fail;
-    }
+    if(receive_buffer == NULL)
+        goto fail;
+
     check_xroutes(0);
     kernel_routes_changed = 0;
     kernel_link_changed = 0;
