@@ -156,6 +156,37 @@ unsatisfied_request(const unsigned char *prefix, unsigned char plen,
     return 0;
 }
 
+/* Determine whether a given request should be forwarded. */
+int
+request_redundant(struct network *net,
+                  const unsigned char *prefix, unsigned char plen,
+                  unsigned short seqno, unsigned short router_hash)
+{
+    struct resend *request;
+
+    request = find_request(prefix, plen, NULL);
+    if(request == NULL || resend_expired(request))
+        return 0;
+
+    if(request->router_hash == router_hash &&
+       seqno_compare(request->seqno, seqno) > 0)
+        return 0;
+
+    if(request->network != NULL && request->network != net)
+        return 0;
+
+    if(request->max > 0)
+        /* Will be resent. */
+        return 1;
+
+    if(timeval_minus_msec(&now, &request->time) <
+       (net ? MIN(net->hello_interval, 10000) : 10000))
+        /* Fairly recent. */
+        return 1;
+
+    return 0;
+}
+
 int
 satisfy_request(const unsigned char *prefix, unsigned char plen,
                 unsigned short seqno, unsigned short router_hash,

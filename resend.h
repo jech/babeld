@@ -48,6 +48,9 @@ int record_resend(int kind, const unsigned char *prefix, unsigned char plen,
                    struct network *net, int delay);
 int unsatisfied_request(const unsigned char *prefix, unsigned char plen,
                         unsigned short seqno, unsigned short router_hash);
+int request_redundant(struct network *net,
+                      const unsigned char *prefix, unsigned char plen,
+                      unsigned short seqno, unsigned short router_hash);
 int satisfy_request(const unsigned char *prefix, unsigned char plen,
                     unsigned short seqno, unsigned short router_hash,
                     struct network *net);
