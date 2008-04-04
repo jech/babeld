@@ -128,6 +128,17 @@ record_resend(int kind, const unsigned char *prefix, unsigned char plen,
     return 1;
 }
 
+static int
+resend_expired(struct resend *resend)
+{
+    switch(resend->kind) {
+    case RESEND_REQUEST:
+        return timeval_minus_msec(&now, &resend->time) >= REQUEST_TIMEOUT;
+    default:
+        return resend->max <= 0;
+    }
+}
+
 int
 unsatisfied_request(const unsigned char *prefix, unsigned char plen,
                     unsigned short seqno, unsigned short router_hash)
@@ -170,17 +181,6 @@ satisfy_request(const unsigned char *prefix, unsigned char plen,
     }
 
     return 0;
-}
-
-static int
-resend_expired(struct resend *resend)
-{
-    switch(resend->kind) {
-    case RESEND_REQUEST:
-        return timeval_minus_msec(&now, &resend->time) >= REQUEST_TIMEOUT;
-    default:
-        return resend->max <= 0;
-    }
 }
 
 void
