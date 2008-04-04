@@ -3,7 +3,7 @@
                             Juliusz Chroboczek
                            <jch@pps.jussieu.fr>
 
-                               12 March 2008
+                               3 April 2008
 
 
 1. Introduction
@@ -202,7 +202,7 @@ defined by
 
     cost = 1/(2/(alpha * beta) + 2/beta)
 
-or equivalently    
+or equivalently
 
     cost = (MAX(txcost, 1) * rxcost + rxcost) / 2.
 
@@ -224,15 +224,15 @@ their use should be considered as experimental.
 
 2.3 Reachability information
 
-Reachability information is carried in update and prefix messages.  An
-update is a quadruple
+Reachability information is carried in update and prefix messages.
+Conceptually, an update is a quadruple
 
   (id, prefix, seqno, metric)
 
 where id is the router-id of the router that originates this route, prefix
-is the destination of the route, seqno is a sequentially increasing (modulo
-2^16) sequence number, and metric is the sum of the costs of the links
-constituting the path.
+is the destination of the route, seqno is a sequentially increasing
+(modulo 2^16) sequence number, and metric is the sum of the costs of the
+links constituting the path.
 
 If the metric is infinite, the update is in fact a retraction.
 
@@ -329,11 +329,13 @@ If such an entry exists:
   - if the entry is currently selected, and the update is unfeasible, then
     the metric of the entry is set to infinity and a different route is
     selected; if no different route exists, the route is retracted;
-  - if the update's metric is infinite and the entry's is not, then the
-    entry's seqno is incremented, and its metric is set to infinity;
-  - otherwise, the entry's sequence number, reference metric and metric are
-    updated.  If the update is feasible, the garbage collection timer for
-    the route is reset.
+  - if the update is feasible, then the entry's sequence number,
+    reference metric and metric are updated and the garbage collection
+    timer for the route is reset;
+  - otherwise, the update is ignored.
+
+A node SHOULD send triggered updates when a selected route changes (see
+Section 2.3.4 below).
 
 After the RIB is modified, route selection (Section 2.4) is performed for
 the affected destination.
@@ -367,6 +369,9 @@ update for that destination.  When the metric of a selected route changes
 by more than 2, it SHOULD send an update for that destination.  A node MAY
 also send a spontaneous update when it detects a mobility event.
 
+Additionally, a node SHOULD send updates in response to explicit quieries
+from its neighbours (see Section 2.5 below).
+
 
 2.4 Route selection
 
@@ -394,7 +399,7 @@ criteria:
   - changing source ids should be avoided.
 
 Choosing a route selection policy for Babel is an open research problem; at
-any rate, the optimal route selection policy will depend on the individual
+any rate, the optimal route selection policy will depend on the particular
 network being routed.  The current version of the sample implementation of
 Babel uses the following route selection policy:
 
@@ -402,8 +407,6 @@ Babel uses the following route selection policy:
     by at least 1.5;
   - routes are not switched unless the new route's metric is smaller by at
     least 0.5;
-  - routes are not switched unless the new route has been stable for 30
-    seconds or its metric is smaller by at least 1.5;
   - routes with a smaller metric are preferred;
   - sequence numbers are ignored when performing route selection.
 
@@ -412,9 +415,10 @@ This strategy is likely to be reconsidered in a future version.
 
 2.5 Accelerating convergence
 
-When a Babel node moves, it is quite likely that most of its routes will
-become unfeasible; in that case, it looses connectivity to the rest of the
-network until it receives a new sequence number.
+When a Babel node moves or one of its selected successor crashes, it is
+quite likely that some of its selected routes will become unfeasible; in
+that case, it looses connectivity to the rest of the network until it
+receives a new sequence number.
 
 In order to recover its routes as promptly as possible, a node that has
 lost all feasible routes to a given destination broadcasts a request for
@@ -436,19 +440,20 @@ it receives an unfeasible update with a metric significantly smaller than
 that of its currently selected route.
 
 A node SHOULD maintain a list of forwarded requests, and forward the reply
-(using unicast or multicast) as soon as it arrives.
+(using unicast or multicast) as soon as it arrives.  A node SHOULD avoid
+forwarding redundant requests.
 
 
 2.6 Simplified implementations
 
 Babel is a very economic protocol.  Route updates take between 24 and 48
-octets per destination; and the RIB takes about 50 bytes per entry.  In
-other words, a single Ethernet packet can carry roughly 50 route updates,
-and a megabyte of memory can contain a 20000-entry RIB.
+octets per destination; and the RIB takes about 50 bytes per entry.  To put
+these values into perspective, a single Ethernet packet can carry up to
+60 route updates, and a megabyte of memory can contain a 20000-entry RIB.
 
-Babel is also a simple protocol.  The first implementation consisted of
-less than 4000 lines of C code, and compiled to less than 30 kB of code on
-a 32-bit CISC architecture.
+Babel is also a fairly simple protocol.  The sample implementation consists
+of less than 6000 lines of C code, and compiles to less than 50 kB of text
+on a 32-bit CISC architecture.
 
 However, in some very constrained environments, such as PDAs, microwave
 ovens or abacuses, it may be desirable to have subset implementations of
@@ -480,10 +485,10 @@ a few minutes after it is retracted.
 A parasitic implementation is one that uses a Babel network for routing its
 packets but does not announce any routes except to itself.
 
-A parasitic implementation SHOULD participate in the Hello and IHU
-protocols.  It may either maintain a full routing table, or simply select
-one of its non-parasitic neighbours (i.e. one that does announce routes
-with an id that is not its router-id) as its default gateway.
+A parasitic implementation MUST participate in the Hello and IHU protocols.
+It may either maintain a full routing table, or simply select one of its
+non-parasitic neighbours (i.e. one that does announce routes with an id
+that is not its router-id) as its default gateway.
 
 Since a parasitic implementation cannot possibly participate in routing
 loops, it need not evaluate the feasibility condition, and can instead
@@ -499,9 +504,10 @@ we say that multiple Babel messages are sent as a single Babel packet.
 
 3.1 Packet format
 
-Babel packets are sent as link-local UDP datagrams to port ????, using
-either multicast to group ???? or unicast to a link-local address.  The
-meaning of a received message does not depend on the transport being used.
+Babel packets are sent as link-local UDP datagrams to port 8475, using
+either multicast to group ff02::cca6:c0f9:e182:5373 or unicast to
+a link-local address.  The meaning of a received message does not depend on
+the transport being used.
 
 A Babel packet has the following structure:
 
@@ -723,8 +729,8 @@ least 2, it forwards the request as a unicast packet to the selected
 successor if it is not the requestor, and otherwise to some other successor
 (feasible or not) after decreasing the hop count by one.  If the hop count
 is 1, it remains silent.  A speaker SHOULD keep track of forwarded
-multi-hop requests, and forward the replies whenever a request is
-satisfied.
+multi-hop requests, forward the replies whenever a request is satisfied,
+and avoid forwarding redundant requests.
 
 If the receiver has no route to the given destination (feasible or not), it
 remains silent.
