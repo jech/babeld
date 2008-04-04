@@ -304,14 +304,14 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
         return;
     }
 
-    /* Let's forward this request. */
+    /* Let's try to forward this request. */
     if(route && route->metric < INFINITY)
         successor = route->neigh;
 
     if(!successor || successor == neigh) {
-        struct route *other_route;
-        /* We're about to forward a request to the requestor.  Try to
+        /* We were about to forward a request to its requestor.  Try to
            find a different neighbour to forward the request to. */
+        struct route *other_route;
 
         other_route = find_best_route(prefix, plen, 0, neigh);
         if(other_route && other_route->metric < INFINITY)
