@@ -760,7 +760,7 @@ compare_buffered_updates(const void *av, const void *bv)
 
     if(v4a > v4b)
         return 1;
-    else if(v4b < v4a)
+    else if(v4a < v4b)
         return -1;
 
     return 0;
