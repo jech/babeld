@@ -749,7 +749,7 @@ static int
 compare_buffered_updates(const void *av, const void *bv)
 {
     const struct buffered_update *a = av, *b = bv;
-    int rc, v4a, v4b;
+    int rc, v4a, v4b, ipa, ipb;
 
     rc = memcmp(a->id, b->id, 16);
     if(rc != 0)
@@ -762,6 +762,14 @@ compare_buffered_updates(const void *av, const void *bv)
         return 1;
     else if(v4a < v4b)
         return -1;
+
+    ipa = in_prefix(a->id, a->prefix, a->plen);
+    ipb = in_prefix(b->id, b->prefix, b->plen);
+
+    if(ipa > ipb)
+        return -1;
+    else if(ipa < ipb)
+        return 1;
 
     return 0;
 }
