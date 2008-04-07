@@ -23,7 +23,7 @@ THE SOFTWARE.
 #define MAXROUTES 512
 #define MAXSRCS 256
 #define MAXNEIGHBOURS 64
-#define MAXNETS 8
+#define MAXNETS 16
 #define MAXXROUTES 64
 
 #define INFINITY ((unsigned short)(~0))
