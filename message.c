@@ -771,7 +771,12 @@ compare_buffered_updates(const void *av, const void *bv)
     else if(ipa < ipb)
         return 1;
 
-    return 0;
+    if(a->plen < b->plen)
+        return -1;
+    else if(a->plen > b->plen)
+        return 1;
+
+    return memcmp(a->prefix, b->prefix, 16);
 }
 
 void
