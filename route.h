@@ -31,8 +31,8 @@ struct route {
     int installed;
 };
 
-extern struct route routes[MAXROUTES];
-extern int numroutes;
+extern struct route *routes;
+extern int numroutes, maxroutes;
 extern int kernel_metric;
 extern int route_timeout_delay;
 extern int route_gc_delay;

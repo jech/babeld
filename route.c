@@ -38,8 +38,8 @@ THE SOFTWARE.
 #include "resend.h"
 #include "filter.h"
 
-struct route routes[MAXROUTES];
-int numroutes = 0;
+struct route *routes = NULL;
+int numroutes = 0, maxroutes = 0;
 int kernel_metric = 0;
 int route_timeout_delay = 160;
 int route_gc_delay = 180;
@@ -317,49 +317,6 @@ update_network_metric(struct network *net)
     }
 }
 
-/* We're overflowing the route table.  Find some hopefully useless
-   routes and drop them. */
-static void
-drop_some_routes(void)
-{
-    int i;
-
-    i = 0;
-    while(i < numroutes) {
-        if(!routes[i].installed && routes[i].time < now.tv_sec - 90) {
-            flush_route(&routes[i]);
-            continue;
-        }
-        
-        if(routes[i].metric >= INFINITY && routes[i].time < now.tv_sec - 90) {
-            flush_route(&routes[i]);
-            continue;
-        }
-    }
-
-    if(numroutes < MAXROUTES)
-        return;
-
-    /* We didn't manage to free a table entry just by dropping useless
-       routes.  Let's take more drastic action. */
-
-    for(i = 0; i < numroutes; i++) {
-        if(!route_feasible(&routes[i])) {
-            flush_route(&routes[i]);
-            return;
-        }
-    }
-
-    for(i = 0; i < numroutes; i++) {
-        if(!routes[i].installed) {
-            flush_route(&routes[i]);
-            return;
-        }
-    }
-
-    return;
-}
-
 /* This is called whenever we receive an update. */
 struct route *
 update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
@@ -440,11 +397,16 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         if(refmetric >= INFINITY)
             /* Somebody's retracting a route we never saw. */
             return NULL;
-        if(numroutes >= MAXROUTES)
-            drop_some_routes();
-        if(numroutes >= MAXROUTES) {
-            fprintf(stderr, "Too many routes -- ignoring update.\n");
-            return NULL;
+        if(numroutes >= maxroutes) {
+            struct route *new_routes;
+            int n = maxroutes < 1 ? 8 : 2 * maxroutes;
+            new_routes = routes == NULL ?
+                malloc(n * sizeof(struct route)) :
+                realloc(routes, n * sizeof(struct route));
+            if(new_routes == NULL)
+                return NULL;
+            maxroutes = n;
+            routes = new_routes;
         }
         route = &routes[numroutes];
         route->src = src;
