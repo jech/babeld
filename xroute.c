@@ -73,6 +73,7 @@ flush_xroute(struct xroute *xroute)
         if(new_xroutes == NULL)
             return;
         xroutes = new_xroutes;
+        maxxroutes = n;
     }
 }
 
