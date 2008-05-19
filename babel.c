@@ -105,6 +105,7 @@ main(int argc, char **argv)
     void *vrc;
     unsigned int seed;
     char **arg;
+    struct network *net;
 
     parse_address("ff02::cca6:c0f9:e182:5373", protocol_group, NULL);
     protocol_port = 8475;
@@ -514,17 +515,17 @@ main(int argc, char **argv)
     source_expiry_time = now.tv_sec + 200 + random() % 200;
 
     /* Make some noise so that others notice us */
-    for(i = 0; i < numnets; i++) {
-        if(!nets[i].up)
+    FOR_ALL_NETS(net) {
+        if(!net->up)
             continue;
         /* Apply jitter before we send the first message. */
         usleep(5000 + random() % 10000);
         gettimeofday(&now, NULL);
-        send_hello(&nets[i]);
-        send_self_update(&nets[i], 0);
-        send_request(&nets[i], NULL, 0, 0, 0, 0);
+        send_hello(net);
+        send_self_update(net, 0);
+        send_request(net, NULL, 0, 0, 0, 0);
         flushupdates();
-        flushbuf(&nets[i]);
+        flushbuf(net);
     }
 
     debugf("Entering main loop.\n");
@@ -540,14 +541,14 @@ main(int argc, char **argv)
         timeval_min_sec(&tv, source_expiry_time);
         timeval_min_sec(&tv, kernel_dump_time);
         timeval_min(&tv, &resend_time);
-        for(i = 0; i < numnets; i++) {
-            if(!nets[i].up)
+        FOR_ALL_NETS(net) {
+            if(!net->up)
                 continue;
-            timeval_min(&tv, &nets[i].flush_timeout);
-            timeval_min(&tv, &nets[i].hello_timeout);
-            if(!network_idle(&nets[i])) {
-                timeval_min(&tv, &nets[i].self_update_timeout);
-                timeval_min(&tv, &nets[i].update_timeout);
+            timeval_min(&tv, &net->flush_timeout);
+            timeval_min(&tv, &net->hello_timeout);
+            if(!network_idle(net)) {
+                timeval_min(&tv, &net->self_update_timeout);
+                timeval_min(&tv, &net->update_timeout);
             }
         }
         timeval_min(&tv, &update_flush_timeout);
@@ -591,11 +592,11 @@ main(int argc, char **argv)
                     usleep(1000000);
                 }
             } else {
-                for(i = 0; i < numnets; i++) {
-                    if(!nets[i].up)
+                FOR_ALL_NETS(net) {
+                    if(!net->up)
                         continue;
-                    if(nets[i].ifindex == sin6.sin6_scope_id) {
-                        parse_packet((unsigned char*)&sin6.sin6_addr, &nets[i],
+                    if(net->ifindex == sin6.sin6_scope_id) {
+                        parse_packet((unsigned char*)&sin6.sin6_addr, net,
                                      receive_buffer, rc);
                         VALGRIND_MAKE_MEM_UNDEFINED(receive_buffer,
                                                     receive_buffer_size);
@@ -653,16 +654,16 @@ main(int argc, char **argv)
             source_expiry_time = now.tv_sec + 200 + random() % 200;
         }
 
-        for(i = 0; i < numnets; i++) {
-            if(!nets[i].up)
+        FOR_ALL_NETS(net) {
+            if(!net->up)
                 continue;
-            if(timeval_compare(&now, &nets[i].hello_timeout) >= 0)
-                send_hello(&nets[i]);
-            if(!network_idle(&nets[i])) {
-                if(timeval_compare(&now, &nets[i].update_timeout) >= 0)
-                    send_update(&nets[i], 0, NULL, 0);
-                if(timeval_compare(&now, &nets[i].self_update_timeout) >= 0)
-                    send_self_update(&nets[i], 0);
+            if(timeval_compare(&now, &net->hello_timeout) >= 0)
+                send_hello(net);
+            if(!network_idle(net)) {
+                if(timeval_compare(&now, &net->update_timeout) >= 0)
+                    send_update(net, 0, NULL, 0);
+                if(timeval_compare(&now, &net->self_update_timeout) >= 0)
+                    send_self_update(net, 0);
             }
         }
 
@@ -681,12 +682,12 @@ main(int argc, char **argv)
                 flush_unicast(1);
         }
 
-        for(i = 0; i < numnets; i++) {
-            if(!nets[i].up)
+        FOR_ALL_NETS(net) {
+            if(!net->up)
                 continue;
-            if(nets[i].flush_timeout.tv_sec != 0) {
-                if(timeval_compare(&now, &nets[i].flush_timeout) >= 0)
-                    flushbuf(&nets[i]);
+            if(net->flush_timeout.tv_sec != 0) {
+                if(timeval_compare(&now, &net->flush_timeout) >= 0)
+                    flushbuf(net);
             }
         }
 
@@ -717,26 +718,26 @@ main(int argc, char **argv)
 
     flushupdates();
 
-    for(i = 0; i < numnets; i++) {
-        if(!nets[i].up)
+    FOR_ALL_NETS(net) {
+        if(!net->up)
             continue;
         /* Make sure that we expire quickly from our neighbours'
            association caches.  Since we sleep on average 10ms per
            network, set the hello interval to numnets centiseconds. */
-        send_hello_noupdate(&nets[i], numnets);
-        flushbuf(&nets[i]);
+        send_hello_noupdate(net, numnets);
+        flushbuf(net);
         usleep(5000 + random() % 10000);
         gettimeofday(&now, NULL);
     }
-    for(i = 0; i < numnets; i++) {
-        if(!nets[i].up)
+    FOR_ALL_NETS(net) {
+        if(net->up)
             continue;
         /* Make sure they got it. */
-        send_hello_noupdate(&nets[i], 1);
-        flushbuf(&nets[i]);
+        send_hello_noupdate(net, 1);
+        flushbuf(net);
         usleep(5000 + random() % 10000);
         gettimeofday(&now, NULL);
-        network_up(&nets[i], 0);
+        network_up(net, 0);
     }
     kernel_setup_socket(0);
     kernel_setup(0);
@@ -788,10 +789,10 @@ main(int argc, char **argv)
     if(pidfile)
         unlink(pidfile);
  fail_nopid:
-    for(i = 0; i < numnets; i++) {
-        if(!nets[i].up)
+    FOR_ALL_NETS(net) {
+        if(!net->up)
             continue;
-        network_up(&nets[i], 0);
+        network_up(net, 0);
     }
     kernel_setup_socket(0);
     kernel_setup(0);
