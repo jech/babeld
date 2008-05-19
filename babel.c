@@ -730,7 +730,7 @@ main(int argc, char **argv)
         gettimeofday(&now, NULL);
     }
     FOR_ALL_NETS(net) {
-        if(net->up)
+        if(!net->up)
             continue;
         /* Make sure they got it. */
         send_hello_noupdate(net, 1);
