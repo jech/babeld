@@ -152,10 +152,10 @@ expire_sources()
         if(srcs[i].time > now.tv_sec)
             /* clock stepped */
             srcs[i].time = now.tv_sec;
-        if(srcs[i].time < now.tv_sec - SOURCE_GC_TIME)
-            continue;
-        rc = flush_source(&srcs[i]);
-        changed = changed || rc;
+        if(srcs[i].time < now.tv_sec - SOURCE_GC_TIME) {
+            rc = flush_source(&srcs[i]);
+            changed = changed || rc;
+        }
     }
 
     return changed;
