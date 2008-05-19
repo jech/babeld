@@ -1,7 +1,7 @@
 babel 0.13 (unreleased):
 
   * More tweaks to the order in which updates are sent.
-  * Removed the arbitrary limit on the number of interfaces.
+  * Removed arbitrary limits on the number of xroutes and interfaces.
 
 7 April 2008: babel 0.12
 
