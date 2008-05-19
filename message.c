@@ -525,13 +525,12 @@ send_request(struct network *net,
              unsigned char hop_count, unsigned short seqno,
              unsigned short router_hash)
 {
-    int i;
-
     if(net == NULL) {
-        for(i = 0; i < numnets; i++) {
-            if(!nets[i].up)
+        struct network *n;
+        FOR_ALL_NETS(n) {
+            if(n->up)
                 continue;
-            send_request(&nets[i], prefix, plen, hop_count, seqno, router_hash);
+            send_request(n, prefix, plen, hop_count, seqno, router_hash);
         }
         return;
     }
@@ -914,9 +913,9 @@ send_update(struct network *net, int urgent,
     }
 
     if(net == NULL) {
-        for(i = 0; i < numnets; i++) {
-            send_update(&nets[i], urgent, prefix, plen);
-        }
+        struct network *n;
+        FOR_ALL_NETS(n)
+            send_update(n, urgent, prefix, plen);
         return;
     }
 
@@ -989,10 +988,11 @@ send_self_update(struct network *net, int force_seqno)
     update_myseqno(force_seqno);
 
     if(net == NULL) {
-        for(i = 0; i < numnets; i++) {
-            if(!nets[i].up)
+        struct network *n;
+        FOR_ALL_NETS(n) {
+            if(n->up)
                 continue;
-            send_self_update(&nets[i], 0);
+            send_self_update(n, 0);
         }
         return;
     }
@@ -1012,10 +1012,11 @@ send_ihu(struct neighbour *neigh, struct network *net)
     int i;
 
     if(neigh == NULL && net == NULL) {
-        for(i = 0; i < numnets; i++) {
-            if(!nets[i].up)
+        struct network *n;
+        FOR_ALL_NETS(n) {
+            if(n->up)
                 continue;
-            send_ihu(NULL, &nets[i]);
+            send_ihu(NULL, n);
         }
         return;
     }
