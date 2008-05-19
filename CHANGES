@@ -1,7 +1,7 @@
 babel 0.13 (unreleased):
 
   * More tweaks to the order in which updates are sent.
-  * Increased the maximum number of interfaces to 16.
+  * Removed the arbitrary limit on the number of interfaces.
 
 7 April 2008: babel 0.12
 
