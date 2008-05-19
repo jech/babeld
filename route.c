@@ -93,7 +93,11 @@ flush_route(struct route *route)
     numroutes--;
     VALGRIND_MAKE_MEM_UNDEFINED(routes + numroutes, sizeof(struct route));
 
-    if(maxroutes > 8 && numroutes < maxroutes / 4) {
+    if(numroutes == 0) {
+        free(routes);
+        routes = NULL;
+        maxroutes = 0;
+    } else if(maxroutes > 8 && numroutes < maxroutes / 4) {
         struct route *new_routes;
         int n = maxroutes / 2;
         new_routes = realloc(routes, n * sizeof(struct route));
