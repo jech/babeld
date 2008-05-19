@@ -48,6 +48,8 @@ struct network {
 extern struct network nets[MAXNETS];
 extern int numnets;
 
+#define FOR_ALL_NETS(_net) for(_net = nets; _net < nets + numnets; _net++)
+
 struct network *add_network(char *ifname);
 int network_idle(struct network *net);
 int update_hello_interval(struct network *net);
