@@ -34,7 +34,7 @@ struct xroute {
     int proto;
 };
 
-extern struct xroute xroutes[MAXXROUTES];
+extern struct xroute *xroutes;
 extern int numxroutes;
 
 struct xroute *find_xroute(const unsigned char *prefix, unsigned char plen);

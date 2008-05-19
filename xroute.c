@@ -37,8 +37,9 @@ THE SOFTWARE.
 #include "filter.h"
 #include "network.h"
 
-struct xroute xroutes[MAXXROUTES];
+struct xroute *xroutes;
 int numxroutes = 0;
+int maxxroutes = 0;
 
 struct xroute *
 find_xroute(const unsigned char *prefix, unsigned char plen)
@@ -85,8 +86,20 @@ add_xroute(int kind, unsigned char prefix[16], unsigned char plen,
         return 1;
     }
 
-    if(numxroutes >= MAXXROUTES)
-        return -1;
+    if(numxroutes >= maxxroutes) {
+        struct xroute *new_xroutes;
+        int n = maxxroutes < 1 ? 8 : 2 * maxxroutes;
+
+        new_xroutes = xroutes == NULL ?
+            malloc(n * sizeof(struct xroute)) :
+            realloc(xroutes, n * sizeof(struct xroute));
+
+        if(new_xroutes == NULL)
+            return -1;
+
+        maxxroutes = n;
+        xroutes = new_xroutes;
+    }
 
     xroutes[numxroutes].kind = kind;
     memcpy(xroutes[numxroutes].prefix, prefix, 16);
