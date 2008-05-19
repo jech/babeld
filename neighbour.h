@@ -38,6 +38,9 @@ struct neighbour {
 extern struct neighbour neighs[MAXNEIGHBOURS];
 extern int numneighs;
 
+#define FOR_ALL_NEIGHBOURS(_neigh) \
+    for(_neigh = neighs; _neigh < neighs + numneighs; _neigh++)
+
 int neighbour_valid(struct neighbour *neigh);
 void flush_neighbour(struct neighbour *neigh);
 struct neighbour *find_neighbour(const unsigned char *address,
