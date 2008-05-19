@@ -34,13 +34,18 @@ THE SOFTWARE.
 #include "route.h"
 #include "message.h"
 
-struct neighbour neighs[MAXNEIGHBOURS];
-int numneighs = 0;
+struct neighbour *neighs = NULL;
 
-int
-neighbour_valid(struct neighbour *neigh)
+struct neighbour *
+find_neighbour(const unsigned char *address, struct network *net)
 {
-    return neigh->hello_seqno != -2;
+    struct neighbour *neigh;
+    FOR_ALL_NEIGHBOURS(neigh) {
+        if(memcmp(address, neigh->address, 16) == 0 &&
+           neigh->network == net)
+            return neigh;
+    }
+    return NULL;
 }
 
 void
@@ -49,35 +54,23 @@ flush_neighbour(struct neighbour *neigh)
     flush_neighbour_routes(neigh);
     if(unicast_neighbour == neigh)
         flush_unicast(1);
-    memset(neigh, 0, sizeof(*neigh));
-    VALGRIND_MAKE_MEM_UNDEFINED(neigh, sizeof(*neigh));
-    neigh->hello_seqno = -2;
-    while(numneighs > 0 && !neighbour_valid(&neighs[numneighs - 1])) {
-       numneighs--;
-       VALGRIND_MAKE_MEM_UNDEFINED(&neighs[numneighs],
-                                   sizeof(neighs[numneighs]));
-    }
-}
 
-struct neighbour *
-find_neighbour(const unsigned char *address, struct network *net)
-{
-    struct neighbour *neigh;
-    FOR_ALL_NEIGHBOURS(neigh) {
-        if(!neighbour_valid(neigh))
-            continue;
-        if(memcmp(address, neigh->address, 16) == 0 &&
-           neigh->network == net)
-            return neigh;
+    if(neighs == neigh) {
+        neighs = neigh->next;
+    } else {
+        struct neighbour *previous = neighs;
+        while(previous->next != neigh)
+            previous = previous->next;
+        previous->next = neigh->next;
     }
-    return NULL;
+    free(neigh);
 }
 
 struct neighbour *
 add_neighbour(const unsigned char *id, const unsigned char *address,
               struct network *net)
 {
-    struct neighbour *neigh, *ngh;
+    struct neighbour *neigh;
     const struct timeval zero = {0, 0};
 
     neigh = find_neighbour(address, net);
@@ -93,17 +86,13 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
     }
     debugf("Creating neighbour %s (%s).\n",
            format_address(id), format_address(address));
-    FOR_ALL_NEIGHBOURS(ngh) {
-        if(!neighbour_valid(ngh))
-            neigh = ngh;
+
+    neigh = malloc(sizeof(struct neighbour));
+    if(neigh == NULL) {
+        perror("malloc(neighbour)");
+        return NULL;
     }
-    if(!neigh) {
-        if(numneighs >= MAXNEIGHBOURS) {
-            fprintf(stderr, "Too many neighbours.\n");
-            return NULL;
-        }
-        neigh = &neighs[numneighs++];
-    }
+
     neigh->hello_seqno = -1;
     memcpy(neigh->id, id, 16);
     memcpy(neigh->address, address, 16);
@@ -114,6 +103,8 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
     neigh->hello_interval = 0;
     neigh->ihu_interval = 0;
     neigh->network = net;
+    neigh->next = neighs;
+    neighs = neigh;
     send_hello(net);
     return neigh;
 }
@@ -240,16 +231,16 @@ check_neighbours()
 
     debugf("Checking neighbours.\n");
 
-    FOR_ALL_NEIGHBOURS(neigh) {
-        if(!neighbour_valid(neigh))
-            continue;
-
+    neigh = neighs;
+    while(neigh) {
         changed = update_neighbour(neigh, -1, 0);
 
         if(neigh->reach == 0 ||
            neigh->hello_time.tv_sec > now.tv_sec || /* clock stepped */
            timeval_minus_msec(&now, &neigh->hello_time) > 300000) {
-            flush_neighbour(neigh);
+            struct neighbour *old = neigh;
+            neigh = neigh->next;
+            flush_neighbour(old);
             continue;
         }
 
@@ -264,6 +255,7 @@ check_neighbours()
             msecs = MIN(msecs, neigh->hello_interval * 10);
         if(neigh->ihu_interval > 0)
             msecs = MIN(msecs, neigh->ihu_interval * 10);
+        neigh = neigh->next;
     }
 
     return msecs;

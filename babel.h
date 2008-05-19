@@ -21,7 +21,6 @@ THE SOFTWARE.
 */
 
 #define MAXSRCS 256
-#define MAXNEIGHBOURS 64
 
 #define INFINITY ((unsigned short)(~0))
 

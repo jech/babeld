@@ -21,8 +21,8 @@ THE SOFTWARE.
 */
 
 struct neighbour {
-    /* This is -1 when unknown, and -2 for an invalid neighbour,
-       so don't make it unsigned */
+    struct neighbour *next;
+    /* This is -1 when unknown, so don't make it unsigned */
     int hello_seqno;
     unsigned char id[16];
     unsigned char address[16];
@@ -35,11 +35,10 @@ struct neighbour {
     struct network *network;
 };
 
-extern struct neighbour neighs[MAXNEIGHBOURS];
-extern int numneighs;
+extern struct neighbour *neighs;
 
 #define FOR_ALL_NEIGHBOURS(_neigh) \
-    for(_neigh = neighs; _neigh < neighs + numneighs; _neigh++)
+    for(_neigh = neighs; _neigh; _neigh = _neigh->next)
 
 int neighbour_valid(struct neighbour *neigh);
 void flush_neighbour(struct neighbour *neigh);

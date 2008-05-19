@@ -1022,8 +1022,6 @@ send_ihu(struct neighbour *neigh, struct network *net)
     if(neigh == NULL) {
         struct neighbour *ngh;
         FOR_ALL_NEIGHBOURS(ngh) {
-            if(!neighbour_valid(ngh))
-                continue;
             if(ngh->network == net)
                 send_ihu(ngh, net);
         }
@@ -1056,7 +1054,7 @@ send_marginal_ihu(struct network *net)
 {
     struct neighbour *neigh;
     FOR_ALL_NEIGHBOURS(neigh) {
-        if(!neighbour_valid(neigh) || (net && neigh->network != net))
+        if(net && neigh->network != net)
             continue;
         if(neigh->txcost >= 384 || (neigh->reach & 0xF000) != 0xF000)
             send_ihu(neigh, net);

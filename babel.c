@@ -910,8 +910,6 @@ dump_tables(FILE *out)
     fprintf(out, "My id %s seqno %d\n", format_address(myid), myseqno);
 
     FOR_ALL_NEIGHBOURS(neigh) {
-        if(!neighbour_valid(neigh))
-            continue;
         fprintf(out, "Neighbour %s ", format_address(neigh->id));
         fprintf(out, "at %s dev %s reach %04x rxcost %d txcost %d%s.\n",
                 format_address(neigh->address),
