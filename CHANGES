@@ -2,8 +2,8 @@ babel 0.13 (unreleased):
 
   * Fixed a bug that prevented expiration of stale sources.
   * More tweaks to the order in which updates are sent.
-  * Removed arbitrary limits on the number of interfaces, neighbours,
-    routes and xroutes.
+  * Removed all arbitrary limits (interfaces, neighbours, routes,
+    xroutes and sources).
 
 7 April 2008: babel 0.12
 
