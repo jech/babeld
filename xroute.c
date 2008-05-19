@@ -66,7 +66,11 @@ flush_xroute(struct xroute *xroute)
     numxroutes--;
     VALGRIND_MAKE_MEM_UNDEFINED(xroutes + numxroutes, sizeof(struct xroute));
 
-    if(maxxroutes > 8 && numxroutes < maxxroutes / 4) {
+    if(numxroutes == 0) {
+        free(xroutes);
+        xroutes = NULL;
+        maxxroutes = 0;
+    } else if(maxxroutes > 8 && numxroutes < maxxroutes / 4) {
         struct xroute *new_xroutes;
         int n = maxxroutes / 2;
         new_xroutes = realloc(xroutes, n * sizeof(struct xroute));
