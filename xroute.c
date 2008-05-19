@@ -98,14 +98,11 @@ add_xroute(int kind, unsigned char prefix[16], unsigned char plen,
     if(numxroutes >= maxxroutes) {
         struct xroute *new_xroutes;
         int n = maxxroutes < 1 ? 8 : 2 * maxxroutes;
-
         new_xroutes = xroutes == NULL ?
             malloc(n * sizeof(struct xroute)) :
             realloc(xroutes, n * sizeof(struct xroute));
-
         if(new_xroutes == NULL)
             return -1;
-
         maxxroutes = n;
         xroutes = new_xroutes;
     }
