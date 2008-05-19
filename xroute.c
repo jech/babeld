@@ -65,6 +65,15 @@ flush_xroute(struct xroute *xroute)
         memcpy(xroutes + n, xroutes + numxroutes - 1, sizeof(struct xroute));
     numxroutes--;
     VALGRIND_MAKE_MEM_UNDEFINED(xroutes + numxroutes, sizeof(struct xroute));
+
+    if(maxxroutes > 8 && numxroutes < maxxroutes / 4) {
+        struct xroute *new_xroutes;
+        int n = maxxroutes / 2;
+        new_xroutes = realloc(xroutes, n * sizeof(struct xroute));
+        if(new_xroutes == NULL)
+            return;
+        xroutes = new_xroutes;
+    }
 }
 
 int
