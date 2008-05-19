@@ -81,7 +81,7 @@ flush_source(struct source *src)
     if(srcs == src) {
         srcs = src->next;
     } else {
-        struct source *previous = src;
+        struct source *previous = srcs;
         while(previous->next != src)
             previous = previous->next;
         previous->next = src->next;
