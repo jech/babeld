@@ -30,61 +30,42 @@ THE SOFTWARE.
 #include "network.h"
 #include "route.h"
 
-struct source srcs[MAXSRCS];
-int numsrcs = 0;
+struct source *srcs = NULL;
 
-struct source *
+struct source*
 find_source(const unsigned char *id, const unsigned char *p, unsigned char plen,
             int create, unsigned short seqno)
 {
     struct source *src;
-    int i, rc;
 
-    for(i = 0; i < numsrcs; i++) {
-        if(!srcs[i].valid)
-            continue;
+    for(src = srcs; src; src = src->next) {
         /* This should really be a hash table.  For now, check the
            last byte first. */
-        if(srcs[i].id[15] != id[15])
+        if(src->id[15] != id[15])
             continue;
-        if(memcmp(srcs[i].id, id, 16) != 0)
+        if(memcmp(src->id, id, 16) != 0)
             continue;
-        if(source_match(&srcs[i], p, plen))
-           return &srcs[i];
+        if(source_match(src, p, plen))
+           return src;
     }
 
     if(!create)
         return NULL;
 
- again:
-
-    src = NULL;
-
-    for(i = 0; i < numsrcs; i++) {
-        if(srcs[i].valid == 0) {
-            src = &srcs[i];
-            break;
-        }
+    src = malloc(sizeof(struct source));
+    if(src == NULL) {
+        perror("malloc(source)");
+        return NULL;
     }
 
-    if(!src) {
-        if(numsrcs >= MAXSRCS) {
-            rc = expire_sources();
-            if(rc)
-                goto again;
-            fprintf(stderr, "Too many sources.\n");
-            return NULL;
-        }
-        src = &srcs[numsrcs++];
-    }
-
-    src->valid = 1;
     memcpy(src->id, id, 16);
     memcpy(src->prefix, p, 16);
     src->plen = plen;
     src->seqno = seqno;
     src->metric = INFINITY;
     src->time = now.tv_sec;
+    src->next = srcs;
+    srcs = src;
     return src;
 }
 
@@ -92,21 +73,21 @@ int
 flush_source(struct source *src)
 {
     int i;
-
     for(i = 0; i < numroutes; i++) {
         if(routes[i].src == src)
             return 0;
     }
 
-    memset(src, 0, sizeof(*src));
-    VALGRIND_MAKE_MEM_UNDEFINED(src, sizeof(*src));
-    src->valid = 0;
-
-    while(numsrcs > 0 && !srcs[numsrcs - 1].valid) {
-        numsrcs--;
-        VALGRIND_MAKE_MEM_UNDEFINED(&srcs[numsrcs], sizeof(srcs[numsrcs]));
+    if(srcs == src) {
+        srcs = src->next;
+    } else {
+        struct source *previous = src;
+        while(previous->next != src)
+            previous = previous->next;
+        previous->next = src->next;
     }
 
+    free(src);
     return 1;
 }
 
@@ -139,24 +120,22 @@ update_source(struct source *src,
     src->time = now.tv_sec;
 }
 
-int
+void
 expire_sources()
 {
-    int i, changed, rc;
+    struct source *src;
 
-    changed = 0;
-
-    for(i = 0; i < numsrcs; i++) {
-        if(!srcs[i].valid)
-            continue;
-        if(srcs[i].time > now.tv_sec)
+    src = srcs;
+    while(src) {
+        if(src->time > now.tv_sec)
             /* clock stepped */
-            srcs[i].time = now.tv_sec;
-        if(srcs[i].time < now.tv_sec - SOURCE_GC_TIME) {
-            rc = flush_source(&srcs[i]);
-            changed = changed || rc;
+            src->time = now.tv_sec;
+        if(src->time < now.tv_sec - SOURCE_GC_TIME) {
+            struct source *old = src;
+            src = src->next;
+            flush_source(old);
+            continue;
         }
+        src = src->next;
     }
-
-    return changed;
 }
