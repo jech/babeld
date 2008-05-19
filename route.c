@@ -100,6 +100,7 @@ flush_route(struct route *route)
         if(new_routes == NULL)
             return;
         routes = new_routes;
+        maxroutes = n;
     }
 
     if(lost)
