@@ -54,7 +54,6 @@ int wait_for_fd(int direction, int fd, int msecs);
 int martian_prefix(const unsigned char *prefix, int plen) ATTRIBUTE ((pure));
 int v4mapped(const unsigned char *address) ATTRIBUTE ((pure));
 void v4tov6(unsigned char *dst, const unsigned char *src);
-char *parse_ifflags(unsigned int flags);
 int daemonise(void);
 
 /* If debugging is disabled, we want to avoid calling format_address

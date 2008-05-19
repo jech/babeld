@@ -1044,8 +1044,8 @@ filter_link(struct nlmsghdr *nh, void *data)
     ifname = parse_ifname_rta(info, len);
     if(ifname == NULL)
         return 0;
-    kdebugf("filter_interfaces: link change on if %s(%d): %s\n",
-            ifname, ifindex, parse_ifflags(ifflags));
+    kdebugf("filter_interfaces: link change on if %s(%d): 0x%x\n",
+            ifname, ifindex, (unsigned)ifflags);
     FOR_ALL_NETS(net) {
         if (strcmp(net->ifname, ifname) == 0)
             return 1;
