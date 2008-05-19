@@ -902,23 +902,24 @@ init_signals(void)
 static void
 dump_tables(FILE *out)
 {
+    struct neighbour *neigh;
     int i;
 
     fprintf(out, "\n");
 
     fprintf(out, "My id %s seqno %d\n", format_address(myid), myseqno);
 
-    for(i = 0; i < numneighs; i++) {
-        if(!neighbour_valid(&neighs[i]))
+    FOR_ALL_NEIGHBOURS(neigh) {
+        if(!neighbour_valid(neigh))
             continue;
-        fprintf(out, "Neighbour %s ", format_address(neighs[i].id));
+        fprintf(out, "Neighbour %s ", format_address(neigh->id));
         fprintf(out, "at %s dev %s reach %04x rxcost %d txcost %d%s.\n",
-                format_address(neighs[i].address),
-                neighs[i].network->ifname,
-                neighs[i].reach,
-                neighbour_rxcost(&neighs[i]),
-                neighs[i].txcost,
-                neighs[i].network->up ? "" : " (down)");
+                format_address(neigh->address),
+                neigh->network->ifname,
+                neigh->reach,
+                neighbour_rxcost(neigh),
+                neigh->txcost,
+                neigh->network->up ? "" : " (down)");
     }
     for(i = 0; i < numxroutes; i++) {
         fprintf(out, "%s metric %d (%s)\n",

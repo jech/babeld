@@ -62,13 +62,13 @@ flush_neighbour(struct neighbour *neigh)
 struct neighbour *
 find_neighbour(const unsigned char *address, struct network *net)
 {
-    int i;
-    for(i = 0; i < numneighs; i++) {
-        if(!neighbour_valid(&neighs[i]))
+    struct neighbour *neigh;
+    FOR_ALL_NEIGHBOURS(neigh) {
+        if(!neighbour_valid(neigh))
             continue;
-        if(memcmp(address, neighs[i].address, 16) == 0 &&
-           neighs[i].network == net)
-            return &neighs[i];
+        if(memcmp(address, neigh->address, 16) == 0 &&
+           neigh->network == net)
+            return neigh;
     }
     return NULL;
 }
@@ -77,9 +77,8 @@ struct neighbour *
 add_neighbour(const unsigned char *id, const unsigned char *address,
               struct network *net)
 {
-    struct neighbour *neigh;
+    struct neighbour *neigh, *ngh;
     const struct timeval zero = {0, 0};
-    int i;
 
     neigh = find_neighbour(address, net);
     if(neigh) {
@@ -94,9 +93,9 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
     }
     debugf("Creating neighbour %s (%s).\n",
            format_address(id), format_address(address));
-    for(i = 0; i < numneighs; i++) {
-        if(!neighbour_valid(&neighs[i]))
-            neigh = &neighs[i];
+    FOR_ALL_NEIGHBOURS(ngh) {
+        if(!neighbour_valid(ngh))
+            neigh = ngh;
     }
     if(!neigh) {
         if(numneighs >= MAXNEIGHBOURS) {
@@ -235,35 +234,36 @@ reset_txcost(struct neighbour *neigh)
 int
 check_neighbours()
 {
-    int i, changed, delay;
+    struct neighbour *neigh;
+    int changed, delay;
     int msecs = 50000;
 
     debugf("Checking neighbours.\n");
 
-    for(i = 0; i < numneighs; i++) {
-        if(!neighbour_valid(&neighs[i]))
+    FOR_ALL_NEIGHBOURS(neigh) {
+        if(!neighbour_valid(neigh))
             continue;
 
-        changed = update_neighbour(&neighs[i], -1, 0);
+        changed = update_neighbour(neigh, -1, 0);
 
-        if(neighs[i].reach == 0 ||
-           neighs[i].hello_time.tv_sec > now.tv_sec || /* clock stepped */
-           timeval_minus_msec(&now, &neighs[i].hello_time) > 300000) {
-            flush_neighbour(&neighs[i]);
+        if(neigh->reach == 0 ||
+           neigh->hello_time.tv_sec > now.tv_sec || /* clock stepped */
+           timeval_minus_msec(&now, &neigh->hello_time) > 300000) {
+            flush_neighbour(neigh);
             continue;
         }
 
-        delay = timeval_minus_msec(&now, &neighs[i].ihu_time);
+        delay = timeval_minus_msec(&now, &neigh->ihu_time);
 
-        changed = changed || reset_txcost(&neighs[i]);
+        changed = changed || reset_txcost(neigh);
 
         if(changed)
-            update_neighbour_metric(&neighs[i]);
+            update_neighbour_metric(neigh);
 
-        if(neighs[i].hello_interval > 0)
-            msecs = MIN(msecs, neighs[i].hello_interval * 10);
-        if(neighs[i].ihu_interval > 0)
-            msecs = MIN(msecs, neighs[i].ihu_interval * 10);
+        if(neigh->hello_interval > 0)
+            msecs = MIN(msecs, neigh->hello_interval * 10);
+        if(neigh->ihu_interval > 0)
+            msecs = MIN(msecs, neigh->ihu_interval * 10);
     }
 
     return msecs;

@@ -1009,8 +1009,6 @@ send_self_update(struct network *net, int force_seqno)
 void
 send_ihu(struct neighbour *neigh, struct network *net)
 {
-    int i;
-
     if(neigh == NULL && net == NULL) {
         struct network *n;
         FOR_ALL_NETS(n) {
@@ -1022,11 +1020,12 @@ send_ihu(struct neighbour *neigh, struct network *net)
     }
 
     if(neigh == NULL) {
-        for(i = 0; i < numneighs; i++) {
-            if(!neighbour_valid(&neighs[i]))
+        struct neighbour *ngh;
+        FOR_ALL_NEIGHBOURS(ngh) {
+            if(!neighbour_valid(ngh))
                 continue;
-            if(neighs[i].network == net)
-                send_ihu(&neighs[i], net);
+            if(ngh->network == net)
+                send_ihu(ngh, net);
         }
     } else {
         int rxcost, interval;
@@ -1055,11 +1054,11 @@ send_ihu(struct neighbour *neigh, struct network *net)
 void
 send_marginal_ihu(struct network *net)
 {
-    int i;
-    for(i = 0; i < numneighs; i++) {
-        if(!neighbour_valid(&neighs[i]) || (net && neighs[i].network != net))
+    struct neighbour *neigh;
+    FOR_ALL_NEIGHBOURS(neigh) {
+        if(!neighbour_valid(neigh) || (net && neigh->network != net))
             continue;
-        if(neighs[i].txcost >= 384 || (neighs[i].reach & 0xF000) != 0xF000)
-            send_ihu(&neighs[i], net);
+        if(neigh->txcost >= 384 || (neigh->reach & 0xF000) != 0xF000)
+            send_ihu(neigh, net);
     }
 }
