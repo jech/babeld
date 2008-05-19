@@ -722,11 +722,10 @@ main(int argc, char **argv)
         if(!net->up)
             continue;
         /* Make sure that we expire quickly from our neighbours'
-           association caches.  Since we sleep on average 10ms per
-           network, set the hello interval to numnets centiseconds. */
-        send_hello_noupdate(net, numnets);
+           association caches. */
+        send_hello_noupdate(net, 10);
         flushbuf(net);
-        usleep(5000 + random() % 10000);
+        usleep(500 + random() % 1000);
         gettimeofday(&now, NULL);
     }
     FOR_ALL_NETS(net) {
