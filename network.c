@@ -293,10 +293,10 @@ network_up(struct network *net, int up)
 void
 check_networks(void)
 {
-    int i, rc, ifindex, ifindex_changed = 0;
+    struct network *net;
+    int rc, ifindex, ifindex_changed = 0;
 
-    for(i = 0; i < numnets; i++) {
-        struct network *net = &nets[i];
+    FOR_ALL_NETS(net) {
         ifindex = if_nametoindex(net->ifname);
         if(ifindex != net->ifindex) {
             debugf("Noticed ifindex change for %s.\n", net->ifname);
