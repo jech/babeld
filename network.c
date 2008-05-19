@@ -38,20 +38,30 @@ THE SOFTWARE.
 #include "route.h"
 #include "filter.h"
 
-struct network nets[MAXNETS];
-int numnets = 0;
+struct network *networks = NULL;
+
+static struct network *
+last_network(void)
+{
+    struct network *net = networks;
+
+    if(!net)
+        return NULL;
+
+    while(net->next)
+        net = net->next;
+
+    return net;
+}
 
 struct network *
 add_network(char *ifname)
 {
     struct network *net;
 
-    if(numnets >= MAXNETS) {
-        fprintf(stderr, "Too many networks.\n");
+    net = malloc(sizeof(struct network));
+    if(net == NULL)
         return NULL;
-    }
-
-    net = &nets[numnets];
 
     memset(net, 0, sizeof(struct network));
     net->up = 0;
@@ -65,7 +75,11 @@ add_network(char *ifname)
     net->bucket_time = now.tv_sec;
     net->bucket = BUCKET_TOKENS_MAX;
     net->hello_seqno = (random() & 0xFFFF);
-    numnets++;
+
+    if(networks == NULL)
+        networks = net;
+    else
+        last_network()->next = net;
     return net;
 }
 

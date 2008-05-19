@@ -21,6 +21,7 @@ THE SOFTWARE.
 */
 
 struct network {
+    struct network *next;
     int up;
     unsigned int ifindex;
     int wired;
@@ -45,10 +46,10 @@ struct network {
     unsigned int self_update_interval;
 };
 
-extern struct network nets[MAXNETS];
+extern struct network *networks;
 extern int numnets;
 
-#define FOR_ALL_NETS(_net) for(_net = nets; _net < nets + numnets; _net++)
+#define FOR_ALL_NETS(_net) for(_net = networks; _net; _net = _net->next)
 
 struct network *add_network(char *ifname);
 int network_idle(struct network *net);
