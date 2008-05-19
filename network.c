@@ -296,28 +296,29 @@ check_networks(void)
     int i, rc, ifindex, ifindex_changed = 0;
 
     for(i = 0; i < numnets; i++) {
-        ifindex = if_nametoindex(nets[i].ifname);
-        if(ifindex != nets[i].ifindex) {
-            debugf("Noticed ifindex change for %s.\n", nets[i].ifname);
-            nets[i].ifindex = 0;
-            network_up(&nets[i], 0);
-            nets[i].ifindex = ifindex;
+        struct network *net = &nets[i];
+        ifindex = if_nametoindex(net->ifname);
+        if(ifindex != net->ifindex) {
+            debugf("Noticed ifindex change for %s.\n", net->ifname);
+            net->ifindex = 0;
+            network_up(net, 0);
+            net->ifindex = ifindex;
             ifindex_changed = 1;
         }
 
-        if(nets[i].ifindex > 0)
-            rc = kernel_interface_operational(nets[i].ifname, nets[i].ifindex);
+        if(net->ifindex > 0)
+            rc = kernel_interface_operational(net->ifname, net->ifindex);
         else
             rc = 0;
-        if((rc > 0) != nets[i].up) {
-            debugf("Noticed status change for %s.\n", nets[i].ifname);
-            network_up(&nets[i], rc > 0);
+        if((rc > 0) != net->up) {
+            debugf("Noticed status change for %s.\n", net->ifname);
+            network_up(net, rc > 0);
         }
 
-        rc = check_network_ipv4(&nets[i]);
+        rc = check_network_ipv4(net);
         if(rc > 0) {
-            send_request(&nets[i], NULL, 0, 0, 0, 0);
-            send_update(&nets[i], 0, NULL, 0);
+            send_request(net, NULL, 0, 0, 0, 0);
+            send_update(net, 0, NULL, 0);
          }
     }
 
