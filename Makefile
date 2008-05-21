@@ -26,14 +26,16 @@ babel: $(OBJS)
 
 babel.html: babel.man
 
-.PHONY: all install uninstall clean
+.PHONY: all install install.minimal uninstall clean
 
 all: babel babel.man
 
-install: all
+install.minimal:
 	-rm -f $(TARGET)$(PREFIX)/bin/babel
 	mkdir -p $(TARGET)$(PREFIX)/bin
 	cp -f babel $(TARGET)$(PREFIX)/bin
+
+install: install.minimal
 	mkdir -p $(TARGET)$(PREFIX)/man/man8
 	cp -f babel.man $(TARGET)$(PREFIX)/man/man8/babel.8
 
