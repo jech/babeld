@@ -790,7 +790,7 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
         route->plen += 96;
     }
 
-    route->metric = KERNEL_INFINITY;
+    route->metric = 0;
     route->ifindex = 0;
     route->proto = rtm->rtm_protocol;
 
