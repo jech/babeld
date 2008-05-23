@@ -223,7 +223,7 @@ mask_prefix(unsigned char *ret,
     return (const unsigned char *)ret;
 }
 
-static unsigned char v4prefix[16] =
+static const unsigned char v4prefix[16] =
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0 };
 
 const char *

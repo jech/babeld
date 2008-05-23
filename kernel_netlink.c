@@ -784,7 +784,12 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
     memset(&route->prefix, 0, sizeof(struct in6_addr));
     memset(&route->gw, 0, sizeof(struct in6_addr));
     route->plen = rtm->rtm_dst_len;
-    if(rtm->rtm_family == AF_INET) route->plen += 96;
+    if(rtm->rtm_family == AF_INET) {
+        const char zeroes[4] = {0, 0, 0, 0};
+        v4tov6(route->prefix, zeroes);
+        route->plen += 96;
+    }
+
     route->metric = KERNEL_INFINITY;
     route->ifindex = 0;
     route->proto = rtm->rtm_protocol;
