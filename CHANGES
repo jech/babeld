@@ -1,4 +1,4 @@
-babel 0.13 (unreleased):
+24 May 2008: babel 0.13
 
   * Removed all arbitrary limits (interfaces, neighbours, routes,
     xroutes and sources).
