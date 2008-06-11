@@ -182,6 +182,8 @@ check_xroutes(int send_updates)
         }
 
         if(!export) {
+            /* send_update_resend only records the prefix, so the update
+               will only be sent after we perform all of the changes. */
             if(send_updates)
                 send_update_resend(NULL, xroutes[i].prefix, xroutes[i].plen);
             flush_xroute(&xroutes[i]);
