@@ -6,6 +6,8 @@ DEFINES = $(PLATFORM_DEFINES)
 
 CFLAGS = $(CDEBUGFLAGS) $(DEFINES) $(EXTRA_DEFINES)
 
+LDLIBS = -lrt
+
 SRCS = babel.c net.c kernel.c util.c network.c source.c neighbour.c \
        route.c xroute.c message.c resend.c filter.c
 
