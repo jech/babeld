@@ -1,6 +1,8 @@
 babel 0.14 (unreleased):
 
   * Use POSIX clocks if available to protect against clock stepping.
+  * Made babel use available Babel routes straight away when the set
+    of exported routes changes.
 
 24 May 2008: babel 0.13
 
