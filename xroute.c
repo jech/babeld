@@ -182,11 +182,18 @@ check_xroutes(int send_updates)
         }
 
         if(!export) {
+            unsigned char prefix[16], plen;
+            struct route *route;
+            memcpy(prefix, xroutes[i].prefix, 16);
+            plen = xroutes[i].plen;
+            flush_xroute(&xroutes[i]);
+            route = find_best_route(prefix, plen, 1, NULL);
+            if(route)
+                install_route(route);
             /* send_update_resend only records the prefix, so the update
                will only be sent after we perform all of the changes. */
             if(send_updates)
-                send_update_resend(NULL, xroutes[i].prefix, xroutes[i].plen);
-            flush_xroute(&xroutes[i]);
+                send_update_resend(NULL, prefix, plen);
             change = 1;
         } else {
             i++;
@@ -207,11 +214,16 @@ check_xroutes(int send_updates)
                             routes[i].prefix, routes[i].plen,
                             metric, routes[i].ifindex, routes[i].proto);
             if(rc) {
+                struct route *route;
+                route = find_installed_route(routes[i].prefix, routes[i].plen);
+                if(route)
+                    uninstall_route(route);
                 change = 1;
                 if(send_updates)
                     send_update(NULL, 0, routes[i].prefix, routes[i].plen);
             }
         }
     }
+
     return change;
 }
