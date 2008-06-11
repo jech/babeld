@@ -223,6 +223,7 @@ void
 local_dump()
 {
     int i, rc;
+    struct neighbour *neigh;
     const char *header = "BABEL 0.0\n";
 
     if(local_socket < 0)
@@ -233,10 +234,8 @@ local_dump()
         goto fail;
 
     local_notify_self();
-    for(i = 0; i < numneighs; i++) {
-        if(!neighbour_valid(&neighs[i]))
-            continue;
-        local_notify_neighbour(&neighs[i], LOCAL_ADD);
+    FOR_ALL_NEIGHBOURS(neigh) {
+        local_notify_neighbour(neigh, LOCAL_ADD);
     }
     for(i = 0; i < numxroutes; i++)
         local_notify_xroute(&xroutes[i], LOCAL_ADD);
