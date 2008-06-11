@@ -563,14 +563,12 @@ main(int argc, char **argv)
             rc = select(MAX(protocol_socket, kernel_socket) + 1,
                         &readfds, NULL, NULL, &tv);
             if(rc < 0) {
-                if(errno == EINTR) {
-                    rc = 0;
-                    FD_ZERO(&readfds);
-                } else {
+                if(errno != EINTR) {
                     perror("select");
                     usleep(1000000);
-                    continue;
                 }
+                rc = 0;
+                FD_ZERO(&readfds);
             }
         }
 
