@@ -1037,14 +1037,27 @@ send_ihu(struct neighbour *neigh, struct network *net)
 
         interval = (net->hello_interval * 3 + 9) / 10;
 
-        debugf("Sending ihu %d on %s to %s (%s).\n",
+        /* Conceptually, an IHU is a unicast message.  We usually send
+           them as multicast, since this allows aggregation into
+           a single packet and avoids an ARP exchange.  If we already
+           have a unicast message queued for this neighbour, however,
+           we might as well piggyback the IHU onto it. */
+        debugf("Sending %sihu %d on %s to %s (%s).\n",
+               unicast_neighbour == neigh ? "unicast " : "",
                rxcost,
                neigh->network->ifname,
                format_address(neigh->id),
                format_address(neigh->address));
 
-        send_message(net, 1, 128, 0, interval < 0xFFFF ? interval : 0,
-                     rxcost, neigh->id);
+        if(unicast_neighbour == neigh) {
+            send_unicast_message(neigh, 1, 128, 0,
+                                 interval < 0xFFFF ? interval : 0,
+                                 rxcost, neigh->id);
+        } else {
+            send_message(net, 1, 128, 0,
+                         interval < 0xFFFF ? interval : 0,
+                         rxcost, neigh->id);
+        }
     }
 }
 
