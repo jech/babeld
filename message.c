@@ -143,8 +143,11 @@ parse_packet(const unsigned char *from, struct network *net,
                 schedule_neighbours_check(metric * 10, 0);
         } else {
             neigh = find_neighbour(from, net);
-            if(neigh == NULL)
+            if(neigh == NULL) {
+                debugf("Received message from unknown neighbour %s.\n",
+                       format_address(from));
                 continue;
+            }
             net->activity_time = now.tv_sec;
             if(type == 1) {
                 debugf("Received ihu %d for %s from %s (%s) %d.\n",
