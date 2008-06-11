@@ -66,15 +66,6 @@ flush_neighbour(struct neighbour *neigh)
     flush_neighbour_routes(neigh);
     if(unicast_neighbour == neigh)
         flush_unicast(1);
-    memset(neigh, 0, sizeof(*neigh));
-    VALGRIND_MAKE_MEM_UNDEFINED(neigh, sizeof(*neigh));
-    neigh->hello_seqno = -2;
-    while(numneighs > 0 && !neighbour_valid(&neighs[numneighs - 1])) {
-       numneighs--;
-       VALGRIND_MAKE_MEM_UNDEFINED(&neighs[numneighs],
-                                   sizeof(neighs[numneighs]));
-    }
-}
 
     if(neighs == neigh) {
         neighs = neigh->next;
@@ -84,6 +75,7 @@ flush_neighbour(struct neighbour *neigh)
             previous = previous->next;
         previous->next = neigh->next;
     }
+    local_notify_neighbour(neigh, LOCAL_FLUSH);
     free(neigh);
 }
 
@@ -140,6 +132,9 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
     neigh->hello_interval = 0;
     neigh->ihu_interval = 0;
     neigh->network = net;
+    neigh->next = neighs;
+    neighs = neigh;
+    local_notify_neighbour(neigh, LOCAL_ADD);
     send_hello(net);
     return neigh;
 }
@@ -288,7 +283,9 @@ check_neighbours()
         changed = changed || reset_txcost(neigh);
 
         if(changed) {
-            update_neighbour_metric(&neighs[i]);
+            update_neighbour_metric(neigh);
+            local_notify_neighbour(neigh, LOCAL_CHANGE);
+        }
 
         if(neigh->hello_interval > 0)
             msecs = MIN(msecs, neigh->hello_interval * 10);
