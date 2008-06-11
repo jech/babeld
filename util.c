@@ -63,6 +63,14 @@ seqno_plus(unsigned short s, int plus)
     return ((s + plus) & 0xFFFF);
 }
 
+/* Like gettimeofday, but should return monotonic time.  If POSIX clocks
+   are not available, falls back to gettimeofday. */
+int
+gettime(struct timeval *tv)
+{
+    return gettimeofday(tv, NULL);
+}
+
 void
 timeval_minus(struct timeval *d,
               const struct timeval *s1, const struct timeval *s2)
