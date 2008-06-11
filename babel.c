@@ -616,7 +616,7 @@ main(int argc, char **argv)
             changed = 0;
         }
 
-        if (kernel_link_changed || kernel_addr_changed) {
+        if(kernel_link_changed || kernel_addr_changed) {
             check_networks();
             kernel_link_changed = 0;
         }
