@@ -14,7 +14,7 @@ babel 0.14 (unreleased):
 
 7 April 2008: babel 0.12
 
-  * Retractions are now sent multiple times, which should speed-up
+  * Retractions are now sent multiple times, which should speed up
     convergence in presence of packet loss.
   * Optimised the sending of updates to make them smaller.
   * Don't forward requests multiple times; this should reduce the
