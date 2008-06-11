@@ -347,7 +347,7 @@ main(int argc, char **argv)
         exit(1);
     }
 
-    gettimeofday(&now, NULL);
+    gettime(&now);
 
     rfd = open("/dev/urandom", O_RDONLY);
     if(rfd < 0) {
@@ -520,7 +520,7 @@ main(int argc, char **argv)
             continue;
         /* Apply jitter before we send the first message. */
         usleep(5000 + random() % 10000);
-        gettimeofday(&now, NULL);
+        gettime(&now);
         send_hello(net);
         send_self_update(net, 0);
         send_request(net, NULL, 0, 0, 0, 0);
@@ -534,7 +534,7 @@ main(int argc, char **argv)
         struct timeval tv;
         fd_set readfds;
 
-        gettimeofday(&now, NULL);
+        gettime(&now);
 
         tv = check_neighbours_timeout;
         timeval_min_sec(&tv, expiry_time);
@@ -574,7 +574,7 @@ main(int argc, char **argv)
             }
         }
 
-        gettimeofday(&now, NULL);
+        gettime(&now);
 
         if(exiting)
             break;
@@ -699,7 +699,7 @@ main(int argc, char **argv)
 
     debugf("Exiting...\n");
     usleep(5000 + random() % 10000);
-    gettimeofday(&now, NULL);
+    gettime(&now);
 
     /* Uninstall and retract all routes. */
     while(numroutes > 0) {
@@ -726,7 +726,7 @@ main(int argc, char **argv)
         send_hello_noupdate(net, 10);
         flushbuf(net);
         usleep(500 + random() % 1000);
-        gettimeofday(&now, NULL);
+        gettime(&now);
     }
     FOR_ALL_NETS(net) {
         if(!net->up)
@@ -735,7 +735,7 @@ main(int argc, char **argv)
         send_hello_noupdate(net, 1);
         flushbuf(net);
         usleep(5000 + random() % 10000);
-        gettimeofday(&now, NULL);
+        gettime(&now);
         network_up(net, 0);
     }
     kernel_setup_socket(0);
