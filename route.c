@@ -626,7 +626,7 @@ expire_routes(void)
         update_route_metric(route);
 
         if(route->installed && route->refmetric < INFINITY) {
-            if(route->time < now.tv_sec - MAX(10, route_timeout_delay - 25))
+            if(route->time < now.tv_sec - MAX(10, route_timeout_delay * 7 / 8))
                 send_unicast_request(route->neigh,
                                      route->src->prefix, route->src->plen,
                                      0, 0, 0);
