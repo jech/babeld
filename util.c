@@ -63,6 +63,12 @@ seqno_plus(unsigned short s, int plus)
     return ((s + plus) & 0xFFFF);
 }
 
+int
+roughly(int value)
+{
+    return value * 3 / 4 + random() % (value / 2);
+}
+
 /* Like gettimeofday, but should return monotonic time.  If POSIX clocks
    are not available, falls back to gettimeofday. */
 int
