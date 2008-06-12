@@ -413,7 +413,7 @@ void
 schedule_flush_now(struct network *net)
 {
     /* Almost now */
-    int msecs = 5 + random() % 10;
+    int msecs = roughly(10);
     if(net->flush_timeout.tv_sec != 0 &&
        timeval_minus_msec(&net->flush_timeout, &now) < msecs)
         return;

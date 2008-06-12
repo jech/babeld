@@ -127,8 +127,8 @@ jitter(struct network *net, int urgent)
     if(urgent)
         interval = MIN(interval, 100);
     else
-        interval = MIN(interval, 2000);
-    return (interval / 2 + random() % interval) / 4;
+        interval = MIN(interval, 4000);
+    return roughly(interval) / 4;
 }
 
 unsigned int
@@ -139,17 +139,14 @@ update_jitter(struct network *net, int urgent)
         interval = MIN(interval, 100);
     else
         interval = MIN(interval, 4000);
-    return (interval / 2 + random() % interval);
+    return roughly(interval);
 }
 
 void
 delay_jitter(struct timeval *time, struct timeval *timeout, int msecs)
 {
-    int delay;
-    delay = msecs * 2 / 3 + random() % (msecs * 2 / 3);
-
     *time = now;
-    timeval_plus_msec(timeout, &now, delay);
+    timeval_plus_msec(timeout, &now, roughly(msecs));
 }
 
 static int

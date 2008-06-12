@@ -512,17 +512,17 @@ main(int argc, char **argv)
     kernel_routes_changed = 0;
     kernel_link_changed = 0;
     kernel_addr_changed = 0;
-    kernel_dump_time = now.tv_sec + 20 + random() % 20;
+    kernel_dump_time = now.tv_sec + roughly(30);
     schedule_neighbours_check(5000, 1);
-    expiry_time = now.tv_sec + 20 + random() % 20;
-    source_expiry_time = now.tv_sec + 200 + random() % 200;
+    expiry_time = now.tv_sec + roughly(30);
+    source_expiry_time = now.tv_sec + roughly(300);
 
     /* Make some noise so that others notice us */
     FOR_ALL_NETS(net) {
         if(!net->up)
             continue;
         /* Apply jitter before we send the first message. */
-        usleep(5000 + random() % 10000);
+        usleep(roughly(10000));
         gettime(&now);
         send_hello(net);
         send_self_update(net, 0);
@@ -631,9 +631,9 @@ main(int argc, char **argv)
                 fprintf(stderr, "Warning: couldn't check exported routes.\n");
             kernel_routes_changed = kernel_addr_changed = 0;
             if(kernel_socket >= 0)
-                kernel_dump_time = now.tv_sec + 200 + random() % 200;
+                kernel_dump_time = now.tv_sec + roughly(300);
             else
-                kernel_dump_time = now.tv_sec + 20 + random() % 20;
+                kernel_dump_time = now.tv_sec + roughly(30);
         }
 
         if(timeval_compare(&check_neighbours_timeout, &now) < 0) {
@@ -647,12 +647,12 @@ main(int argc, char **argv)
             check_networks();
             expire_routes();
             expire_resend();
-            expiry_time = now.tv_sec + 20 + random() % 20;
+            expiry_time = now.tv_sec + roughly(30);
         }
 
         if(now.tv_sec >= source_expiry_time) {
             expire_sources();
-            source_expiry_time = now.tv_sec + 200 + random() % 200;
+            source_expiry_time = now.tv_sec + roughly(300);
         }
 
         FOR_ALL_NETS(net) {
@@ -699,7 +699,7 @@ main(int argc, char **argv)
     }
 
     debugf("Exiting...\n");
-    usleep(5000 + random() % 10000);
+    usleep(roughly(10000));
     gettime(&now);
 
     /* Uninstall and retract all routes. */
@@ -726,7 +726,7 @@ main(int argc, char **argv)
            association caches. */
         send_hello_noupdate(net, 10);
         flushbuf(net);
-        usleep(500 + random() % 1000);
+        usleep(roughly(1000));
         gettime(&now);
     }
     FOR_ALL_NETS(net) {
@@ -735,7 +735,7 @@ main(int argc, char **argv)
         /* Make sure they got it. */
         send_hello_noupdate(net, 1);
         flushbuf(net);
-        usleep(5000 + random() % 10000);
+        usleep(roughly(10000));
         gettime(&now);
         network_up(net, 0);
     }
@@ -808,7 +808,7 @@ schedule_neighbours_check(int msecs, int override)
 {
     struct timeval timeout;
 
-    timeval_plus_msec(&timeout, &now, msecs + random() % msecs);
+    timeval_plus_msec(&timeout, &now, roughly(msecs * 3 / 2));
     if(override)
         check_neighbours_timeout = timeout;
     else
