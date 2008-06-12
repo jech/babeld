@@ -568,7 +568,7 @@ main(int argc, char **argv)
             if(rc < 0) {
                 if(errno != EINTR) {
                     perror("select");
-                    usleep(1000000);
+                    sleep(1);
                 }
                 rc = 0;
                 FD_ZERO(&readfds);
@@ -590,7 +590,7 @@ main(int argc, char **argv)
             if(rc < 0) {
                 if(errno != EAGAIN && errno != EINTR) {
                     perror("recv");
-                    usleep(1000000);
+                    sleep(1);
                 }
             } else {
                 FOR_ALL_NETS(net) {
