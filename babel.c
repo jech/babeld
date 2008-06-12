@@ -464,14 +464,17 @@ main(int argc, char **argv)
                 if(rc < 0) {
                     fprintf(stderr, "Couldn't parse babel-state.\n");
                 } else {
+                    struct timeval realnow;
                     debugf("Got %s %d %ld from babel-state.\n",
                            format_address(sid), s, t);
+                    gettimeofday(&realnow, NULL);
                     if(memcmp(sid, myid, 16) == 0)
                         myseqno = seqno_plus(s, 1);
                     else
                         fprintf(stderr, "ID mismatch in babel-state.\n");
-                    if(t >= 1176800000L && t <= now.tv_sec)
-                        reboot_time = t;
+                    /* Convert realtime into monotonic time. */
+                    if(t >= 1176800000L && t <= realnow.tv_sec)
+                        reboot_time = now.tv_sec - (realnow.tv_sec - t);
                 }
             } else {
                 fprintf(stderr, "Couldn't parse babel-state.\n");
@@ -744,9 +747,12 @@ main(int argc, char **argv)
         perror("creat(babel-state)");
         unlink(state_file);
     } else {
+        struct timeval realnow;
         char buf[100];
+        gettimeofday(&realnow, NULL);
         rc = snprintf(buf, 100, "%s %d %ld\n",
-                      format_address(myid), (int)myseqno, (long)now.tv_sec);
+                      format_address(myid), (int)myseqno,
+                      (long)realnow.tv_sec);
         if(rc < 0 || rc >= 100) {
             fprintf(stderr, "write(babel-state): overflow.\n");
             unlink(state_file);
