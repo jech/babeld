@@ -144,7 +144,9 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
                     missed_hellos = 0;
                 } else {
                     /* Late hello.  Probably due to the link layer buffering
-                       packets during a link outage.  Ignore it. */
+                       packets during a link outage.  Ignore it, but reset
+                       the expected seqno. */
+                    neigh->hello_seqno = hello;
                     hello = 0;
                     missed_hellos = 0;
                 }
