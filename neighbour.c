@@ -313,8 +313,7 @@ neighbour_cost(struct neighbour *neigh)
     if(b >= INFINITY)
         return INFINITY;
 
-    if(a <= 256 && b <= 256) {
-        /* Wired link */
+    if(neigh->network->wired || (a <= 256 && b <= 256)) {
         return a;
     } else {
         /* a = 256/alpha, b = 256/beta, where alpha and beta are the expected
