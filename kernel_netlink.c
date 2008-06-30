@@ -39,6 +39,7 @@ THE SOFTWARE.
 #include <sys/socket.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
+#include <linux/if_bridge.h>
 
 #if (__GLIBC__ < 2) || (__GLIBC__ == 2 && __GLIBC_MINOR__ <= 5)
 #define RTA_TABLE 15
@@ -596,6 +597,51 @@ kernel_interface_mtu(const char *ifname, int ifindex)
     return req.ifr_mtu;
 }
 
+static int
+isbridge(const char *ifname, int ifindex)
+{
+    char buf[256];
+    int rc, i;
+    unsigned long args[3];
+    int indices[256];
+
+    rc = snprintf(buf, 256, "/sys/class/net/%s", ifname);
+    if(rc < 0 || rc >= 256)
+        goto fallback;
+
+    if(access(buf, R_OK) < 0)
+        goto fallback;
+
+    rc = snprintf(buf, 256, "/sys/class/net/%s/bridge", ifname);
+    if(rc < 0 || rc >= 256)
+        goto fallback;
+
+    if(access(buf, F_OK) >= 0)
+        return 1;
+    else if(errno == ENOENT)
+        return 0;
+
+ fallback:
+    args[0] = BRCTL_GET_BRIDGES;
+    args[1] = (unsigned long)indices;
+    args[2] = 256;
+
+    rc = ioctl(dgram_socket, SIOCGIFBR, args);
+    if(rc < 0) {
+        if(errno == ENOPKG)
+            return 0;
+        else
+            return -1;
+    }
+
+    for(i = 0; i < rc; i++) {
+        if(indices[i] == ifindex)
+            return 1;
+    }
+
+    return 0;
+}
+
 int
 kernel_interface_wireless(const char *ifname, int ifindex)
 {
@@ -604,6 +650,11 @@ kernel_interface_wireless(const char *ifname, int ifindex)
 #endif
     struct ifreq req;
     int rc;
+
+    if(isbridge(ifname, ifindex) != 0) {
+        /* Give up. */
+        return -1;
+    }
 
     memset(&req, 0, sizeof(req));
     strncpy(req.ifr_name, ifname, sizeof(req.ifr_name));
