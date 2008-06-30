@@ -39,11 +39,11 @@ below), and other hosts might initially ignore it.  The default is
 .TP
 .BI \-h " hello-interval"
 Specify the interval in seconds at which scheduled hello packets are
-sent on wireless interfaces.  The default is 6.
+sent on wireless interfaces.  The default is 4 seconds.
 .TP
 .BI \-H " wired-hello-interval"
 Specify the interval in seconds at which scheduled hello packets are
-sent on wired interfaces.  The default is 30.
+sent on wired interfaces.  The default is 20 seconds.
 .TP
 .BI \-i " idle-hello-interval"
 Enable detection of idle networks (networks on which we haven't
@@ -54,10 +54,10 @@ you are doing.
 .TP
 .BI \-u " update-interval"
 Specify the interval in seconds at which scheduled routing table dumps
-are made on all interfaces.  The default is either the wired hello
-interval, or 70, whichever is less.  Babel uses triggered updates in
-addition to scheduled updates, so this value may be set to a fairly
-large value.
+are made on all interfaces.  The default is either 5 times the
+wireless hello interval, the wired hello interval, or 70 seconds,
+whichever is less.  Babel uses triggered updates in addition to
+scheduled updates, so this value may be set to a fairly large value.
 .TP
 .BI \-k " kernel-metric"
 Specify a value that will be added to routes' metrics before
