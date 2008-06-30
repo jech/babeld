@@ -322,10 +322,7 @@ neighbour_cost(struct neighbour *neigh)
            directions. */
         a = MAX(a, 256);
         b = MAX(b, 256);
-        /* (1/(alpha * beta) + 1/beta) / 2, which is half the expected
-           number of transmissions, in both directions.
-           ETX uses 1/(alpha * beta), which is the expected number of
-           transmissions in the forward direction. */
-        return (((a * b + 128) >> 8) + b + 1) >> 1;
+        /* 1/(alpha * beta), which is just plain ETX. */
+        return ((a * b + 128) >> 8);
     }
 }
