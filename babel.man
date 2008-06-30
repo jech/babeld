@@ -16,9 +16,7 @@ based on DSDV and AODV, but with provisions for link cost estimation
 and redistribution of routes from other routing protocols.
 
 While it is optimised for wireless mesh networks, Babel will also work
-efficiently on wired networks.  It will generate between roughly the
-same and double the amount of routing traffic that RIPng would
-generate, while never counting to infinity.
+efficiently on wired networks.
 .SH OPTIONS
 .TP
 .BI \-m " multicast-address"
