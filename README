@@ -76,7 +76,12 @@ the Babel network, just list them all:
 
 If you have one or more Internet gateways on your mesh network, you
 will want to set them up so that they redistribute the default route.
-You will want to say something like
+Babel will only redistribute routes with an explicit protocol
+attached, so you must say something like:
+
+  # ip route add 0.0.0.0/0 via 1.2.3.4 dev eth0 proto static
+
+In order to redistribute all routes, you will say:
 
   # babel -C 'redistribute metric 128' eth1
 
