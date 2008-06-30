@@ -73,6 +73,10 @@ int
 flush_source(struct source *src)
 {
     int i;
+
+    /* This is absolutely horrible -- it makes expire_sources quadratic.
+       But it's not called very often. */
+
     for(i = 0; i < numroutes; i++) {
         if(routes[i].src == src)
             return 0;
