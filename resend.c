@@ -80,8 +80,10 @@ record_resend(int kind, const unsigned char *prefix, unsigned char plen,
     struct resend *resend;
     unsigned int ifindex = network ? network->ifindex : 0;
 
-    if(input_filter(NULL, prefix, plen, NULL, ifindex) >= INFINITY ||
-       output_filter(NULL, prefix, plen, ifindex) >= INFINITY)
+    if((kind == RESEND_REQUEST &&
+        input_filter(NULL, prefix, plen, NULL, ifindex) >= INFINITY) ||
+       (kind == RESEND_UPDATE &&
+        output_filter(NULL, prefix, plen, ifindex) >= INFINITY))
         return 0;
 
     if(delay >= 0xFFFF)
