@@ -784,7 +784,7 @@ main(int argc, char **argv)
             "                "
             "[-D] [-L logfile] [-I pidfile]\n"
             "                "
-            "id interface...\n",
+            "[id] interface...\n",
             argv[0]);
     exit(1);
 
