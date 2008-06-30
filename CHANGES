@@ -4,6 +4,9 @@ babel 0.14 (unreleased):
   * Made babel use available internal routes straight away when the
     set of redistributed routes changes.
   * Changed the routing metric used on wireless links to plain ETX.
+  * Bridges are now automatically detected and treated as potential
+    wireless interfaces.
+  * Reduced the default hello interval.
 
 24 May 2008: babel 0.13
 
