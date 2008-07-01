@@ -508,7 +508,9 @@ main(int argc, char **argv)
     if(receive_buffer == NULL)
         goto fail;
 
-    check_xroutes(0);
+    rc = check_xroutes(0);
+    if(rc < 0)
+        fprintf(stderr, "Warning: couldn't check exported routes.\n");
     kernel_routes_changed = 0;
     kernel_link_changed = 0;
     kernel_addr_changed = 0;
