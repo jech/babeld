@@ -3,6 +3,7 @@ babel 0.14 (unreleased):
   * Use POSIX clocks if available to protect against clock stepping.
   * Made babel use available internal routes straight away when the
     set of redistributed routes changes.
+  * Lifted the arbitrary limit on the number of kernel routes.
   * Changed the routing metric used on wireless links to plain ETX.
   * Bridges are now automatically detected and treated as potential
     wireless interfaces.
