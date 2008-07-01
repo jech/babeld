@@ -126,12 +126,19 @@ int
 check_xroutes(int send_updates)
 {
     int i, j, metric, export, change = 0, rc;
-    struct kernel_route routes[240];
-    int numroutes;
+    struct kernel_route *routes;
+    int numroutes, maxroutes;
+    const int maxmaxroutes = 16 * 1024;
 
     debugf("\nChecking kernel routes.\n");
 
-    rc = kernel_addresses(routes, 240);
+    maxroutes = 8;
+    routes = malloc(maxroutes * sizeof(struct kernel_route));
+    if(routes == NULL)
+        return -1;
+
+ again:
+    rc = kernel_addresses(routes, maxroutes);
     if(rc < 0) {
         perror("kernel_addresses");
         numroutes = 0;
@@ -139,17 +146,17 @@ check_xroutes(int send_updates)
         numroutes = rc;
     }
 
-    if(numroutes <= 240) {
-        rc = kernel_routes(routes + numroutes, 240 - numroutes);
-        if(rc < 0) {
-            fprintf(stderr, "Couldn't get kernel routes.\n");
-        } else {
-            numroutes += rc;
-        }
-    } else {
-        fprintf(stderr,
-                "Too many local addresses -- ignoring kernel routes.\n");
-    }
+    if(numroutes >= maxroutes)
+        goto resize;
+
+    rc = kernel_routes(routes + numroutes, maxroutes - numroutes);
+    if(rc < 0)
+        fprintf(stderr, "Couldn't get kernel routes.\n");
+    else
+        numroutes += rc;
+
+    if(numroutes >= maxroutes)
+        goto resize;
 
     /* Check for any routes that need to be flushed */
 
@@ -225,5 +232,16 @@ check_xroutes(int send_updates)
         }
     }
 
+    free(routes);
     return change;
+
+ resize:
+    free(routes);
+    if(maxroutes >= maxmaxroutes)
+        return -1;
+    maxroutes = MIN(maxmaxroutes, 2 * maxroutes);
+    routes = malloc(maxroutes * sizeof(struct kernel_route));
+    if(routes == NULL)
+        return -1;
+    goto again;
 }
