@@ -1,4 +1,4 @@
-babel 0.14 (unreleased):
+1 July 2008: babel 0.14
 
   * Use POSIX clocks if available to protect against clock stepping.
   * Made babel use available internal routes straight away when the
