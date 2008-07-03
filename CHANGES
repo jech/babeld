@@ -1,3 +1,7 @@
+babel 0.15 (unreleased):
+
+  * Protect against duplicate neighbour ids on the same interface.
+
 1 July 2008: babel 0.14
 
   * Use POSIX clocks if available to protect against clock stepping.
