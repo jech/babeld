@@ -1,6 +1,7 @@
 babel 0.15 (unreleased):
 
   * Protect against duplicate neighbour ids on the same interface.
+  * More tweaks to improve scaling with the number of kernel routes.
 
 1 July 2008: babel 0.14
 
