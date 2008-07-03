@@ -127,17 +127,17 @@ check_xroutes(int send_updates)
 {
     int i, j, metric, export, change = 0, rc;
     struct kernel_route *routes;
-    int numroutes, maxroutes;
+    int numroutes;
+    static int maxroutes = 8;
     const int maxmaxroutes = 16 * 1024;
 
     debugf("\nChecking kernel routes.\n");
 
-    maxroutes = 8;
+ again:
     routes = malloc(maxroutes * sizeof(struct kernel_route));
     if(routes == NULL)
         return -1;
 
- again:
     rc = kernel_addresses(routes, maxroutes);
     if(rc < 0) {
         perror("kernel_addresses");
@@ -233,6 +233,8 @@ check_xroutes(int send_updates)
     }
 
     free(routes);
+    /* Set up maxroutes for the next call. */
+    maxroutes = MIN(numroutes + 8, maxmaxroutes);
     return change;
 
  resize:
@@ -240,8 +242,5 @@ check_xroutes(int send_updates)
     if(maxroutes >= maxmaxroutes)
         return -1;
     maxroutes = MIN(maxmaxroutes, 2 * maxroutes);
-    routes = malloc(maxroutes * sizeof(struct kernel_route));
-    if(routes == NULL)
-        return -1;
     goto again;
 }
