@@ -267,7 +267,7 @@ main(int argc, char **argv)
 
     if(update_interval <= 0)
         update_interval =
-            MIN(MAX(wireless_hello_interval * 5, wired_hello_interval),
+            MIN(MIN(wireless_hello_interval * 5, wired_hello_interval * 2),
                 70000);
     update_interval = MAX(update_interval, 70);
 
