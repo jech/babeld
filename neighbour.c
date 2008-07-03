@@ -48,6 +48,17 @@ find_neighbour(const unsigned char *address, struct network *net)
     return NULL;
 }
 
+struct neighbour *
+find_neighbour_by_id(const unsigned char *id, struct network *net)
+{
+    struct neighbour *neigh;
+    FOR_ALL_NEIGHBOURS(neigh) {
+        if(memcmp(id, neigh->id, 16) == 0 && neigh->network == net)
+            return neigh;
+    }
+    return NULL;
+}
+
 void
 flush_neighbour(struct neighbour *neigh)
 {
@@ -84,6 +95,22 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
             neigh = NULL;
         }
     }
+
+    neigh = find_neighbour_by_id(id, net);
+    if(neigh) {
+        if((neigh->reach & 0xE000) == 0) {
+            /* The other neighbour is probably obsolete. */
+            flush_neighbour(neigh);
+            neigh = NULL;
+        } else {
+            fprintf(stderr, "Duplicate neighbour %s (%s and %s)!\n",
+                    format_address(id),
+                    format_address(neigh->address),
+                    format_address(address));
+            return NULL;
+        }
+    }
+
     debugf("Creating neighbour %s (%s).\n",
            format_address(id), format_address(address));
 
