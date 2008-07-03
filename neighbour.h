@@ -44,6 +44,8 @@ int neighbour_valid(struct neighbour *neigh);
 void flush_neighbour(struct neighbour *neigh);
 struct neighbour *find_neighbour(const unsigned char *address,
                                  struct network *net);
+struct neighbour *find_neighbour_by_id(const unsigned char *id,
+                                       struct network *net);
 struct neighbour *add_neighbour(const unsigned char *id,
                                 const unsigned char *address,
                                 struct network *net);
