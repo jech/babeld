@@ -174,7 +174,7 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
                        packets during a link outage.  Ignore it, but reset
                        the expected seqno. */
                     neigh->hello_seqno = hello;
-                    hello = 0;
+                    hello = -1;
                     missed_hellos = 0;
                 }
                 rc = 1;
