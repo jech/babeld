@@ -1,5 +1,6 @@
 babel 0.15 (unreleased):
 
+  * Fixed a bug that could break link-quality estimation on yo-yo links.
   * Protect against duplicate neighbour ids on the same interface.
   * More tweaks to improve scaling with the number of kernel routes.
 
