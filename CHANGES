@@ -1,8 +1,9 @@
-babel 0.15 (unreleased):
+8 July 2008: babel 0.15:
 
   * Fixed a bug that could break link-quality estimation on yo-yo links.
   * Protect against duplicate neighbour ids on the same interface.
   * More tweaks to improve scaling with the number of kernel routes.
+  * Tweaked the default update interval.
 
 1 July 2008: babel 0.14
 
