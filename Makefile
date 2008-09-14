@@ -32,12 +32,12 @@ babel.html: babel.man
 
 all: babel babel.man
 
-install.minimal:
+install.minimal: babel
 	-rm -f $(TARGET)$(PREFIX)/bin/babel
 	mkdir -p $(TARGET)$(PREFIX)/bin
 	cp -f babel $(TARGET)$(PREFIX)/bin
 
-install: install.minimal
+install: install.minimal all
 	mkdir -p $(TARGET)$(PREFIX)/man/man8
 	cp -f babel.man $(TARGET)$(PREFIX)/man/man8/babel.8
 
