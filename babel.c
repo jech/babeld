@@ -885,6 +885,12 @@ init_signals(void)
     sigaction(SIGINT, &sa, NULL);
 
     sigemptyset(&ss);
+    sa.sa_handler = SIG_IGN;
+    sa.sa_mask = ss;
+    sa.sa_flags = 0;
+    sigaction(SIGPIPE, &sa, NULL);
+
+    sigemptyset(&ss);
     sa.sa_handler = sigdump;
     sa.sa_mask = ss;
     sa.sa_flags = 0;
