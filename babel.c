@@ -92,6 +92,7 @@ struct timeval check_neighbours_timeout;
 static volatile sig_atomic_t exiting = 0, dumping = 0, changed = 0;
 
 int local_server_socket = -1, local_socket = -1;
+int local_server_port = -1;
 
 static int kernel_routes_callback(int changed, void *closure);
 static void init_signals(void);
@@ -199,6 +200,9 @@ main(int argc, char **argv)
         } else if(strcmp(*arg, "-d") == 0) {
             SHIFTE();
             debug = atoi(*arg);
+        } else if(strcmp(*arg, "-g") == 0) {
+            SHIFTE();
+            local_server_port = atoi(*arg);
         } else if(strcmp(*arg, "-l") == 0) {
             link_detect = 1;
         } else if(strcmp(*arg, "-w") == 0) {
@@ -505,10 +509,12 @@ main(int argc, char **argv)
         SHIFT();
     }
 
-    local_server_socket = tcp_server_socket(33123, 1);
-    if(local_server_socket < 0) {
-        perror("local_server_socket");
-        goto fail;
+    if(local_server_port >= 0) {
+        local_server_socket = tcp_server_socket(local_server_port, 1);
+        if(local_server_socket < 0) {
+            perror("local_server_socket");
+            goto fail;
+        }
     }
 
     init_signals();
@@ -824,7 +830,7 @@ main(int argc, char **argv)
             "                "
             "[-h hello] [-H wired_hello] [-i idle_hello] [-u update]\n"
             "                "
-            "[-k metric] [-s] [-p] [-l] [-w] [-d level]\n"
+            "[-k metric] [-s] [-p] [-l] [-w] [-d level] [-g port]\n"
             "                "
             "[-t table] [-T table] [-X net cost] [-c file] [-C statement]\n"
             "                "
