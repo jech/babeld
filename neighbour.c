@@ -311,9 +311,12 @@ neighbour_rxcost(struct neighbour *neigh)
         else
             return INFINITY;
     } else {
-        int sreach = (reach & 0x7FFF) + ((reach & 0x8000) >> 1);
-        /* 0 <= sreach <= 0xBFFF */
-        int cost = (0xC000 * neigh->network->cost) / (sreach + 1);
+        int sreach =
+            ((reach & 0x8000) >> 2) +
+            ((reach & 0x4000) >> 1) +
+            (reach & 0x3FFF);
+        /* 0 <= sreach <= 0x7FFF */
+        int cost = (0x8000 * neigh->network->cost) / (sreach + 1);
         /* cost >= network->cost */
         if(delay >= 40000)
             cost = (cost * (delay - 20000) + 10000) / 20000;
