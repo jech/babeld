@@ -1,3 +1,7 @@
+babel 0.16: unreleased
+
+  * Tweaked cost computation to be slightly slower.
+
 8 July 2008: babel 0.15:
 
   * Fixed a bug that could break link-quality estimation on yo-yo links.
