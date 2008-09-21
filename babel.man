@@ -83,6 +83,10 @@ requests tracing every message sent or received.  A value of
 3 additionally dumps all interactions with the OS kernel.  The default
 is 0.
 .TP
+.BI \-g " port"
+Listen for connections from a front-end on port
+.IR port .
+.TP
 .BI \-X " network cost"
 Unconditionally advertise a route for the given network or host with
 the given cost.
