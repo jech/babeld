@@ -35,6 +35,12 @@ THE SOFTWARE.
 #include "util.h"
 #include "local.h"
 
+#ifdef NO_LOCAL_INTERFACE
+
+int dummy;
+
+#else
+
 int
 local_read(int s)
 {
@@ -247,3 +253,5 @@ local_dump()
     shutdown(local_socket, 1);
     return;
 }
+
+#endif

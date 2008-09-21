@@ -200,9 +200,11 @@ main(int argc, char **argv)
         } else if(strcmp(*arg, "-d") == 0) {
             SHIFTE();
             debug = atoi(*arg);
+#ifndef NO_LOCAL_INTERFACE
         } else if(strcmp(*arg, "-g") == 0) {
             SHIFTE();
             local_server_port = atoi(*arg);
+#endif
         } else if(strcmp(*arg, "-l") == 0) {
             link_detect = 1;
         } else if(strcmp(*arg, "-w") == 0) {
@@ -509,6 +511,7 @@ main(int argc, char **argv)
         SHIFT();
     }
 
+#ifndef NO_LOCAL_INTERFACE
     if(local_server_port >= 0) {
         local_server_socket = tcp_server_socket(local_server_port, 1);
         if(local_server_socket < 0) {
@@ -516,6 +519,7 @@ main(int argc, char **argv)
             goto fail;
         }
     }
+#endif
 
     init_signals();
     resize_receive_buffer(1500);
@@ -584,6 +588,7 @@ main(int argc, char **argv)
                 FD_SET(kernel_socket, &readfds);
                 maxfd = MAX(maxfd, kernel_socket);
             }
+#ifndef NO_LOCAL_INTERFACE
             if(local_socket >= 0) {
                 FD_SET(local_socket, &readfds);
                 maxfd = MAX(maxfd, local_socket);
@@ -591,6 +596,7 @@ main(int argc, char **argv)
                 FD_SET(local_server_socket, &readfds);
                 maxfd = MAX(maxfd, local_server_socket);
             }
+#endif
             rc = select(maxfd + 1, &readfds, NULL, NULL, &tv);
             if(rc < 0) {
                 if(errno != EINTR) {
@@ -634,6 +640,7 @@ main(int argc, char **argv)
             }
         }
 
+#ifndef NO_LOCAL_INTERFACE
         if(local_server_socket >= 0 &&
            FD_ISSET(local_server_socket, &readfds)) {
             if(local_socket >= 0) {
@@ -658,6 +665,7 @@ main(int argc, char **argv)
                 local_socket = -1;
             }
         }
+#endif
 
         if(changed) {
             kernel_dump_time = now.tv_sec;

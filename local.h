@@ -28,9 +28,20 @@ struct xroute;
 #define LOCAL_ADD 1
 #define LOCAL_CHANGE 2
 
+#ifndef NO_LOCAL_INTERFACE
+
 int local_read(int s);
 void local_notify_self(void);
 void local_notify_neighbour(struct neighbour *neigh, int kind);
 void local_notify_xroute(struct xroute *xroute, int kind);
 void local_notify_route(struct route *route, int kind);
 void local_dump(void);
+
+#else
+
+#define local_notify_self() do {} while(0)
+#define local_notify_neighbour(n, k) do {} while(0)
+#define local_notify_xroute(x, k) do {} while(0)
+#define local_notify_route(r, k) do {} while(0)
+#define local_dump() do {} while 0
+#endif
