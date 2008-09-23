@@ -51,5 +51,6 @@ struct neighbour *add_neighbour(const unsigned char *id,
                                 struct network *net);
 int update_neighbour(struct neighbour *neigh, int hello, int hello_interval);
 int check_neighbours(void);
+int neighbour_txcost(struct neighbour *neigh);
 int neighbour_rxcost(struct neighbour *neigh);
 int neighbour_cost(struct neighbour *neigh);

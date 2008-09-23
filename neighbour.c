@@ -257,6 +257,13 @@ reset_txcost(struct neighbour *neigh)
 }
 
 int
+neighbour_txcost(struct neighbour *neigh)
+{
+    reset_txcost(neigh);
+    return neigh->txcost;
+}
+
+int
 check_neighbours()
 {
     struct neighbour *neigh;
@@ -340,8 +347,7 @@ neighbour_cost(struct neighbour *neigh)
     if(!neigh->network->up)
         return INFINITY;
 
-    reset_txcost(neigh);
-    a = neigh->txcost;
+    a = neighbour_txcost(neigh);
 
     if(a >= INFINITY)
         return INFINITY;
