@@ -144,7 +144,7 @@ local_notify_neighbour(struct neighbour *neigh, int kind)
                   neigh->network->ifname,
                   neigh->reach,
                   neighbour_rxcost(neigh),
-                  neigh->txcost,
+                  neighbour_txcost(neigh),
                   neighbour_cost(neigh));
 
     if(rc < 0 || rc >= 512)
