@@ -2,6 +2,7 @@ babel 0.16: unreleased
 
   * Tweaked cost computation to be slightly slower.
   * Implemented a local interface for GUIs.
+  * INCOMPATIBLE CHANGE: the -X command-line option is no more.
 
 8 July 2008: babel 0.15:
 
