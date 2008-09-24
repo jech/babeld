@@ -87,26 +87,6 @@ is 0.
 Listen for connections from a front-end on port
 .IR port .
 .TP
-.BI \-X " network cost"
-Unconditionally advertise a route for the given network or host with
-the given cost.
-.I Network
-should be either the string
-.BR default ,
-or a network specification in CIDR notation
-.IB prefix / length.
-If
-.I length
-is omitted, it defaults to 128 (a host route).
-.I Cost
-should either be a 16-bit unsigned integer, or the string
-.B infinity
-which specifies a blackhole route (see
-.I Metrics
-below).  This option should not be used, as
-it may cause persistent routing loops.  Redistributing a static route
-is a safer alternative.
-.TP
 .BI \-t " table"
 Use the given kernel routing table for routes inserted by Babel.
 .TP
