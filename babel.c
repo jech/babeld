@@ -968,10 +968,9 @@ dump_tables(FILE *out)
                 neigh->network->up ? "" : " (down)");
     }
     for(i = 0; i < numxroutes; i++) {
-        fprintf(out, "%s metric %d (%s)\n",
+        fprintf(out, "%s metric %d (exported)\n",
                 format_prefix(xroutes[i].prefix, xroutes[i].plen),
-                xroutes[i].metric,
-                xroutes[i].kind == XROUTE_FORCED ? "forced" : "exported");
+                xroutes[i].metric);
     }
     for(i = 0; i < numroutes; i++) {
         int id =

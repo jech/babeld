@@ -22,13 +22,9 @@ THE SOFTWARE.
 
 /* These should come in decreasing order of priority. */
 
-#define XROUTE_FORCED 1
-#define XROUTE_REDISTRIBUTED 2
-
 struct xroute {
     unsigned char prefix[16];
     unsigned char plen;
-    char kind;
     unsigned short metric;
     unsigned int ifindex;
     int proto;
@@ -39,6 +35,6 @@ extern int numxroutes;
 
 struct xroute *find_xroute(const unsigned char *prefix, unsigned char plen);
 void flush_xroute(struct xroute *xroute);
-int add_xroute(int kind, unsigned char prefix[16], unsigned char plen,
+int add_xroute(unsigned char prefix[16], unsigned char plen,
                unsigned short metric, unsigned int ifindex, int proto);
 int check_xroutes(int send_updates);

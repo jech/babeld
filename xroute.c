@@ -85,18 +85,11 @@ flush_xroute(struct xroute *xroute)
 }
 
 int
-add_xroute(int kind, unsigned char prefix[16], unsigned char plen,
+add_xroute(unsigned char prefix[16], unsigned char plen,
            unsigned short metric, unsigned int ifindex, int proto)
 {
     struct xroute *xroute = find_xroute(prefix, plen);
     if(xroute) {
-        if(xroute->kind < kind)
-            return 0;
-        else if(xroute->kind > kind) {
-            flush_xroute(xroute);
-            return add_xroute(kind, prefix, plen, metric, ifindex, proto);
-        }
-
         if(xroute->metric <= metric)
             return 0;
         xroute->metric = metric;
@@ -116,7 +109,6 @@ add_xroute(int kind, unsigned char prefix[16], unsigned char plen,
         xroutes = new_xroutes;
     }
 
-    xroutes[numxroutes].kind = kind;
     memcpy(xroutes[numxroutes].prefix, prefix, 16);
     xroutes[numxroutes].plen = plen;
     xroutes[numxroutes].metric = metric;
@@ -168,26 +160,22 @@ check_xroutes(int send_updates)
     i = 0;
     while(i < numxroutes) {
         export = 0;
-        if(xroutes[i].kind == XROUTE_FORCED) {
-            export = 1;
-        } else if(xroutes[i].kind == XROUTE_REDISTRIBUTED) {
-            metric = redistribute_filter(xroutes[i].prefix, xroutes[i].plen,
-                                         xroutes[i].ifindex, xroutes[i].proto);
-            if((metric < INFINITY && metric == xroutes[i].metric) ||
-               metric == METRIC_INHERIT) {
-                for(j = 0; j < numroutes; j++) {
-                    if(xroutes[i].plen == routes[j].plen &&
-                       memcmp(xroutes[i].prefix, routes[j].prefix, 16) == 0 &&
-                       xroutes[i].ifindex == routes[j].ifindex &&
-                       xroutes[i].proto == routes[j].proto) {
-                        if(metric < INFINITY) {
-                            export = 1;
-                            break;
-                        } else if(metric == METRIC_INHERIT &&
-                           xroutes[i].metric == routes[j].metric * 256) {
-                            export = 1;
-                            break;
-                        }
+        metric = redistribute_filter(xroutes[i].prefix, xroutes[i].plen,
+                                     xroutes[i].ifindex, xroutes[i].proto);
+        if((metric < INFINITY && metric == xroutes[i].metric) ||
+           metric == METRIC_INHERIT) {
+            for(j = 0; j < numroutes; j++) {
+                if(xroutes[i].plen == routes[j].plen &&
+                   memcmp(xroutes[i].prefix, routes[j].prefix, 16) == 0 &&
+                   xroutes[i].ifindex == routes[j].ifindex &&
+                   xroutes[i].proto == routes[j].proto) {
+                    if(metric < INFINITY) {
+                        export = 1;
+                        break;
+                    } else if(metric == METRIC_INHERIT &&
+                              xroutes[i].metric == routes[j].metric * 256) {
+                        export = 1;
+                        break;
                     }
                 }
             }
@@ -222,8 +210,7 @@ check_xroutes(int send_updates)
         if(metric == METRIC_INHERIT)
             metric = routes[i].metric * 256;
         if(metric < INFINITY) {
-            rc = add_xroute(XROUTE_REDISTRIBUTED,
-                            routes[i].prefix, routes[i].plen,
+            rc = add_xroute(routes[i].prefix, routes[i].plen,
                             metric, routes[i].ifindex, routes[i].proto);
             if(rc) {
                 struct route *route;
