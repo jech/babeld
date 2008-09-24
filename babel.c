@@ -143,28 +143,6 @@ main(int argc, char **argv)
         } else if(strcmp(*arg, "-p") == 0) {
             SHIFTE();
             protocol_port = atoi(*arg);
-        } else if(strcmp(*arg, "-X") == 0) {
-            int metric;
-            unsigned char prefix[16];
-            unsigned char plen;
-
-            SHIFTE();
-            rc = parse_net(*arg, prefix, &plen, NULL);
-            if(rc < 0)
-                goto syntax;
-            SHIFTE();
-            if(strcmp(*arg, "infinity") == 0)
-                metric = INFINITY;
-            else {
-                metric = atoi(*arg);
-                if(metric < 0 || metric > INFINITY)
-                    goto syntax;
-            }
-            rc = add_xroute(XROUTE_FORCED, prefix, plen, metric, 0, 0);
-            if(rc < 0) {
-                fprintf(stderr, "Couldn't add xroute.\n");
-                exit(1);
-            }
         } else if(strcmp(*arg, "-h") == 0) {
             SHIFTE();
             wireless_hello_interval = parse_msec(*arg);
@@ -840,7 +818,7 @@ main(int argc, char **argv)
             "                "
             "[-k metric] [-s] [-p] [-l] [-w] [-d level] [-g port]\n"
             "                "
-            "[-t table] [-T table] [-X net cost] [-c file] [-C statement]\n"
+            "[-t table] [-T table] [-c file] [-C statement]\n"
             "                "
             "[-D] [-L logfile] [-I pidfile]\n"
             "                "
