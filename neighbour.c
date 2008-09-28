@@ -256,14 +256,14 @@ reset_txcost(struct neighbour *neigh)
     return 0;
 }
 
-int
+unsigned
 neighbour_txcost(struct neighbour *neigh)
 {
     reset_txcost(neigh);
     return neigh->txcost;
 }
 
-int
+unsigned
 check_neighbours()
 {
     struct neighbour *neigh;
@@ -304,7 +304,7 @@ check_neighbours()
     return msecs;
 }
 
-int
+unsigned
 neighbour_rxcost(struct neighbour *neigh)
 {
     int delay;
@@ -339,7 +339,7 @@ neighbour_rxcost(struct neighbour *neigh)
     }
 }
 
-int
+unsigned
 neighbour_cost(struct neighbour *neigh)
 {
     int a, b;
