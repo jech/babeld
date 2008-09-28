@@ -342,7 +342,7 @@ neighbour_rxcost(struct neighbour *neigh)
 unsigned
 neighbour_cost(struct neighbour *neigh)
 {
-    int a, b;
+    unsigned a, b;
 
     if(!neigh->network->up)
         return INFINITY;
@@ -364,7 +364,8 @@ neighbour_cost(struct neighbour *neigh)
            directions. */
         a = MAX(a, 256);
         b = MAX(b, 256);
-        /* 1/(alpha * beta), which is just plain ETX.  Avoid overflow. */
-        return ((a + 8) >> 4) * ((b + 8) >> 4);
+        /* 1/(alpha * beta), which is just plain ETX. */
+        /* Since a and b are capped to 16 bits, overflow is impossible. */
+        return (a * b + 128) >> 8;
     }
 }
