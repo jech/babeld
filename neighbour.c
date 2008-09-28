@@ -364,7 +364,7 @@ neighbour_cost(struct neighbour *neigh)
            directions. */
         a = MAX(a, 256);
         b = MAX(b, 256);
-        /* 1/(alpha * beta), which is just plain ETX. */
-        return ((a * b + 128) >> 8);
+        /* 1/(alpha * beta), which is just plain ETX.  Avoid overflow. */
+        return ((a + 8) >> 4) * ((b + 8) >> 4);
     }
 }
