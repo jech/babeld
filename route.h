@@ -33,7 +33,7 @@ struct route {
 
 extern struct route *routes;
 extern int numroutes, maxroutes;
-extern int kernel_metric;
+extern unsigned kernel_metric;
 extern int route_timeout_delay;
 extern int route_gc_delay;
 
@@ -43,11 +43,11 @@ struct route *find_installed_route(const unsigned char *prefix,
                                    unsigned char plen);
 void flush_route(struct route *route);
 void flush_neighbour_routes(struct neighbour *neigh);
-unsigned int metric_to_kernel(int metric);
+unsigned metric_to_kernel(unsigned metric);
 void install_route(struct route *route);
 void uninstall_route(struct route *route);
 void switch_route(struct route *old, struct route *new);
-void change_route_metric(struct route *route, int newmetric);
+void change_route_metric(struct route *route, unsigned newmetric);
 int route_feasible(struct route *route);
 int update_feasible(const unsigned char *id,
                     const unsigned char *p, unsigned char plen,
@@ -70,8 +70,8 @@ void send_unfeasible_request(struct neighbour *neigh, int force,
                              const unsigned char *prefix, unsigned char plen);
 void consider_route(struct route *route);
 void send_triggered_update(struct route *route,
-                           struct source *oldsrc, int oldmetric);
+                           struct source *oldsrc, unsigned oldmetric);
 void route_changed(struct route *route,
                    struct source *oldsrc, unsigned short oldmetric);
-void route_lost(struct source *src, int oldmetric);
+void route_lost(struct source *src, unsigned oldmetric);
 void expire_routes(void);

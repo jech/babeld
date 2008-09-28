@@ -41,7 +41,7 @@ THE SOFTWARE.
 
 struct route *routes = NULL;
 int numroutes = 0, maxroutes = 0;
-int kernel_metric = 0;
+unsigned kernel_metric = 0;
 int route_timeout_delay = 160;
 int route_gc_delay = 180;
 
@@ -75,7 +75,8 @@ flush_route(struct route *route)
 {
     int n;
     struct source *src;
-    int oldmetric, lost = 0;
+    unsigned oldmetric;
+    int lost = 0;
 
     n = route - routes;
     assert(n >= 0 && n < numroutes);
@@ -129,11 +130,9 @@ flush_neighbour_routes(struct neighbour *neigh)
     }
 }
 
-unsigned int
-metric_to_kernel(int metric)
+unsigned
+metric_to_kernel(unsigned metric)
 {
-    assert(metric >= 0);
-
     if(metric >= INFINITY)
         return KERNEL_INFINITY;
     else
@@ -211,7 +210,7 @@ switch_routes(struct route *old, struct route *new)
 }
 
 void
-change_route_metric(struct route *route, int newmetric)
+change_route_metric(struct route *route, unsigned newmetric)
 {
     int rc;
 
@@ -522,9 +521,11 @@ consider_route(struct route *route)
 }
 
 void
-send_triggered_update(struct route *route, struct source *oldsrc, int oldmetric)
+send_triggered_update(struct route *route, struct source *oldsrc,
+                      unsigned oldmetric)
 {
-    int urgent = 0, newmetric, diff;
+    int urgent = 0;
+    unsigned newmetric, diff;
 
     if(!route->installed)
         return;
@@ -599,7 +600,7 @@ route_changed(struct route *route,
 
 /* We just lost the installed route to a given destination. */
 void
-route_lost(struct source *src, int oldmetric)
+route_lost(struct source *src, unsigned oldmetric)
 {
     struct route *new_route;
     new_route = find_best_route(src->prefix, src->plen, 1, NULL);
