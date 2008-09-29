@@ -1,10 +1,10 @@
-babel 0.16: unreleased
+29 September 2008: babel 0.16
 
   * Tweaked cost computation to be slightly slower.
   * Implemented a local interface for GUIs.
   * INCOMPATIBLE CHANGE: the -X command-line option is no more.
 
-8 July 2008: babel 0.15:
+8 July 2008: babel 0.15
 
   * Fixed a bug that could break link-quality estimation on yo-yo links.
   * Protect against duplicate neighbour ids on the same interface.
