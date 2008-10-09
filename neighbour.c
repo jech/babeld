@@ -37,24 +37,13 @@ THE SOFTWARE.
 
 struct neighbour *neighs = NULL;
 
-struct neighbour *
-find_neighbour(const unsigned char *address, struct network *net)
+static struct neighbour *
+find_neighbour_nocreate(const unsigned char *address, struct network *net)
 {
     struct neighbour *neigh;
     FOR_ALL_NEIGHBOURS(neigh) {
         if(memcmp(address, neigh->address, 16) == 0 &&
            neigh->network == net)
-            return neigh;
-    }
-    return NULL;
-}
-
-struct neighbour *
-find_neighbour_by_id(const unsigned char *id, struct network *net)
-{
-    struct neighbour *neigh;
-    FOR_ALL_NEIGHBOURS(neigh) {
-        if(memcmp(id, neigh->id, 16) == 0 && neigh->network == net)
             return neigh;
     }
     return NULL;
@@ -80,41 +69,17 @@ flush_neighbour(struct neighbour *neigh)
 }
 
 struct neighbour *
-add_neighbour(const unsigned char *id, const unsigned char *address,
-              struct network *net)
+find_neighbour(const unsigned char *address, struct network *net)
 {
     struct neighbour *neigh;
     const struct timeval zero = {0, 0};
 
-    neigh = find_neighbour(address, net);
-    if(neigh) {
-        if(memcmp(neigh->id, id, 16) == 0) {
-            return neigh;
-        } else {
-            fprintf(stderr, "Neighbour changed id (%s -> %s)!\n",
-                    format_address(neigh->id), format_address(id));
-            flush_neighbour(neigh);
-            neigh = NULL;
-        }
-    }
+    neigh = find_neighbour_nocreate(address, net);
+    if(neigh)
+        return neigh;
 
-    neigh = find_neighbour_by_id(id, net);
-    if(neigh) {
-        if((neigh->reach & 0xE000) == 0) {
-            /* The other neighbour is probably obsolete. */
-            flush_neighbour(neigh);
-            neigh = NULL;
-        } else {
-            fprintf(stderr, "Duplicate neighbour %s (%s and %s)!\n",
-                    format_address(id),
-                    format_address(neigh->address),
-                    format_address(address));
-            return NULL;
-        }
-    }
-
-    debugf("Creating neighbour %s (%s).\n",
-           format_address(id), format_address(address));
+    debugf("Creating neighbour %s on %s.\n",
+           format_address(address), net->ifname);
 
     neigh = malloc(sizeof(struct neighbour));
     if(neigh == NULL) {
@@ -123,7 +88,6 @@ add_neighbour(const unsigned char *id, const unsigned char *address,
     }
 
     neigh->hello_seqno = -1;
-    memcpy(neigh->id, id, 16);
     memcpy(neigh->address, address, 16);
     neigh->reach = 0;
     neigh->txcost = INFINITY;
@@ -219,15 +183,10 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
     }
 
     if((neigh->reach & 0xFC00) == 0xC000) {
-        /* This is a newish neighbour.  If we don't have another route to it,
-           request a full route dump.  This assumes that the neighbour's id
-           is also its IP address and that it is exporting a route to itself. */
-        struct route *route = NULL;
+        /* This is a newish neighbour.  Let's request a full route dump. */
         send_ihu(neigh, NULL);
-        if(!martian_prefix(neigh->id, 128))
-           route = find_installed_route(neigh->id, 128);
-        if(!route || route->metric >= INFINITY || route->neigh == neigh)
-            send_unicast_request(neigh, NULL, 0, 0, 0, 0);
+        /* We ought to avoid this when the network is dense */
+        send_unicast_request(neigh, NULL, 0);
     }
     if(rc)
         local_notify_neighbour(neigh, LOCAL_CHANGE);

@@ -24,7 +24,6 @@ struct neighbour {
     struct neighbour *next;
     /* This is -1 when unknown, so don't make it unsigned */
     int hello_seqno;
-    unsigned char id[16];
     unsigned char address[16];
     unsigned short reach;
     unsigned short txcost;
@@ -44,11 +43,6 @@ int neighbour_valid(struct neighbour *neigh);
 void flush_neighbour(struct neighbour *neigh);
 struct neighbour *find_neighbour(const unsigned char *address,
                                  struct network *net);
-struct neighbour *find_neighbour_by_id(const unsigned char *id,
-                                       struct network *net);
-struct neighbour *add_neighbour(const unsigned char *id,
-                                const unsigned char *address,
-                                struct network *net);
 int update_neighbour(struct neighbour *neigh, int hello, int hello_interval);
 unsigned check_neighbours(void);
 unsigned neighbour_txcost(struct neighbour *neigh);
