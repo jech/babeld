@@ -122,6 +122,33 @@ getip(int c, unsigned char **ip_r, int *af_r, gnc_t gnc, void *closure)
 }
 
 static int
+getid(int c, unsigned char **id_r, gnc_t gnc, void *closure)
+{
+    char *t;
+    unsigned char *idp;
+    unsigned char id[8];
+    int rc;
+
+    c = getword(c, &t, gnc, closure);
+    if(c < -1)
+        return c;
+    rc = parse_eui64(t, id);
+    if(rc < 0) {
+        free(t);
+        return -2;
+    }
+    free(t);
+
+    idp = malloc(8);
+    if(idp == NULL) {
+        return -2;
+    }
+    memcpy(idp, id, 8);
+    *id_r = idp;
+    return c;
+}
+
+static int
 getnet(int c, unsigned char **p_r, unsigned char *plen_r, int *af_r,
           gnc_t gnc, void *closure)
 {
