@@ -257,8 +257,7 @@ messages have been received, and down otherwise.
 
 All of these optimisations can be disabled by using the
 .B \-w
-flag.  This is recommended if you are running Babel over bridge
-interfaces, since such interfaces will be detected as wired interfaces.
+flag.
 .SH FILES
 .TP
 .B /etc/babel.conf
