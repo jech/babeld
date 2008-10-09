@@ -61,4 +61,5 @@ int kernel_addresses(char *ifname, int ifindex,
                      struct kernel_route *routes, int maxroutes);
 int kernel_ll_addresses(char *ifname, int ifindex,
                         unsigned char (*addresses)[16], int maxaddr);
+int if_eui64(char *ifname, int ifindex, unsigned char *eui);
 int gettime(struct timeval *tv);
