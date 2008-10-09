@@ -1,5 +1,6 @@
 /*
 Copyright (c) 2007 by Grégoire Henry
+Copyright (c) 2008 by Juliusz Chroboczek
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -600,7 +601,8 @@ socket_read(int sock)
 }
 
 int
-kernel_addresses(struct kernel_route *routes, int maxroutes)
+kernel_addresses(char *ifname, int ifindex,
+                 struct kernel_route *routes, int maxroutes)
 {
     errno = ENOSYS;
     return -1;

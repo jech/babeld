@@ -135,7 +135,7 @@ check_xroutes(int send_updates)
     if(routes == NULL)
         return -1;
 
-    rc = kernel_addresses(routes, maxroutes);
+    rc = kernel_addresses(NULL, 0, routes, maxroutes);
     if(rc < 0) {
         perror("kernel_addresses");
         numroutes = 0;

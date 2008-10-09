@@ -1120,12 +1120,14 @@ filter_addresses(struct nlmsghdr *nh, void *data)
     int len;
     struct ifaddrmsg *ifa;
     char ifname[IFNAMSIZ];
+    int ifindex = 0;
 
     if (data) {
         void **args = (void **)data;
         maxroutes = *(int *)args[0];
         routes = (struct kernel_route*)args[1];
         found = (int *)args[2];
+        ifindex = args[3] ? 0 : *(int*)args[3];
     }
 
     len = nh->nlmsg_len;
@@ -1145,6 +1147,9 @@ filter_addresses(struct nlmsghdr *nh, void *data)
         return 0;
 
     if (IN6_IS_ADDR_LINKLOCAL(&addr))
+        return 0;
+
+    if (ifindex && ifa->ifa_index != ifindex)
         return 0;
 
     kdebugf("found address on interface %s(%d): %s\n",
@@ -1199,11 +1204,12 @@ filter_netlink(struct nlmsghdr *nh, void *data)
 }
 
 int
-kernel_addresses(struct kernel_route *routes, int maxroutes)
+kernel_addresses(char *ifname, int ifindex,
+                 struct kernel_route *routes, int maxroutes)
 {
     int maxr = maxroutes;
     int found = 0;
-    void *data[] = { &maxr, routes, &found, NULL};
+    void *data[] = { &maxr, routes, &found, &ifindex, NULL};
     struct rtgenmsg g;
     int rc;
 
