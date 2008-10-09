@@ -59,4 +59,6 @@ int kernel_routes(struct kernel_route *routes, int maxroutes);
 int kernel_callback(int (*fn)(int, void*), void *closure);
 int kernel_addresses(char *ifname, int ifindex,
                      struct kernel_route *routes, int maxroutes);
+int kernel_ll_addresses(char *ifname, int ifindex,
+                        unsigned char (*addresses)[16], int maxaddr);
 int gettime(struct timeval *tv);

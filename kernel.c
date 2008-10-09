@@ -29,6 +29,35 @@ THE SOFTWARE.
 #include "kernel_netlink.c"
 #endif
 
+/* Return an interface's link-local addresses */
+int
+kernel_ll_addresses(char *ifname, int ifindex,
+                    unsigned char (*addresses)[16], int maxaddr)
+{
+    struct kernel_route routes[64];
+    int rc, i, j;
+
+    rc = kernel_addresses(ifname, ifindex, routes, 64);
+    if(rc < 0)
+        return -1;
+
+    j = 0;
+    for(i = 0; i < rc; i++) {
+        unsigned char *prefix;
+        if(j >= maxaddr)
+            break;
+        if(routes[i].ifindex != ifindex)
+            continue;
+        prefix = routes[i].prefix;
+        if(prefix[0] == 0xFE && prefix[1] == 0x80 &&
+           memcmp(prefix + 2, zeroes, 6) == 0) {
+            memcpy(addresses[j], prefix, 16);
+            j++;
+        }
+    }
+    return j;
+}
+
 /* Like gettimeofday, but should return monotonic time.  If POSIX clocks
    are not available, falls back to gettimeofday. */
 int
