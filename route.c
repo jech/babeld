@@ -143,8 +143,9 @@ install_route(struct route *route)
                       route->neigh->network->ifindex,
                       kernel_metric, NULL, 0, 0);
     if(rc < 0) {
+        int save = errno;
         perror("kernel_route(ADD)");
-        if(errno != EEXIST)
+        if(save != EEXIST)
             return;
     }
     route->installed = 1;
