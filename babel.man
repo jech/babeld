@@ -196,10 +196,6 @@ For an input or output filter, allow this route after increasing its metric by
 .IR value .
 For a redistribute filter, redistribute this route with metric
 .IR value .
-.TP
-.B inherit
-For a redistribute filter, redistribute this route with the metric
-provided by the kernel.
 .PP
 If
 .I action
