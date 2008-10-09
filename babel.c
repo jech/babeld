@@ -351,7 +351,7 @@ main(int argc, char **argv)
         }
     } else {
         struct kernel_route routes[240];
-        rc = kernel_addresses(routes, 240);
+        rc = kernel_addresses(NULL, 0, routes, 240);
         if(rc < 0) {
             perror("kernel_addresses");
         }
