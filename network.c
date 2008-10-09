@@ -192,6 +192,7 @@ network_up(struct network *net, int up)
     net->up = up;
 
     if(up) {
+        unsigned char ll[32][16];
         if(net->ifindex <= 0) {
             fprintf(stderr,
                     "Upping unknown interface %s.\n", net->ifname);
@@ -268,6 +269,23 @@ network_up(struct network *net, int up)
                tries to up it again. */
             return network_up(net, 0);
         }
+
+        if(net->ll)
+            free(net->ll);
+        net->nll = 0;
+        net->ll = NULL;
+        rc = kernel_ll_addresses(net->ifname, net->ifindex, ll, 32);
+        if(rc < 0) {
+            perror("kernel_ll_addresses");
+        } else if(rc > 0) {
+            net->ll = malloc(16 * rc);
+            if(net->ll == NULL) {
+                perror("malloc(ll)");
+            } else {
+                net->nll = rc;
+                memcpy(net->ll, ll, rc * 16);
+            }
+        }
         delay_jitter(&net->hello_time, &net->hello_timeout,
                      net->hello_interval);
         delay_jitter(&net->self_update_time, &net->self_update_timeout,
@@ -291,6 +309,10 @@ network_up(struct network *net, int up)
                 perror("setsockopt(IPV6_LEAVE_GROUP)");
             kernel_setup_interface(0, net->ifname, net->ifindex);
         }
+        if(net->ll)
+            free(net->ll);
+        net->ll = NULL;
+        net->nll = 0;
     }
 
     update_network_metric(net);
@@ -299,6 +321,21 @@ network_up(struct network *net, int up)
         send_update(net, 0, NULL, 0);
 
     return 1;
+}
+
+int
+network_ll_address(struct network *net, const unsigned char *address)
+{
+    int i;
+
+    if(!net->up)
+        return 0;
+
+    for(i = 0; i < net->nll; i++)
+        if(memcmp(net->ll[i], address, 16) == 0)
+           return 1;
+
+    return 0;
 }
 
 void

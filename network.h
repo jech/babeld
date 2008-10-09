@@ -34,6 +34,8 @@ struct network {
     struct timeval update_timeout;
     char ifname[IF_NAMESIZE];
     unsigned char *ipv4;
+    int nll;
+    unsigned char (*ll)[16];
     int buffered;
     struct timeval flush_timeout;
     int bufsize;
@@ -58,4 +60,5 @@ unsigned int jitter(struct network *net, int urgent);
 unsigned int update_jitter(struct network *net, int urgent);
 void delay_jitter(struct timeval *time, struct timeval *timeout, int msecs);
 int network_up(struct network *net, int up);
+int network_ll_address(struct network *net, const unsigned char *address);
 void check_networks(void);
