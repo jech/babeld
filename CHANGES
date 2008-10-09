@@ -2,6 +2,7 @@ babel 0.17 (unreleased)
 
   * INCOMPATIBLE CHANGE: removed support for ``inherit'' in redistribution.
   * Increased the default seqno interval.
+  * Use a fixed kernel priority for routes installed by babel.
 
 29 September 2008: babel 0.16
 
