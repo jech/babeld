@@ -6,8 +6,6 @@ babel \- ad-hoc network routing daemon
 .IR option ...
 [
 .B \-\-
-] [
-.I id
 ]
 .IR interface ...
 .SH DESCRIPTION
@@ -154,9 +152,10 @@ This entry only applies to routes with a prefix length less or equal to
 This entry only applies to routes with a prefix length greater or equal to
 .BR plen .
 .TP
-.BI neigh " id"
-This entry only applies to routes learned from a neighbour with router-id
-.IR id .
+.BI neigh " address"
+This entry only applies to routes learned from a neighbour with
+link-local address
+.IR address .
 .TP
 .BI id " id"
 This entry only applies to routes originated by a router with router-id
