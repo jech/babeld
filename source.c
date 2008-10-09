@@ -41,9 +41,9 @@ find_source(const unsigned char *id, const unsigned char *p, unsigned char plen,
     for(src = srcs; src; src = src->next) {
         /* This should really be a hash table.  For now, check the
            last byte first. */
-        if(src->id[15] != id[15])
+        if(src->id[7] != id[7])
             continue;
-        if(memcmp(src->id, id, 16) != 0)
+        if(memcmp(src->id, id, 8) != 0)
             continue;
         if(source_match(src, p, plen))
            return src;
@@ -58,7 +58,7 @@ find_source(const unsigned char *id, const unsigned char *p, unsigned char plen,
         return NULL;
     }
 
-    memcpy(src->id, id, 16);
+    memcpy(src->id, id, 8);
     memcpy(src->prefix, p, 16);
     src->plen = plen;
     src->seqno = seqno;

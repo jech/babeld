@@ -24,7 +24,7 @@ THE SOFTWARE.
 
 struct source {
     struct source *next;
-    unsigned char id[16];
+    unsigned char id[8];
     unsigned char prefix[16];
     unsigned char plen;
     unsigned short seqno;

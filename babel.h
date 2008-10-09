@@ -65,7 +65,7 @@ extern int link_detect;
 extern int all_wireless;
 extern int local_socket;
 
-extern unsigned char myid[16];
+extern unsigned char myid[8];
 
 extern const unsigned char zeroes[16], ones[16];
 

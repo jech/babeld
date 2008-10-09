@@ -80,7 +80,7 @@ find_request(const unsigned char *prefix, unsigned char plen,
 
 int
 record_resend(int kind, const unsigned char *prefix, unsigned char plen,
-              unsigned short seqno, unsigned short router_hash,
+              unsigned short seqno, const unsigned char *id,
               struct network *network, int delay)
 {
     struct resend *resend;
@@ -103,11 +103,14 @@ record_resend(int kind, const unsigned char *prefix, unsigned char plen,
             resend->delay = delay;
         resend->time = now;
         resend->max = kind == RESEND_REQUEST ? 128 : UPDATE_MAX;
-        if(resend->router_hash == router_hash &&
+        if(id && memcmp(resend->id, id, 8) == 0 &&
            seqno_compare(resend->seqno, seqno) > 0) {
             return 0;
         }
-        resend->router_hash = router_hash;
+        if(id)
+            memcpy(resend->id, id, 8);
+        else
+            memset(resend->id, 0, 8);
         resend->seqno = seqno;
         if(resend->network != network)
             resend->network = NULL;
@@ -121,7 +124,10 @@ record_resend(int kind, const unsigned char *prefix, unsigned char plen,
         memcpy(resend->prefix, prefix, 16);
         resend->plen = plen;
         resend->seqno = seqno;
-        resend->router_hash = router_hash;
+        if(id)
+            memcpy(resend->id, id, 8);
+        else
+            memset(resend->id, 0, 8);
         resend->network = network;
         resend->time = now;
         resend->next = to_resend;
@@ -149,7 +155,7 @@ resend_expired(struct resend *resend)
 
 int
 unsatisfied_request(const unsigned char *prefix, unsigned char plen,
-                    unsigned short seqno, unsigned short router_hash)
+                    unsigned short seqno, const unsigned char *id)
 {
     struct resend *request;
 
@@ -157,7 +163,7 @@ unsatisfied_request(const unsigned char *prefix, unsigned char plen,
     if(request == NULL || resend_expired(request))
         return 0;
 
-    if(request->router_hash != router_hash ||
+    if(memcmp(request->id, id, 8) != 0 ||
        seqno_compare(request->seqno, seqno) <= 0)
         return 1;
 
@@ -168,7 +174,7 @@ unsatisfied_request(const unsigned char *prefix, unsigned char plen,
 int
 request_redundant(struct network *net,
                   const unsigned char *prefix, unsigned char plen,
-                  unsigned short seqno, unsigned short router_hash)
+                  unsigned short seqno, const unsigned char *id)
 {
     struct resend *request;
 
@@ -176,7 +182,7 @@ request_redundant(struct network *net,
     if(request == NULL || resend_expired(request))
         return 0;
 
-    if(request->router_hash == router_hash &&
+    if(memcmp(request->id, id, 8) == 0 &&
        seqno_compare(request->seqno, seqno) > 0)
         return 0;
 
@@ -197,7 +203,7 @@ request_redundant(struct network *net,
 
 int
 satisfy_request(const unsigned char *prefix, unsigned char plen,
-                unsigned short seqno, unsigned short router_hash,
+                unsigned short seqno, const unsigned char *id,
                 struct network *network)
 {
     struct resend *request, *previous;
@@ -209,7 +215,7 @@ satisfy_request(const unsigned char *prefix, unsigned char plen,
     if(network != NULL && request->network != network)
         return 0;
 
-    if(request->router_hash != router_hash ||
+    if(memcmp(request->id, id, 8) != 0 ||
        seqno_compare(request->seqno, seqno) <= 0) {
         /* We cannot remove the request, as we may be walking the list right
            now.  Mark it as expired, so that expire_resend will remove it. */
@@ -282,9 +288,9 @@ do_resend()
             if(timeval_compare(&now, &timeout) >= 0) {
                 switch(resend->kind) {
                 case RESEND_REQUEST:
-                    send_request(resend->network,
-                                 resend->prefix, resend->plen, 127,
-                                 resend->seqno, resend->router_hash);
+                    send_multihop_request(resend->network,
+                                          resend->prefix, resend->plen,
+                                          resend->seqno, resend->id, 127);
                     break;
                 case RESEND_UPDATE:
                     send_update(resend->network, 1,

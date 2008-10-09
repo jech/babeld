@@ -54,7 +54,7 @@ THE SOFTWARE.
 
 struct timeval now;
 
-unsigned char myid[16];
+unsigned char myid[8];
 int debug = 0;
 
 time_t reboot_time;
@@ -103,7 +103,7 @@ int
 main(int argc, char **argv)
 {
     struct sockaddr_in6 sin6;
-    int i, rc, fd, rfd, have_id = 0;
+    int rc, fd, rfd;
     time_t expiry_time, source_expiry_time, kernel_dump_time;
     char *config_file = NULL;
     void *vrc;
@@ -335,90 +335,66 @@ main(int argc, char **argv)
 
     gettime(&now);
 
+    {
+        unsigned char dummy[16];
+        rc = parse_address(*arg, dummy, NULL);
+        if(rc >= 0) {
+            fprintf(stderr, "Warning: obsolete router-id given.\n");
+            SHIFTE();
+        }
+    }
+
     rfd = open("/dev/urandom", O_RDONLY);
     if(rfd < 0) {
         perror("open(random)");
-    }
-
-    rc = parse_address(*arg, myid, NULL);
-    if(rc >= 0) {
-        have_id = 1;
-        /* Cannot use SHIFTE -- need to goto fail */
-        SHIFT();
-        if(*arg == NULL) {
-            fprintf(stderr, "No interfaces given.\n");
-            goto fail;
-        }
-    } else {
-        struct kernel_route routes[240];
-        rc = kernel_addresses(NULL, 0, routes, 240);
-        if(rc < 0) {
-            perror("kernel_addresses");
-        }
-        if(rc > 0) {
-            /* Search for a global IPv6 address */
-            for(i = 0; i < rc; i++) {
-                if(martian_prefix(routes[i].prefix, routes[i].plen))
-                    continue;
-                if(routes[i].plen == 128 &&
-                   (routes[i].prefix[0] & 0xE0) == 0x20) {
-                    memcpy(myid, routes[i].prefix, 16);
-                    have_id = 1;
-                    break;
-                }
-            }
-            /* Try a global Ipv4 address */
-            if(!have_id) {
-                for(i = 0; i < rc; i++) {
-                    if(martian_prefix(routes[i].prefix, routes[i].plen))
-                        continue;
-                    if(routes[i].plen == 128 &&
-                       v4mapped(routes[i].prefix) &&
-                       routes[i].prefix[12] != 10 &&
-                       (routes[i].prefix[12] != 172 ||
-                        (routes[i].prefix[13] & 0xF0) != 16) &&
-                       (routes[i].prefix[12] != 192 ||
-                        routes[i].prefix[13] != 168)) {
-                        memcpy(myid, routes[i].prefix, 16);
-                        have_id = 1;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    if(!have_id) {
-        if(rfd < 0) {
-            fprintf(stderr, "Couldn't find suitable router-id.\n");
-            goto fail;
-        }
-        fprintf(stderr,
-                "Warning: couldn't find suitable router-id, "
-                "using random value.\n");
-        rc = read(rfd, myid, 16);
-        if(rc < 16) {
-            perror("read(random)");
-            goto fail;
-        } else {
-            have_id = 1;
-        }
-    }
-
-    if(rfd < 0) {
-        memcpy(&seed, myid + 12, 4);
     } else {
         rc = read(rfd, &seed, sizeof(unsigned int));
         if(rc < sizeof(unsigned int)) {
             perror("read(random)");
-            memcpy(&seed, myid + 12, 4);
         }
-        close(rfd);
-        rfd = -1;
     }
-
     seed ^= (now.tv_sec ^ now.tv_usec);
     srandom(seed);
+
+    while(*arg) {
+        debugf("Adding network %s.\n", *arg);
+        vrc = add_network(*arg);
+        if(vrc == NULL)
+            goto fail;
+        SHIFT();
+    }
+
+    FOR_ALL_NETS(net) {
+        /* net->ifindex is not necessarily valid at this point */
+        int ifindex = if_nametoindex(net->ifname);
+        if(ifindex > 0) {
+            unsigned char eui[8];
+            rc = if_eui64(net->ifname, ifindex, eui);
+            if(rc < 0)
+                continue;
+            memcpy(myid, eui, 8);
+            goto have_id;
+        }
+    }
+
+    fprintf(stderr,
+            "Warning: couldn't find router id -- using random value.\n");
+    if(rfd >= 0) {
+        rc = read(rfd, myid, 8);
+        if(rc < 8) {
+            perror("read(random)");
+            goto fail;
+        }
+    } else {
+        goto fail;
+    }
+    /* Clear group and global bits */
+    myid[0] &= ~3;
+
+ have_id:
+    if(rfd >= 0)
+        close(rfd);
+    rfd = -1;
 
     reboot_time = now.tv_sec;
     myseqno = (random() & 0xFFFF);
@@ -445,8 +421,8 @@ main(int argc, char **argv)
             buf[rc] = '\0';
             rc = sscanf(buf, "%99s %d %ld\n", buf2, &s, &t);
             if(rc == 3 && s >= 0 && s <= 0xFFFF) {
-                unsigned char sid[16];
-                rc = parse_address(buf2, sid, NULL);
+                unsigned char sid[8];
+                rc = parse_eui64(buf2, sid);
                 if(rc < 0) {
                     fprintf(stderr, "Couldn't parse babel-state.\n");
                 } else {
@@ -454,7 +430,7 @@ main(int argc, char **argv)
                     debugf("Got %s %d %ld from babel-state.\n",
                            format_address(sid), s, t);
                     gettimeofday(&realnow, NULL);
-                    if(memcmp(sid, myid, 16) == 0)
+                    if(memcmp(sid, myid, 8) == 0)
                         myseqno = seqno_plus(s, 1);
                     else
                         fprintf(stderr, "ID mismatch in babel-state.\n");
@@ -478,14 +454,6 @@ main(int argc, char **argv)
     if(protocol_socket < 0) {
         perror("Couldn't create link local socket");
         goto fail;
-    }
-
-    while(*arg) {
-        debugf("Adding network %s.\n", *arg);
-        vrc = add_network(*arg);
-        if(vrc == NULL)
-            goto fail;
-        SHIFT();
     }
 
 #ifndef NO_LOCAL_INTERFACE
@@ -788,7 +756,7 @@ main(int argc, char **argv)
         char buf[100];
         gettimeofday(&realnow, NULL);
         rc = snprintf(buf, 100, "%s %d %ld\n",
-                      format_address(myid), (int)myseqno,
+                      format_eui64(myid), (int)myseqno,
                       (long)realnow.tv_sec);
         if(rc < 0 || rc >= 100) {
             fprintf(stderr, "write(babel-state): overflow.\n");
@@ -954,11 +922,10 @@ dump_tables(FILE *out)
 
     fprintf(out, "\n");
 
-    fprintf(out, "My id %s seqno %d\n", format_address(myid), myseqno);
+    fprintf(out, "My id %s seqno %d\n", format_eui64(myid), myseqno);
 
     FOR_ALL_NEIGHBOURS(neigh) {
-        fprintf(out, "Neighbour %s ", format_address(neigh->id));
-        fprintf(out, "at %s dev %s reach %04x rxcost %d txcost %d%s.\n",
+        fprintf(out, "Neighbour %s dev %s reach %04x rxcost %d txcost %d%s.\n",
                 format_address(neigh->address),
                 neigh->network->ifname,
                 neigh->reach,
@@ -972,18 +939,14 @@ dump_tables(FILE *out)
                 xroutes[i].metric);
     }
     for(i = 0; i < numroutes; i++) {
-        int id =
-            routes[i].src->plen != 128 ||
-            memcmp(routes[i].src->prefix, routes[i].src->id, 16) != 0;
         const unsigned char *nexthop =
             memcmp(routes[i].nexthop, routes[i].neigh->address, 16) == 0 ?
             NULL : routes[i].nexthop;
-        fprintf(out, "%s metric %d refmetric %d %s%s seqno %d age %d "
+        fprintf(out, "%s metric %d refmetric %d id %s seqno %d age %d "
                 "via %s neigh %s%s%s%s\n",
                 format_prefix(routes[i].src->prefix, routes[i].src->plen),
                 routes[i].metric, routes[i].refmetric,
-                id ? "id " : "",
-                id ? format_address(routes[i].src->id) : "",
+                format_eui64(routes[i].src->id),
                 (int)routes[i].seqno,
                 (int)(now.tv_sec - routes[i].time),
                 routes[i].neigh->network->ifname,

@@ -347,7 +347,8 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         return NULL;
     }
 
-    add_metric = input_filter(a, p, plen, neigh->id, neigh->network->ifindex);
+    add_metric = input_filter(a, p, plen,
+                              neigh->address, neigh->network->ifindex);
     if(add_metric >= INFINITY)
         return NULL;
 
@@ -460,7 +461,7 @@ send_unfeasible_request(struct neighbour *neigh, int force,
         send_request_resend(neigh, prefix, plen,
                             src->metric >= INFINITY ?
                             src->seqno : seqno_plus(src->seqno, 1),
-                            hash_id(src->id));
+                            src->id);
     }
 }
 
@@ -539,7 +540,7 @@ send_triggered_update(struct route *route, struct source *oldsrc,
     /* Make sure that requests are satisfied speedily */
     if(urgent < 1) {
         if(unsatisfied_request(route->src->prefix, route->src->plen,
-                               route->seqno, hash_id(route->src->id)))
+                               route->seqno, route->src->id))
             urgent = 1;
     }
 
@@ -558,10 +559,9 @@ send_triggered_update(struct route *route, struct source *oldsrc,
                                 route->src->metric >= INFINITY ?
                                 route->src->seqno :
                                 seqno_plus(route->src->seqno, 1),
-                                hash_id(route->src->id));
+                                route->src->id);
         } else if(newmetric >= oldmetric + 288) {
-            send_request(NULL, route->src->prefix, route->src->plen,
-                         0, 0, 0);
+            send_request(NULL, route->src->prefix, route->src->plen);
         }
     }
 }
@@ -604,7 +604,7 @@ route_lost(struct source *src, unsigned oldmetric)
         send_request_resend(NULL, src->prefix, src->plen,
                             src->metric >= INFINITY ?
                             src->seqno : seqno_plus(src->seqno, 1),
-                            hash_id(src->id));
+                            src->id);
     }
 }
 
@@ -630,8 +630,7 @@ expire_routes(void)
         if(route->installed && route->refmetric < INFINITY) {
             if(route->time < now.tv_sec - MAX(10, route_timeout_delay * 7 / 8))
                 send_unicast_request(route->neigh,
-                                     route->src->prefix, route->src->plen,
-                                     0, 0, 0);
+                                     route->src->prefix, route->src->plen);
         }
         i++;
     }

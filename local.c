@@ -97,7 +97,7 @@ local_notify_self()
         return;
 
     rc = snprintf(buf, 512, "add self alamakota id %s\n",
-                  format_address(myid));
+                  format_eui64(myid));
 
     if(rc < 0 || rc >= 512)
         goto fail;
@@ -133,13 +133,12 @@ local_notify_neighbour(struct neighbour *neigh, int kind)
         return;
 
     rc = snprintf(buf, 512,
-                  "%s neighbour %lx id %s address %s "
+                  "%s neighbour %lx address %s "
                   "if %s reach %04x rxcost %d txcost %d cost %d\n",
                   local_kind(kind),
-                  /* Neighbours never move aroundin memory , so we can use the
+                  /* Neighbours never move around in memory , so we can use the
                      address as a unique identifier. */
                   (unsigned long int)neigh,
-                  format_address(neigh->id),
                   format_address(neigh->address),
                   neigh->network->ifname,
                   neigh->reach,
@@ -199,18 +198,17 @@ local_notify_route(struct route *route, int kind)
 
     rc = snprintf(buf, 512,
                   "%s route %s-%s-%lx prefix %s installed %s "
-                  "id %s metric %d refmetric %d via %s if %s neigh %s\n",
+                  "id %s metric %d refmetric %d via %s if %s\n",
                   local_kind(kind),
                   format_prefix(route->src->prefix, route->src->plen),
-                  format_address(route->src->id),
+                  format_eui64(route->src->id),
                   (unsigned long)route->neigh,
                   format_prefix(route->src->prefix, route->src->plen),
                   route->installed ? "yes" : "no",
-                  format_address(route->src->id),
+                  format_eui64(route->src->id),
                   route->metric, route->refmetric,
                   format_address(route->neigh->address),
-                  route->neigh->network->ifname,
-                  format_address(route->neigh->id));
+                  route->neigh->network->ifname);
     
     if(rc < 0 || rc >= 512)
         goto fail;

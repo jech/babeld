@@ -237,7 +237,7 @@ parse_filter(gnc_t gnc, void *closure)
             filter->neigh = neigh;
         } else if(strcmp(token, "id") == 0) {
             unsigned char *id;
-            c = getip(c, &id, NULL, gnc, closure);
+            c = getid(c, &id, gnc, closure);
             if(c < -1)
                 goto error;
             filter->id = id;
@@ -424,7 +424,7 @@ filter_match(struct filter *f, const unsigned char *id,
         }
     }
     if(f->id) {
-        if(!id || memcmp(f->id, id, 16) != 0)
+        if(!id || memcmp(f->id, id, 8) != 0)
             return 0;
     }
     if(f->prefix) {
