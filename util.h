@@ -20,6 +20,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#if defined __GNUC__
+struct __us { unsigned short x __attribute__((packed)); };
+#define DO_NTOHS(_d, _s) \
+    do { _d = ntohs(((const struct __us*)(_s))->x); } while(0)
+#define DO_HTONS(_d, _s) \
+    do { ((struct __us*)(_d))->x = htons(_s); } while(0)
+#else
+#define DO_NTOHS(_d, _s) \
+    do { short _dd; \
+         memcpy(&(_dd), (_s), 2); \
+         _d = ntohs(_dd); } while(0)
+#define DO_HTONS(_d, _s) \
+    do { unsigned short _dd; \
+         _dd = htons(_s); \
+         memcpy((_d), &(_dd), 2); } while(0)
+#endif
+
 int seqno_compare(unsigned short s1, unsigned short s2)
     ATTRIBUTE ((const));
 int seqno_minus(unsigned short s1, unsigned short s2)
