@@ -33,6 +33,7 @@ THE SOFTWARE.
 #include "source.h"
 #include "route.h"
 #include "message.h"
+#include "resend.h"
 #include "local.h"
 
 struct neighbour *neighs = NULL;
@@ -55,6 +56,7 @@ flush_neighbour(struct neighbour *neigh)
     flush_neighbour_routes(neigh);
     if(unicast_neighbour == neigh)
         flush_unicast(1);
+    flush_resends(neigh);
 
     if(neighs == neigh) {
         neighs = neigh->next;
