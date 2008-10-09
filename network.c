@@ -64,14 +64,8 @@ add_network(char *ifname)
         return NULL;
 
     memset(net, 0, sizeof(struct network));
-    net->up = 0;
-    net->ifindex = 0;
-    net->ipv4 = NULL;
     net->activity_time = now.tv_sec;
-    net->bufsize = 0;
     strncpy(net->ifname, ifname, IF_NAMESIZE);
-    net->sendbuf = NULL;
-    net->buffered = 0;
     net->bucket_time = now.tv_sec;
     net->bucket = BUCKET_TOKENS_MAX;
     net->hello_seqno = (random() & 0xFFFF);

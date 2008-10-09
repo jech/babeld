@@ -39,6 +39,13 @@ struct network {
     int buffered;
     struct timeval flush_timeout;
     int bufsize;
+    int have_buffered_hello;
+    int have_buffered_id;
+    int have_buffered_nh;
+    int have_buffered_prefix;
+    unsigned char buffered_id[16];
+    unsigned char buffered_nh[4];
+    unsigned char buffered_prefix[16];
     unsigned char *sendbuf;
     time_t bucket_time;
     unsigned int bucket;
