@@ -130,15 +130,6 @@ flush_neighbour_routes(struct neighbour *neigh)
     }
 }
 
-unsigned
-metric_to_kernel(unsigned metric)
-{
-    if(metric >= INFINITY)
-        return KERNEL_INFINITY;
-    else
-        return MIN((metric + 255) / 256 + kernel_metric, KERNEL_INFINITY);
-}
-
 void
 install_route(struct route *route)
 {
@@ -150,7 +141,7 @@ install_route(struct route *route)
     rc = kernel_route(ROUTE_ADD, route->src->prefix, route->src->plen,
                       route->nexthop,
                       route->neigh->network->ifindex,
-                      metric_to_kernel(route->metric), NULL, 0, 0);
+                      kernel_metric, NULL, 0, 0);
     if(rc < 0) {
         perror("kernel_route(ADD)");
         if(errno != EEXIST)
@@ -171,7 +162,7 @@ uninstall_route(struct route *route)
     rc = kernel_route(ROUTE_FLUSH, route->src->prefix, route->src->plen,
                       route->nexthop,
                       route->neigh->network->ifindex,
-                      metric_to_kernel(route->metric), NULL, 0, 0);
+                      kernel_metric, NULL, 0, 0);
     if(rc < 0)
         perror("kernel_route(FLUSH)");
 
@@ -198,9 +189,9 @@ switch_routes(struct route *old, struct route *new)
 
     rc = kernel_route(ROUTE_MODIFY, old->src->prefix, old->src->plen,
                       old->nexthop, old->neigh->network->ifindex,
-                      metric_to_kernel(old->metric),
+                      kernel_metric,
                       new->nexthop, new->neigh->network->ifindex,
-                      metric_to_kernel(new->metric));
+                      kernel_metric);
     if(rc >= 0) {
         old->installed = 0;
         new->installed = 1;
@@ -222,10 +213,10 @@ change_route_metric(struct route *route, unsigned newmetric)
                           route->src->prefix, route->src->plen,
                           route->nexthop,
                           route->neigh->network->ifindex,
-                          metric_to_kernel(route->metric),
+                          kernel_metric,
                           route->nexthop,
                           route->neigh->network->ifindex,
-                          metric_to_kernel(newmetric));
+                          kernel_metric);
         if(rc < 0) {
             perror("kernel_route(MODIFY)");
             return;
