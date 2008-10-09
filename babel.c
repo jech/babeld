@@ -259,8 +259,7 @@ main(int argc, char **argv)
     update_interval = MAX(update_interval, 70);
 
     if(seqno_interval <= 0)
-        /* This should be slightly less than the self_update_interval */
-        seqno_interval = MAX(1000, update_interval * 4 / 10);
+        seqno_interval = MAX(40000, update_interval * 9 / 10);
     seqno_interval = MAX(seqno_interval, 20);
 
     if(do_daemonise) {
