@@ -287,7 +287,7 @@ network_up(struct network *net, int up)
         delay_jitter(&net->update_time, &net->update_timeout,
                      update_interval);
         send_hello(net);
-        send_request(net, NULL, 0, 0, 0, 0);
+        send_request(net, NULL, 0);
     } else {
         net->buffered = 0;
         net->bufsize = 0;
@@ -359,7 +359,7 @@ check_networks(void)
 
         rc = check_network_ipv4(net);
         if(rc > 0) {
-            send_request(net, NULL, 0, 0, 0, 0);
+            send_request(net, NULL, 0);
             send_update(net, 0, NULL, 0);
          }
     }

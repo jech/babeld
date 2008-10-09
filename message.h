@@ -25,6 +25,19 @@ THE SOFTWARE.
 #define BUCKET_TOKENS_MAX 200
 #define BUCKET_TOKENS_PER_SEC 40
 
+#define MESSAGE_PAD1 0
+#define MESSAGE_PADN 1
+#define MESSAGE_ACK_REQ 2
+#define MESSAGE_ACK 3
+#define MESSAGE_HELLO 4
+#define MESSAGE_IHU 5
+#define MESSAGE_ROUTER_ID 6
+#define MESSAGE_NH 7
+#define MESSAGE_UPDATE 8
+#define MESSAGE_REQUEST 9
+#define MESSAGE_MH_REQUEST 10
+
+
 extern unsigned short myseqno;
 extern struct timeval seqno_time;
 extern int seqno_interval;
@@ -35,32 +48,20 @@ extern int broadcast_ihu;
 extern int split_horizon;
 
 extern struct timeval update_flush_timeout;
-extern const unsigned char packet_header[8];
+extern unsigned char packet_header[4];
 
 extern struct neighbour *unicast_neighbour;
 extern struct timeval unicast_flush_timeout;
 
-unsigned short hash_id(const unsigned char *id) ATTRIBUTE ((pure));
 void parse_packet(const unsigned char *from, struct network *net,
-                  const unsigned char *packet, int len);
-void handle_request(struct neighbour *neigh, const unsigned char *prefix,
-                    unsigned char plen, unsigned char hop_count,
-                    unsigned short seqno, unsigned short router_hash);
+                  const unsigned char *packet, int packetlen);
 void flushbuf(struct network *net);
+void flushupdates(void);
+void send_ack(struct neighbour *neigh, unsigned short nonce,
+              unsigned short interval);
 void send_hello_noupdate(struct network *net, unsigned interval);
 void send_hello(struct network *net);
-void send_request(struct network *net,
-                  const unsigned char *prefix, unsigned char plen,
-                  unsigned char hop_count, unsigned short seqno,
-                  unsigned short router_hash);
-void send_request_resend(struct neighbour *neigh,
-                         const unsigned char *prefix, unsigned char plen,
-                         unsigned short seqno, unsigned short router_hash);
 void flush_unicast(int dofree);
-void send_unicast_request(struct neighbour *neigh,
-                          const unsigned char *prefix, unsigned char plen,
-                          unsigned char hop_count, unsigned short seqno,
-                          unsigned short router_hash);
 void send_update(struct network *net, int urgent,
                  const unsigned char *prefix, unsigned char plen);
 void send_update_resend(struct network *net,
@@ -69,5 +70,22 @@ void update_myseqno(int force);
 void send_self_update(struct network *net, int force_seqno);
 void send_ihu(struct neighbour *neigh, struct network *net);
 void send_marginal_ihu(struct network *net);
-void schedule_flush_now(struct network *net);
-void flushupdates(void);
+void send_request(struct network *net,
+                  const unsigned char *prefix, unsigned char plen);
+void send_unicast_request(struct neighbour *neigh,
+                          const unsigned char *prefix, unsigned char plen);
+void send_multihop_request(struct network *net,
+                           const unsigned char *prefix, unsigned char plen,
+                           unsigned short seqno, const unsigned char *id,
+                           unsigned short hop_count);
+void
+send_unicast_multihop_request(struct neighbour *neigh,
+                              const unsigned char *prefix, unsigned char plen,
+                              unsigned short seqno, const unsigned char *id,
+                              unsigned short hop_count);
+void send_request_resend(struct neighbour *neigh,
+                         const unsigned char *prefix, unsigned char plen,
+                         unsigned short seqno, unsigned char *id);
+void handle_request(struct neighbour *neigh, const unsigned char *prefix,
+                    unsigned char plen, unsigned char hop_count,
+                    unsigned short seqno, const unsigned char *id);

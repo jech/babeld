@@ -492,7 +492,7 @@ main(int argc, char **argv)
         gettime(&now);
         send_hello(net);
         send_self_update(net, 0);
-        send_request(net, NULL, 0, 0, 0, 0);
+        send_request(net, NULL, 0);
         flushupdates();
         flushbuf(net);
     }
