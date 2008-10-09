@@ -57,10 +57,9 @@ wireless hello interval, twice wired hello interval, or 70 seconds,
 whichever is less.  Babel uses triggered updates in addition to
 scheduled updates, so this value may be set to a fairly large value.
 .TP
-.BI \-k " kernel-metric"
-Specify a value that will be added to routes' metrics before
-installing them in the kernel; this is useful when a single node
-participates in multiple routing protocols.  The default is 0.
+.BI \-k " priority"
+Specify the priority value used when installing routes into the kernel.
+The default is 0.
 .TP
 .B \-l
 Use IFF_RUNNING (carrier sense) when determining interface availability.
