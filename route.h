@@ -43,7 +43,6 @@ struct route *find_installed_route(const unsigned char *prefix,
                                    unsigned char plen);
 void flush_route(struct route *route);
 void flush_neighbour_routes(struct neighbour *neigh);
-unsigned metric_to_kernel(unsigned metric);
 void install_route(struct route *route);
 void uninstall_route(struct route *route);
 void switch_route(struct route *old, struct route *new);
