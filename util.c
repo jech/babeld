@@ -264,6 +264,18 @@ format_prefix(const unsigned char *prefix, unsigned char plen)
     return buf[i];
 }
 
+const char *
+format_eui64(const unsigned char *eui)
+{
+    static char buf[4][28];
+    static int i = 0;
+    i = (i + 1) % 4;
+    snprintf(buf[i], 28, "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
+             eui[0], eui[1], eui[2], eui[3],
+             eui[4], eui[5], eui[6], eui[7]);
+    return buf[i];
+}
+
 int
 parse_address(const char *address, unsigned char *addr_r, int *af_r)
 {
@@ -343,6 +355,18 @@ parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r,
     mask_prefix(prefix_r, prefix, plen);
     *plen_r = plen;
     if(af_r) *af_r = af;
+    return 0;
+}
+
+int
+parse_eui64(const char *eui, unsigned char *eui_r)
+{
+    int n;
+    n = sscanf(eui, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
+               &eui_r[0], &eui_r[1], &eui_r[2], &eui_r[3],
+               &eui_r[4], &eui_r[5], &eui_r[6], &eui_r[7]);
+    if(n != 8)
+        return -1;
     return 0;
 }
 
