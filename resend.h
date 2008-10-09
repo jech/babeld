@@ -43,6 +43,7 @@ extern struct timeval resend_time;
 
 struct resend *find_request(const unsigned char *prefix, unsigned char plen,
                             struct resend **previous_return);
+void flush_resends(struct neighbour *neigh);
 int record_resend(int kind, const unsigned char *prefix, unsigned char plen,
                    unsigned short seqno, unsigned short router_hash,
                    struct network *net, int delay);

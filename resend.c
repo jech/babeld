@@ -44,6 +44,12 @@ resend_match(struct resend *resend,
             resend->plen == plen && memcmp(resend->prefix, prefix, 16) == 0);
 }
 
+void
+flush_resends(struct neighbour *neigh)
+{
+    /* Nothing for now */
+}
+
 static struct resend *
 find_resend(int kind, const unsigned char *prefix, unsigned char plen,
              struct resend **previous_return)
