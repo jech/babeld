@@ -240,8 +240,6 @@ parse_filter(gnc_t gnc, void *closure)
             if(metric <= 0 || metric > INFINITY)
                 goto error;
             filter->result = metric;
-        } else if(strcmp(token, "inherit") == 0) {
-            filter->result = METRIC_INHERIT;
         } else {
             goto error;
         }
@@ -453,7 +451,7 @@ input_filter(const unsigned char *id,
 {
     int res;
     res = do_filter(input_filters, id, prefix, plen, neigh, ifindex, 0);
-    if(res < 0 || res == METRIC_INHERIT)
+    if(res < 0)
         res = 0;
     return res;
 }
@@ -464,7 +462,7 @@ output_filter(const unsigned char *id, const unsigned char *prefix,
 {
     int res;
     res = do_filter(output_filters, id, prefix, plen, NULL, ifindex, 0);
-    if(res < 0 || res == METRIC_INHERIT)
+    if(res < 0)
         res = 0;
     return res;
 }

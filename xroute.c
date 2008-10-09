@@ -162,18 +162,13 @@ check_xroutes(int send_updates)
         export = 0;
         metric = redistribute_filter(xroutes[i].prefix, xroutes[i].plen,
                                      xroutes[i].ifindex, xroutes[i].proto);
-        if((metric < INFINITY && metric == xroutes[i].metric) ||
-           metric == METRIC_INHERIT) {
+        if(metric < INFINITY && metric == xroutes[i].metric) {
             for(j = 0; j < numroutes; j++) {
                 if(xroutes[i].plen == routes[j].plen &&
                    memcmp(xroutes[i].prefix, routes[j].prefix, 16) == 0 &&
                    xroutes[i].ifindex == routes[j].ifindex &&
                    xroutes[i].proto == routes[j].proto) {
                     if(metric < INFINITY) {
-                        export = 1;
-                        break;
-                    } else if(metric == METRIC_INHERIT &&
-                              xroutes[i].metric == routes[j].metric * 256) {
                         export = 1;
                         break;
                     }
@@ -207,8 +202,6 @@ check_xroutes(int send_updates)
             continue;
         metric = redistribute_filter(routes[i].prefix, routes[i].plen,
                                      routes[i].ifindex, routes[i].proto);
-        if(metric == METRIC_INHERIT)
-            metric = routes[i].metric * 256;
         if(metric < INFINITY) {
             rc = add_xroute(routes[i].prefix, routes[i].plen,
                             metric, routes[i].ifindex, routes[i].proto);
