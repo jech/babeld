@@ -514,6 +514,24 @@ consider_route(struct route *route)
 }
 
 void
+retract_neighbour_routes(struct neighbour *neigh)
+{
+    int i;
+
+    i = 0;
+    while(i < numroutes) {
+        if(routes[i].neigh == neigh) {
+            unsigned short oldmetric = routes[i].metric;
+            if(oldmetric != INFINITY) {
+                change_route_metric(&routes[i], INFINITY);
+                route_changed(&routes[i], routes[i].src, oldmetric);
+            }
+        }
+        i++;
+    }
+}
+
+void
 send_triggered_update(struct route *route, struct source *oldsrc,
                       unsigned oldmetric)
 {
