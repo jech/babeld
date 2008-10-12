@@ -335,7 +335,15 @@ parse_packet(const unsigned char *from, struct network *net,
                    format_prefix(prefix, plen),
                    format_address(from), net->ifname);
 
-            if(message[2] == 1) {
+            if(message[2] == 0) {
+                if(metric < 0xFFFF) {
+                    fprintf(stderr,
+                            "Received wildcard update with finite metric.\n");
+                    goto done;
+                }
+                retract_neighbour_routes(neigh);
+                goto done;
+            } else if(message[2] == 1) {
                 if(!have_v4_nh)
                     goto fail;
                 nh = v4_nh;
@@ -386,6 +394,8 @@ parse_packet(const unsigned char *from, struct network *net,
             debugf("Received unknown packet type %d from %s on %s.\n",
                    type, format_address(from), net->ifname);
         }
+     done:
+
         i += len + 2;
         continue;
 
