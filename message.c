@@ -734,7 +734,7 @@ really_send_update(struct network *net,
 
     metric = MIN(metric + add_metric, INFINITY);
     /* Worst case */
-    ensure_space(net, 12 + 20 + 20);
+    ensure_space(net, 20 + 12 + 28);
 
     v4 = plen >= 96 && v4mapped(prefix);
 
