@@ -28,14 +28,13 @@ struct route {
     struct neighbour *neigh;
     unsigned char nexthop[16];
     time_t time;
-    int installed;
+    unsigned short hold_time;    /* in seconds */
+    short installed;
 };
 
 extern struct route *routes;
 extern int numroutes, maxroutes;
 extern unsigned kernel_metric;
-extern int route_timeout_delay;
-extern int route_gc_delay;
 
 struct route *find_route(const unsigned char *prefix, unsigned char plen,
                          struct neighbour *neigh, const unsigned char *nexthop);
@@ -61,7 +60,7 @@ void update_route_metric(struct route *route);
 struct route *update_route(const unsigned char *a,
                            const unsigned char *p, unsigned char plen,
                            unsigned short seqno, unsigned short refmetric,
-                           struct neighbour *neigh,
+                           unsigned short interval, struct neighbour *neigh,
                            const unsigned char *nexthop);
 void retract_neighbour_routes(struct neighbour *neigh);
 void send_unfeasible_request(struct neighbour *neigh, int force,

@@ -362,7 +362,8 @@ parse_packet(const unsigned char *from, struct network *net,
                 nh = neigh->address;
             }
 
-            update_route(router_id, prefix, plen, seqno, metric, neigh, nh);
+            update_route(router_id, prefix, plen, seqno, metric, interval,
+                         neigh, nh);
         } else if(type == MESSAGE_REQUEST) {
             unsigned char prefix[16];
             int rc;
@@ -372,7 +373,7 @@ parse_packet(const unsigned char *from, struct network *net,
                                 message + 4, NULL, len - 2, prefix);
             if(rc < 0) goto fail;
             debugf("Received request for %s from %s on %s.\n",
-                   format_prefix(prefix, message[3]),
+                   message[2] == 0 ? "any" : format_prefix(prefix, message[3]),
                    format_address(from), net->ifname);
             if(message[2] == 0) {
                 /* If a neighbour is requesting a full route dump from us,

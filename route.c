@@ -42,8 +42,6 @@ THE SOFTWARE.
 struct route *routes = NULL;
 int numroutes = 0, maxroutes = 0;
 unsigned kernel_metric = 0;
-int route_timeout_delay = 160;
-int route_gc_delay = 180;
 
 struct route *
 find_route(const unsigned char *prefix, unsigned char plen,
@@ -267,7 +265,7 @@ find_best_route(const unsigned char *prefix, unsigned char plen, int feasible,
     for(i = 0; i < numroutes; i++) {
         if(!source_match(routes[i].src, prefix, plen))
             continue;
-        if(routes[i].time < now.tv_sec - route_timeout_delay)
+        if(routes[i].time < now.tv_sec - routes[i].hold_time)
             continue;
         if(feasible && !route_feasible(&routes[i]))
             continue;
@@ -287,7 +285,7 @@ update_route_metric(struct route *route)
     int newmetric;
 
     oldmetric = route->metric;
-    if(route->time < now.tv_sec - route_timeout_delay) {
+    if(route->time < now.tv_sec - route->hold_time) {
         if(route->refmetric < INFINITY) {
             route->seqno = seqno_plus(route->src->seqno, 1);
             route->refmetric = INFINITY;
@@ -334,12 +332,17 @@ update_network_metric(struct network *net)
 struct route *
 update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
              unsigned short seqno, unsigned short refmetric,
+             unsigned short interval,
              struct neighbour *neigh, const unsigned char *nexthop)
 {
     struct route *route;
     struct source *src;
     int metric, feasible;
     int add_metric;
+    int hold_time = MAX((4 * interval) / 100 + interval / 50, 15);
+
+    if(memcmp(a, myid, 8) == 0)
+        return NULL;
 
     if(martian_prefix(p, plen)) {
         fprintf(stderr, "Rejecting martian route to %s through %s.\n",
@@ -395,6 +398,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         route->seqno = seqno;
         route->refmetric = refmetric;
         change_route_metric(route, metric);
+        route->hold_time = hold_time;
 
         if(feasible)
             route_changed(route, oldsrc, oldmetric);
@@ -430,6 +434,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         route->neigh = neigh;
         memcpy(route->nexthop, nexthop, 16);
         route->time = now.tv_sec;
+        route->hold_time = hold_time;
         route->installed = 0;
         numroutes++;
         local_notify_route(route, LOCAL_ADD);
@@ -638,7 +643,7 @@ expire_routes(void)
         struct route *route = &routes[i];
 
         if(route->time > now.tv_sec || /* clock stepped */
-           route->time < now.tv_sec - route_gc_delay) {
+           route->time < now.tv_sec - route->hold_time - 20) {
             flush_route(route);
             continue;
         }
@@ -646,7 +651,7 @@ expire_routes(void)
         update_route_metric(route);
 
         if(route->installed && route->refmetric < INFINITY) {
-            if(route->time < now.tv_sec - MAX(10, route_timeout_delay * 7 / 8))
+            if(route->time < now.tv_sec - route->hold_time * 7 / 8)
                 send_unicast_request(route->neigh,
                                      route->src->prefix, route->src->plen);
         }
