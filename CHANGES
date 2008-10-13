@@ -1,6 +1,7 @@
 babel 0.17 (unreleased)
 
   * INCOMPATIBLE CHANGE: removed support for ``inherit'' in redistribution.
+  * INCOMPATIBLE CHANGE: a pidfile is now created by default.
   * Increased the default seqno interval.
   * Use a fixed kernel priority for routes installed by babel.
 
