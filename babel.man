@@ -106,7 +106,8 @@ defaults to standard error if not daemonising, and to
 otherwise.
 .TP
 .BI \-I " pidfile"
-Specify a file to write our process id to.
+Specify a file to write our process id to.  The default is
+.BR /var/run/babel.pid .
 .TP
 .RI "[ " id " ]"
 The router-id of this daemon.  This should normally be an IPv6 or IPv4
@@ -264,6 +265,9 @@ The default location of the configuration file.
 .TP
 .B /var/lib/babel\-state
 The default location of the file storing long-term state.
+.TP
+.B /var/run/babel.pid
+The default location of the pid file.
 .TP
 .B /var/log/babel.log
 The default location of the log file.
