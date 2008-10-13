@@ -67,7 +67,7 @@ int wired_hello_interval = -1;
 int idle_hello_interval = -1;
 int update_interval = -1;
 int do_daemonise = 0;
-char *logfile = NULL, *pidfile = NULL;
+char *logfile = NULL, *pidfile = "/var/run/babel.pid";
 
 unsigned char *receive_buffer = NULL;
 int receive_buffer_size = 0;
