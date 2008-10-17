@@ -534,8 +534,11 @@ ensure_space(struct network *net, int space)
 static void
 start_message(struct network *net, int type, int len)
 {
-    if(!net->up)
+    if(!net->up) {
+        fprintf(stderr,
+                "Warning: attempting to send message to down network.\n");
         return;
+    }
 
     if(net->bufsize - net->buffered < len + 2)
         flushbuf(net);
