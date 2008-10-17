@@ -660,6 +660,9 @@ send_hello_noupdate(struct network *net, unsigned interval)
     delay_jitter(&net->hello_time, &net->hello_timeout,
                  net->hello_interval);
 
+    if(!net->up)
+        return;
+
     debugf("Sending hello %d (%d) to %s.\n",
            net->hello_seqno, interval, net->ifname);
 
@@ -1091,6 +1094,9 @@ send_ihu(struct neighbour *neigh, struct network *net)
         return;
 
     net = neigh->network;
+    if(!net->up)
+        return;
+
     rxcost = neighbour_rxcost(neigh);
     interval = (net->hello_interval * 3 + 9) / 10;
 
@@ -1167,6 +1173,9 @@ send_request(struct network *net,
     if(!net || update_net == net)
         flushupdates();
 
+    if(!net->up)
+        return;
+
     debugf("sending request to %s for %s.\n",
            net->ifname, prefix ? format_prefix(prefix, plen) : "any");
     v4 = plen >= 96 && v4mapped(prefix);
@@ -1234,6 +1243,9 @@ send_multihop_request(struct network *net,
         }
         return;
     }
+
+    if(!net->up)
+        return;
 
     debugf("Sending multi-hop request on %s for %s (%d hops).\n",
            net->ifname, format_prefix(prefix, plen), hop_count);
