@@ -80,8 +80,9 @@ if_eui64(char *ifname, int ifindex, unsigned char *eui)
     close(s);
 
     mac = (unsigned char *)req.ifr_hwaddr.sa_data;
-    /* Check not group and global */
-    if((mac[0] & 1) != 0 || (mac[0] & 2) != 0) {
+    /* OpenVPN interfaces have a null MAC address.  Also check not group
+       and global */
+    if(memcmp(mac, zeroes, 6) == 0 || (mac[0] & 1) != 0 || (mac[0] & 2) != 0) {
         errno = ENOENT;
         return -1;
     }
