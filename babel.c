@@ -111,6 +111,20 @@ main(int argc, char **argv)
     char **arg;
     struct network *net;
 
+    gettime(&now);
+
+    rfd = open("/dev/urandom", O_RDONLY);
+    if(rfd < 0) {
+        perror("open(random)");
+    } else {
+        rc = read(rfd, &seed, sizeof(unsigned int));
+        if(rc < sizeof(unsigned int)) {
+            perror("read(random)");
+        }
+    }
+    seed ^= (now.tv_sec ^ now.tv_usec);
+    srandom(seed);
+
     parse_address("ff02::cca6:c0f9:e182:5373", protocol_group, NULL);
     protocol_port = 8475;
 
@@ -334,8 +348,6 @@ main(int argc, char **argv)
         exit(1);
     }
 
-    gettime(&now);
-
     {
         unsigned char dummy[16];
         rc = parse_address(*arg, dummy, NULL);
@@ -344,18 +356,6 @@ main(int argc, char **argv)
             SHIFTE();
         }
     }
-
-    rfd = open("/dev/urandom", O_RDONLY);
-    if(rfd < 0) {
-        perror("open(random)");
-    } else {
-        rc = read(rfd, &seed, sizeof(unsigned int));
-        if(rc < sizeof(unsigned int)) {
-            perror("read(random)");
-        }
-    }
-    seed ^= (now.tv_sec ^ now.tv_usec);
-    srandom(seed);
 
     while(*arg) {
         debugf("Adding network %s.\n", *arg);
