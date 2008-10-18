@@ -409,8 +409,8 @@ parse_packet(const unsigned char *from, struct network *net,
         continue;
 
     fail:
-        fprintf(stderr, "Couldn't parse packet (%d %d).\n",
-                message[0], message[1]);
+        fprintf(stderr, "Couldn't parse packet (%d, %d) from %s on %s.\n",
+                message[0], message[1], format_address(from), net->ifname);
         goto done;
     }
     return;
