@@ -816,7 +816,6 @@ really_send_update(struct network *net,
         memcpy(net->buffered_prefix, prefix, 16);
         net->have_buffered_prefix = 1;
     }
-
 }
 
 static int

@@ -507,6 +507,7 @@ main(int argc, char **argv)
         usleep(roughly(10000));
         gettime(&now);
         send_hello(net);
+        send_wildcard_retraction(net);
         send_self_update(net, 0);
         send_request(net, NULL, 0);
         flushupdates();
@@ -719,26 +720,18 @@ main(int argc, char **argv)
     usleep(roughly(10000));
     gettime(&now);
 
-    /* Uninstall and retract all routes. */
+    /* Uninstall and flush all routes. */
     while(numroutes > 0) {
-        if(routes[0].installed) {
+        if(routes[0].installed)
             uninstall_route(&routes[0]);
-            send_update(NULL, 1, routes[0].src->prefix, routes[0].src->plen);
-        }
         /* We need to flush the route so network_up won't reinstall it */
         flush_route(&routes[0]);
     }
-    while(numxroutes > 0) {
-        xroutes[0].metric = INFINITY;
-        send_update(NULL, 1, xroutes[0].prefix, xroutes[0].plen);
-        flush_xroute(&xroutes[0]);
-    }
-
-    flushupdates();
 
     FOR_ALL_NETS(net) {
         if(!net->up)
             continue;
+        send_wildcard_retraction(net);
         /* Make sure that we expire quickly from our neighbours'
            association caches. */
         send_hello_noupdate(net, 10);
@@ -750,6 +743,7 @@ main(int argc, char **argv)
         if(!net->up)
             continue;
         /* Make sure they got it. */
+        send_wildcard_retraction(net);
         send_hello_noupdate(net, 1);
         flushbuf(net);
         usleep(roughly(10000));
