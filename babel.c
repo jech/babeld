@@ -103,7 +103,7 @@ int
 main(int argc, char **argv)
 {
     struct sockaddr_in6 sin6;
-    int rc, fd, rfd;
+    int rc, fd, rfd, i;
     time_t expiry_time, source_expiry_time, kernel_dump_time;
     char *config_file = NULL;
     void *vrc;
@@ -376,6 +376,22 @@ main(int argc, char **argv)
             memcpy(myid, eui, 8);
             goto have_id;
         }
+    }
+
+    /* We failed to get a global EUI64 from the interfaces we were given.
+       Let's hope we find an interface with a MAC address among the first
+       five. */
+    for(i = 0; i < 5; i++) {
+        char buf[IF_NAMESIZE], *ifname;
+        unsigned char eui[8];
+        ifname = if_indextoname(i, buf);
+        if(ifname == NULL)
+            continue;
+        rc = if_eui64(ifname, i, eui);
+        if(rc < 0)
+            continue;
+        memcpy(myid, eui, 8);
+        goto have_id;
     }
 
     fprintf(stderr,
