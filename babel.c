@@ -516,10 +516,8 @@ main(int argc, char **argv)
                 continue;
             timeval_min(&tv, &net->flush_timeout);
             timeval_min(&tv, &net->hello_timeout);
-            if(!network_idle(net)) {
-                timeval_min(&tv, &net->self_update_timeout);
-                timeval_min(&tv, &net->update_timeout);
-            }
+            timeval_min(&tv, &net->self_update_timeout);
+            timeval_min(&tv, &net->update_timeout);
         }
         timeval_min(&tv, &update_flush_timeout);
         timeval_min(&tv, &unicast_flush_timeout);
@@ -666,12 +664,10 @@ main(int argc, char **argv)
                 continue;
             if(timeval_compare(&now, &net->hello_timeout) >= 0)
                 send_hello(net);
-            if(!network_idle(net)) {
-                if(timeval_compare(&now, &net->update_timeout) >= 0)
-                    send_update(net, 0, NULL, 0);
-                if(timeval_compare(&now, &net->self_update_timeout) >= 0)
-                    send_self_update(net, 0);
-            }
+            if(timeval_compare(&now, &net->update_timeout) >= 0)
+                send_update(net, 0, NULL, 0);
+            if(timeval_compare(&now, &net->self_update_timeout) >= 0)
+                send_self_update(net, 0);
         }
 
         if(resend_time.tv_sec != 0) {

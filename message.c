@@ -995,12 +995,12 @@ send_update(struct network *net, int urgent,
             buffer_update(net, prefix, plen);
         }
     } else {
+        send_self_update(net, 0);
         /* Don't send full route dumps more than ten times per second */
         if(net->update_time.tv_sec > 0 &&
            timeval_minus_msec(&now, &net->update_time) < 100)
             return;
-        send_self_update(net, 0);
-        if(!selfonly) {
+        if(!selfonly && !network_idle(net)) {
             debugf("Sending update to %s for any.\n", net->ifname);
             for(i = 0; i < numroutes; i++)
                 if(routes[i].installed)
@@ -1057,13 +1057,13 @@ send_self_update(struct network *net, int force_seqno)
         return;
     }
 
-    debugf("Sending self update to %s.\n", net->ifname);
-
+    if(!network_idle(net)) {
+        debugf("Sending self update to %s.\n", net->ifname);
+        for(i = 0; i < numxroutes; i++)
+            send_update(net, 0, xroutes[i].prefix, xroutes[i].plen);
+    }
     delay_jitter(&net->self_update_time, &net->self_update_timeout,
                  net->self_update_interval);
-    for(i = 0; i < numxroutes; i++) {
-        send_update(net, 0, xroutes[i].prefix, xroutes[i].plen);
-    }
 }
 
 void
