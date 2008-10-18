@@ -1030,6 +1030,31 @@ send_update_resend(struct network *net,
     record_resend(RESEND_UPDATE, prefix, plen, 0, 0, NULL, delay);
 }
 
+void
+send_wildcard_retraction(struct network *net)
+{
+    if(net == NULL) {
+        struct network *n;
+        FOR_ALL_NETS(n)
+            send_wildcard_retraction(n);
+        return;
+    }
+
+    if(!net->up)
+        return;
+
+    start_message(net, MESSAGE_UPDATE, 10);
+    accumulate_byte(net, 0);
+    accumulate_byte(net, 0x40);
+    accumulate_byte(net, 0);
+    accumulate_byte(net, 0);
+    accumulate_short(net, 0xFFFF);
+    accumulate_short(net, myseqno);
+    accumulate_short(net, 0xFFFF);
+    end_message(net, MESSAGE_UPDATE, 10);
+
+    net->have_buffered_id = 0;
+}
 
 void
 update_myseqno(int force)
