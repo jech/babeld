@@ -206,7 +206,7 @@ parse_packet(const unsigned char *from, struct network *net,
                    len, format_address(from), net->ifname);
         } else if(type == MESSAGE_ACK_REQ) {
             unsigned short nonce, interval;
-            if(len < 2) goto fail;
+            if(len < 6) goto fail;
             DO_NTOHS(nonce, message + 4);
             DO_NTOHS(interval, message + 6);
             debugf("Received ack-req (%04X %d) from %s on %s.\n",
