@@ -59,6 +59,46 @@ static int old_rp_filter = -1;
 
 static int dgram_socket = -1;
 
+/* Determine an interface's hardware address, in modified EUI-64 format */
+int
+if_eui64(char *ifname, int ifindex, unsigned char *eui)
+{
+    int s, rc;
+    struct ifreq req;
+    unsigned char *mac;
+
+    s = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+    if(s < 0) return -1;
+    memset(&req, 0, sizeof(req));
+    strncpy(req.ifr_name, ifname, sizeof(req.ifr_name));
+    rc = ioctl(s, SIOCGIFHWADDR, &req);
+    if(rc < 0) {
+        int saved_errno = errno;
+        close(s);
+        errno = saved_errno;
+        return -1;
+    }
+    close(s);
+
+    mac = (unsigned char *)req.ifr_hwaddr.sa_data;
+    /* OpenVPN interfaces have a null MAC address.  Also check not group
+       and global */
+    if(memcmp(mac, zeroes, 6) == 0 || (mac[0] & 1) != 0 || (mac[0] & 2) != 0) {
+        errno = ENOENT;
+        return -1;
+    }
+
+    eui[0] = mac[0] ^ 2;
+    eui[1] = mac[1];
+    eui[2] = mac[2];
+    eui[3] = 0xFF;
+    eui[4] = 0xFE;
+    eui[5] = mac[3];
+    eui[6] = mac[4];
+    eui[7] = mac[5];
+    return 1;
+}
+
 static int
 read_proc(char *filename)
 {
