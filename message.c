@@ -533,12 +533,6 @@ ensure_space(struct network *net, int space)
 static void
 start_message(struct network *net, int type, int len)
 {
-    if(!net->up) {
-        fprintf(stderr,
-                "Warning: attempting to send message to down network.\n");
-        return;
-    }
-
     if(net->bufsize - net->buffered < len + 2)
         flushbuf(net);
     net->sendbuf[net->buffered++] = type;
@@ -548,9 +542,6 @@ start_message(struct network *net, int type, int len)
 static void
 end_message(struct network *net, int type, int bytes)
 {
-    if(!net->up)
-        return;
-
     assert(net->buffered >= bytes + 2 &&
            net->sendbuf[net->buffered - bytes - 2] == type &&
            net->sendbuf[net->buffered - bytes - 1] == bytes);
@@ -560,18 +551,12 @@ end_message(struct network *net, int type, int bytes)
 static void
 accumulate_byte(struct network *net, unsigned char value)
 {
-    if(!net->up)
-        return;
-
     net->sendbuf[net->buffered++] = value;
 }
 
 static void
 accumulate_short(struct network *net, unsigned short value)
 {
-    if(!net->up)
-        return;
-
     DO_HTONS(net->sendbuf + net->buffered, value);
     net->buffered += 2;
 }
@@ -580,9 +565,6 @@ static void
 accumulate_bytes(struct network *net,
                  const unsigned char *value, unsigned len)
 {
-    if(!net->up)
-        return;
-
     memcpy(net->sendbuf + net->buffered, value, len);
     net->buffered += len;
 }
