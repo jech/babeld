@@ -404,15 +404,14 @@ parse_packet(const unsigned char *from, struct network *net,
             debugf("Received unknown packet type %d from %s on %s.\n",
                    type, format_address(from), net->ifname);
         }
-     done:
-
+    done:
         i += len + 2;
         continue;
 
     fail:
         fprintf(stderr, "Couldn't parse packet (%d %d).\n",
                 message[0], message[1]);
-        i += len + 2;
+        goto done;
     }
     return;
 }
