@@ -334,7 +334,7 @@ parse_packet(const unsigned char *from, struct network *net,
                 }
                 have_router_id = 1;
             }
-            if(!have_router_id) {
+            if(!have_router_id && message[2] != 0) {
                 fprintf(stderr, "Received prefix with no router id.\n");
                 goto fail;
             }
