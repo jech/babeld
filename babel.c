@@ -146,22 +146,23 @@ main(int argc, char **argv)
         } else if(strcmp(*arg, "-h") == 0) {
             SHIFTE();
             wireless_hello_interval = parse_msec(*arg);
-            if(wireless_hello_interval <= 0)
+            if(wireless_hello_interval <= 0 ||
+               wireless_hello_interval > 0xFFFF * 10)
                 goto syntax;
         } else if(strcmp(*arg, "-H") == 0) {
             SHIFTE();
             wired_hello_interval = parse_msec(*arg);
-            if(wired_hello_interval <= 0)
+            if(wired_hello_interval <= 0 || wired_hello_interval > 0xFFFF * 10)
                 goto syntax;
         } else if(strcmp(*arg, "-i") == 0) {
             SHIFTE();
             idle_hello_interval = parse_msec(*arg);
-            if(idle_hello_interval <= 0)
+            if(idle_hello_interval <= 0 || idle_hello_interval > 0xFFFF * 10)
                 goto syntax;
         } else if(strcmp(*arg, "-u") == 0) {
             SHIFTE();
             update_interval = parse_msec(*arg);
-            if(update_interval <= 0)
+            if(update_interval <= 0 || update_interval > 0xFFFF * 10)
                 goto syntax;
         } else if(strcmp(*arg, "-k") == 0) {
             SHIFTE();
