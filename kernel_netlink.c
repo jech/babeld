@@ -40,6 +40,7 @@ THE SOFTWARE.
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <linux/if_bridge.h>
+#include <netinet/ether.h>
 
 #if (__GLIBC__ < 2) || (__GLIBC__ == 2 && __GLIBC_MINOR__ <= 5)
 #define RTA_TABLE 15
@@ -64,14 +65,13 @@ int
 if_eui64(char *ifname, int ifindex, unsigned char *eui)
 {
     int s, rc;
-    struct ifreq req;
-    unsigned char *mac;
+    struct ifreq ifr;
 
     s = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
     if(s < 0) return -1;
-    memset(&req, 0, sizeof(req));
-    strncpy(req.ifr_name, ifname, sizeof(req.ifr_name));
-    rc = ioctl(s, SIOCGIFHWADDR, &req);
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+    rc = ioctl(s, SIOCGIFHWADDR, &ifr);
     if(rc < 0) {
         int saved_errno = errno;
         close(s);
@@ -80,23 +80,32 @@ if_eui64(char *ifname, int ifindex, unsigned char *eui)
     }
     close(s);
 
-    mac = (unsigned char *)req.ifr_hwaddr.sa_data;
-    /* OpenVPN interfaces have a null MAC address.  Also check not group
-       and global */
-    if(memcmp(mac, zeroes, 6) == 0 || (mac[0] & 1) != 0 || (mac[0] & 2) != 0) {
-        errno = ENOENT;
-        return -1;
+    switch(ifr.ifr_hwaddr.sa_family) {
+    case ARPHRD_ETHER:
+    case ARPHRD_IEEE802: {
+        unsigned char *mac;
+        mac = (unsigned char *)ifr.ifr_hwaddr.sa_data;
+        /* Check for null address and group and global bits */
+        if(memcmp(mac, zeroes, 6) == 0 ||
+           (mac[0] & 1) != 0 || (mac[0] & 2) != 0) {
+            errno = ENOENT;
+            return -1;
+        }
+
+        eui[0] = mac[0] ^ 2;
+        eui[1] = mac[1];
+        eui[2] = mac[2];
+        eui[3] = 0xFF;
+        eui[4] = 0xFE;
+        eui[5] = mac[3];
+        eui[6] = mac[4];
+        eui[7] = mac[5];
+        return 1;
+    }
     }
 
-    eui[0] = mac[0] ^ 2;
-    eui[1] = mac[1];
-    eui[2] = mac[2];
-    eui[3] = 0xFF;
-    eui[4] = 0xFE;
-    eui[5] = mac[3];
-    eui[6] = mac[4];
-    eui[7] = mac[5];
-    return 1;
+    errno = ENOENT;
+    return -1;
 }
 
 static int
