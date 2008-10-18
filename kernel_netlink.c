@@ -82,6 +82,8 @@ if_eui64(char *ifname, int ifindex, unsigned char *eui)
 
     switch(ifr.ifr_hwaddr.sa_family) {
     case ARPHRD_ETHER:
+    case ARPHRD_FDDI:
+    case ARPHRD_IEEE802_TR:
     case ARPHRD_IEEE802: {
         unsigned char *mac;
         mac = (unsigned char *)ifr.ifr_hwaddr.sa_data;
@@ -91,21 +93,31 @@ if_eui64(char *ifname, int ifindex, unsigned char *eui)
             errno = ENOENT;
             return -1;
         }
-
-        eui[0] = mac[0] ^ 2;
-        eui[1] = mac[1];
-        eui[2] = mac[2];
+        memcpy(eui, mac, 3);
         eui[3] = 0xFF;
         eui[4] = 0xFE;
-        eui[5] = mac[3];
-        eui[6] = mac[4];
-        eui[7] = mac[5];
+        memcpy(eui + 5, mac + 3, 3);
+        eui[0] ^= 2;
         return 1;
     }
+    case ARPHRD_EUI64:
+    case ARPHRD_IEEE1394:
+    case ARPHRD_INFINIBAND: {
+        unsigned char *mac;
+        mac = (unsigned char *)ifr.ifr_hwaddr.sa_data;
+        if(memcmp(mac, zeroes, 8) == 0 ||
+           (mac[0] & 1) != 0 || (mac[0] & 2) != 0) {
+            errno = ENOENT;
+            return -1;
+        }
+        memcpy(eui, mac, 64);
+        eui[0] ^= 2;
+        return 1;
     }
-
-    errno = ENOENT;
-    return -1;
+    default:
+        errno = ENOENT;
+        return -1;
+    }
 }
 
 static int
