@@ -379,9 +379,8 @@ main(int argc, char **argv)
     }
 
     /* We failed to get a global EUI64 from the interfaces we were given.
-       Let's hope we find an interface with a MAC address among the first
-       five. */
-    for(i = 0; i < 5; i++) {
+       Let's try to find an interface with a MAC address among the first 15. */
+    for(i = 0; i < 15; i++) {
         char buf[IF_NAMESIZE], *ifname;
         unsigned char eui[8];
         ifname = if_indextoname(i, buf);
