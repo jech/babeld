@@ -1,4 +1,4 @@
-babel 0.17 (unreleased)
+18 October 2008: babel 0.17
 
   * INCOMPATIBLE CHANGE: removed support for ``inherit'' in redistribution.
   * INCOMPATIBLE CHANGE: a pidfile is now created by default.
