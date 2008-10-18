@@ -362,6 +362,11 @@ parse_packet(const unsigned char *from, struct network *net,
                 nh = neigh->address;
             }
 
+            if(message[2] == 1) {
+                if(!net->ipv4)
+                    goto done;
+            }
+
             update_route(router_id, prefix, plen, seqno, metric, interval,
                          neigh, nh);
         } else if(type == MESSAGE_REQUEST) {
