@@ -365,9 +365,24 @@ parse_eui64(const char *eui, unsigned char *eui_r)
     n = sscanf(eui, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
                &eui_r[0], &eui_r[1], &eui_r[2], &eui_r[3],
                &eui_r[4], &eui_r[5], &eui_r[6], &eui_r[7]);
-    if(n != 8)
-        return -1;
-    return 0;
+    if(n == 8)
+        return 0;
+
+    n = sscanf(eui, "%02hhx-%02hhx-%02hhx-%02hhx-%02hhx-%02hhx-%02hhx-%02hhx",
+               &eui_r[0], &eui_r[1], &eui_r[2], &eui_r[3],
+               &eui_r[4], &eui_r[5], &eui_r[6], &eui_r[7]);
+    if(n == 8)
+        return 0;
+
+    n = sscanf(eui, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
+               &eui_r[0], &eui_r[1], &eui_r[2],
+               &eui_r[5], &eui_r[6], &eui_r[7]);
+    if(n == 6) {
+        eui_r[3] = 0xFF;
+        eui_r[4] = 0xFE;
+        return 0;
+    }
+    return -1;
 }
 
 int
