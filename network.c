@@ -266,7 +266,7 @@ network_up(struct network *net, int up)
 
         if(net->ll)
             free(net->ll);
-        net->nll = 0;
+        net->numll = 0;
         net->ll = NULL;
         rc = kernel_ll_addresses(net->ifname, net->ifindex, ll, 32);
         if(rc < 0) {
@@ -276,7 +276,7 @@ network_up(struct network *net, int up)
             if(net->ll == NULL) {
                 perror("malloc(ll)");
             } else {
-                net->nll = rc;
+                net->numll = rc;
                 memcpy(net->ll, ll, rc * 16);
             }
         }
@@ -306,7 +306,7 @@ network_up(struct network *net, int up)
         if(net->ll)
             free(net->ll);
         net->ll = NULL;
-        net->nll = 0;
+        net->numll = 0;
     }
 
     update_network_metric(net);
@@ -325,7 +325,7 @@ network_ll_address(struct network *net, const unsigned char *address)
     if(!net->up)
         return 0;
 
-    for(i = 0; i < net->nll; i++)
+    for(i = 0; i < net->numll; i++)
         if(memcmp(net->ll[i], address, 16) == 0)
            return 1;
 

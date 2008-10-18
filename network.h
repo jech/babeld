@@ -22,9 +22,9 @@ THE SOFTWARE.
 
 struct network {
     struct network *next;
-    int up;
+    char up;
+    char wired;
     unsigned int ifindex;
-    int wired;
     unsigned short cost;
     struct timeval hello_time;
     struct timeval hello_timeout;
@@ -34,15 +34,15 @@ struct network {
     struct timeval update_timeout;
     char ifname[IF_NAMESIZE];
     unsigned char *ipv4;
-    int nll;
+    int numll;
     unsigned char (*ll)[16];
     int buffered;
     struct timeval flush_timeout;
     int bufsize;
-    int have_buffered_hello;
-    int have_buffered_id;
-    int have_buffered_nh;
-    int have_buffered_prefix;
+    char have_buffered_hello;
+    char have_buffered_id;
+    char have_buffered_nh;
+    char have_buffered_prefix;
     unsigned char buffered_id[16];
     unsigned char buffered_nh[4];
     unsigned char buffered_prefix[16];
@@ -51,8 +51,8 @@ struct network {
     unsigned int bucket;
     time_t activity_time;
     unsigned short hello_seqno;
-    unsigned int hello_interval;
-    unsigned int self_update_interval;
+    unsigned short hello_interval;
+    unsigned short self_update_interval;
 };
 
 extern struct network *networks;
