@@ -483,7 +483,9 @@ main(int argc, char **argv)
 #endif
 
     init_signals();
-    resize_receive_buffer(1500);
+    rc = resize_receive_buffer(1500);
+    if(rc < 0)
+        goto fail;
     check_networks();
     if(receive_buffer == NULL)
         goto fail;
@@ -826,17 +828,17 @@ schedule_neighbours_check(int msecs, int override)
         timeval_min(&check_neighbours_timeout, &timeout);
 }
 
-void
+int
 resize_receive_buffer(int size)
 {
     if(size <= receive_buffer_size)
-        return;
+        return 0;
 
     if(receive_buffer == NULL) {
         receive_buffer = malloc(size);
         if(receive_buffer == NULL) {
             perror("malloc(receive_buffer)");
-            return;
+            return -1;
         }
         receive_buffer_size = size;
     } else {
@@ -844,11 +846,12 @@ resize_receive_buffer(int size)
         new = realloc(receive_buffer, size);
         if(new == NULL) {
             perror("realloc(receive_buffer)");
-            return;
+            return -1;
         }
         receive_buffer = new;
         receive_buffer_size = size;
     }
+    return 1;
 }
 
 static void
