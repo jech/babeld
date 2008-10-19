@@ -491,7 +491,7 @@ flushbuf(struct network *net)
 static void
 schedule_flush(struct network *net)
 {
-    int msecs = jitter(net, 0);
+    unsigned msecs = jitter(net, 0);
     if(net->flush_timeout.tv_sec != 0 &&
        timeval_minus_msec(&net->flush_timeout, &now) < msecs)
         return;
@@ -504,7 +504,7 @@ static void
 schedule_flush_now(struct network *net)
 {
     /* Almost now */
-    int msecs = roughly(10);
+    unsigned msecs = roughly(10);
     if(net->flush_timeout.tv_sec != 0 &&
        timeval_minus_msec(&net->flush_timeout, &now) < msecs)
         return;
@@ -514,12 +514,10 @@ schedule_flush_now(struct network *net)
 }
 
 static void
-schedule_unicast_flush(int msecs)
+schedule_unicast_flush(unsigned msecs)
 {
     if(!unicast_neighbour)
         return;
-    if(msecs < 0)
-        msecs = jitter(unicast_neighbour->network, 1);
     if(unicast_flush_timeout.tv_sec != 0 &&
        timeval_minus_msec(&unicast_flush_timeout, &now) < msecs)
         return;
@@ -926,7 +924,7 @@ flushupdates(void)
 static void
 schedule_update_flush(struct network *net, int urgent)
 {
-    int msecs;
+    unsigned msecs;
     msecs = update_jitter(net, urgent);
     if(update_flush_timeout.tv_sec != 0 &&
        timeval_minus_msec(&update_flush_timeout, &now) < msecs)

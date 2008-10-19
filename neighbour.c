@@ -198,7 +198,7 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
 static int
 reset_txcost(struct neighbour *neigh)
 {
-    int delay;
+    unsigned delay;
 
     delay = timeval_minus_msec(&now, &neigh->ihu_time);
 
@@ -228,8 +228,8 @@ unsigned
 check_neighbours()
 {
     struct neighbour *neigh;
-    int changed, delay;
-    int msecs = 50000;
+    int changed;
+    unsigned msecs = 50000, delay;
 
     debugf("Checking neighbours.\n");
 
@@ -268,7 +268,7 @@ check_neighbours()
 unsigned
 neighbour_rxcost(struct neighbour *neigh)
 {
-    int delay;
+    unsigned delay;
     unsigned short reach = neigh->reach;
 
     delay = timeval_minus_msec(&now, &neigh->hello_time);
