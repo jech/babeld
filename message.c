@@ -633,6 +633,8 @@ send_ack(struct neighbour *neigh, unsigned short nonce, unsigned short interval)
     rc = start_unicast_message(neigh, MESSAGE_ACK, 2); if(rc < 0) return;
     accumulate_unicast_short(neigh, nonce);
     end_unicast_message(neigh, MESSAGE_ACK, 2);
+    /* Roughly yields a value no larger than 3/2, so this meets the deadline */
+    schedule_unicast_flush(roughly(interval * 6));
 }
 
 void
