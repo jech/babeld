@@ -202,25 +202,9 @@ switch_routes(struct route *old, struct route *new)
 void
 change_route_metric(struct route *route, unsigned newmetric)
 {
-    int rc;
-
     if(route->metric == newmetric)
         return;
 
-    if(route->installed) {
-        rc = kernel_route(ROUTE_MODIFY,
-                          route->src->prefix, route->src->plen,
-                          route->nexthop,
-                          route->neigh->network->ifindex,
-                          kernel_metric,
-                          route->nexthop,
-                          route->neigh->network->ifindex,
-                          kernel_metric);
-        if(rc < 0) {
-            perror("kernel_route(MODIFY)");
-            return;
-        }
-    }
     route->metric = newmetric;
     local_notify_route(route, LOCAL_CHANGE);
 }
