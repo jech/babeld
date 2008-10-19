@@ -222,18 +222,20 @@ in_prefix(const unsigned char *address,
     return ((address[plen / 8] & m) == (prefix[plen / 8] & m));
 }
 
-const unsigned char *
+unsigned char *
 mask_prefix(unsigned char *ret,
             const unsigned char *prefix, unsigned char plen)
 {
-    if(plen > 128)
-        plen = 128;
+    if(plen >= 128) {
+        memcpy(ret, prefix, 16);
+        return ret;
+    }
 
     memset(ret, 0, 16);
     memcpy(ret, prefix, plen / 8);
     if(plen % 8 != 0)
         ret[plen / 8] = (prefix[plen / 8] & (0xFF << (8 - (plen % 8))));
-    return (const unsigned char *)ret;
+    return ret;
 }
 
 static const unsigned char v4prefix[16] =

@@ -60,9 +60,8 @@ void do_debugf(int leve, const char *format, ...)
 int in_prefix(const unsigned char *address,
               const unsigned char *prefix, unsigned char plen)
     ATTRIBUTE ((pure));
-const unsigned char *mask_prefix(unsigned char *ret,
-                                 const unsigned char *prefix,
-                                 unsigned char plen);
+unsigned char *mask_prefix(unsigned char *ret,
+                           const unsigned char *prefix, unsigned char plen);
 const char *format_address(const unsigned char *address);
 const char *format_prefix(const unsigned char *address, unsigned char prefix);
 const char * format_eui64(const unsigned char *eui);
