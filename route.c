@@ -228,17 +228,13 @@ change_route_metric(struct route *route, unsigned newmetric)
 int
 route_feasible(struct route *route)
 {
-    return update_feasible(route->src->id,
-                           route->src->prefix, route->src->plen,
-                           route->seqno, route->refmetric);
+    return update_feasible(route->src, route->seqno, route->refmetric);
 }
 
 int
-update_feasible(const unsigned char *id,
-                const unsigned char *p, unsigned char plen,
+update_feasible(struct source *src,
                 unsigned short seqno, unsigned short refmetric)
 {
-    struct source *src = find_source(id, p, plen, 0, 0);
     if(src == NULL)
         return 1;
 
@@ -359,7 +355,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
     if(src == NULL)
         return NULL;
 
-    feasible = update_feasible(a, p, plen, seqno, refmetric);
+    feasible = update_feasible(src, seqno, refmetric);
     route = find_route(p, plen, neigh, nexthop);
     metric = MIN((int)refmetric + neighbour_cost(neigh) + add_metric, INFINITY);
 
