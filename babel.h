@@ -35,9 +35,19 @@ THE SOFTWARE.
 #define MIN(x,y) ((x)<=(y)?(x):(y))
 
 #if defined(__GNUC__) && (__GNUC__ >= 3)
-#define ATTRIBUTE(x) __attribute__(x)
+#define ATTRIBUTE(x) __attribute__ (x)
+#define LIKELY(_x) __builtin_expect(!!(_x), 1)
+#define UNLIKELY(_x) __builtin_expect(!!(_x), 0)
 #else
 #define ATTRIBUTE(x) /**/
+#define LIKELY(_x) !!(_x)
+#define UNLIKELY(_x) !!(x)
+#endif
+
+#if defined(__GNUC__) && (__GNUC__ >= 4) && (__GNUC_MINOR >= 3)
+#define COLD __attribute__ ((cold))
+#else
+#define COLD /**/
 #endif
 
 #ifndef IF_NAMESIZE

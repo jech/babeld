@@ -56,7 +56,7 @@ void timeval_min(struct timeval *d, const struct timeval *s);
 void timeval_min_sec(struct timeval *d, time_t secs);
 int parse_msec(const char *string) ATTRIBUTE ((pure));
 void do_debugf(int leve, const char *format, ...)
-    ATTRIBUTE ((format (printf, 2, 3)));
+    ATTRIBUTE ((format (printf, 2, 3))) COLD;
 int in_prefix(const unsigned char *address,
               const unsigned char *prefix, unsigned char plen)
     ATTRIBUTE ((pure));
@@ -64,7 +64,7 @@ unsigned char *mask_prefix(unsigned char *ret,
                            const unsigned char *prefix, unsigned char plen);
 const char *format_address(const unsigned char *address);
 const char *format_prefix(const unsigned char *address, unsigned char prefix);
-const char * format_eui64(const unsigned char *eui);
+const char *format_eui64(const unsigned char *eui);
 int parse_address(const char *address, unsigned char *addr_r, int *af_r);
 int parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r,
               int *af_r);
@@ -84,20 +84,20 @@ static void ATTRIBUTE ((used)) kdebugf(const char *format, ...) { return; }
 #elif defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L
 #define debugf(...) \
     do { \
-        if(debug >= 2) do_debugf(2, __VA_ARGS__);        \
+        if(UNLIKELY(debug >= 2)) do_debugf(2, __VA_ARGS__);     \
     } while(0)
 #define kdebugf(...) \
     do { \
-        if(debug >= 3) do_debugf(3, __VA_ARGS__);        \
+        if(UNLIKELY(debug >= 3)) do_debugf(3, __VA_ARGS__);     \
     } while(0)
 #elif defined __GNUC__
 #define debugf(_args...) \
     do { \
-        if(debug >= 2) do_debugf(2, _args);      \
+        if(UNLIKELY(debug >= 2)) do_debugf(2, _args);   \
     } while(0)
 #define kdebugf(_args...) \
     do { \
-        if(debug >= 3) do_debugf(3, _args);      \
+        if(UNLIKELY(debug >= 3)) do_debugf(3, _args);   \
     } while(0)
 #else
 static void debugf(const char *format, ...) { return; }

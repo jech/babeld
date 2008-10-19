@@ -712,7 +712,7 @@ main(int argc, char **argv)
             }
         }
 
-        if(debug || dumping) {
+        if(UNLIKELY(debug || dumping)) {
             dump_tables(stdout);
             dumping = 0;
         }
