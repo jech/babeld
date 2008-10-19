@@ -596,11 +596,12 @@ start_unicast_message(struct neighbour *neigh, int type, int len)
 }
 
 static void
-end_unicast_message(struct neighbour *neigh, int type, int bytes) {
+end_unicast_message(struct neighbour *neigh, int type, int bytes)
+{
     assert(unicast_neighbour == neigh && unicast_buffered >= bytes + 2 &&
            unicast_buffer[unicast_buffered - bytes - 2] == type &&
            unicast_buffer[unicast_buffered - bytes - 1] == bytes);
-    schedule_unicast_flush(-1);
+    schedule_unicast_flush(jitter(neigh->network, 0));
 }
 
 static void
