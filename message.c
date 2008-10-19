@@ -58,7 +58,8 @@ struct buffered_update {
     unsigned char plen;
     unsigned char pad[3];
 };
-struct buffered_update buffered_updates[MAX_BUFFERED_UPDATES];
+struct buffered_update buffered_updates[MAX_BUFFERED_UPDATES]
+    ATTRIBUTE ((aligned (4)));
 struct network *update_net = NULL;
 int updates = 0;
 
