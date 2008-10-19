@@ -82,17 +82,24 @@ timeval_minus(struct timeval *d,
     }
 }
 
-int
+unsigned
 timeval_minus_msec(const struct timeval *s1, const struct timeval *s2)
 {
-    /* Avoid overflow.  This may happen if the clock is changed */
+    if(s1->tv_sec < s2->tv_sec)
+        return 0;
+
+    /* Avoid overflow. */
     if(s1->tv_sec - s2->tv_sec > 2000000)
         return 2000000000;
-    else if(s1->tv_sec - s2->tv_sec < -2000000)
-        return -2000000000;
 
-    return (s1->tv_sec - s2->tv_sec) * 1000 +
-        (s1->tv_usec - s2->tv_usec) / 1000;
+    if(s1->tv_sec > s2->tv_sec)
+        return (unsigned)(s1->tv_sec - s2->tv_sec) * 1000u +
+            (unsigned)(s1->tv_usec - s2->tv_usec) / 1000u;
+
+    if(s1->tv_usec <= s2->tv_usec)
+        return 0;
+
+    return (unsigned)(s1->tv_usec - s2->tv_usec) / 1000u;
 }
 
 void
