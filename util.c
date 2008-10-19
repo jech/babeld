@@ -63,8 +63,8 @@ seqno_plus(unsigned short s, int plus)
     return ((s + plus) & 0xFFFF);
 }
 
-int
-roughly(int value)
+unsigned
+roughly(unsigned value)
 {
     return value * 3 / 4 + random() % (value / 2);
 }
