@@ -79,7 +79,10 @@ int daemonise(void);
 /* If debugging is disabled, we want to avoid calling format_address
    for every omitted debugging message.  So debug is a macro.  But
    vararg macros are not portable. */
-#if defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L
+#if defined NO_DEBUG
+static void ATTRIBUTE ((used)) debugf(const char *format, ...) { return; }
+static void ATTRIBUTE ((used)) kdebugf(const char *format, ...) { return; }
+#elif defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L
 #define debugf(...) \
     do { \
         if(debug >= 2) do_debugf(2, __VA_ARGS__);        \
@@ -98,7 +101,6 @@ int daemonise(void);
         if(debug >= 3) do_debugf(3, _args);      \
     } while(0)
 #else
-/* Disable debugging code */
 static void debugf(const char *format, ...) { return; }
 static void kdebugf(const char *format, ...) { return; }
 #endif
