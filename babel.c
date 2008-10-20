@@ -322,7 +322,10 @@ main(int argc, char **argv)
 
         pfd = open(pidfile, O_WRONLY | O_CREAT | O_EXCL, 0644);
         if(pfd < 0) {
-            perror("creat(pidfile)");
+            char buf[40];
+            snprintf(buf, 40, "creat(%s)", pidfile);
+            buf[39] = '\0';
+            perror(buf);
             goto fail_nopid;
         }
 
