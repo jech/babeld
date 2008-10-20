@@ -220,7 +220,6 @@ reset_txcost(struct neighbour *neigh)
 unsigned
 neighbour_txcost(struct neighbour *neigh)
 {
-    reset_txcost(neigh);
     return neigh->txcost;
 }
 
