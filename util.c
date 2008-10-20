@@ -93,8 +93,9 @@ timeval_minus_msec(const struct timeval *s1, const struct timeval *s2)
         return 2000000000;
 
     if(s1->tv_sec > s2->tv_sec)
-        return (unsigned)(s1->tv_sec - s2->tv_sec) * 1000u +
-            (unsigned)(s1->tv_usec - s2->tv_usec) / 1000u;
+        return
+            (unsigned)((unsigned)(s1->tv_sec - s2->tv_sec) * 1000 +
+                       ((int)s1->tv_usec - s2->tv_usec) / 1000);
 
     if(s1->tv_usec <= s2->tv_usec)
         return 0;
