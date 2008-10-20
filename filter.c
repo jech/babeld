@@ -254,7 +254,7 @@ parse_filter(gnc_t gnc, void *closure)
             c = getword(c, &interface, gnc, closure);
             if(c < -1)
                 goto error;
-            filter->ifname = strdup(interface);
+            filter->ifname = interface;
             filter->ifindex = if_nametoindex(interface);
         } else if(strcmp(token, "allow") == 0) {
             filter->result = 0;
