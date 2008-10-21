@@ -371,15 +371,15 @@ parse_packet(const unsigned char *from, struct network *net,
             update_route(router_id, prefix, plen, seqno, metric, interval,
                          neigh, nh);
         } else if(type == MESSAGE_REQUEST) {
-            unsigned char prefix[16];
+            unsigned char prefix[16], plen;
             int rc;
-            if(len < 2)
-                goto fail;
+            if(len < 2) goto fail;
             rc = network_prefix(message[2], message[3], 0,
                                 message + 4, NULL, len - 2, prefix);
             if(rc < 0) goto fail;
+            plen = message[3] + (message[2] == 1 ? 96 : 0);
             debugf("Received request for %s from %s on %s.\n",
-                   message[2] == 0 ? "any" : format_prefix(prefix, message[3]),
+                   message[2] == 0 ? "any" : format_prefix(prefix, plen),
                    format_address(from), net->ifname);
             if(message[2] == 0) {
                 /* If a neighbour is requesting a full route dump from us,
@@ -387,24 +387,24 @@ parse_packet(const unsigned char *from, struct network *net,
                 send_ihu(neigh, NULL);
                 send_update(neigh->network, 0, NULL, 0);
             } else {
-                send_update(neigh->network, 0, prefix, message[3]);
+                send_update(neigh->network, 0, prefix, plen);
             }
         } else if(type == MESSAGE_MH_REQUEST) {
-            unsigned char prefix[16];
+            unsigned char prefix[16], plen;
             unsigned short seqno;
             int rc;
-            if(len < 14)
-                goto fail;
+            if(len < 14) goto fail;
             DO_NTOHS(seqno, message + 4);
             rc = network_prefix(message[2], message[3], 0,
                                 message + 16, NULL, len - 14, prefix);
             if(rc < 0) goto fail;
+            plen = message[3] + (message[2] == 1 ? 96 : 0);
             debugf("Received request (%d) for %s from %s on %s (%s, %d).\n",
                    message[6],
-                   format_prefix(prefix, message[3]),
+                   format_prefix(prefix, plen),
                    format_address(from), net->ifname,
                    format_eui64(message + 8), seqno);
-            handle_request(neigh, prefix, message[3], message[6],
+            handle_request(neigh, prefix, plen, message[6],
                            seqno, message + 8);
         } else {
             debugf("Received unknown packet type %d from %s on %s.\n",
