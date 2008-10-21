@@ -777,7 +777,7 @@ really_send_update(struct network *net,
         real_plen = plen;
     }
 
-    if(!net->have_buffered_id || memcmp(id, net->buffered_id, 16) != 0) {
+    if(!net->have_buffered_id || memcmp(id, net->buffered_id, 8) != 0) {
         if(real_plen == 128 && memcmp(real_prefix + 8, id, 8) == 0) {
             flags |= 0x40;
         } else {
