@@ -548,7 +548,7 @@ send_triggered_update(struct route *route, struct source *oldsrc,
             urgent = 1;
     }
 
-    if(urgent < 0 || (!urgent && diff < 256))
+    if(urgent < 0 || (!urgent && diff < 384))
         /* Never mind. */
         return;
 
