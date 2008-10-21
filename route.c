@@ -558,7 +558,7 @@ send_triggered_update(struct route *route, struct source *oldsrc,
         send_update(NULL, urgent, route->src->prefix, route->src->plen);
 
     if(oldmetric < INFINITY) {
-        if(newmetric >= oldmetric + 384) {
+        if(newmetric >= oldmetric + 512) {
             send_request_resend(NULL, route->src->prefix, route->src->plen,
                                 route->src->metric >= INFINITY ?
                                 route->src->seqno :
