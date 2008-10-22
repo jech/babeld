@@ -1262,8 +1262,8 @@ send_multihop_request(struct network *net,
     if(!net->up)
         return;
 
-    debugf("Sending multi-hop request on %s for %s (%d hops).\n",
-           net->ifname, format_prefix(prefix, plen), hop_count);
+    debugf("Sending request (%d) on %s for %s.\n",
+           hop_count, net->ifname, format_prefix(prefix, plen));
     v4 = plen >= 96 && v4mapped(prefix);
     pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
     len = 6 + 8 + pb;
