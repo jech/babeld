@@ -1,3 +1,13 @@
+23 October 2008: babel 0.90
+
+  * INCOMPATIBLE CHANGE: all new Babel version 2 protocol, which is both
+    more robust and less chatty than version 1.
+  * Tweaked the strategies for sending triggered updates and unfeasible
+    requests to be more conservative.
+  * Minor optimisations all over the place.
+  * Removed the protocol specification -- the version 2 spec is maintained
+    separately.
+
 18 October 2008: babel 0.17
 
   * INCOMPATIBLE CHANGE: removed support for ``inherit'' in redistribution.
