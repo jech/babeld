@@ -442,7 +442,7 @@ send_unfeasible_request(struct neighbour *neigh, int force,
         return;
     }
 
-    if(force || !route || route->metric >= metric + 256) {
+    if(force || !route || route->metric >= metric + 512) {
         send_unicast_multihop_request(neigh, prefix, plen,
                                       src->metric >= INFINITY ?
                                       src->seqno :
