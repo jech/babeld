@@ -521,8 +521,9 @@ void
 send_triggered_update(struct route *route, struct source *oldsrc,
                       unsigned oldmetric)
 {
-    int urgent = 0;
     unsigned newmetric, diff;
+    /* 1 means send speedily, 2 means resend */
+    int urgent;
 
     if(!route->installed)
         return;
@@ -533,24 +534,27 @@ send_triggered_update(struct route *route, struct source *oldsrc,
 
     if(route->src != oldsrc || (oldmetric < INFINITY && newmetric >= INFINITY))
         /* Switching sources can cause transient routing loops.
-           Retractions are always urgent. */
+           Retractions can cause blackholes. */
         urgent = 2;
-    else if(newmetric >= 6 * 256 && oldmetric >= 6 * 256)
-        /* Don't be noisy about far-away nodes */
-        urgent = -1;
-    else if(diff >= 512)
+    else if(newmetric > oldmetric && oldmetric < 6 * 256 && diff >= 512)
+        /* Route getting significantly worse */
         urgent = 1;
-
-    /* Make sure that requests are satisfied speedily */
-    if(urgent < 1) {
-        if(unsatisfied_request(route->src->prefix, route->src->plen,
-                               route->seqno, route->src->id))
-            urgent = 1;
-    }
-
-    if(urgent < 0 || (!urgent && diff < 384))
-        /* Never mind. */
+    else if(unsatisfied_request(route->src->prefix, route->src->plen,
+                                route->seqno, route->src->id))
+        /* Make sure that requests are satisfied speedily */
+        urgent = 1;
+    else if(oldmetric >= INFINITY && newmetric < INFINITY)
+        /* New route */
+        urgent = 0;
+    else if(newmetric < oldmetric && diff < 1024)
+        /* Route getting better.  This may be a transient fluctuation, so
+           don't advertise it to avoid making routes unfeasible later on. */
         return;
+    else if(diff < 384)
+        /* Don't fret about trivialities */
+        return;
+    else
+        urgent = 0;
 
     if(urgent >= 2)
         send_update_resend(NULL, route->src->prefix, route->src->plen);
