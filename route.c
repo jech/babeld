@@ -216,6 +216,18 @@ route_feasible(struct route *route)
 }
 
 int
+route_old(struct route *route)
+{
+    return route->time < now.tv_sec - route->hold_time * 7 / 8;
+}
+
+int
+route_expired(struct route *route)
+{
+    return route->time < now.tv_sec - route->hold_time;
+}
+
+int
 update_feasible(struct source *src,
                 unsigned short seqno, unsigned short refmetric)
 {
