@@ -207,8 +207,8 @@ do_debugf(int level, const char *format, ...)
 }
 
 int
-in_prefix(const unsigned char *address,
-          const unsigned char *prefix, unsigned char plen)
+in_prefix(const unsigned char *restrict address,
+          const unsigned char *restrict prefix, unsigned char plen)
 {
     unsigned char m;
 
@@ -218,14 +218,17 @@ in_prefix(const unsigned char *address,
     if(memcmp(address, prefix, plen / 8) != 0)
         return 0;
 
+    if(plen % 8 == 0)
+        return 1;
+
     m = 0xFF << (8 - (plen % 8));
 
     return ((address[plen / 8] & m) == (prefix[plen / 8] & m));
 }
 
 unsigned char *
-mask_prefix(unsigned char *ret,
-            const unsigned char *prefix, unsigned char plen)
+mask_prefix(unsigned char *restrict ret,
+            const unsigned char *restrict prefix, unsigned char plen)
 {
     if(plen >= 128) {
         memcpy(ret, prefix, 16);
