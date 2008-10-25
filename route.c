@@ -377,7 +377,9 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
                    route->seqno, route->refmetric,
                    format_address(src->id), seqno, refmetric);
             if(src == route->src) {
-                send_unfeasible_request(neigh, 1, seqno, metric, a, p, plen);
+                /* If the route is fresh, no need to panic. */
+                if(!route_old(route))
+                   send_unfeasible_request(neigh, 1, seqno, metric, a, p, plen);
                 return route;
             }
             uninstall_route(route);
