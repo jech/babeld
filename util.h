@@ -55,13 +55,14 @@ int timeval_compare(const struct timeval *s1, const struct timeval *s2)
 void timeval_min(struct timeval *d, const struct timeval *s);
 void timeval_min_sec(struct timeval *d, time_t secs);
 int parse_msec(const char *string) ATTRIBUTE ((pure));
-void do_debugf(int leve, const char *format, ...)
+void do_debugf(int level, const char *format, ...)
     ATTRIBUTE ((format (printf, 2, 3))) COLD;
-int in_prefix(const unsigned char *address,
-              const unsigned char *prefix, unsigned char plen)
+int in_prefix(const unsigned char *restrict address,
+              const unsigned char *restrict prefix, unsigned char plen)
     ATTRIBUTE ((pure));
-unsigned char *mask_prefix(unsigned char *ret,
-                           const unsigned char *prefix, unsigned char plen);
+unsigned char *mask_prefix(unsigned char *restrict ret,
+                           const unsigned char *restrict prefix,
+                           unsigned char plen);
 const char *format_address(const unsigned char *address);
 const char *format_prefix(const unsigned char *address, unsigned char prefix);
 const char *format_eui64(const unsigned char *eui);
@@ -79,9 +80,21 @@ int daemonise(void);
    for every omitted debugging message.  So debug is a macro.  But
    vararg macros are not portable. */
 #if defined NO_DEBUG
-static void ATTRIBUTE ((used)) debugf(const char *format, ...) { return; }
-static void ATTRIBUTE ((used)) kdebugf(const char *format, ...) { return; }
-#elif defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L
+
+#if defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L
+#define debugf(...) do {} while(0)
+#define kdebugf(...) do {} while(0)
+#elif defined __GNUC__
+#define debugf(_args...) do {} while(0)
+#define kdebugf(_args...) do {} while(0)
+#else
+static inline void debugf(const char *format, ...) { return; }
+static inline void kdebugf(const char *format, ...) { return; }
+#endif
+
+#else
+
+#if defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L
 #define debugf(...) \
     do { \
         if(UNLIKELY(debug >= 2)) do_debugf(2, __VA_ARGS__);     \
@@ -100,7 +113,9 @@ static void ATTRIBUTE ((used)) kdebugf(const char *format, ...) { return; }
         if(UNLIKELY(debug >= 3)) do_debugf(3, _args);   \
     } while(0)
 #else
-static void debugf(const char *format, ...) { return; }
-static void kdebugf(const char *format, ...) { return; }
+static inline void debugf(const char *format, ...) { return; }
+static inline void kdebugf(const char *format, ...) { return; }
+#endif
+
 #endif
 
