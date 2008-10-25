@@ -435,7 +435,7 @@ martian_prefix(const unsigned char *prefix, int plen)
 int
 v4mapped(const unsigned char *address)
 {
-    return in_prefix(address, v4prefix, 96);
+    return memcmp(address, v4prefix, 12) == 0;
 }
 
 void
