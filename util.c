@@ -40,21 +40,14 @@ seqno_compare(unsigned short s1, unsigned short s2)
 {
     if(s1 == s2)
         return 0;
-    else if(((s2 - s1) & 0xFFFF) < 0x8000)
-        return -1;
     else
-        return 1;
+        return ((s2 - s1) & 0x8000) ? 1 : -1;
 }
 
 int
 seqno_minus(unsigned short s1, unsigned short s2)
 {
-    if(s1 == s2)
-        return 0;
-    else if(((s2 - s1) & 0xFFFF) < 0x8000)
-        return -(int)((s2 - s1) & 0xFFFF);
-    else
-        return ((s1 - s2) & 0xFFFF);
+    return ((s1 - s2) & 0xFFFF);
 }
 
 unsigned short
