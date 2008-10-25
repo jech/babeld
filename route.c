@@ -257,7 +257,7 @@ find_best_route(const unsigned char *prefix, unsigned char plen, int feasible,
     for(i = 0; i < numroutes; i++) {
         if(!source_match(routes[i].src, prefix, plen))
             continue;
-        if(routes[i].time < now.tv_sec - routes[i].hold_time)
+        if(route_expired(&routes[i]))
             continue;
         if(feasible && !route_feasible(&routes[i]))
             continue;
@@ -277,7 +277,7 @@ update_route_metric(struct route *route)
     int newmetric;
 
     oldmetric = route->metric;
-    if(route->time < now.tv_sec - route->hold_time) {
+    if(route_expired(route)) {
         if(route->refmetric < INFINITY) {
             route->seqno = seqno_plus(route->src->seqno, 1);
             route->refmetric = INFINITY;
@@ -640,7 +640,7 @@ expire_routes(void)
         struct route *route = &routes[i];
 
         if(route->time > now.tv_sec || /* clock stepped */
-           route->time < now.tv_sec - route->hold_time - 20) {
+           route_old(route)) {
             flush_route(route);
             continue;
         }
@@ -648,7 +648,7 @@ expire_routes(void)
         update_route_metric(route);
 
         if(route->installed && route->refmetric < INFINITY) {
-            if(route->time < now.tv_sec - route->hold_time * 7 / 8)
+            if(route_old(route))
                 send_unicast_request(route->neigh,
                                      route->src->prefix, route->src->plen);
         }
