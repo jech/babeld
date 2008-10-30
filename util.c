@@ -210,7 +210,8 @@ mask_prefix(unsigned char *restrict ret,
     memset(ret, 0, 16);
     memcpy(ret, prefix, plen / 8);
     if(plen % 8 != 0)
-        ret[plen / 8] = (prefix[plen / 8] & (0xFF << (8 - (plen % 8))));
+        ret[plen / 8] =
+            (prefix[plen / 8] & ((0xFF << (8 - (plen % 8))) & 0xFF));
     return ret;
 }
 
