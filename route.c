@@ -357,12 +357,10 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
 
     if(route) {
         struct source *oldsrc;
-        unsigned short oldseqno;
         unsigned short oldmetric;
         int lost = 0;
 
         oldsrc = route->src;
-        oldseqno = route->seqno;
         oldmetric = route->metric;
 
         /* If a successor switches sources, we must accept his update even
