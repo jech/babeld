@@ -57,15 +57,15 @@ find_xroute(const unsigned char *prefix, unsigned char plen)
 void
 flush_xroute(struct xroute *xroute)
 {
-    int n;
+    int i;
 
-    n = xroute - xroutes;
-    assert(n >= 0 && n < numxroutes);
+    i = xroute - xroutes;
+    assert(i >= 0 && i < numxroutes);
 
     local_notify_xroute(xroute, LOCAL_FLUSH);
 
-    if(n != numxroutes - 1)
-        memcpy(xroutes + n, xroutes + numxroutes - 1, sizeof(struct xroute));
+    if(i != numxroutes - 1)
+        memcpy(xroutes + i, xroutes + numxroutes - 1, sizeof(struct xroute));
     numxroutes--;
     VALGRIND_MAKE_MEM_UNDEFINED(xroutes + numxroutes, sizeof(struct xroute));
 

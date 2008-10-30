@@ -71,13 +71,13 @@ find_installed_route(const unsigned char *prefix, unsigned char plen)
 void
 flush_route(struct route *route)
 {
-    int n;
+    int i;
     struct source *src;
     unsigned oldmetric;
     int lost = 0;
 
-    n = route - routes;
-    assert(n >= 0 && n < numroutes);
+    i = route - routes;
+    assert(i >= 0 && i < numroutes);
 
     oldmetric = route->metric;
 
@@ -90,8 +90,8 @@ flush_route(struct route *route)
 
     src = route->src;
 
-    if(n != numroutes - 1)
-        memcpy(routes + n, routes + numroutes - 1, sizeof(struct route));
+    if(i != numroutes - 1)
+        memcpy(routes + i, routes + numroutes - 1, sizeof(struct route));
     numroutes--;
     VALGRIND_MAKE_MEM_UNDEFINED(routes + numroutes, sizeof(struct route));
 
