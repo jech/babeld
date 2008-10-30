@@ -41,7 +41,7 @@ THE SOFTWARE.
 
 struct route *routes = NULL;
 int numroutes = 0, maxroutes = 0;
-unsigned kernel_metric = 0;
+int kernel_metric = 0;
 
 struct route *
 find_route(const unsigned char *prefix, unsigned char plen,
