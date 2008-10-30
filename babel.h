@@ -55,7 +55,7 @@ THE SOFTWARE.
 #else
 #define ATTRIBUTE(x) /**/
 #define LIKELY(_x) !!(_x)
-#define UNLIKELY(_x) !!(x)
+#define UNLIKELY(_x) !!(_x)
 #endif
 
 #if defined(__GNUC__) && (__GNUC__ >= 4) && (__GNUC_MINOR__ >= 3)
