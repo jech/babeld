@@ -216,7 +216,6 @@ main(int argc, char **argv)
             SHIFTE();
             config_file = *arg;
         } else if(strcmp(*arg, "-C") == 0) {
-            int rc;
             SHIFTE();
             rc = parse_config_from_string(*arg);
             if(rc < 0) {
