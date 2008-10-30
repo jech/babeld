@@ -227,8 +227,8 @@ unsigned
 check_neighbours()
 {
     struct neighbour *neigh;
-    int changed;
-    unsigned msecs = 50000, delay;
+    int changed, rc;
+    unsigned msecs = 50000;
 
     debugf("Checking neighbours.\n");
 
@@ -245,9 +245,8 @@ check_neighbours()
             continue;
         }
 
-        delay = timeval_minus_msec(&now, &neigh->ihu_time);
-
-        changed = changed || reset_txcost(neigh);
+        rc = reset_txcost(neigh);
+        changed = changed || rc;
 
         if(changed) {
             update_neighbour_metric(neigh);
