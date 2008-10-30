@@ -97,7 +97,7 @@ int local_server_port = -1;
 static int kernel_routes_callback(int changed, void *closure);
 static void init_signals(void);
 static void dump_tables(FILE *out);
-static int reopen_logfile();
+static int reopen_logfile(void);
 
 int
 main(int argc, char **argv)
