@@ -173,7 +173,7 @@ uninstall_route(struct route *route)
    but without the race condition.  The destination of both routes
    must be the same. */
 
-void
+static void
 switch_routes(struct route *old, struct route *new)
 {
     int rc;
