@@ -58,7 +58,7 @@ THE SOFTWARE.
 #define UNLIKELY(_x) !!(x)
 #endif
 
-#if defined(__GNUC__) && (__GNUC__ >= 4) && (__GNUC_MINOR >= 3)
+#if defined(__GNUC__) && (__GNUC__ >= 4) && (__GNUC_MINOR__ >= 3)
 #define COLD __attribute__ ((cold))
 #else
 #define COLD /**/
