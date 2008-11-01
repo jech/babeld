@@ -35,27 +35,6 @@ THE SOFTWARE.
 #include "babel.h"
 #include "util.h"
 
-int
-seqno_compare(unsigned short s1, unsigned short s2)
-{
-    if(s1 == s2)
-        return 0;
-    else
-        return ((s2 - s1) & 0x8000) ? 1 : -1;
-}
-
-int
-seqno_minus(unsigned short s1, unsigned short s2)
-{
-    return (int)(short)((s1 - s2) & 0xFFFF);
-}
-
-unsigned short
-seqno_plus(unsigned short s, int plus)
-{
-    return ((s + plus) & 0xFFFF);
-}
-
 unsigned
 roughly(unsigned value)
 {

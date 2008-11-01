@@ -37,12 +37,27 @@ struct __us { unsigned short x __attribute__((packed)); };
          memcpy((_d), &(_dd), 2); } while(0)
 #endif
 
-int seqno_compare(unsigned short s1, unsigned short s2)
-    ATTRIBUTE ((const));
-int seqno_minus(unsigned short s1, unsigned short s2)
-    ATTRIBUTE ((const));
-unsigned short seqno_plus(unsigned short s, int plus)
-    ATTRIBUTE ((const));
+static inline int
+seqno_compare(unsigned short s1, unsigned short s2)
+{
+    if(s1 == s2)
+        return 0;
+    else
+        return ((s2 - s1) & 0x8000) ? 1 : -1;
+}
+
+static inline int
+seqno_minus(unsigned short s1, unsigned short s2)
+{
+    return (int)(short)((s1 - s2) & 0xFFFF);
+}
+
+static inline unsigned short
+seqno_plus(unsigned short s, int plus)
+{
+    return ((s + plus) & 0xFFFF);
+}
+
 unsigned roughly(unsigned value);
 void timeval_minus(struct timeval *d,
                    const struct timeval *s1, const struct timeval *s2);
