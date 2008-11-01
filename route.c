@@ -604,6 +604,7 @@ route_changed(struct route *route,
         }
 
         if(route->installed)
+            /* We didn't change routes after all. */
             send_triggered_update(route, oldsrc, oldmetric);
     } else {
         /* Reconsider routes even when their metric didn't decrease,
