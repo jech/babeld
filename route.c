@@ -392,7 +392,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
 
         if(!feasible)
             send_unfeasible_request(neigh, route->installed && route_old(route),
-                                    seqno, metric, a, p, plen);
+                                    seqno, metric, src);
 
         if(lost)
             route_lost(oldsrc, oldmetric);
@@ -401,7 +401,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
             /* Somebody's retracting a route we never saw. */
             return NULL;
         if(!feasible) {
-            send_unfeasible_request(neigh, 0, seqno, metric, a, p, plen);
+            send_unfeasible_request(neigh, 0, seqno, metric, src);
             return NULL;
         }
         if(numroutes >= maxroutes) {
@@ -437,14 +437,9 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
 void
 send_unfeasible_request(struct neighbour *neigh, int force,
                         unsigned short seqno, unsigned short metric,
-                        const unsigned char *a,
-                        const unsigned char *prefix, unsigned char plen)
+                        struct source *src)
 {
-    struct route *route = find_installed_route(prefix, plen);
-    struct source *src = find_source(a, prefix, plen, 0, 0);
-
-    if(src == NULL)
-        return;
+    struct route *route = find_installed_route(src->prefix, src->plen);
 
     if(seqno_minus(src->seqno, seqno) > 100) {
         /* Probably a source that lost its seqno.  Let it time-out. */
@@ -452,7 +447,7 @@ send_unfeasible_request(struct neighbour *neigh, int force,
     }
 
     if(force || !route || route->metric >= metric + 512) {
-        send_unicast_multihop_request(neigh, prefix, plen,
+        send_unicast_multihop_request(neigh, src->prefix, src->plen,
                                       src->metric >= INFINITY ?
                                       src->seqno :
                                       seqno_plus(src->seqno, 1),
