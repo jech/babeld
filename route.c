@@ -376,14 +376,10 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
                    format_address(route->src->id),
                    route->seqno, route->refmetric,
                    format_address(src->id), seqno, refmetric);
-            if(src == route->src) {
-                /* If the route is fresh, no need to panic. */
-                if(!route_old(route))
-                   send_unfeasible_request(neigh, 1, seqno, metric, a, p, plen);
-                return route;
+            if(src != route->src) {
+                uninstall_route(route);
+                lost = 1;
             }
-            uninstall_route(route);
-            lost = 1;
         }
 
         route->src = src;
@@ -394,21 +390,22 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         change_route_metric(route, metric);
         route->hold_time = hold_time;
 
-        if(feasible)
-            route_changed(route, oldsrc, oldmetric);
-        else
-            send_unfeasible_request(neigh, 0, seqno, metric, a, p, plen);
+        route_changed(route, oldsrc, oldmetric);
+
+        if(!feasible)
+            send_unfeasible_request(neigh, route->installed && route_old(route),
+                                    seqno, metric, a, p, plen);
 
         if(lost)
             route_lost(oldsrc, oldmetric);
     } else {
+        if(refmetric >= INFINITY)
+            /* Somebody's retracting a route we never saw. */
+            return NULL;
         if(!feasible) {
             send_unfeasible_request(neigh, 0, seqno, metric, a, p, plen);
             return NULL;
         }
-        if(refmetric >= INFINITY)
-            /* Somebody's retracting a route we never saw. */
-            return NULL;
         if(numroutes >= maxroutes) {
             struct route *new_routes;
             int n = maxroutes < 1 ? 8 : 2 * maxroutes;
