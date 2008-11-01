@@ -47,7 +47,7 @@ seqno_compare(unsigned short s1, unsigned short s2)
 int
 seqno_minus(unsigned short s1, unsigned short s2)
 {
-    return ((s1 - s2) & 0xFFFF);
+    return (int)(short)((s1 - s2) & 0xFFFF);
 }
 
 unsigned short
