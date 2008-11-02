@@ -1,3 +1,11 @@
+babel 0.91 (unreleased)
+
+  * Maintain buffered updates per-interface, which makes multi-interface
+    nodes significantly less noisy.
+  * Changed the strategy for dealing with unfeasible routes to be slightly
+    more generous while still avoiding loops.
+  * Made a number of micro-optimisations throughout.
+
 23 October 2008: babel 0.90
 
   * INCOMPATIBLE CHANGE: all new Babel version 2 protocol, which is both
