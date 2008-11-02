@@ -137,9 +137,8 @@ update_jitter(struct network *net, int urgent)
 }
 
 void
-delay_jitter(struct timeval *time, struct timeval *timeout, int msecs)
+delay_jitter(struct timeval *timeout, int msecs)
 {
-    *time = now;
     timeval_plus_msec(timeout, &now, roughly(msecs));
 }
 
@@ -280,12 +279,9 @@ network_up(struct network *net, int up)
                 memcpy(net->ll, ll, rc * 16);
             }
         }
-        delay_jitter(&net->hello_time, &net->hello_timeout,
-                     net->hello_interval);
-        delay_jitter(&net->self_update_time, &net->self_update_timeout,
-                     net->self_update_interval);
-        delay_jitter(&net->update_time, &net->update_timeout,
-                     update_interval);
+        delay_jitter(&net->hello_timeout, net->hello_interval);
+        delay_jitter(&net->self_update_timeout, net->self_update_interval);
+        delay_jitter(&net->update_timeout, update_interval);
         send_hello(net);
         send_request(net, NULL, 0);
     } else {

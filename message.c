@@ -636,8 +636,7 @@ send_hello_noupdate(struct network *net, unsigned interval)
         flushbuf(net);
 
     net->hello_seqno = seqno_plus(net->hello_seqno, 1);
-    delay_jitter(&net->hello_time, &net->hello_timeout,
-                 net->hello_interval);
+    delay_jitter(&net->hello_timeout, net->hello_interval);
 
     if(!net->up)
         return;
@@ -1006,10 +1005,6 @@ send_update(struct network *net, int urgent,
         }
     } else {
         send_self_update(net, 0);
-        /* Don't send full route dumps more than ten times per second */
-        if(net->update_time.tv_sec > 0 &&
-           timeval_minus_msec(&now, &net->update_time) < 100)
-            return;
         if(!selfonly && !network_idle(net)) {
             debugf("Sending update to %s for any.\n", net->ifname);
             for(i = 0; i < numroutes; i++)
@@ -1017,8 +1012,7 @@ send_update(struct network *net, int urgent,
                     buffer_update(net,
                                   routes[i].src->prefix, routes[i].src->plen);
         }
-        delay_jitter(&net->update_time, &net->update_timeout,
-                     update_interval);
+        delay_jitter(&net->update_timeout, update_interval);
     }
     schedule_update_flush(net, urgent);
 }
@@ -1097,8 +1091,7 @@ send_self_update(struct network *net, int force_seqno)
         for(i = 0; i < numxroutes; i++)
             send_update(net, 0, xroutes[i].prefix, xroutes[i].plen);
     }
-    delay_jitter(&net->self_update_time, &net->self_update_timeout,
-                 net->self_update_interval);
+    delay_jitter(&net->self_update_timeout, net->self_update_interval);
 }
 
 void
