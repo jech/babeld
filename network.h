@@ -36,12 +36,13 @@ struct network {
     struct timeval hello_timeout;
     struct timeval self_update_timeout;
     struct timeval update_timeout;
+    struct timeval flush_timeout;
+    struct timeval update_flush_timeout;
     char ifname[IF_NAMESIZE];
     unsigned char *ipv4;
     int numll;
     unsigned char (*ll)[16];
     int buffered;
-    struct timeval flush_timeout;
     int bufsize;
     char have_buffered_hello;
     char have_buffered_id;

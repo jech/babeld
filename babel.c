@@ -538,8 +538,8 @@ main(int argc, char **argv)
             timeval_min(&tv, &net->hello_timeout);
             timeval_min(&tv, &net->self_update_timeout);
             timeval_min(&tv, &net->update_timeout);
+            timeval_min(&tv, &net->update_flush_timeout);
         }
-        timeval_min(&tv, &update_flush_timeout);
         timeval_min(&tv, &unicast_flush_timeout);
         FD_ZERO(&readfds);
         if(timeval_compare(&tv, &now) > 0) {
@@ -688,16 +688,13 @@ main(int argc, char **argv)
                 send_update(net, 0, NULL, 0);
             if(timeval_compare(&now, &net->self_update_timeout) >= 0)
                 send_self_update(net, 0);
+            if(timeval_compare(&now, &net->update_flush_timeout) >= 0)
+                flushupdates(net);
         }
 
         if(resend_time.tv_sec != 0) {
             if(timeval_compare(&now, &resend_time) >= 0)
                 do_resend();
-        }
-
-        if(update_flush_timeout.tv_sec != 0) {
-            if(timeval_compare(&now, &update_flush_timeout) >= 0)
-                flushupdates(NULL);
         }
 
         if(unicast_flush_timeout.tv_sec != 0) {

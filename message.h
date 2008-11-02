@@ -47,7 +47,6 @@ extern int silent_time;
 extern int broadcast_ihu;
 extern int split_horizon;
 
-extern struct timeval update_flush_timeout;
 extern unsigned char packet_header[4];
 
 extern struct neighbour *unicast_neighbour;

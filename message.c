@@ -40,8 +40,6 @@ THE SOFTWARE.
 #include "filter.h"
 #include "kernel.h"
 
-struct timeval update_flush_timeout = {0, 0};
-
 unsigned char packet_header[4] = {42, 2};
 
 int parasitic = 0;
@@ -917,8 +915,8 @@ flushupdates(struct network *net)
     done:
         free(b);
     }
-    update_flush_timeout.tv_sec = 0;
-    update_flush_timeout.tv_usec = 0;
+    net->update_flush_timeout.tv_sec = 0;
+    net->update_flush_timeout.tv_usec = 0;
 }
 
 static void
@@ -926,11 +924,12 @@ schedule_update_flush(struct network *net, int urgent)
 {
     unsigned msecs;
     msecs = update_jitter(net, urgent);
-    if(update_flush_timeout.tv_sec != 0 &&
-       timeval_minus_msec(&update_flush_timeout, &now) < msecs)
+    if(net->update_flush_timeout.tv_sec != 0 &&
+       timeval_minus_msec(&net->update_flush_timeout, &now) < msecs)
         return;
-    update_flush_timeout.tv_usec = (now.tv_usec + msecs * 1000) % 1000000;
-    update_flush_timeout.tv_sec =
+    net->update_flush_timeout.tv_usec =
+        (now.tv_usec + msecs * 1000) % 1000000;
+    net->update_flush_timeout.tv_sec =
         now.tv_sec + (now.tv_usec / 1000 + msecs) / 1000;
 }
 
