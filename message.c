@@ -52,17 +52,6 @@ unsigned short myseqno = 0;
 struct timeval seqno_time = {0, 0};
 int seqno_interval = -1;
 
-struct buffered_update {
-    unsigned char id[8];
-    unsigned char prefix[16];
-    unsigned char plen;
-    unsigned char pad[3];
-};
-struct buffered_update buffered_updates[MAX_BUFFERED_UPDATES]
-    ATTRIBUTE ((aligned (4)));
-struct network *update_net = NULL;
-int updates = 0;
-
 #define UNICAST_BUFSIZE 1024
 int unicast_buffered = 0;
 unsigned char *unicast_buffer = NULL;
@@ -841,7 +830,7 @@ compare_buffered_updates(const void *av, const void *bv)
 }
 
 void
-flushupdates(struct network *network)
+flushupdates(struct network *net)
 {
     struct xroute *xroute;
     struct route *route;
@@ -849,31 +838,39 @@ flushupdates(struct network *network)
     unsigned char last_plen = 0xFF;
     int i;
 
-    if(network && network != update_net)
+    if(net == NULL) {
+        struct network *n;
+        FOR_ALL_NETS(n)
+            flushupdates(n);
         return;
+    }
 
-    if(updates > 0) {
-        int n = updates;
-        struct network *net = update_net;
-        updates = 0;
-        update_net = NULL;
+    if(net->num_buffered_updates > 0) {
+        struct buffered_update *b = net->buffered_updates;
+        int n = net->num_buffered_updates;
 
-        debugf("  (flushing %d buffered updates)\n", n);
+        net->buffered_updates = NULL;
+        net->update_bufsize = 0;
+        net->num_buffered_updates = 0;
+
+        if(!net->up)
+            goto done;
+
+        debugf("  (flushing %d buffered updates on %s (%d))\n",
+               n, net->ifname, net->ifindex);
 
         /* In order to send fewer update messages, we want to send updates
            with the same router-id together, with IPv6 going out before IPv4. */
 
         for(i = 0; i < n; i++) {
-            route = find_installed_route(buffered_updates[i].prefix,
-                                         buffered_updates[i].plen);
+            route = find_installed_route(b[i].prefix, b[i].plen);
             if(route)
-                memcpy(buffered_updates[i].id, route->src->id, 8);
+                memcpy(b[i].id, route->src->id, 8);
             else
-                memcpy(buffered_updates[i].id, myid, 8);
+                memcpy(b[i].id, myid, 8);
         }
 
-        qsort(buffered_updates, n, sizeof(struct buffered_update),
-              compare_buffered_updates);
+        qsort(b, n, sizeof(struct buffered_update), compare_buffered_updates);
 
         for(i = 0; i < n; i++) {
             unsigned short seqno;
@@ -884,13 +881,12 @@ flushupdates(struct network *network)
                compare with the previous update. */
 
             if(last_prefix) {
-                if(buffered_updates[i].plen == last_plen &&
-                   memcmp(buffered_updates[i].prefix, last_prefix, 16) == 0)
+                if(b[i].plen == last_plen &&
+                   memcmp(b[i].prefix, last_prefix, 16) == 0)
                     continue;
             }
 
-            xroute = find_xroute(buffered_updates[i].prefix,
-                                 buffered_updates[i].plen);
+            xroute = find_xroute(b[i].prefix, b[i].plen);
             if(xroute) {
                 really_send_update(net, myid,
                                    xroute->prefix, xroute->plen,
@@ -899,8 +895,7 @@ flushupdates(struct network *network)
                 last_plen = xroute->plen;
                 continue;
             }
-            route = find_installed_route(buffered_updates[i].prefix,
-                                         buffered_updates[i].plen);
+            route = find_installed_route(b[i].prefix, b[i].plen);
             if(route) {
                 seqno = route->seqno;
                 metric = route->metric;
@@ -920,8 +915,8 @@ flushupdates(struct network *network)
             }
         }
         schedule_flush_now(net);
-        VALGRIND_MAKE_MEM_UNDEFINED(&buffered_updates,
-                                    sizeof(buffered_updates));
+    done:
+        free(b);
     }
     update_flush_timeout.tv_sec = 0;
     update_flush_timeout.tv_usec = 0;
@@ -944,15 +939,32 @@ static void
 buffer_update(struct network *net,
               const unsigned char *prefix, unsigned char plen)
 {
-    flushupdates(net);
-
-    update_net = net;
-
-    if(updates >= MAX_BUFFERED_UPDATES)
+    if(net->num_buffered_updates > 0 &&
+       net->num_buffered_updates >= net->update_bufsize)
         flushupdates(net);
-    memcpy(buffered_updates[updates].prefix, prefix, 16);
-    buffered_updates[updates].plen = plen;
-    updates++;
+
+    if(net->update_bufsize == 0) {
+        int n;
+        assert(net->buffered_updates == NULL);
+        n = MAX(net->bufsize / 16, 4);
+    again:
+        net->buffered_updates = malloc(n * sizeof(struct buffered_update));
+        if(net->buffered_updates == NULL) {
+            perror("malloc(buffered_updates)");
+            if(n > 4) {
+                n = 4;
+                goto again;
+            }
+            return;
+        }
+        net->update_bufsize = n;
+        net->num_buffered_updates = 0;
+    }
+
+    memcpy(net->buffered_updates[net->num_buffered_updates].prefix,
+           prefix, 16);
+    net->buffered_updates[net->num_buffered_updates].plen = plen;
+    net->num_buffered_updates++;
 }
 
 void

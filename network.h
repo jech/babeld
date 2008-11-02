@@ -20,6 +20,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+struct buffered_update {
+    unsigned char id[8];
+    unsigned char prefix[16];
+    unsigned char plen;
+    unsigned char pad[3];
+};
+
 struct network {
     struct network *next;
     char up;
@@ -47,6 +54,9 @@ struct network {
     unsigned char buffered_nh[4];
     unsigned char buffered_prefix[16];
     unsigned char *sendbuf;
+    struct buffered_update *buffered_updates;
+    int num_buffered_updates;
+    int update_bufsize;
     time_t bucket_time;
     unsigned int bucket;
     time_t activity_time;
