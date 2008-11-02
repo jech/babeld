@@ -46,10 +46,10 @@ seqno_compare(unsigned short s1, unsigned short s2)
         return ((s2 - s1) & 0x8000) ? 1 : -1;
 }
 
-static inline int
+static inline short
 seqno_minus(unsigned short s1, unsigned short s2)
 {
-    return (int)(short)((s1 - s2) & 0xFFFF);
+    return (short)((s1 - s2) & 0xFFFF);
 }
 
 static inline unsigned short
