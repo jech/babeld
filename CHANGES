@@ -4,6 +4,7 @@ babel 0.91 (unreleased)
     nodes significantly less noisy.
   * Changed the strategy for dealing with unfeasible routes to be slightly
     more generous while still avoiding loops.
+  * Fixed a bug that would cause multi-hop requests to be spuriously resent.
   * Made a number of micro-optimisations throughout.
 
 23 October 2008: babel 0.90
