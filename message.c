@@ -975,8 +975,17 @@ send_update(struct network *net, int urgent,
 
     if(net == NULL) {
         struct network *n;
+        struct route *route;
         FOR_ALL_NETS(n)
             send_update(n, urgent, prefix, plen);
+        if(prefix) {
+            /* Since flushupdates only deals with non-wildcard interfaces, we
+               need to do this now. */
+            route = find_installed_route(prefix, plen);
+            if(route && route->metric < INFINITY)
+                satisfy_request(prefix, plen, route->src->seqno, route->src->id,
+                                NULL);
+        }
         return;
     }
 
