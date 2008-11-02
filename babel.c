@@ -514,7 +514,7 @@ main(int argc, char **argv)
         send_wildcard_retraction(net);
         send_self_update(net, 0);
         send_request(net, NULL, 0);
-        flushupdates();
+        flushupdates(net);
         flushbuf(net);
     }
 
@@ -697,7 +697,7 @@ main(int argc, char **argv)
 
         if(update_flush_timeout.tv_sec != 0) {
             if(timeval_compare(&now, &update_flush_timeout) >= 0)
-                flushupdates();
+                flushupdates(NULL);
         }
 
         if(unicast_flush_timeout.tv_sec != 0) {

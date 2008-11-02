@@ -455,8 +455,7 @@ flushbuf(struct network *net)
 
     assert(net->buffered <= net->bufsize);
 
-    if(update_net == net)
-        flushupdates();
+    flushupdates(net);
 
     if(net->buffered > 0) {
         debugf("  (flushing %d buffered bytes on %s)\n",
@@ -842,13 +841,16 @@ compare_buffered_updates(const void *av, const void *bv)
 }
 
 void
-flushupdates(void)
+flushupdates(struct network *network)
 {
     struct xroute *xroute;
     struct route *route;
     const unsigned char *last_prefix = NULL;
     unsigned char last_plen = 0xFF;
     int i;
+
+    if(network && network != update_net)
+        return;
 
     if(updates > 0) {
         int n = updates;
@@ -942,13 +944,12 @@ static void
 buffer_update(struct network *net,
               const unsigned char *prefix, unsigned char plen)
 {
-    if(update_net && update_net != net)
-        flushupdates();
+    flushupdates(net);
 
     update_net = net;
 
     if(updates >= MAX_BUFFERED_UPDATES)
-        flushupdates();
+        flushupdates(net);
     memcpy(buffered_updates[updates].prefix, prefix, 16);
     buffered_updates[updates].plen = plen;
     updates++;
@@ -1185,8 +1186,7 @@ send_request(struct network *net,
     }
 
     /* make sure any buffered updates go out before this request. */
-    if(!net || update_net == net)
-        flushupdates();
+    flushupdates(net);
 
     if(!net->up)
         return;
@@ -1215,8 +1215,7 @@ send_unicast_request(struct neighbour *neigh,
     int rc, v4, len;
 
     /* make sure any buffered updates go out before this request. */
-    if(update_net == neigh->network)
-        flushupdates();
+    flushupdates(neigh->network);
 
     debugf("sending unicast request to %s for %s.\n",
            format_address(neigh->address),
@@ -1246,8 +1245,7 @@ send_multihop_request(struct network *net,
     int v4, pb, len;
 
     /* Make sure any buffered updates go out before this request. */
-    if(!net || update_net == net)
-        flushupdates();
+    flushupdates(net);
 
     if(net == NULL) {
         struct network *n;
@@ -1293,8 +1291,7 @@ send_unicast_multihop_request(struct neighbour *neigh,
     int rc, v4, pb, len;
 
     /* Make sure any buffered updates go out before this request. */
-    if(update_net == neigh->network)
-        flushupdates();
+    flushupdates(neigh->network);
 
     debugf("Sending multi-hop request to %s for %s (%d hops).\n",
            format_address(neigh->address),
