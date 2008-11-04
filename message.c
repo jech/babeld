@@ -884,9 +884,7 @@ flushupdates(struct network *net)
                 really_send_update(net, myid,
                                    xroute->prefix, xroute->plen,
                                    myseqno, xroute->metric);
-                last_prefix = xroute->prefix;
-                last_plen = xroute->plen;
-                continue;
+                goto next;
             }
             route = find_installed_route(b[i].prefix, b[i].plen);
             if(route) {
@@ -896,16 +894,17 @@ flushupdates(struct network *net)
                     satisfy_request(route->src->prefix, route->src->plen,
                                     seqno, route->src->id, net);
                 if(split_horizon && net->wired && route->neigh->network == net)
-                    continue;
+                    goto next;
                 really_send_update(net, route->src->id,
                                    route->src->prefix,
                                    route->src->plen,
                                    seqno, metric);
                 update_source(route->src, seqno, metric);
-                last_prefix = route->src->prefix;
-                last_plen = route->src->plen;
-                continue;
+                goto next;
             }
+        next:
+            last_prefix = route->src->prefix;
+            last_plen = route->src->plen;
         }
         schedule_flush_now(net);
     done:
