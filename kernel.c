@@ -68,7 +68,7 @@ gettime(struct timeval *tv)
 #if defined(_POSIX_TIMERS) && _POSIX_TIMERS > 0 && defined(CLOCK_MONOTONIC)
     static int have_posix_clocks = -1;
 
-    if(have_posix_clocks < 0) {
+    if(UNLIKELY(have_posix_clocks < 0)) {
         struct timespec ts;
         int rc;
         rc = clock_gettime(CLOCK_MONOTONIC, &ts);
