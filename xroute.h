@@ -20,8 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-/* These should come in decreasing order of priority. */
-
 struct xroute {
     unsigned char prefix[16];
     unsigned char plen;
