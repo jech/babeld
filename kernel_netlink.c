@@ -1082,7 +1082,7 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
     return found;
 }
 
-char *
+static char *
 parse_ifname_rta(struct ifinfomsg *info, int len)
 {
     struct rtattr *rta = IFLA_RTA(info);
@@ -1103,7 +1103,7 @@ parse_ifname_rta(struct ifinfomsg *info, int len)
     return ifname;
 }
 
-int
+static int
 parse_addr_rta(struct ifaddrmsg *addr, int len, struct in6_addr *res)
 {
     struct rtattr *rta;
@@ -1137,7 +1137,7 @@ parse_addr_rta(struct ifaddrmsg *addr, int len, struct in6_addr *res)
     return 0;
 }
 
-int
+static int
 filter_link(struct nlmsghdr *nh, void *data)
 {
     struct ifinfomsg *info;
@@ -1170,7 +1170,7 @@ filter_link(struct nlmsghdr *nh, void *data)
     return 0;
 }
 
-int
+static int
 filter_addresses(struct nlmsghdr *nh, void *data)
 {
     int rc;
@@ -1231,7 +1231,7 @@ filter_addresses(struct nlmsghdr *nh, void *data)
     return 1;
 }
 
-int
+static int
 filter_netlink(struct nlmsghdr *nh, void *data)
 {
     int rc;
