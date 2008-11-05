@@ -23,6 +23,8 @@ THE SOFTWARE.
 #include <sys/time.h>
 #include <time.h>
 
+#include "babel.h"
+
 #ifdef __APPLE__
 #include "kernel_socket.c"
 #else
