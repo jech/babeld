@@ -389,13 +389,12 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         route->hold_time = hold_time;
 
         route_changed(route, oldsrc, oldmetric);
+        if(lost)
+            route_lost(oldsrc, oldmetric);
 
         if(!feasible)
             send_unfeasible_request(neigh, route->installed && route_old(route),
                                     seqno, metric, src);
-
-        if(lost)
-            route_lost(oldsrc, oldmetric);
     } else {
         if(refmetric >= INFINITY)
             /* Somebody's retracting a route we never saw. */
