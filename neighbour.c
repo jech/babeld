@@ -185,10 +185,10 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
     }
 
     if((neigh->reach & 0xFC00) == 0xC000) {
-        /* This is a newish neighbour.  Let's request a full route dump. */
-        send_ihu(neigh, NULL);
-        /* We ought to avoid this when the network is dense */
+        /* This is a newish neighbour, let's request a full route dump.
+           We ought to avoid this when the network is dense */
         send_unicast_request(neigh, NULL, 0);
+        send_ihu(neigh, NULL);
     }
     if(rc)
         local_notify_neighbour(neigh, LOCAL_CHANGE);
