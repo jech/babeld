@@ -1368,9 +1368,8 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
 
     route = find_installed_route(prefix, plen);
     if(route &&
-       (route->metric < INFINITY &&
-        (memcmp(id, route->src->id, 8) != 0 ||
-         seqno_compare(seqno, route->seqno) <= 0))) {
+       (memcmp(id, route->src->id, 8) != 0 ||
+        seqno_compare(seqno, route->seqno) <= 0)) {
         send_update(neigh->network, 1, prefix, plen);
         return;
     }
