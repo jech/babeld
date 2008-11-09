@@ -29,7 +29,7 @@ struct filter {
     unsigned char plen;
     unsigned char plen_ge, plen_le;
     unsigned char *neigh;
-    int proto;
+    int proto;                  /* May be negative */
     unsigned int result;
     struct filter *next;
 };
