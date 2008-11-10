@@ -1,4 +1,4 @@
-babel 0.91 (unreleased)
+10 November 2008: babel 0.91
 
   * Maintain buffered updates per-interface, which makes multi-interface
     nodes significantly less noisy.
