@@ -292,6 +292,7 @@ network_up(struct network *net, int up)
         net->update_bufsize = 0;
         if(net->buffered_updates)
             free(net->buffered_updates);
+        net->buffered_updates = NULL;
         net->sendbuf = NULL;
         if(net->ifindex > 0) {
             memset(&mreq, 0, sizeof(mreq));
