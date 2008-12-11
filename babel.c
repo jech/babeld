@@ -284,19 +284,19 @@ main(int argc, char **argv)
     rc = reopen_logfile();
     if(rc < 0) {
         perror("reopen_logfile()");
-        goto fail;
+        exit(1);
     }
 
     fd = open("/dev/null", O_RDONLY);
     if(fd < 0) {
         perror("open(null)");
-        goto fail;
+        exit(1);
     }
 
     rc = dup2(fd, 0);
     if(rc < 0) {
         perror("dup2(null, 0)");
-        goto fail;
+        exit(1);
     }
 
     close(fd);
@@ -305,7 +305,7 @@ main(int argc, char **argv)
         rc = daemonise();
         if(rc < 0) {
             perror("daemonise");
-            goto fail_nopid;
+            exit(1);
         }
     }
 
@@ -316,7 +316,7 @@ main(int argc, char **argv)
         len = snprintf(buf, 100, "%lu", (unsigned long)getpid());
         if(len < 0 || len >= 100) {
             perror("snprintf(getpid)");
-            goto fail_nopid;
+            exit(1);
         }
 
         pfd = open(pidfile, O_WRONLY | O_CREAT | O_EXCL, 0644);
@@ -325,13 +325,13 @@ main(int argc, char **argv)
             snprintf(buf, 40, "creat(%s)", pidfile);
             buf[39] = '\0';
             perror(buf);
-            goto fail_nopid;
+            exit(1);
         }
 
         rc = write(pfd, buf, len);
         if(rc < len) {
             perror("write(pidfile)");
-            goto fail;
+            goto fail_pid;
         }
 
         close(pfd);
@@ -340,14 +340,14 @@ main(int argc, char **argv)
     rc = kernel_setup(1);
     if(rc < 0) {
         fprintf(stderr, "kernel_setup failed.\n");
-        exit(1);
+        goto fail_pid;
     }
 
     rc = kernel_setup_socket(1);
     if(rc < 0) {
         fprintf(stderr, "kernel_setup_socket failed.\n");
         kernel_setup(0);
-        exit(1);
+        goto fail_pid;
     }
 
     {
@@ -801,9 +801,6 @@ main(int argc, char **argv)
     exit(1);
 
  fail:
-    if(pidfile)
-        unlink(pidfile);
- fail_nopid:
     FOR_ALL_NETS(net) {
         if(!net->up)
             continue;
@@ -811,6 +808,9 @@ main(int argc, char **argv)
     }
     kernel_setup_socket(0);
     kernel_setup(0);
+ fail_pid:
+    if(pidfile)
+        unlink(pidfile);
     exit(1);
 }
 
