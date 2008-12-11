@@ -60,17 +60,19 @@ kernel_ll_addresses(char *ifname, int ifindex,
     return j;
 }
 
-/* Like gettimeofday, but should return monotonic time.  If POSIX clocks
-   are not available, falls back to gettimeofday. */
+/* Like gettimeofday, but returns monotonic time.  If POSIX clocks are not
+   available, falls back to gettimeofday but enforces monotonicity. */
 int
 gettime(struct timeval *tv)
 {
+    int rc;
+    static time_t offset = 0, previous = 0;
+
 #if defined(_POSIX_TIMERS) && _POSIX_TIMERS > 0 && defined(CLOCK_MONOTONIC)
     static int have_posix_clocks = -1;
 
     if(UNLIKELY(have_posix_clocks < 0)) {
         struct timespec ts;
-        int rc;
         rc = clock_gettime(CLOCK_MONOTONIC, &ts);
         if(rc < 0) {
             have_posix_clocks = 0;
@@ -91,5 +93,14 @@ gettime(struct timeval *tv)
     }
 #endif
 
-    return gettimeofday(tv, NULL);
+    rc = gettimeofday(tv, NULL);
+    if(rc < 0)
+        return rc;
+    tv->tv_sec += offset;
+    if(UNLIKELY(previous > tv->tv_sec)) {
+        offset += previous - tv->tv_sec;
+        tv->tv_sec = previous;
+    }
+    previous = tv->tv_sec;
+    return rc;
 }
