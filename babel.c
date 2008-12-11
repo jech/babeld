@@ -309,7 +309,7 @@ main(int argc, char **argv)
         }
     }
 
-    if(pidfile) {
+    if(pidfile && pidfile[0] != '\0') {
         int pfd, len;
         char buf[100];
 
