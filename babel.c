@@ -814,7 +814,7 @@ main(int argc, char **argv)
     exit(1);
 }
 
-/* Schedule a neighbours check after roughly 3/2 msecs have elapsed. */
+/* Schedule a neighbours check after roughly 3/2 times msecs have elapsed. */
 void
 schedule_neighbours_check(int msecs, int override)
 {
