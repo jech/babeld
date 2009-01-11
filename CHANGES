@@ -1,3 +1,10 @@
+babel 0.92 (unreleased):
+
+  * Fixed a bug that could cause a crash if an interface was repeatedly
+    brought down and then back up.
+  * Implemented some protection against time stepping when POSIX clocks are
+    not available.
+
 10 November 2008: babel 0.91
 
   * Maintain buffered updates per-interface, which makes multi-interface
