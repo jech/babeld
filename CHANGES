@@ -1,4 +1,4 @@
-babel 0.92 (unreleased):
+21 January 2008: babel 0.92
 
   * Fixed a bug that could cause a crash if an interface was repeatedly
     brought down and then back up.
