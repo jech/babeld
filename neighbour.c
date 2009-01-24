@@ -180,7 +180,7 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
         int b = (neigh->reach & 0x3000);
         if((a == 0xC000 && b == 0) || (a == 0 && b == 0x3000)) {
             /* Reachability is either 1100 or 0011 */
-            send_self_update(neigh->network, 0);
+            send_self_update(neigh->network);
         }
     }
 

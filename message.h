@@ -67,7 +67,7 @@ void send_update_resend(struct network *net,
                         const unsigned char *prefix, unsigned char plen);
 void send_wildcard_retraction(struct network *net);
 void update_myseqno(int force);
-void send_self_update(struct network *net, int force_seqno);
+void send_self_update(struct network *net);
 void send_ihu(struct neighbour *neigh, struct network *net);
 void send_marginal_ihu(struct network *net);
 void send_request(struct network *net,

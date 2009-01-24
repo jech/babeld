@@ -512,7 +512,7 @@ main(int argc, char **argv)
         gettime(&now);
         send_hello(net);
         send_wildcard_retraction(net);
-        send_self_update(net, 0);
+        send_self_update(net);
         send_request(net, NULL, 0);
         flushupdates(net);
         flushbuf(net);
@@ -687,7 +687,7 @@ main(int argc, char **argv)
             if(timeval_compare(&now, &net->update_timeout) >= 0)
                 send_update(net, 0, NULL, 0);
             if(timeval_compare(&now, &net->self_update_timeout) >= 0)
-                send_self_update(net, 0);
+                send_self_update(net);
             if(timeval_compare(&now, &net->update_flush_timeout) >= 0)
                 flushupdates(net);
         }

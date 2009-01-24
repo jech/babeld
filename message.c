@@ -996,7 +996,7 @@ send_update(struct network *net, int urgent,
             buffer_update(net, prefix, plen);
         }
     } else {
-        send_self_update(net, 0);
+        send_self_update(net);
         if(!selfonly && !network_idle(net)) {
             debugf("Sending update to %s for any.\n", net->ifname);
             for(i = 0; i < numroutes; i++)
@@ -1062,18 +1062,18 @@ update_myseqno(int force)
 }
 
 void
-send_self_update(struct network *net, int force_seqno)
+send_self_update(struct network *net)
 {
     int i;
 
-    update_myseqno(force_seqno);
+    update_myseqno(0);
 
     if(net == NULL) {
         struct network *n;
         FOR_ALL_NETS(n) {
             if(!n->up)
                 continue;
-            send_self_update(n, 0);
+            send_self_update(n);
         }
         return;
     }
