@@ -1055,7 +1055,12 @@ send_wildcard_retraction(struct network *net)
 void
 update_myseqno(int force)
 {
-    if(force || timeval_minus_msec(&now, &seqno_time) >= seqno_interval) {
+    int delay = timeval_minus_msec(&now, &seqno_time);
+
+    if(delay < 1000)
+        return;
+
+    if(force || delay >= seqno_interval) {
         myseqno = seqno_plus(myseqno, 1);
         seqno_time = now;
     }
