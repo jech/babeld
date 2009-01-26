@@ -40,7 +40,6 @@ THE SOFTWARE.
 
 extern unsigned short myseqno;
 extern struct timeval seqno_time;
-extern int seqno_interval;
 
 extern int parasitic;
 extern int silent_time;
@@ -66,7 +65,7 @@ void send_update(struct network *net, int urgent,
 void send_update_resend(struct network *net,
                         const unsigned char *prefix, unsigned char plen);
 void send_wildcard_retraction(struct network *net);
-void update_myseqno(int force);
+void update_myseqno(void);
 void send_self_update(struct network *net);
 void send_ihu(struct neighbour *neigh, struct network *net);
 void send_marginal_ihu(struct network *net);

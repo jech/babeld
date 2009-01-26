@@ -272,10 +272,6 @@ main(int argc, char **argv)
                 70000);
     update_interval = MAX(update_interval, 70);
 
-    if(seqno_interval <= 0)
-        seqno_interval = MAX(40000, update_interval * 9 / 10);
-    seqno_interval = MAX(seqno_interval, 20);
-
     if(do_daemonise) {
         if(logfile == NULL)
             logfile = "/var/log/babel.log";

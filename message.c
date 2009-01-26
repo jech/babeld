@@ -48,7 +48,6 @@ int split_horizon = 1;
 
 unsigned short myseqno = 0;
 struct timeval seqno_time = {0, 0};
-int seqno_interval = -1;
 
 #define UNICAST_BUFSIZE 1024
 int unicast_buffered = 0;
@@ -1053,25 +1052,16 @@ send_wildcard_retraction(struct network *net)
 }
 
 void
-update_myseqno(int force)
+update_myseqno()
 {
-    int delay = timeval_minus_msec(&now, &seqno_time);
-
-    if(delay < 1000)
-        return;
-
-    if(force || delay >= seqno_interval) {
-        myseqno = seqno_plus(myseqno, 1);
-        seqno_time = now;
-    }
+    myseqno = seqno_plus(myseqno, 1);
+    seqno_time = now;
 }
 
 void
 send_self_update(struct network *net)
 {
     int i;
-
-    update_myseqno(0);
 
     if(net == NULL) {
         struct network *n;
@@ -1364,7 +1354,7 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
                     /* Hopelessly out-of-date request */
                     return;
                 }
-                update_myseqno(1);
+                update_myseqno();
             }
         }
         send_update(neigh->network, 1, prefix, plen);
