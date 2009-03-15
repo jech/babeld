@@ -1,8 +1,8 @@
-babel 0.93 (unreleased);
+15 March 2009: babel 0.93
 
   * No longer update seqno periodically, rely on explicit seqno requests.
 
-21 January 2008: babel 0.92
+21 January 2009: babel 0.92
 
   * Fixed a bug that could cause a crash if an interface was repeatedly
     brought down and then back up.
