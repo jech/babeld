@@ -357,7 +357,7 @@ main(int argc, char **argv)
 
     while(*arg) {
         debugf("Adding network %s.\n", *arg);
-        vrc = add_network(*arg);
+        vrc = add_network(*arg, NULL);
         if(vrc == NULL)
             goto fail;
         SHIFT();

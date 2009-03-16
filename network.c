@@ -55,17 +55,23 @@ last_network(void)
 }
 
 struct network *
-add_network(char *ifname)
+add_network(char *ifname, struct network_conf *conf)
 {
     struct network *net;
+
+    if(conf) {
+        if(strcmp(ifname, conf->ifname) != 0)
+            return NULL;
+    }
 
     net = malloc(sizeof(struct network));
     if(net == NULL)
         return NULL;
 
     memset(net, 0, sizeof(struct network));
-    net->activity_time = now.tv_sec;
     strncpy(net->ifname, ifname, IF_NAMESIZE);
+    net->conf = conf;
+    net->activity_time = now.tv_sec;
     net->bucket_time = now.tv_sec;
     net->bucket = BUCKET_TOKENS_MAX;
     net->hello_seqno = (random() & 0xFFFF);

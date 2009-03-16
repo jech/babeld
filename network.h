@@ -27,8 +27,14 @@ struct buffered_update {
     unsigned char pad[3];
 };
 
+struct network_conf {
+    char *ifname;
+    struct network_conf *next;
+};
+
 struct network {
     struct network *next;
+    struct network_conf *conf;
     char up;
     char wired;
     unsigned int ifindex;
@@ -68,7 +74,7 @@ extern int numnets;
 
 #define FOR_ALL_NETS(_net) for(_net = networks; _net; _net = _net->next)
 
-struct network *add_network(char *ifname);
+struct network *add_network(char *ifname, struct network_conf *conf);
 int network_idle(struct network *net);
 int update_hello_interval(struct network *net);
 unsigned jitter(struct network *net, int urgent);
