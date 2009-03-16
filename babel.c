@@ -252,12 +252,6 @@ main(int argc, char **argv)
         }
     }
 
-    rc = finalise_config();
-    if(rc < 0) {
-        fprintf(stderr, "Couldn't finalise configuration.\n");
-        exit(1);
-    }
-
     if(wireless_hello_interval <= 0)
         wireless_hello_interval = 4000;
     wireless_hello_interval = MAX(wireless_hello_interval, 5);
@@ -353,6 +347,12 @@ main(int argc, char **argv)
             fprintf(stderr, "Warning: obsolete router-id given.\n");
             SHIFTE();
         }
+    }
+
+    rc = finalise_config();
+    if(rc < 0) {
+        fprintf(stderr, "Couldn't finalise configuration.\n");
+        exit(1);
     }
 
     while(*arg) {
