@@ -75,6 +75,41 @@ getword(int c, char **token_r, gnc_t gnc, void *closure)
 }
 
 static int
+getstring(int c, char **token_r, gnc_t gnc, void *closure)
+{
+    char buf[256];
+    int i = 0;
+
+    c = skip_whitespace(c, gnc, closure);
+    if(c < 0)
+        return c;
+    if(c == '\n')
+        return -2;
+
+    /* Unquoted strings have the same syntax as words. */
+    if(c != '"')
+        return getword(c, token_r, gnc, closure);
+
+    c = gnc(closure);
+
+    while(1) {
+        if(i >= 255 || c == '\n') return -2;
+        if(c == '"') {
+            c = gnc(closure);
+            break;
+        }
+        if(c == '\\')
+            c = gnc(closure);
+        buf[i++] = c;
+        c = gnc(closure);
+    }
+
+    buf[i] = '\0';
+    *token_r = strdup(buf);
+    return c;
+}
+
+static int
 getint(int c, int *int_r, gnc_t gnc, void *closure)
 {
     char *t, *end;
@@ -249,7 +284,7 @@ parse_filter(gnc_t gnc, void *closure)
             filter->proto = RTPROT_BABEL_LOCAL;
         } else if(strcmp(token, "if") == 0) {
             char *interface;
-            c = getword(c, &interface, gnc, closure);
+            c = getstring(c, &interface, gnc, closure);
             if(c < -1)
                 goto error;
             filter->ifname = interface;
