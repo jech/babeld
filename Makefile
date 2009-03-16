@@ -9,10 +9,10 @@ CFLAGS = $(CDEBUGFLAGS) $(DEFINES) $(EXTRA_DEFINES)
 LDLIBS = -lrt
 
 SRCS = babel.c net.c kernel.c util.c network.c source.c neighbour.c \
-       route.c xroute.c message.c resend.c filter.c local.c
+       route.c xroute.c message.c resend.c config.c local.c
 
 OBJS = babel.o net.o kernel.o util.o network.o source.o neighbour.o \
-       route.o xroute.o message.o resend.o filter.o local.o
+       route.o xroute.o message.o resend.o config.o local.o
 
 babel: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o babel $(OBJS) $(LDLIBS)

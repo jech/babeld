@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 #include "babel.h"
 #include "util.h"
-#include "filter.h"
+#include "config.h"
 
 struct filter *input_filters = NULL;
 struct filter *output_filters = NULL;

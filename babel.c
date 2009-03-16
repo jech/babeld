@@ -49,7 +49,7 @@ THE SOFTWARE.
 #include "xroute.h"
 #include "message.h"
 #include "resend.h"
-#include "filter.h"
+#include "config.h"
 #include "local.h"
 
 struct timeval now;

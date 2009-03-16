@@ -34,7 +34,7 @@ THE SOFTWARE.
 #include "route.h"
 #include "xroute.h"
 #include "util.h"
-#include "filter.h"
+#include "config.h"
 #include "network.h"
 #include "local.h"
 

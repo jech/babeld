@@ -37,7 +37,7 @@ THE SOFTWARE.
 #include "xroute.h"
 #include "resend.h"
 #include "message.h"
-#include "filter.h"
+#include "config.h"
 #include "kernel.h"
 
 unsigned char packet_header[4] = {42, 2};
