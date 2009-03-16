@@ -26,11 +26,13 @@ THE SOFTWARE.
 
 #include "babel.h"
 #include "util.h"
+#include "network.h"
 #include "config.h"
 
 struct filter *input_filters = NULL;
 struct filter *output_filters = NULL;
 struct filter *redistribute_filters = NULL;
+struct network_conf *network_confs = NULL;
 
 /* get_next_char callback */
 typedef int (*gnc_t)(void*);
@@ -319,6 +321,52 @@ parse_filter(gnc_t gnc, void *closure)
     return NULL;
 }
 
+static struct network_conf *
+parse_nconf(gnc_t gnc, void *closure)
+{
+    int c;
+    char *token;
+    struct network_conf *nconf;
+
+    nconf = calloc(1, sizeof(struct network_conf));
+    if(nconf == NULL)
+        goto error;
+
+    c = gnc(closure);
+    if(c < -1)
+        goto error;
+
+    c = skip_whitespace(c, gnc, closure);
+    if(c < -1 || c == '#')
+        goto error;
+
+    c = getstring(c, &token, gnc, closure);
+    if(c < -1 || token == NULL)
+        goto error;
+
+    nconf->ifname = strdup(token);
+
+    while(c >= 0 && c != '\n') {
+        c = skip_whitespace(c, gnc, closure);
+
+        if(c == '#') {
+            c = skip_to_eol(c, gnc, closure);
+            break;
+        }
+        c = getword(c, &token, gnc, closure);
+        if(c < -1)
+            goto error;
+
+        goto error;             /* for now */
+    }
+
+    return nconf;
+
+ error:
+    free(nconf);
+    return NULL;
+}
+
 static void
 add_filter(struct filter *filter, struct filter **filters)
 {
@@ -335,13 +383,40 @@ add_filter(struct filter *filter, struct filter **filters)
     }
 }
 
+static void
+merge_nconf(struct network_conf *dest, struct network_conf *src)
+{
+    return;
+}
+
+static void
+add_nconf(struct network_conf *nconf, struct network_conf **nconfs)
+{
+    if(*nconfs == NULL) {
+        nconf->next = NULL;
+        *nconfs = nconf;
+    } else {
+        struct network_conf *n;
+        n = *nconfs;
+        while(n->next) {
+            if(strcmp(n->ifname, nconf->ifname) == 0) {
+                merge_nconf(n, nconf);
+                free(nconf);
+                return;
+            }
+            n = n->next;
+        }
+        nconf->next = NULL;
+        n->next = nconf;
+    }
+}
+
 static int
 parse_config(gnc_t gnc, void *closure)
 {
-    int kind;
     int c;
     char *token;
-    struct filter *filter;
+
     c = gnc(closure);
     if(c < 2)
         return -1;
@@ -363,28 +438,33 @@ parse_config(gnc_t gnc, void *closure)
             return -1;
 
         if(strcmp(token, "in") == 0) {
-            kind = 1;
+            struct filter *filter;
+            filter = parse_filter(gnc, closure);
+            if(filter == NULL)
+                return -1;
+            add_filter(filter, &input_filters);
         } else if(strcmp(token, "out") == 0) {
-            kind = 2;
+            struct filter *filter;
+            filter = parse_filter(gnc, closure);
+            if(filter == NULL)
+                return -1;
+            add_filter(filter, &output_filters);
         } else if(strcmp(token, "redistribute") == 0) {
-            kind = 3;
+            struct filter *filter;
+            filter = parse_filter(gnc, closure);
+            if(filter == NULL)
+                return -1;
+            add_filter(filter, &redistribute_filters);
+        } else if(strcmp(token, "interface") == 0) {
+            struct network_conf *nconf;
+            nconf = parse_nconf(gnc, closure);
+            if(nconf == NULL)
+                return -1;
+            add_nconf(nconf, &network_confs);
         } else {
             return -1;
         }
         free(token);
-
-        filter = parse_filter(gnc, closure);
-        if(filter == NULL)
-            return -1;
-
-        if(kind == 1)
-            add_filter(filter, &input_filters);
-        else if(kind == 2)
-            add_filter(filter, &output_filters);
-        else if(kind == 3)
-            add_filter(filter, &redistribute_filters);
-        else
-            return -1;
     }
     return 1;
 }
@@ -547,6 +627,19 @@ finalise_config()
     filter->proto = RTPROT_BABEL_LOCAL;
     filter->plen_le = 128;
     add_filter(filter, &redistribute_filters);
+
+    while(network_confs) {
+        struct network_conf *n;
+        void *vrc;
+        n = network_confs;
+        network_confs = network_confs->next;
+        n->next = NULL;
+        vrc = add_network(n->ifname, n);
+        if(vrc == NULL) {
+            fprintf(stderr, "Couldn't add interface %s.\n", n->ifname);
+            return -1;
+        }
+    }
 
     return 1;
 }
