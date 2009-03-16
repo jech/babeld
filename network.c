@@ -262,6 +262,8 @@ network_up(struct network *net, int up)
         if(wired) {
             net->flags |= NET_WIRED;
             net->cost = 96;
+            if(split_horizon)
+                net->flags |= NET_SPLIT_HORIZON;
         } else {
             net->flags &= ~NET_WIRED;
             net->cost = 256;

@@ -894,7 +894,7 @@ flushupdates(struct network *net)
                 if(metric < INFINITY)
                     satisfy_request(route->src->prefix, route->src->plen,
                                     seqno, route->src->id, net);
-                if(split_horizon && (net->flags & NET_WIRED) &&
+                if((net->flags & NET_SPLIT_HORIZON) &&
                    route->neigh->network == net)
                     continue;
                 really_send_update(net, route->src->id,
