@@ -122,9 +122,32 @@ as a wireless hop with no packet losses.  A cost of 255 or less is
 interpreted as a wired link.
 .SH CONFIG FILE FORMAT
 The configuration file is a sequence of lines each of which specifies
-a filter entry.  Each of these lines has the following format:
+either an interface or a filtering rule.  Blank lines are ignored.  Comments
+are introduced with an octothorp
+.RB `` # ''
+and terminated by the end of line.
+.SS Interface configuration
+An interface is configured by a single line with the following format:
 .IP
-.I filter selector... action
+.B interface
+.I name
+.RI [ parameter ...]
+.PP
+.I Name
+is the name of the interface (something like
+.BR eth0 ).
+
+Each
+.I parameter
+specifies a parameter of the given interface.  It can be one of:
+.IP
+.I (none defined yet)
+.SS Filtering rules
+A filtering rule is defined by a single line with the following format:
+.IP
+.I filter
+.IR selector ...
+.I action
 .PP
 .I Filter
 specifies the filter to which this entry will be added, and can be one of
@@ -133,7 +156,8 @@ specifies the filter to which this entry will be added, and can be one of
 or
 .BR redistribute .
 
-.I Selector
+Each
+.I selector
 specifies the conditions under which the given statement matches.  It
 can be one of
 .TP
