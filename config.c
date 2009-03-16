@@ -322,11 +322,11 @@ parse_filter(gnc_t gnc, void *closure)
 static void
 add_filter(struct filter *filter, struct filter **filters)
 {
-    struct filter *f;
     if(*filters == NULL) {
         filter->next = NULL;
         *filters = filter;
     } else {
+        struct filter *f;
         f = *filters;
         while(f->next)
             f = f->next;
