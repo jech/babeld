@@ -32,12 +32,14 @@ struct network_conf {
     struct network_conf *next;
 };
 
+#define NET_UP (1 << 0)
+#define NET_WIRED (1<<1)
+
 struct network {
     struct network *next;
     struct network_conf *conf;
-    char up;
-    char wired;
     unsigned int ifindex;
+    unsigned short flags;
     unsigned short cost;
     struct timeval hello_timeout;
     struct timeval self_update_timeout;
@@ -73,6 +75,12 @@ extern struct network *networks;
 extern int numnets;
 
 #define FOR_ALL_NETS(_net) for(_net = networks; _net; _net = _net->next)
+
+static inline int
+net_up(struct network *net)
+{
+    return !!(net->flags & NET_UP);
+}
 
 struct network *add_network(char *ifname, struct network_conf *conf);
 int network_idle(struct network *net);

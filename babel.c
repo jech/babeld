@@ -501,7 +501,7 @@ main(int argc, char **argv)
 
     /* Make some noise so that others notice us */
     FOR_ALL_NETS(net) {
-        if(!net->up)
+        if(!net_up(net))
             continue;
         /* Apply jitter before we send the first message. */
         usleep(roughly(10000));
@@ -528,7 +528,7 @@ main(int argc, char **argv)
         timeval_min_sec(&tv, kernel_dump_time);
         timeval_min(&tv, &resend_time);
         FOR_ALL_NETS(net) {
-            if(!net->up)
+            if(!net_up(net))
                 continue;
             timeval_min(&tv, &net->flush_timeout);
             timeval_min(&tv, &net->hello_timeout);
@@ -587,7 +587,7 @@ main(int argc, char **argv)
                 }
             } else {
                 FOR_ALL_NETS(net) {
-                    if(!net->up)
+                    if(!net_up(net))
                         continue;
                     if(net->ifindex == sin6.sin6_scope_id) {
                         parse_packet((unsigned char*)&sin6.sin6_addr, net,
@@ -676,7 +676,7 @@ main(int argc, char **argv)
         }
 
         FOR_ALL_NETS(net) {
-            if(!net->up)
+            if(!net_up(net))
                 continue;
             if(timeval_compare(&now, &net->hello_timeout) >= 0)
                 send_hello(net);
@@ -699,7 +699,7 @@ main(int argc, char **argv)
         }
 
         FOR_ALL_NETS(net) {
-            if(!net->up)
+            if(!net_up(net))
                 continue;
             if(net->flush_timeout.tv_sec != 0) {
                 if(timeval_compare(&now, &net->flush_timeout) >= 0)
@@ -726,7 +726,7 @@ main(int argc, char **argv)
     }
 
     FOR_ALL_NETS(net) {
-        if(!net->up)
+        if(!net_up(net))
             continue;
         send_wildcard_retraction(net);
         /* Make sure that we expire quickly from our neighbours'
@@ -737,7 +737,7 @@ main(int argc, char **argv)
         gettime(&now);
     }
     FOR_ALL_NETS(net) {
-        if(!net->up)
+        if(!net_up(net))
             continue;
         /* Make sure they got it. */
         send_wildcard_retraction(net);
@@ -798,7 +798,7 @@ main(int argc, char **argv)
 
  fail:
     FOR_ALL_NETS(net) {
-        if(!net->up)
+        if(!net_up(net))
             continue;
         network_up(net, 0);
     }
@@ -935,7 +935,7 @@ dump_tables(FILE *out)
                 neigh->reach,
                 neighbour_rxcost(neigh),
                 neigh->txcost,
-                neigh->network->up ? "" : " (down)");
+                net_up(neigh->network) ? "" : " (down)");
     }
     for(i = 0; i < numxroutes; i++) {
         fprintf(out, "%s metric %d (exported)\n",

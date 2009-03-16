@@ -631,7 +631,7 @@ send_hello_noupdate(struct network *net, unsigned interval)
     net->hello_seqno = seqno_plus(net->hello_seqno, 1);
     delay_jitter(&net->hello_timeout, net->hello_interval);
 
-    if(!net->up)
+    if(!net_up(net))
         return;
 
     debugf("Sending hello %d (%d) to %s.\n",
@@ -667,7 +667,7 @@ flush_unicast(int dofree)
     if(unicast_buffered == 0)
         goto done;
 
-    if(!unicast_neighbour->network->up)
+    if(!net_up(unicast_neighbour->network))
         goto done;
 
     /* Preserve ordering of messages */
@@ -716,7 +716,7 @@ really_send_update(struct network *net,
     const unsigned char *real_prefix;
     unsigned short flags = 0;
 
-    if(!net->up)
+    if(!net_up(net))
         return;
 
     add_metric = output_filter(id, prefix, plen, net->ifindex);
@@ -845,7 +845,7 @@ flushupdates(struct network *net)
         net->update_bufsize = 0;
         net->num_buffered_updates = 0;
 
-        if(!net->up)
+        if(!net_up(net))
             goto done;
 
         debugf("  (flushing %d buffered updates on %s (%d))\n",
@@ -894,7 +894,8 @@ flushupdates(struct network *net)
                 if(metric < INFINITY)
                     satisfy_request(route->src->prefix, route->src->plen,
                                     seqno, route->src->id, net);
-                if(split_horizon && net->wired && route->neigh->network == net)
+                if(split_horizon && (net->flags & NET_WIRED) &&
+                   route->neigh->network == net)
                     continue;
                 really_send_update(net, route->src->id,
                                    route->src->prefix,
@@ -979,7 +980,7 @@ send_update(struct network *net, int urgent,
         return;
     }
 
-    if(!net->up)
+    if(!net_up(net))
         return;
 
     selfonly =
@@ -1035,7 +1036,7 @@ send_wildcard_retraction(struct network *net)
         return;
     }
 
-    if(!net->up)
+    if(!net_up(net))
         return;
 
     start_message(net, MESSAGE_UPDATE, 10);
@@ -1066,7 +1067,7 @@ send_self_update(struct network *net)
     if(net == NULL) {
         struct network *n;
         FOR_ALL_NETS(n) {
-            if(!n->up)
+            if(!net_up(n))
                 continue;
             send_self_update(n);
         }
@@ -1090,7 +1091,7 @@ send_ihu(struct neighbour *neigh, struct network *net)
     if(neigh == NULL && net == NULL) {
         struct network *n;
         FOR_ALL_NETS(n) {
-            if(n->up)
+            if(net_up(n))
                 continue;
             send_ihu(NULL, n);
         }
@@ -1111,7 +1112,7 @@ send_ihu(struct neighbour *neigh, struct network *net)
         return;
 
     net = neigh->network;
-    if(!net->up)
+    if(!net_up(net))
         return;
 
     rxcost = neighbour_rxcost(neigh);
@@ -1178,7 +1179,7 @@ send_request(struct network *net,
     if(net == NULL) {
         struct network *n;
         FOR_ALL_NETS(n) {
-            if(n->up)
+            if(net_up(n))
                 continue;
             send_request(n, prefix, plen);
         }
@@ -1188,7 +1189,7 @@ send_request(struct network *net,
     /* make sure any buffered updates go out before this request. */
     flushupdates(net);
 
-    if(!net->up)
+    if(!net_up(net))
         return;
 
     debugf("sending request to %s for %s.\n",
@@ -1250,14 +1251,14 @@ send_multihop_request(struct network *net,
     if(net == NULL) {
         struct network *n;
         FOR_ALL_NETS(n) {
-            if(!n->up)
+            if(!net_up(n))
                 continue;
             send_multihop_request(n, prefix, plen, seqno, id, hop_count);
         }
         return;
     }
 
-    if(!net->up)
+    if(!net_up(net))
         return;
 
     debugf("Sending request (%d) on %s for %s.\n",

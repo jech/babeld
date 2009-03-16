@@ -105,7 +105,7 @@ update_hello_interval(struct network *net)
             net->hello_interval = idle_hello_interval;
             rc = 1;
         }
-    } else if(net->wired) {
+    } else if((net->flags & NET_WIRED)) {
         if(net->hello_interval != wired_hello_interval) {
             net->hello_interval = wired_hello_interval;
             rc = 1;
@@ -190,10 +190,13 @@ network_up(struct network *net, int up)
     int mtu, rc, wired;
     struct ipv6_mreq mreq;
 
-    if(up == net->up)
+    if((!!up) == net_up(net))
         return 0;
 
-    net->up = up;
+    if(up)
+        net->flags |= NET_UP;
+    else
+        net->flags &= ~NET_UP;
 
     if(up) {
         unsigned char ll[32][16];
@@ -256,8 +259,13 @@ network_up(struct network *net, int up)
             }
         }
 
-        net->wired = wired;
-        net->cost = wired ? 96 : 256;
+        if(wired) {
+            net->flags |= NET_WIRED;
+            net->cost = 96;
+        } else {
+            net->flags &= ~NET_WIRED;
+            net->cost = 256;
+        }
         update_hello_interval(net);
 
         memset(&mreq, 0, sizeof(mreq));
@@ -334,7 +342,7 @@ network_ll_address(struct network *net, const unsigned char *address)
 {
     int i;
 
-    if(!net->up)
+    if(!net_up(net))
         return 0;
 
     for(i = 0; i < net->numll; i++)
@@ -364,7 +372,7 @@ check_networks(void)
             rc = kernel_interface_operational(net->ifname, net->ifindex);
         else
             rc = 0;
-        if((rc > 0) != net->up) {
+        if((rc > 0) != net_up(net)) {
             debugf("Noticed status change for %s.\n", net->ifname);
             network_up(net, rc > 0);
         }

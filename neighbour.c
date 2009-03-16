@@ -273,7 +273,7 @@ neighbour_rxcost(struct neighbour *neigh)
 
     if((reach & 0xFFF0) == 0 || delay >= 180000) {
         return INFINITY;
-    } else if(neigh->network->wired) {
+    } else if((neigh->network->flags & NET_WIRED)) {
         /* To lose one hello is a misfortune, to lose two is carelessness. */
         if((reach & 0xC000) == 0xC000)
             return neigh->network->cost;
@@ -303,7 +303,7 @@ neighbour_cost(struct neighbour *neigh)
 {
     unsigned a, b;
 
-    if(!neigh->network->up)
+    if(!net_up(neigh->network))
         return INFINITY;
 
     a = neighbour_txcost(neigh);
@@ -315,7 +315,7 @@ neighbour_cost(struct neighbour *neigh)
     if(b >= INFINITY)
         return INFINITY;
 
-    if(neigh->network->wired || (a <= 256 && b <= 256)) {
+    if((neigh->network->flags & NET_WIRED) || (a <= 256 && b <= 256)) {
         return a;
     } else {
         /* a = 256/alpha, b = 256/beta, where alpha and beta are the expected
