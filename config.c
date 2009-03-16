@@ -62,7 +62,7 @@ getword(int c, char **token_r, gnc_t gnc, void *closure)
     c = skip_whitespace(c, gnc, closure);
     if(c < 0)
         return c;
-    if(c == '\n')
+    if(c == '"' || c == '\n')
         return -2;
     do {
         if(i >= 255) return -2;
