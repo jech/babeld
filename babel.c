@@ -252,9 +252,9 @@ main(int argc, char **argv)
         }
     }
 
-    rc = finalise_filters();
+    rc = finalise_config();
     if(rc < 0) {
-        fprintf(stderr, "Couldn't finalise filters.\n");
+        fprintf(stderr, "Couldn't finalise configuration.\n");
         exit(1);
     }
 

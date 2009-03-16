@@ -538,7 +538,7 @@ redistribute_filter(const unsigned char *prefix, unsigned short plen,
 }
 
 int
-finalise_filters()
+finalise_config()
 {
     struct filter *filter = calloc(1, sizeof(struct filter));
     if(filter == NULL)

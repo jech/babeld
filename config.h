@@ -45,4 +45,4 @@ int output_filter(const unsigned char *id, const unsigned char *prefix,
                   unsigned short plen, unsigned int ifindex);
 int redistribute_filter(const unsigned char *prefix, unsigned short plen,
                         unsigned int ifindex, int proto);
-int finalise_filters(void);
+int finalise_config(void);
