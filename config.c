@@ -313,6 +313,7 @@ parse_filter(gnc_t gnc, void *closure)
         filter->plen_ge += 96;
     }
     return filter;
+
  error:
     free(filter);
     return NULL;
