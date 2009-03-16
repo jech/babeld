@@ -177,8 +177,6 @@ getnet(int c, unsigned char **p_r, unsigned char *plen_r, int *af_r,
     return c;
 }
 
-static struct filter error_filter;
-
 static struct filter *
 parse_filter(gnc_t gnc, void *closure)
 {
@@ -282,7 +280,7 @@ parse_filter(gnc_t gnc, void *closure)
     return filter;
  error:
     free(filter);
-    return &error_filter;
+    return NULL;
 }
 
 static void
@@ -340,11 +338,8 @@ parse_config(gnc_t gnc, void *closure)
         free(token);
 
         filter = parse_filter(gnc, closure);
-        if(filter == &error_filter)
-            return -1;
-
         if(filter == NULL)
-            continue;
+            return -1;
 
         if(kind == 1)
             add_filter(filter, &input_filters);
