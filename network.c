@@ -64,6 +64,11 @@ add_network(char *ifname, struct network_conf *conf)
             return NULL;
     }
 
+    FOR_ALL_NETS(net) {
+        if(strcmp(net->ifname, ifname) == 0)
+            return net;
+    }
+
     net = malloc(sizeof(struct network));
     if(net == NULL)
         return NULL;
