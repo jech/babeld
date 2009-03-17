@@ -140,8 +140,11 @@ is the name of the interface (something like
 Each
 .I parameter
 specifies a parameter of the given interface.  It can be one of:
-.IP
-.I (none defined yet)
+.TP
+.BI rxcost " cost"
+This defines the cost of receiving packets on the given interface under
+ideal conditions (no packet loss).  The default is 96 for wired interfaces,
+and 256 for wireless ones.
 .SS Filtering rules
 A filtering rule is defined by a single line with the following format:
 .IP
@@ -264,7 +267,6 @@ or, if you want to constrain the routes that you redistribute,
     \-C 'redistribute proto 11 ip ::/0 le 64 metric 256' \\
     \-C 'redistribute proto 11 ip 0.0.0.0/0 le 24 metric 256' \\
     eth1
-.PP
 .SH WIRED INTERFACES
 By default, the daemon optimises traffic on wired interfaces by
 sending fewer scheduled hello messages and performing split-horizon
