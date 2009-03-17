@@ -1,3 +1,9 @@
+babel 0.94 (unreleased)
+
+  * Implemented per-interface configuration of parameters such as link
+    cost, hello interval etc.  The command-line flags are now only used to
+    set defaults.
+
 15 March 2009: babel 0.93
 
   * No longer update seqno periodically, rely on explicit seqno requests.
