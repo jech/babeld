@@ -29,6 +29,7 @@ struct buffered_update {
 
 struct network_conf {
     char *ifname;
+    unsigned short cost;
     struct network_conf *next;
 };
 

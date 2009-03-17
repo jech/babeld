@@ -261,12 +261,14 @@ network_up(struct network *net, int up)
 
         if(wired) {
             net->flags |= NET_WIRED;
-            net->cost = 96;
+            net->cost =
+                net->conf && net->conf->cost > 0 ? net->conf->cost : 96;
             if(split_horizon)
                 net->flags |= NET_SPLIT_HORIZON;
         } else {
             net->flags &= ~NET_WIRED;
-            net->cost = 256;
+            net->cost =
+                net->conf && net->conf->cost > 0 ? net->conf->cost : 256;
         }
         update_hello_interval(net);
 

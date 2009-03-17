@@ -357,7 +357,15 @@ parse_nconf(gnc_t gnc, void *closure)
         if(c < -1)
             goto error;
 
-        goto error;             /* for now */
+        if(strcmp(token, "rxcost") == 0) {
+            int cost;
+            c = getint(c, &cost, gnc, closure);
+            if(c < -1 || cost <= 0 || cost > 0xFFFF)
+                goto error;
+            nconf->cost = cost;
+        } else {
+            goto error;
+        }
     }
 
     return nconf;
