@@ -133,9 +133,9 @@ main(int argc, char **argv)
 
     arg = argv;
 
-    SHIFTE();
+    SHIFT();
 
-    while((*arg)[0] == '-') {
+    while(*arg && (*arg)[0] == '-') {
         if(strcmp(*arg, "--") == 0) {
             SHIFTE();
             break;
@@ -234,7 +234,7 @@ main(int argc, char **argv)
         } else {
             goto syntax;
         }
-        SHIFTE();
+        SHIFT();
     }
 
 
@@ -340,19 +340,19 @@ main(int argc, char **argv)
         goto fail_pid;
     }
 
-    {
+    if(*arg) {
         unsigned char dummy[16];
         rc = parse_address(*arg, dummy, NULL);
         if(rc >= 0) {
             fprintf(stderr, "Warning: obsolete router-id given.\n");
-            SHIFTE();
+            SHIFT();
         }
     }
 
     rc = finalise_config();
     if(rc < 0) {
         fprintf(stderr, "Couldn't finalise configuration.\n");
-        exit(1);
+        goto fail;
     }
 
     while(*arg) {
@@ -361,6 +361,11 @@ main(int argc, char **argv)
         if(vrc == NULL)
             goto fail;
         SHIFT();
+    }
+
+    if(networks == NULL) {
+        fprintf(stderr, "Eek... asked to run on no interfaces!\n");
+        goto fail;
     }
 
     FOR_ALL_NETS(net) {
