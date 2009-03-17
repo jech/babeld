@@ -42,18 +42,18 @@ Specify the interval in seconds at which scheduled hello packets are
 sent on wired interfaces.  The default is 20 seconds.
 .TP
 .BI \-i " idle-hello-interval"
-Enable detection of idle networks (networks on which we haven't
-accepted a hello packet in 5 minutes) and specify the interval in
-seconds at which scheduled hello packets are sent on idle interfaces.
-This functonality is experimental, don't use it unless you know what
-you are doing.
+Enable detection of idle networks (networks on which we haven't received
+a hello packet in the last 5 minutes) and specify the interval in seconds
+at which scheduled hello packets are sent on idle interfaces.  This
+functonality is experimental, don't use it unless you know what you are
+doing.
 .TP
 .BI \-u " update-interval"
-Specify the interval in seconds at which scheduled routing table dumps
-are made on all interfaces.  The default is either 5 times the
-wireless hello interval, twice wired hello interval, or 70 seconds,
-whichever is less.  Babel uses triggered updates in addition to
-scheduled updates, so this value may be set to a fairly large value.
+Specify the interval in seconds at which scheduled routing table dumps are
+made on all interfaces.  The default is either 5 times the wireless hello
+interval, twice the wired hello interval, or 70 seconds, whichever is less.
+Babel uses triggered updates in addition to scheduled updates, so this
+value may be set to a fairly large value.
 .TP
 .BI \-k " priority"
 Specify the priority value used when installing routes into the kernel.
@@ -114,12 +114,6 @@ omitted, Babel will try to determine a suitable router-id automatically.
 .TP
 .IR interface ...
 The list of interfaces on which the protocol should operate.
-.SH METRICS
-.B Babel
-manipulates costs and metrics that are 16-bit unsigned integers, with
-the value 65535 representing infinity.  A cost of 256 is interpreted
-as a wireless hop with no packet losses.  A cost of 255 or less is
-interpreted as a wired link.
 .SH CONFIG FILE FORMAT
 The configuration file is a sequence of lines each of which specifies
 either an interface or a filtering rule.  Blank lines are ignored.  Comments
@@ -142,9 +136,11 @@ Each
 specifies a parameter of the given interface.  It can be one of:
 .TP
 .BI rxcost " cost"
-This defines the cost of receiving packets on the given interface under
-ideal conditions (no packet loss).  The default is 96 for wired interfaces,
-and 256 for wireless ones.
+This defines the cost of receiving frames on the given interface under
+ideal conditions (no packet loss); how this relates to the actual cost used
+for computing metrics of routes going through this interface depends on the
+particular metric being used.  The default is 96 for wired interfaces, and
+256 for wireless ones.
 .SS Filtering rules
 A filtering rule is defined by a single line with the following format:
 .IP
@@ -241,32 +237,30 @@ as the last line in your configuration file.
 .SH EXAMPLES
 You can participate in a Babel mesh network by simply running
 .IP
-# babel \-C 'redistribute local' eth1
+# babel wlan0
 .PP
 where
 .B eth1
-is your wireless interface.
+is the name of your wireless interface.
 
 In order to gateway between multiple interfaces, just list them all on
 the command line:
 .IP
-# babel \-C 'redistribute local' eth1 eth0 sit1
+# babel wlan0 eth0 sit1
 .PP
 On an access point, you'll probably want to redistribute some external
 routes into Babel:
 .IP
 # babel \\
-    \-C 'redistribute local' \\
     \-C 'redistribute metric 256' \\
-    eth1
+    wlan0
 .PP
 or, if you want to constrain the routes that you redistribute,
 .IP
 # babel \\
-    \-C 'redistribute local' \\
     \-C 'redistribute proto 11 ip ::/0 le 64 metric 256' \\
     \-C 'redistribute proto 11 ip 0.0.0.0/0 le 24 metric 256' \\
-    eth1
+    wlan0
 .SH WIRED INTERFACES
 By default, the daemon optimises traffic on wired interfaces by
 sending fewer scheduled hello messages and performing split-horizon
