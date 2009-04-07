@@ -99,22 +99,20 @@ int
 update_hello_interval(struct network *net)
 {
     int rc = 0;
+    unsigned short interval;
 
-    if(network_idle(net)) {
-        if(net->hello_interval != idle_hello_interval) {
-            net->hello_interval = idle_hello_interval;
+    if(network_idle(net))
+        interval = idle_hello_interval;
+    else if(NET_CONF(net, hello_interval, 0) > 0)
+        interval = NET_CONF(net, hello_interval, 0);
+    else if((net->flags & NET_WIRED))
+        interval = wired_hello_interval;
+    else
+        interval = wireless_hello_interval;
+
+    if(net->hello_interval != interval) {
+        net->hello_interval = interval;
             rc = 1;
-        }
-    } else if((net->flags & NET_WIRED)) {
-        if(net->hello_interval != wired_hello_interval) {
-            net->hello_interval = wired_hello_interval;
-            rc = 1;
-        }
-    } else {
-        if(net->hello_interval != wireless_hello_interval) {
-            net->hello_interval = wireless_hello_interval;
-            rc = 1;
-        }
     }
 
     net->self_update_interval =

@@ -363,6 +363,12 @@ parse_nconf(gnc_t gnc, void *closure)
             if(c < -1 || cost <= 0 || cost > 0xFFFF)
                 goto error;
             nconf->cost = cost;
+        } else if(strcmp(token, "hello-interval") == 0) {
+            int interval;
+            c = getint(c, &interval, gnc, closure);
+            if(c < -1 || interval <= 0 || interval > 0xFFFF)
+                goto error;
+            nconf->hello_interval = interval;
         } else {
             goto error;
         }

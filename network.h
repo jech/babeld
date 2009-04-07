@@ -30,6 +30,7 @@ struct buffered_update {
 struct network_conf {
     char *ifname;
     unsigned short cost;
+    unsigned short hello_interval;
     struct network_conf *next;
 };
 
