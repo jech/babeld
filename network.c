@@ -103,8 +103,8 @@ update_hello_interval(struct network *net)
 
     if(network_idle(net))
         interval = idle_hello_interval;
-    else if(NET_CONF(net, hello_interval, 0) > 0)
-        interval = NET_CONF(net, hello_interval, 0);
+    else if(NET_CONF(net, hello_interval) > 0)
+        interval = NET_CONF(net, hello_interval);
     else if((net->flags & NET_WIRED))
         interval = wired_hello_interval;
     else
@@ -259,14 +259,14 @@ network_up(struct network *net, int up)
 
         if(wired) {
             net->flags |= NET_WIRED;
-            net->cost = NET_CONF(net, cost, 0);
+            net->cost = NET_CONF(net, cost);
             if(net->cost <= 0) net->cost = 96;
             if(split_horizon)
                 net->flags |= NET_SPLIT_HORIZON;
             net->flags &= ~NET_LQ;
         } else {
             net->flags &= ~NET_WIRED;
-            net->cost = NET_CONF(net, cost, 0);
+            net->cost = NET_CONF(net, cost);
             if(net->cost <= 0) net->cost = 256;
             net->flags &= ~NET_SPLIT_HORIZON;
             net->flags |= NET_LQ;
