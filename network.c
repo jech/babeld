@@ -267,6 +267,7 @@ network_up(struct network *net, int up)
             net->flags &= ~NET_WIRED;
             net->cost = NET_CONF(net, cost, 0);
             if(net->cost <= 0) net->cost = 256;
+            net->flags &= ~NET_SPLIT_HORIZON;
         }
         update_hello_interval(net);
 
