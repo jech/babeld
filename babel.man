@@ -141,6 +141,14 @@ ideal conditions (no packet loss); how this relates to the actual cost used
 for computing metrics of routes going through this interface depends on the
 particular metric being used.  The default is 96 for wired interfaces, and
 256 for wireless ones.
+.TP
+.BI hello-interval " interval"
+This defines the interval between hello packets sent on this interface.
+The default is specified with the
+.B \-h
+and
+.B \-H
+command-line flags.
 .SS Filtering rules
 A filtering rule is defined by a single line with the following format:
 .IP
