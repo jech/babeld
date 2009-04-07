@@ -73,6 +73,9 @@ struct network {
     unsigned short self_update_interval;
 };
 
+#define NET_CONF(_net, _field, _default) \
+    ((_net)->conf ? (_net)->conf->_field : (_default))
+
 extern struct network *networks;
 extern int numnets;
 
