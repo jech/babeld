@@ -37,6 +37,7 @@ struct network_conf {
 #define NET_UP (1 << 0)
 #define NET_WIRED (1<<1)
 #define NET_SPLIT_HORIZON (1 << 2)
+#define NET_LQ (1 << 3)
 
 struct network {
     struct network *next;

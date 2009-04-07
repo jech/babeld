@@ -273,17 +273,7 @@ neighbour_rxcost(struct neighbour *neigh)
 
     if((reach & 0xFFF0) == 0 || delay >= 180000) {
         return INFINITY;
-    } else if((neigh->network->flags & NET_WIRED)) {
-        /* To lose one hello is a misfortune, to lose two is carelessness. */
-        if((reach & 0xC000) == 0xC000)
-            return neigh->network->cost;
-        else if((reach & 0xC000) == 0)
-            return INFINITY;
-        else if((reach & 0x2000))
-            return neigh->network->cost;
-        else
-            return INFINITY;
-    } else {
+    } else if((neigh->network->flags & NET_LQ)) {
         int sreach =
             ((reach & 0x8000) >> 2) +
             ((reach & 0x4000) >> 1) +
@@ -293,8 +283,17 @@ neighbour_rxcost(struct neighbour *neigh)
         /* cost >= network->cost */
         if(delay >= 40000)
             cost = (cost * (delay - 20000) + 10000) / 20000;
-
         return MIN(cost, INFINITY);
+    } else {
+        /* To lose one hello is a misfortune, to lose two is carelessness. */
+        if((reach & 0xC000) == 0xC000)
+            return neigh->network->cost;
+        else if((reach & 0xC000) == 0)
+            return INFINITY;
+        else if((reach & 0x2000))
+            return neigh->network->cost;
+        else
+            return INFINITY;
     }
 }
 
@@ -315,7 +314,7 @@ neighbour_cost(struct neighbour *neigh)
     if(b >= INFINITY)
         return INFINITY;
 
-    if((neigh->network->flags & NET_WIRED) || (a <= 256 && b <= 256)) {
+    if(!(neigh->network->flags & NET_LQ) || (a <= 256 && b <= 256)) {
         return a;
     } else {
         /* a = 256/alpha, b = 256/beta, where alpha and beta are the expected
