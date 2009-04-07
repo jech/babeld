@@ -67,7 +67,7 @@ Don't optimise wired links, assume all interfaces are wireless.
 .TP
 .B \-s
 Do not perform split-horizon processing on wired interfaces.
-Split-horizon is never performed on wireless interfaces.
+Split-horizon is not performed on wireless interfaces.
 .TP
 .B \-P
 Run in parasitic (passive) mode.  The daemon will only announce
@@ -135,12 +135,30 @@ Each
 .I parameter
 specifies a parameter of the given interface.  It can be one of:
 .TP
+.BR wired " {" true | false | auto }
+This specifies whether to enable optimisations specific to wired interface.
+The default is determined automatically unless the
+.B \-w
+command-line flag was specified.
+.TP
+.BR link-quality " {" true | false | auto }
+This specifies whether link quality estimation should be performed on this
+interface.  The default is to perform link quality estimation on wireless
+interfaces but not on wired interfaces.
+.TP
+.BR split-horizon " {" true | false | auto }
+This specifies whether to perform split-horizon processing on this
+interface.  The default is to never perform split-horizon processing on
+wireless interfaces; on wired interfaces, the default depends on the
+.B \-s
+flag.
+.TP
 .BI rxcost " cost"
 This defines the cost of receiving frames on the given interface under
 ideal conditions (no packet loss); how this relates to the actual cost used
-for computing metrics of routes going through this interface depends on the
-particular metric being used.  The default is 96 for wired interfaces, and
-256 for wireless ones.
+for computing metrics of routes going through this interface depends on
+whether link quality estimation is being done.  The default is 96 for wired
+interfaces, and 256 for wireless ones.
 .TP
 .BI hello-interval " interval"
 This defines the interval between hello packets sent on this interface.
@@ -269,22 +287,6 @@ or, if you want to constrain the routes that you redistribute,
     \-C 'redistribute proto 11 ip ::/0 le 64 metric 256' \\
     \-C 'redistribute proto 11 ip 0.0.0.0/0 le 24 metric 256' \\
     wlan0
-.SH WIRED INTERFACES
-By default, the daemon optimises traffic on wired interfaces by
-sending fewer scheduled hello messages and performing split-horizon
-processing.  These optimisations can be disabled by using the
-.B \-H
-and
-.B \-s
-options respectively.
-
-No link cost estimation is ever performed on wired interfaces: a wired
-adjacency is assumed to be up if at least two of the last three hello
-messages have been received, and down otherwise.
-
-All of these optimisations can be disabled by using the
-.B \-w
-flag.
 .SH FILES
 .TP
 .B /etc/babel.conf
