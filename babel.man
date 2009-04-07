@@ -266,7 +266,7 @@ You can participate in a Babel mesh network by simply running
 # babel wlan0
 .PP
 where
-.B eth1
+.B wlan0
 is the name of your wireless interface.
 
 In order to gateway between multiple interfaces, just list them all on
