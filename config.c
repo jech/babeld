@@ -392,6 +392,24 @@ parse_nconf(gnc_t gnc, void *closure)
             if(c < -1 || interval <= 0 || interval > 0xFFFF)
                 goto error;
             nconf->hello_interval = interval;
+        } else if(strcmp(token, "wired") == 0) {
+            int v;
+            c = getbool(c, &v, gnc, closure);
+            if(c < -1)
+                goto error;
+            nconf->wired = v;
+        } else if(strcmp(token, "link-quality") == 0) {
+            int v;
+            c = getbool(c, &v, gnc, closure);
+            if(c < -1)
+                goto error;
+            nconf->lq = v;
+        } else if(strcmp(token, "split-horizon") == 0) {
+            int v;
+            c = getbool(c, &v, gnc, closure);
+            if(c < -1)
+                goto error;
+            nconf->split_horizon = v;
         } else {
             goto error;
         }
