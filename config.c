@@ -141,7 +141,7 @@ getbool(int c, int *int_r, gnc_t gnc, void *closure)
         i = CONFIG_YES;
     else if(strcmp(t, "false") == 0 || strcmp(t, "no") == 0)
         i = CONFIG_NO;
-    else if(strcmp(t, "default") == 0)
+    else if(strcmp(t, "default") == 0 || strcmp(t, "auto") == 0)
         i = CONFIG_DEFAULT;
     else {
         free(t);
