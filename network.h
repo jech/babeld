@@ -31,8 +31,15 @@ struct network_conf {
     char *ifname;
     unsigned short cost;
     unsigned short hello_interval;
+    char wired;
+    char split_horizon;
+    char lq;
     struct network_conf *next;
 };
+
+#define CONFIG_DEFAULT 0
+#define CONFIG_NO 1
+#define CONFIG_YES 2
 
 #define NET_UP (1 << 0)
 #define NET_WIRED (1<<1)
