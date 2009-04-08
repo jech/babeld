@@ -128,6 +128,9 @@ flush_neighbour_routes(struct neighbour *neigh)
     }
 }
 
+#define KERNEL_METRIC(_metric) \
+    ((_metric) < INFINITY ? kernel_metric : KERNEL_INFINITY)
+
 void
 install_route(struct route *route)
 {
@@ -139,7 +142,7 @@ install_route(struct route *route)
     rc = kernel_route(ROUTE_ADD, route->src->prefix, route->src->plen,
                       route->nexthop,
                       route->neigh->network->ifindex,
-                      kernel_metric, NULL, 0, 0);
+                      KERNEL_METRIC(route->metric), NULL, 0, 0);
     if(rc < 0) {
         int save = errno;
         perror("kernel_route(ADD)");
@@ -161,7 +164,7 @@ uninstall_route(struct route *route)
     rc = kernel_route(ROUTE_FLUSH, route->src->prefix, route->src->plen,
                       route->nexthop,
                       route->neigh->network->ifindex,
-                      kernel_metric, NULL, 0, 0);
+                      KERNEL_METRIC(route->metric), NULL, 0, 0);
     if(rc < 0)
         perror("kernel_route(FLUSH)");
 
@@ -188,13 +191,17 @@ switch_routes(struct route *old, struct route *new)
 
     rc = kernel_route(ROUTE_MODIFY, old->src->prefix, old->src->plen,
                       old->nexthop, old->neigh->network->ifindex,
-                      kernel_metric,
+                      KERNEL_METRIC(old->metric),
                       new->nexthop, new->neigh->network->ifindex,
-                      kernel_metric);
-    if(rc >= 0) {
-        old->installed = 0;
-        new->installed = 1;
+                      KERNEL_METRIC(new->metric));
+    if(rc < 0) {
+        perror("kernel_route(MODIFY)");
+        return;
     }
+
+    old->installed = 0;
+    new->installed = 1;
+
     local_notify_route(old, LOCAL_CHANGE);
     local_notify_route(new, LOCAL_CHANGE);
 }
@@ -202,8 +209,26 @@ switch_routes(struct route *old, struct route *new)
 void
 change_route_metric(struct route *route, unsigned newmetric)
 {
+    int old, new;
+
     if(route->metric == newmetric)
         return;
+
+    old = KERNEL_METRIC(route->metric);
+    new = KERNEL_METRIC(newmetric);
+
+    if(route->installed && old != new) {
+        int rc;
+        rc = kernel_route(ROUTE_MODIFY, route->src->prefix, route->src->plen,
+                          route->nexthop, route->neigh->network->ifindex,
+                          old,
+                          route->nexthop, route->neigh->network->ifindex,
+                          new);
+        if(rc < 0) {
+            perror("kernel_route(MODIFY metric)");
+            return;
+        }
+    }
 
     route->metric = newmetric;
     local_notify_route(route, LOCAL_CHANGE);
