@@ -367,7 +367,7 @@ parse_nconf(gnc_t gnc, void *closure)
     if(c < -1 || token == NULL)
         goto error;
 
-    nconf->ifname = strdup(token);
+    nconf->ifname = token;
 
     while(c >= 0 && c != '\n') {
         c = skip_whitespace(c, gnc, closure);
@@ -413,6 +413,7 @@ parse_nconf(gnc_t gnc, void *closure)
         } else {
             goto error;
         }
+        free(token);
     }
 
     return nconf;
