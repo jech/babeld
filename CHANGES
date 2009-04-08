@@ -3,6 +3,8 @@ babel 0.94 (unreleased)
   * Implemented per-interface configuration of parameters such as link
     cost, hello interval etc.  The command-line flags are now only used to
     set defaults.
+  * Fixed a bug introduced in 0.90 that caused recently retracted routes to
+    remain until the routing table entry was flushed.
 
 15 March 2009: babel 0.93
 
