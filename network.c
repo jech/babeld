@@ -242,12 +242,12 @@ network_up(struct network *net, int up)
 
         resize_receive_buffer(mtu);
 
-        if(all_wireless) {
-            wired = 0;
-        } else if(NET_CONF(net, wired) == CONFIG_NO) {
+        if(NET_CONF(net, wired) == CONFIG_NO) {
             wired = 0;
         } else if(NET_CONF(net, wired) == CONFIG_YES) {
             wired = 1;
+        } else if(all_wireless) {
+            wired = 0;
         } else {
             rc = kernel_interface_wireless(net->ifname, net->ifindex);
             if(rc < 0) {
