@@ -63,7 +63,8 @@ The default is 0.
 Use IFF_RUNNING (carrier sense) when determining interface availability.
 .TP
 .B \-w
-Don't optimise wired links, assume all interfaces are wireless.
+Don't optimise wired links, assume all interfaces are wireless unless
+explicitly overridden in the configuration file.
 .TP
 .B \-s
 Do not perform split-horizon processing on wired interfaces.
@@ -137,7 +138,7 @@ specifies a parameter of the given interface.  It can be one of:
 .TP
 .BR wired " {" true | false | auto }
 This specifies whether to enable optimisations specific to wired interface.
-The default is determined automatically unless the
+By default, this is determined automatically unless the
 .B \-w
 command-line flag was specified.
 .TP
