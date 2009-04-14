@@ -394,7 +394,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         /* If a successor switches sources, we must accept his update even
            if it makes a route unfeasible in order to break any routing loops
            in a timely manner.  If the source remains the same, we ignore
-           the update but send a request for a new seqno. */
+           the update. */
         if(!feasible && route->installed) {
             debugf("Unfeasible update for installed route to %s "
                    "(%s %d %d -> %s %d %d).\n",
