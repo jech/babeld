@@ -103,10 +103,10 @@ flush_route(struct route *route)
         struct route *new_routes;
         int n = maxroutes / 2;
         new_routes = realloc(routes, n * sizeof(struct route));
-        if(new_routes == NULL)
-            return;
-        routes = new_routes;
-        maxroutes = n;
+        if(new_routes != NULL) {
+            routes = new_routes;
+            maxroutes = n;
+        }
     }
 
     if(lost)
