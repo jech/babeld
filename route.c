@@ -128,8 +128,11 @@ flush_neighbour_routes(struct neighbour *neigh)
     }
 }
 
-#define KERNEL_METRIC(_metric) \
-    ((_metric) < INFINITY ? kernel_metric : KERNEL_INFINITY)
+static int
+metric_to_kernel(int metric)
+{
+    return metric < INFINITY ? kernel_metric : KERNEL_INFINITY;
+}
 
 void
 install_route(struct route *route)
@@ -142,7 +145,7 @@ install_route(struct route *route)
     rc = kernel_route(ROUTE_ADD, route->src->prefix, route->src->plen,
                       route->nexthop,
                       route->neigh->network->ifindex,
-                      KERNEL_METRIC(route->metric), NULL, 0, 0);
+                      metric_to_kernel(route->metric), NULL, 0, 0);
     if(rc < 0) {
         int save = errno;
         perror("kernel_route(ADD)");
@@ -164,7 +167,7 @@ uninstall_route(struct route *route)
     rc = kernel_route(ROUTE_FLUSH, route->src->prefix, route->src->plen,
                       route->nexthop,
                       route->neigh->network->ifindex,
-                      KERNEL_METRIC(route->metric), NULL, 0, 0);
+                      metric_to_kernel(route->metric), NULL, 0, 0);
     if(rc < 0)
         perror("kernel_route(FLUSH)");
 
@@ -191,9 +194,9 @@ switch_routes(struct route *old, struct route *new)
 
     rc = kernel_route(ROUTE_MODIFY, old->src->prefix, old->src->plen,
                       old->nexthop, old->neigh->network->ifindex,
-                      KERNEL_METRIC(old->metric),
+                      metric_to_kernel(old->metric),
                       new->nexthop, new->neigh->network->ifindex,
-                      KERNEL_METRIC(new->metric));
+                      metric_to_kernel(new->metric));
     if(rc < 0) {
         perror("kernel_route(MODIFY)");
         return;
@@ -214,8 +217,8 @@ change_route_metric(struct route *route, unsigned newmetric)
     if(route->metric == newmetric)
         return;
 
-    old = KERNEL_METRIC(route->metric);
-    new = KERNEL_METRIC(newmetric);
+    old = metric_to_kernel(route->metric);
+    new = metric_to_kernel(newmetric);
 
     if(route->installed && old != new) {
         int rc;
