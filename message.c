@@ -905,6 +905,11 @@ flushupdates(struct network *net)
                 last_prefix = route->src->prefix;
                 last_plen = route->src->plen;
                 continue;
+            } else {
+                /* check_xroutes sends updates after retracting an xroute,
+                   so send a retraction if there's no matching route. */
+                really_send_update(net, myid, b[i].prefix, b[i].plen,
+                                   myseqno, INFINITY);
             }
         }
         schedule_flush_now(net);
