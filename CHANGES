@@ -1,3 +1,8 @@
+babel 0.95 (unreleased)
+
+  * We now properly send retractions after a redistributed route is
+    retracted.
+
 10 April 2009: babel 0.94
 
   * Fixed a bug introduced in 0.17 that caused recently retracted routes to
