@@ -267,7 +267,7 @@ recompute_resend_time()
         if(!resend_expired(request) && request->delay > 0 && request->max > 0) {
             struct timeval timeout;
             timeval_plus_msec(&timeout, &request->time, request->delay);
-            timeval_min(&resend_time, &timeout);
+            timeval_min(&resend, &timeout);
         }
         request = request->next;
     }
