@@ -1,7 +1,8 @@
 babel 0.95 (unreleased)
 
-  * We now properly send retractions after a redistributed route is
-    retracted.
+  * We now send retractions after a redistributed route is retracted.
+  * Fixed a bug that could cause reliable messages (retractions and
+    router-id switches) to only be sent twice.
 
 10 April 2009: babel 0.94
 
