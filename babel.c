@@ -465,10 +465,6 @@ main(int argc, char **argv)
         fd = -1;
     }
 
-    if(reboot_time + silent_time > now.tv_sec)
-        fprintf(stderr, "Respecting %ld second silent time.\n",
-                (long int)(reboot_time + silent_time - now.tv_sec));
-
     protocol_socket = babel_socket(protocol_port);
     if(protocol_socket < 0) {
         perror("Couldn't create link local socket");

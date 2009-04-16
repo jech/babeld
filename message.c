@@ -43,7 +43,6 @@ THE SOFTWARE.
 unsigned char packet_header[4] = {42, 2};
 
 int parasitic = 0;
-int silent_time = 30;
 int split_horizon = 1;
 
 unsigned short myseqno = 0;
@@ -967,7 +966,7 @@ void
 send_update(struct network *net, int urgent,
             const unsigned char *prefix, unsigned char plen)
 {
-    int i, selfonly;
+    int i;
 
     if(net == NULL) {
         struct network *n;
@@ -988,21 +987,15 @@ send_update(struct network *net, int urgent,
     if(!net_up(net))
         return;
 
-    selfonly =
-        parasitic || (silent_time && now.tv_sec < reboot_time + silent_time);
-
-    if(!selfonly)
-        silent_time = 0;
-
     if(prefix) {
-        if(!selfonly || find_xroute(prefix, plen)) {
+        if(!parasitic || find_xroute(prefix, plen)) {
             debugf("Sending update to %s for %s.\n",
                    net->ifname, format_prefix(prefix, plen));
             buffer_update(net, prefix, plen);
         }
     } else {
         send_self_update(net);
-        if(!selfonly && !network_idle(net)) {
+        if(!parasitic && !network_idle(net)) {
             debugf("Sending update to %s for any.\n", net->ifname);
             for(i = 0; i < numroutes; i++)
                 if(routes[i].installed)
