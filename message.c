@@ -994,13 +994,16 @@ send_update(struct network *net, int urgent,
             buffer_update(net, prefix, plen);
         }
     } else {
-        send_self_update(net);
-        if(!parasitic && !network_idle(net)) {
-            debugf("Sending update to %s for any.\n", net->ifname);
-            for(i = 0; i < numroutes; i++)
-                if(routes[i].installed)
-                    buffer_update(net,
-                                  routes[i].src->prefix, routes[i].src->plen);
+        if(!network_idle(net)) {
+            send_self_update(net);
+            if(!parasitic) {
+                debugf("Sending update to %s for any.\n", net->ifname);
+                for(i = 0; i < numroutes; i++)
+                    if(routes[i].installed)
+                        buffer_update(net,
+                                      routes[i].src->prefix,
+                                      routes[i].src->plen);
+            }
         }
         delay_jitter(&net->update_timeout, update_interval);
     }
