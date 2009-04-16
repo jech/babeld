@@ -3,6 +3,9 @@ babel 0.95 (unreleased)
   * We now send retractions after a redistributed route is retracted.
   * Fixed a bug that could cause reliable messages (retractions and
     router-id switches) to only be sent twice.
+  * We no longer obey a silent time at startup, instead sending a bunch of
+    retractions.  The silent time is seldom useful when nodes are able to
+    save their sequence number across reboots.
 
 10 April 2009: babel 0.94
 
