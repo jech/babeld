@@ -130,6 +130,24 @@ getint(int c, int *int_r, gnc_t gnc, void *closure)
 }
 
 static int
+getmsec(int c, int *int_r, gnc_t gnc, void *closure)
+{
+    char *t;
+    int i;
+    c = getword(c, &t, gnc, closure);
+    if(c < -1)
+        return c;
+    i = parse_msec(t);
+    if(i < 0) {
+        free(t);
+        return -2;
+    }
+    free(t);
+    *int_r = i;
+    return c;
+}
+
+static int
 getbool(int c, int *int_r, gnc_t gnc, void *closure)
 {
     char *t;
@@ -388,7 +406,7 @@ parse_nconf(gnc_t gnc, void *closure)
             nconf->cost = cost;
         } else if(strcmp(token, "hello-interval") == 0) {
             int interval;
-            c = getint(c, &interval, gnc, closure);
+            c = getmsec(c, &interval, gnc, closure);
             if(c < -1 || interval <= 0 || interval > 10 * 0xFFFF)
                 goto error;
             nconf->hello_interval = interval;
