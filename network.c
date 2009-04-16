@@ -274,12 +274,6 @@ network_up(struct network *net, int up)
                 net->flags |= NET_LQ;
             else
                 net->flags &= ~NET_LQ;
-            net->update_interval =
-                NET_CONF(net, update_interval) > 0 ?
-                NET_CONF(net, update_interval) :
-                NET_CONF(net, hello_interval) > 0 ?
-                NET_CONF(net, hello_interval) * 4 :
-                wired_hello_interval * 4;
         } else {
             net->flags &= ~NET_WIRED;
             net->cost = NET_CONF(net, cost);
@@ -292,15 +286,16 @@ network_up(struct network *net, int up)
                 net->flags &= ~NET_LQ;
             else
                 net->flags |= NET_LQ;
-            net->update_interval =
-                NET_CONF(net, update_interval) > 0 ?
-                NET_CONF(net, update_interval) :
-                NET_CONF(net, hello_interval) > 0 ?
-                NET_CONF(net, hello_interval) * 4 :
-                wireless_hello_interval * 4;
         }
+
         net->activity_time = now.tv_sec;
         update_hello_interval(net);
+        /* Since the interface was marked as active above, the
+           idle_hello_interval cannot be the one being used here. */
+        net->update_interval =
+            NET_CONF(net, update_interval) > 0 ?
+            NET_CONF(net, update_interval) :
+            net->hello_interval * 4;
 
         memset(&mreq, 0, sizeof(mreq));
         memcpy(&mreq.ipv6mr_multiaddr, protocol_group, 16);
