@@ -135,12 +135,12 @@ By default, this is determined automatically unless the
 .B \-w
 command-line flag was specified.
 .TP
-.BR link-quality " {" true | false | auto }
+.BR link\-quality " {" true | false | auto }
 This specifies whether link quality estimation should be performed on this
 interface.  The default is to perform link quality estimation on wireless
 interfaces but not on wired interfaces.
 .TP
-.BR split-horizon " {" true | false | auto }
+.BR split\-horizon " {" true | false | auto }
 This specifies whether to perform split-horizon processing on this
 interface.  The default is to never perform split-horizon processing on
 wireless interfaces; on wired interfaces, the default depends on the
@@ -154,13 +154,19 @@ for computing metrics of routes going through this interface depends on
 whether link quality estimation is being done.  The default is 96 for wired
 interfaces, and 256 for wireless ones.
 .TP
-.BI hello-interval " interval"
+.BI hello\-interval " interval"
 This defines the interval between hello packets sent on this interface.
 The default is specified with the
 .B \-h
 and
 .B \-H
 command-line flags.
+.TP
+.BI update\-interval " interval"
+This defines the interval between full routing table dumps sent on this
+interface; since Babel uses triggered updates and doesn't count to
+infinity, this can be set to a fairly large value unless packet loss is
+expected.  This defaults to five times the hello interval.
 .SS Filtering rules
 A filtering rule is defined by a single line with the following format:
 .IP
