@@ -10,6 +10,8 @@ babel 0.95 (unreleased)
   * Fixes the configuration parser to interpret hello-interval as a number
     of seconds, as specified in the documentation (it used to be interpreted
     as a number of milliseconds).
+  * INCOMPATIBLE CHANGE: the update interval is now a per-interface value,
+    and defaults to 5 times the hello interval.  The -u flag is gone.
 
 10 April 2009: babel 0.94
 
