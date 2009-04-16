@@ -410,6 +410,12 @@ parse_nconf(gnc_t gnc, void *closure)
             if(c < -1 || interval <= 0 || interval > 10 * 0xFFFF)
                 goto error;
             nconf->hello_interval = interval;
+        } else if(strcmp(token, "update-interval") == 0) {
+            int interval;
+            c = getmsec(c, &interval, gnc, closure);
+            if(c < -1 || interval <= 0 || interval > 10 * 0xFFFF)
+                goto error;
+            nconf->update_interval = interval;
         } else if(strcmp(token, "wired") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
