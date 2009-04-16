@@ -7,6 +7,9 @@ babel 0.95 (unreleased)
     retractions.  The silent time is inconvenient, but seldom useful.
   * Updates for routes to self are now sent together with other updates
     (they used to be sent more frequently).
+  * Fixes the configuration parser to interpret hello-interval as a number
+    of seconds, as specified in the documentation (it used to be interpreted
+    as a number of milliseconds).
 
 10 April 2009: babel 0.94
 
