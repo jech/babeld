@@ -30,7 +30,7 @@ struct buffered_update {
 struct network_conf {
     char *ifname;
     unsigned short cost;
-    unsigned short hello_interval;
+    unsigned hello_interval;
     char wired;
     char split_horizon;
     char lq;
@@ -77,7 +77,7 @@ struct network {
     unsigned int bucket;
     time_t activity_time;
     unsigned short hello_seqno;
-    unsigned short hello_interval;
+    unsigned hello_interval;
 };
 
 #define NET_CONF(_net, _field) \

@@ -389,7 +389,7 @@ parse_nconf(gnc_t gnc, void *closure)
         } else if(strcmp(token, "hello-interval") == 0) {
             int interval;
             c = getint(c, &interval, gnc, closure);
-            if(c < -1 || interval <= 0 || interval > 0xFFFF)
+            if(c < -1 || interval <= 0 || interval > 10 * 0xFFFF)
                 goto error;
             nconf->hello_interval = interval;
         } else if(strcmp(token, "wired") == 0) {
