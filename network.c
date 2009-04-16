@@ -274,6 +274,10 @@ network_up(struct network *net, int up)
                 net->flags |= NET_LQ;
             else
                 net->flags &= ~NET_LQ;
+            net->update_interval =
+                NET_CONF(net, hello_interval) > 0 ?
+                NET_CONF(net, hello_interval) * 5 :
+                wired_hello_interval * 5;
         } else {
             net->flags &= ~NET_WIRED;
             net->cost = NET_CONF(net, cost);
@@ -286,6 +290,10 @@ network_up(struct network *net, int up)
                 net->flags &= ~NET_LQ;
             else
                 net->flags |= NET_LQ;
+            net->update_interval =
+                NET_CONF(net, hello_interval) > 0 ?
+                NET_CONF(net, hello_interval) * 5 :
+                wireless_hello_interval * 5;
         }
         update_hello_interval(net);
 
@@ -320,7 +328,7 @@ network_up(struct network *net, int up)
             }
         }
         delay_jitter(&net->hello_timeout, net->hello_interval);
-        delay_jitter(&net->update_timeout, update_interval);
+        delay_jitter(&net->update_timeout, net->update_interval);
         send_hello(net);
         send_request(net, NULL, 0);
     } else {

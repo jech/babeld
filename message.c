@@ -774,7 +774,7 @@ really_send_update(struct network *net,
     accumulate_byte(net, flags);
     accumulate_byte(net, real_plen);
     accumulate_byte(net, omit);
-    accumulate_short(net, (update_interval + 5) / 10);
+    accumulate_short(net, (net->update_interval + 5) / 10);
     accumulate_short(net, seqno);
     accumulate_short(net, metric);
     accumulate_bytes(net, real_prefix + omit, (real_plen + 7) / 8 - omit);
@@ -1005,7 +1005,7 @@ send_update(struct network *net, int urgent,
                                       routes[i].src->plen);
             }
         }
-        delay_jitter(&net->update_timeout, update_interval);
+        delay_jitter(&net->update_timeout, net->update_interval);
     }
     schedule_update_flush(net, urgent);
 }

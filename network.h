@@ -78,6 +78,7 @@ struct network {
     time_t activity_time;
     unsigned short hello_seqno;
     unsigned hello_interval;
+    unsigned update_interval;
 };
 
 #define NET_CONF(_net, _field) \

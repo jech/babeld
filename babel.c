@@ -65,7 +65,6 @@ int all_wireless = 0;
 int wireless_hello_interval = -1;
 int wired_hello_interval = -1;
 int idle_hello_interval = -1;
-int update_interval = -1;
 int do_daemonise = 0;
 char *logfile = NULL, *pidfile = "/var/run/babel.pid";
 
@@ -173,11 +172,6 @@ main(int argc, char **argv)
             idle_hello_interval = parse_msec(*arg);
             if(idle_hello_interval <= 0 || idle_hello_interval > 0xFFFF * 10)
                 goto syntax;
-        } else if(strcmp(*arg, "-u") == 0) {
-            SHIFTE();
-            update_interval = parse_msec(*arg);
-            if(update_interval <= 0 || update_interval > 0xFFFF * 10)
-                goto syntax;
         } else if(strcmp(*arg, "-k") == 0) {
             SHIFTE();
             kernel_metric = atoi(*arg);
@@ -259,12 +253,6 @@ main(int argc, char **argv)
     if(wired_hello_interval <= 0)
         wired_hello_interval = 20000;
     wired_hello_interval = MAX(wired_hello_interval, 5);
-
-    if(update_interval <= 0)
-        update_interval =
-            MIN(MIN(wireless_hello_interval * 5, wired_hello_interval * 2),
-                70000);
-    update_interval = MAX(update_interval, 70);
 
     if(do_daemonise) {
         if(logfile == NULL)
