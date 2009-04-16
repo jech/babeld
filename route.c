@@ -142,6 +142,10 @@ install_route(struct route *route)
     if(route->installed)
         return;
 
+    if(!route_feasible(route))
+        fprintf(stderr, "WARNING: installing unfeasible route "
+                "(this shouldn't happen).");
+
     rc = kernel_route(ROUTE_ADD, route->src->prefix, route->src->plen,
                       route->nexthop,
                       route->neigh->network->ifindex,
@@ -191,6 +195,10 @@ switch_routes(struct route *old, struct route *new)
 
     if(!old->installed)
         return;
+
+    if(!route_feasible(new))
+        fprintf(stderr, "WARNING: switching to unfeasible route "
+                "(this shouldn't happen).");
 
     rc = kernel_route(ROUTE_MODIFY, old->src->prefix, old->src->plen,
                       old->nexthop, old->neigh->network->ifindex,
