@@ -543,7 +543,6 @@ main(int argc, char **argv)
                 continue;
             timeval_min(&tv, &net->flush_timeout);
             timeval_min(&tv, &net->hello_timeout);
-            timeval_min(&tv, &net->self_update_timeout);
             timeval_min(&tv, &net->update_timeout);
             timeval_min(&tv, &net->update_flush_timeout);
         }
@@ -693,8 +692,6 @@ main(int argc, char **argv)
                 send_hello(net);
             if(timeval_compare(&now, &net->update_timeout) >= 0)
                 send_update(net, 0, NULL, 0);
-            if(timeval_compare(&now, &net->self_update_timeout) >= 0)
-                send_self_update(net);
             if(timeval_compare(&now, &net->update_flush_timeout) >= 0)
                 flushupdates(net);
         }

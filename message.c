@@ -1077,7 +1077,6 @@ send_self_update(struct network *net)
         for(i = 0; i < numxroutes; i++)
             send_update(net, 0, xroutes[i].prefix, xroutes[i].plen);
     }
-    delay_jitter(&net->self_update_timeout, net->self_update_interval);
 }
 
 void

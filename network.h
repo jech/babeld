@@ -53,7 +53,6 @@ struct network {
     unsigned short flags;
     unsigned short cost;
     struct timeval hello_timeout;
-    struct timeval self_update_timeout;
     struct timeval update_timeout;
     struct timeval flush_timeout;
     struct timeval update_flush_timeout;
@@ -79,7 +78,6 @@ struct network {
     time_t activity_time;
     unsigned short hello_seqno;
     unsigned short hello_interval;
-    unsigned short self_update_interval;
 };
 
 #define NET_CONF(_net, _field) \

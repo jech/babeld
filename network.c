@@ -115,9 +115,6 @@ update_hello_interval(struct network *net)
             rc = 1;
     }
 
-    net->self_update_interval =
-        MAX(update_interval / 2, net->hello_interval);
-
     return rc;
 }
 
@@ -323,7 +320,6 @@ network_up(struct network *net, int up)
             }
         }
         delay_jitter(&net->hello_timeout, net->hello_interval);
-        delay_jitter(&net->self_update_timeout, net->self_update_interval);
         delay_jitter(&net->update_timeout, update_interval);
         send_hello(net);
         send_request(net, NULL, 0);
