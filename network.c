@@ -275,6 +275,8 @@ network_up(struct network *net, int up)
             else
                 net->flags &= ~NET_LQ;
             net->update_interval =
+                NET_CONF(net, update_interval) > 0 ?
+                NET_CONF(net, update_interval) :
                 NET_CONF(net, hello_interval) > 0 ?
                 NET_CONF(net, hello_interval) * 5 :
                 wired_hello_interval * 5;
@@ -291,6 +293,8 @@ network_up(struct network *net, int up)
             else
                 net->flags |= NET_LQ;
             net->update_interval =
+                NET_CONF(net, update_interval) > 0 ?
+                NET_CONF(net, update_interval) :
                 NET_CONF(net, hello_interval) > 0 ?
                 NET_CONF(net, hello_interval) * 5 :
                 wireless_hello_interval * 5;

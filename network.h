@@ -29,8 +29,9 @@ struct buffered_update {
 
 struct network_conf {
     char *ifname;
-    unsigned short cost;
     unsigned hello_interval;
+    unsigned update_interval;
+    unsigned short cost;
     char wired;
     char split_horizon;
     char lq;
