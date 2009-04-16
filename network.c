@@ -299,6 +299,7 @@ network_up(struct network *net, int up)
                 NET_CONF(net, hello_interval) * 4 :
                 wireless_hello_interval * 4;
         }
+        net->activity_time = now.tv_sec;
         update_hello_interval(net);
 
         memset(&mreq, 0, sizeof(mreq));
