@@ -5,6 +5,8 @@ babel 0.95 (unreleased)
     router-id switches) to only be sent twice.
   * We no longer obey a silent time at startup, instead sending a bunch of
     retractions.  The silent time is inconvenient, but seldom useful.
+  * Updates for routes to self are now sent together with other updates
+    (they used to be sent more frequently).
 
 10 April 2009: babel 0.94
 
