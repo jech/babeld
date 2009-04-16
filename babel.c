@@ -500,11 +500,21 @@ main(int argc, char **argv)
     expiry_time = now.tv_sec + roughly(30);
     source_expiry_time = now.tv_sec + roughly(300);
 
-    /* Make some noise so that others notice us */
+    /* Make some noise so that others notice us, and send retractions in
+       case we were restarted recently */
     FOR_ALL_NETS(net) {
         if(!net_up(net))
             continue;
         /* Apply jitter before we send the first message. */
+        usleep(roughly(10000));
+        gettime(&now);
+        send_hello(net);
+        send_wildcard_retraction(net);
+    }
+
+    FOR_ALL_NETS(net) {
+        if(!net_up(net))
+            continue;
         usleep(roughly(10000));
         gettime(&now);
         send_hello(net);
