@@ -4,8 +4,7 @@ babel 0.95 (unreleased)
   * Fixed a bug that could cause reliable messages (retractions and
     router-id switches) to only be sent twice.
   * We no longer obey a silent time at startup, instead sending a bunch of
-    retractions.  The silent time is seldom useful when nodes are able to
-    save their sequence number across reboots.
+    retractions.  The silent time is inconvenient, but seldom useful.
 
 10 April 2009: babel 0.94
 
