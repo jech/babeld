@@ -130,7 +130,7 @@ Each
 specifies a parameter of the given interface.  It can be one of:
 .TP
 .BR wired " {" true | false | auto }
-This specifies whether to enable optimisations specific to wired interface.
+This specifies whether to enable optimisations specific to wired interfaces.
 By default, this is determined automatically unless the
 .B \-w
 command-line flag was specified.
