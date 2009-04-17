@@ -88,6 +88,9 @@ Export routes from the given kernel routing table.
 Specify the name of the configuration file.  The default is
 .BR /etc/babel.conf .
 .TP
+.BI \-C " statement"
+Specify a configuration statement directly on the command line.
+.TP
 .B \-D
 Daemonise at startup.
 .TP
@@ -101,19 +104,14 @@ otherwise.
 Specify a file to write our process id to.  The default is
 .BR /var/run/babel.pid .
 .TP
-.RI "[ " id " ]"
-The router-id of this daemon.  This should normally be an IPv6 or IPv4
-address of this machine, but can be any unique 128-bit string.  If
-omitted, Babel will try to determine a suitable router-id automatically.
-.TP
 .IR interface ...
 The list of interfaces on which the protocol should operate.
-.SH CONFIG FILE FORMAT
+.SH CONFIGURATION FILE FORMAT
 The configuration file is a sequence of lines each of which specifies
 either an interface or a filtering rule.  Blank lines are ignored.  Comments
 are introduced with an octothorp
 .RB `` # ''
-and terminated by the end of line.
+and terminate at the end of the line.
 .SS Interface configuration
 An interface is configured by a single line with the following format:
 .IP
@@ -166,7 +164,7 @@ command-line flags.
 This defines the interval between full routing table dumps sent on this
 interface; since Babel uses triggered updates and doesn't count to
 infinity, this can be set to a fairly large value, unless significant
-packet loss is expected.  This defaults to four times the hello interval.
+packet loss is expected.  The default is four times the hello interval.
 .SS Filtering rules
 A filtering rule is defined by a single line with the following format:
 .IP
@@ -259,9 +257,8 @@ should include the line
 redistribute local deny
 .PP
 as the last line in your configuration file.
-
 .SH EXAMPLES
-You can participate in a Babel mesh network by simply running
+You can participate in a Babel network by simply running
 .IP
 # babel wlan0
 .PP
@@ -310,15 +307,13 @@ Check interfaces and kernel routes right now, then reopen the log file.
 .SH SECURITY
 Babel is a completely insecure protocol: any attacker able to inject
 IP packets with a link-local source address can disrupt the protocol's
-operation.  This is no different from unsecured neighbour discovery
-(ARP in IPv4).
+operation.  This is no different from unsecured neighbour discovery or ARP.
 
-Since Babel uses link-local addresses only, there is no need to update
+Since Babel uses link-local IPv6 packets only, there is no need to update
 firewalls to allow forwarding of Babel protocol packets.  If local
-filtering is being done, UDP datagrams to the port used by the
-protocol should be allowed.  As Babel uses unicast packets in some
-cases, it is not enough to just allow packets destined to Babel's
-multicast address.
+filtering is being done, UDP datagrams to the port used by the protocol
+should be allowed.  As Babel uses unicast packets in some cases, it is not
+enough to just allow packets destined to Babel's multicast address.
 .SH BUGS
 Plenty.  This is experimental software, run at your own risk.
 .SH SEE ALSO
