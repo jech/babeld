@@ -165,8 +165,8 @@ command-line flags.
 .BI update\-interval " interval"
 This defines the interval between full routing table dumps sent on this
 interface; since Babel uses triggered updates and doesn't count to
-infinity, this can be set to a fairly large value unless packet loss is
-expected.  This defaults to five times the hello interval.
+infinity, this can be set to a fairly large value, unless significant
+packet loss is expected.  This defaults to four times the hello interval.
 .SS Filtering rules
 A filtering rule is defined by a single line with the following format:
 .IP
