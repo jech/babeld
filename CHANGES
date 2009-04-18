@@ -1,5 +1,7 @@
 babel 0.95 (unreleased)
 
+  * Fixed a bug that broke link-quality estimation, and could cause
+    severe instability when we had both good and marginal neighbours.
   * We now send retractions after a redistributed route is retracted.
   * Fixed a bug that could cause reliable messages (retractions and
     router-id switches) to only be sent twice.
