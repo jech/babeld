@@ -194,7 +194,7 @@ network_up(struct network *net, int up)
         net->flags &= ~NET_UP;
 
     if(up) {
-        unsigned char ll[32][16];
+        struct kernel_route ll[32];
         if(net->ifindex <= 0) {
             fprintf(stderr,
                     "Upping unknown interface %s.\n", net->ifname);
@@ -323,6 +323,9 @@ network_up(struct network *net, int up)
             if(net->ll == NULL) {
                 perror("malloc(ll)");
             } else {
+                int i;
+                for(i = 0; i < rc; i++)
+                    memcpy(net->ll[i], ll[i].prefix, 16);
                 net->numll = rc;
                 memcpy(net->ll, ll, rc * 16);
             }
