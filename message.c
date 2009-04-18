@@ -231,7 +231,7 @@ parse_packet(const unsigned char *from, struct network *net,
                    txcost, interval,
                    format_address(from), net->ifname,
                    format_address(address));
-            if(message[3] == 0 || network_ll_address(net, address)) {
+            if(message[2] == 0 || network_ll_address(net, address)) {
                 neigh->txcost = txcost;
                 neigh->ihu_time = now;
                 neigh->ihu_interval = interval;
