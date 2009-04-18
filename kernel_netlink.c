@@ -1182,13 +1182,15 @@ filter_addresses(struct nlmsghdr *nh, void *data)
     struct ifaddrmsg *ifa;
     char ifname[IFNAMSIZ];
     int ifindex = 0;
+    int ll = 0;
 
     if (data) {
         void **args = (void **)data;
         maxroutes = *(int *)args[0];
         routes = (struct kernel_route*)args[1];
         found = (int *)args[2];
-        ifindex = args[3] ? 0 : *(int*)args[3];
+        ifindex = args[3] ? *(int*)args[3] : 0;
+        ll = args[4] ? !!*(int*)args[4] : 0;
     }
 
     len = nh->nlmsg_len;
@@ -1207,7 +1209,7 @@ filter_addresses(struct nlmsghdr *nh, void *data)
     if (rc < 0)
         return 0;
 
-    if (IN6_IS_ADDR_LINKLOCAL(&addr))
+    if (ll == !IN6_IS_ADDR_LINKLOCAL(&addr))
         return 0;
 
     if (ifindex && ifa->ifa_index != ifindex)
@@ -1264,13 +1266,14 @@ filter_netlink(struct nlmsghdr *nh, void *data)
     return 0;
 }
 
-int
-kernel_addresses(char *ifname, int ifindex,
-                 struct kernel_route *routes, int maxroutes)
+static int
+kernel_addresses_internal(char *ifname, int ifindex,
+                          struct kernel_route *routes, int maxroutes,
+                          int ll)
 {
     int maxr = maxroutes;
     int found = 0;
-    void *data[] = { &maxr, routes, &found, &ifindex, NULL};
+    void *data[] = { &maxr, routes, &found, &ifindex, &ll, NULL };
     struct rtgenmsg g;
     int rc;
 
@@ -1302,6 +1305,20 @@ kernel_addresses(char *ifname, int ifindex,
         return -1;
 
     return found;
+}
+
+int
+kernel_addresses(char *ifname, int ifindex,
+                 struct kernel_route *routes, int maxroutes)
+{
+    return kernel_addresses_internal(ifname, ifindex, routes, maxroutes, 0);
+}
+
+int
+kernel_ll_addresses(char *ifname, int ifindex,
+                    struct kernel_route *routes, int maxroutes)
+{
+    return kernel_addresses_internal(ifname, ifindex, routes, maxroutes, 1);
 }
 
 int
