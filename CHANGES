@@ -1,4 +1,4 @@
-babel 0.95 (unreleased)
+21 April 2009: babel 0.95
 
   * Fixed a bug that broke link-quality estimation, and could cause
     severe instability when we had both good and marginal neighbours.
