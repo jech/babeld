@@ -172,10 +172,11 @@ do_debugf(int level, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
-    if(debug >= level)
+    if(debug >= level) {
         vfprintf(stderr, format, args);
+        fflush(stderr);
+    }
     va_end(args);
-    fflush(stderr);
 }
 
 int
