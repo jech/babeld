@@ -162,6 +162,7 @@ check_network_ipv4(struct network *net)
     if(rc > 0) {
         if(!net->ipv4 || memcmp(ipv4, net->ipv4, 4) != 0) {
             debugf("Noticed IPv4 change for %s.\n", net->ifname);
+            flush_network_routes(net, 0);
             if(!net->ipv4)
                 net->ipv4 = malloc(4);
             if(net->ipv4)
@@ -169,8 +170,9 @@ check_network_ipv4(struct network *net)
             return 1;
         }
     } else {
-        debugf("Noticed IPv4 change for %s.\n", net->ifname);
         if(net->ipv4) {
+            debugf("Noticed IPv4 change for %s.\n", net->ifname);
+            flush_network_routes(net, 0);
             free(net->ipv4);
             net->ipv4 = NULL;
             return 1;
@@ -335,6 +337,7 @@ network_up(struct network *net, int up)
         send_hello(net);
         send_request(net, NULL, 0);
     } else {
+        flush_network_routes(net, 0);
         net->buffered = 0;
         net->bufsize = 0;
         free(net->sendbuf);

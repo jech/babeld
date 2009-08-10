@@ -128,6 +128,22 @@ flush_neighbour_routes(struct neighbour *neigh)
     }
 }
 
+void
+flush_network_routes(struct network *net, int v4only)
+{
+    int i;
+
+    i = 0;
+    while(i < numroutes) {
+        if(routes[i].neigh->network == net &&
+           (!v4only || v4mapped(routes[i].nexthop))) {
+           flush_route(&routes[i]);
+           continue;
+        }
+        i++;
+    }
+}
+
 static int
 metric_to_kernel(int metric)
 {
