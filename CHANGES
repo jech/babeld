@@ -1,3 +1,9 @@
+babel 0.96 (unreleased)
+
+  * Routes are now automatically flushed when an interface goes down or an
+    IPv4 address changes, which avoids desynchronisation between Babel and
+    the kernel.
+
 21 April 2009: babel 0.95
 
   * Fixed a bug that broke link-quality estimation, and could cause
