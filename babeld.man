@@ -1,8 +1,8 @@
-.TH BABEL 8
+.TH BABELD 8
 .SH NAME
-babel \- ad-hoc network routing daemon
+babeld \- ad-hoc network routing daemon
 .SH SYNOPSIS
-.B babel
+.B babeld
 .IR option ...
 [
 .B \-\-
@@ -26,7 +26,7 @@ Specify the UDP port number to be used by the protocol.
 .BI \-S " state-file"
 Set the name of the file used for preserving long-term information
 between invocations of the
-.B babel
+.B babeld
 daemon.  If this file is deleted, the daemon will run in passive mode
 for 3 minutes when it is next started (see
 .B -P
@@ -79,7 +79,8 @@ Listen for connections from a front-end on port
 .IR port .
 .TP
 .BI \-t " table"
-Use the given kernel routing table for routes inserted by Babel.
+Use the given kernel routing table for routes inserted by
+.BR babeld .
 .TP
 .BI \-T " table"
 Export routes from the given kernel routing table.
@@ -102,7 +103,7 @@ otherwise.
 .TP
 .BI \-I " pidfile"
 Specify a file to write our process id to.  The default is
-.BR /var/run/babel.pid .
+.BR /var/run/babeld.pid .
 .TP
 .IR interface ...
 The list of interfaces on which the protocol should operate.
@@ -249,7 +250,7 @@ is not specified, it defaults to
 .BR allow .
 
 By default,
-.B Babel
+.B babeld
 redistributes all local addresses, and no other routes.  In order to
 make sure that only the routes you specify are redistributed, you
 should include the line
@@ -260,7 +261,7 @@ as the last line in your configuration file.
 .SH EXAMPLES
 You can participate in a Babel network by simply running
 .IP
-# babel wlan0
+# babeld wlan0
 .PP
 where
 .B wlan0
@@ -269,18 +270,18 @@ is the name of your wireless interface.
 In order to gateway between multiple interfaces, just list them all on
 the command line:
 .IP
-# babel wlan0 eth0 sit1
+# babeld wlan0 eth0 sit1
 .PP
 On an access point, you'll probably want to redistribute some external
 routes into Babel:
 .IP
-# babel \\
+# babeld \\
     \-C 'redistribute metric 256' \\
     wlan0
 .PP
 or, if you want to constrain the routes that you redistribute,
 .IP
-# babel \\
+# babeld \\
     \-C 'redistribute proto 11 ip ::/0 le 64 metric 256' \\
     \-C 'redistribute proto 11 ip 0.0.0.0/0 le 24 metric 256' \\
     wlan0
@@ -292,7 +293,7 @@ The default location of the configuration file.
 .B /var/lib/babel\-state
 The default location of the file storing long-term state.
 .TP
-.B /var/run/babel.pid
+.B /var/run/babeld.pid
 The default location of the pid file.
 .TP
 .B /var/log/babel.log

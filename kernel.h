@@ -21,7 +21,7 @@ THE SOFTWARE.
 */
 
 #include <netinet/in.h>
-#include "babel.h"
+#include "babeld.h"
 
 #define KERNEL_INFINITY 0xFFFF
 

@@ -26,7 +26,7 @@ THE SOFTWARE.
 #include <unistd.h>
 #include <errno.h>
 
-#include "babel.h"
+#include "babeld.h"
 #include "network.h"
 #include "source.h"
 #include "neighbour.h"

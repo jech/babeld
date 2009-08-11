@@ -8,44 +8,44 @@ CFLAGS = $(CDEBUGFLAGS) $(DEFINES) $(EXTRA_DEFINES)
 
 LDLIBS = -lrt
 
-SRCS = babel.c net.c kernel.c util.c network.c source.c neighbour.c \
+SRCS = babeld.c net.c kernel.c util.c network.c source.c neighbour.c \
        route.c xroute.c message.c resend.c config.c local.c
 
-OBJS = babel.o net.o kernel.o util.o network.o source.o neighbour.o \
+OBJS = babeld.o net.o kernel.o util.o network.o source.o neighbour.o \
        route.o xroute.o message.o resend.o config.o local.o
 
-babel: $(OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o babel $(OBJS) $(LDLIBS)
+babeld: $(OBJS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o babeld $(OBJS) $(LDLIBS)
 
 .SUFFIXES: .man .html
 
 .man.html:
 	rman -f html $< | \
-	sed -e "s|<a href='babel.8'|<a href=\"babel.html\"|" \
+	sed -e "s|<a href='babeld.8'|<a href=\"babeld.html\"|" \
             -e "s|<a href='\\(ahcp[-a-z]*\\).8'|<a href=\"../ahcp/\1.html\"|" \
 	    -e "s|<a href='[^']*8'>\\(.*(8)\\)</a>|\1|" \
 	> $@
 
-babel.html: babel.man
+babeld.html: babeld.man
 
 .PHONY: all install install.minimal uninstall clean
 
-all: babel babel.man
+all: babeld babeld.man
 
-install.minimal: babel
-	-rm -f $(TARGET)$(PREFIX)/bin/babel
+install.minimal: babeld
+	-rm -f $(TARGET)$(PREFIX)/bin/babeld
 	mkdir -p $(TARGET)$(PREFIX)/bin
-	cp -f babel $(TARGET)$(PREFIX)/bin
+	cp -f babeld $(TARGET)$(PREFIX)/bin
 
 install: install.minimal all
 	mkdir -p $(TARGET)$(PREFIX)/man/man8
-	cp -f babel.man $(TARGET)$(PREFIX)/man/man8/babel.8
+	cp -f babeld.man $(TARGET)$(PREFIX)/man/man8/babeld.8
 
 uninstall:
-	-rm -f $(TARGET)$(PREFIX)/bin/babel
-	-rm -f $(TARGET)$(PREFIX)/man/man8/babel.8
+	-rm -f $(TARGET)$(PREFIX)/bin/babeld
+	-rm -f $(TARGET)$(PREFIX)/man/man8/babeld.8
 
 clean:
-	-rm -f babel babel.html *.o *~ core TAGS gmon.out
+	-rm -f babeld babeld.html *.o *~ core TAGS gmon.out
 
 kernel.o: kernel_netlink.c kernel_socket.c

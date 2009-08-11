@@ -41,7 +41,7 @@ THE SOFTWARE.
 #include <net/if_dl.h>
 #include <net/route.h>
 
-#include "babel.h"
+#include "babeld.h"
 #include "neighbour.h"
 #include "kernel.h"
 #include "util.h"

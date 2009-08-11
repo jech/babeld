@@ -1,5 +1,6 @@
-babel 0.96 (unreleased)
+babeld 0.96 (unreleased)
 
+  * Renamed babel to babeld.
   * Routes are now automatically flushed when an interface goes down or an
     IPv4 address changes, which avoids desynchronisation between Babel and
     the kernel.

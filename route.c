@@ -26,7 +26,7 @@ THE SOFTWARE.
 #include <errno.h>
 #include <assert.h>
 
-#include "babel.h"
+#include "babeld.h"
 #include "util.h"
 #include "kernel.h"
 #include "network.h"

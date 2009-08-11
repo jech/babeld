@@ -27,7 +27,7 @@ THE SOFTWARE.
 
 #include <arpa/inet.h>
 
-#include "babel.h"
+#include "babeld.h"
 #include "util.h"
 #include "net.h"
 #include "network.h"

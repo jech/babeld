@@ -27,7 +27,7 @@ THE SOFTWARE.
 #include <assert.h>
 #include <netinet/in.h>
 
-#include "babel.h"
+#include "babeld.h"
 #include "kernel.h"
 #include "neighbour.h"
 #include "message.h"

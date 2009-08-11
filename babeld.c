@@ -38,7 +38,7 @@ THE SOFTWARE.
 #include <net/if.h>
 #include <arpa/inet.h>
 
-#include "babel.h"
+#include "babeld.h"
 #include "util.h"
 #include "net.h"
 #include "kernel.h"
@@ -66,7 +66,7 @@ int wireless_hello_interval = -1;
 int wired_hello_interval = -1;
 int idle_hello_interval = -1;
 int do_daemonise = 0;
-char *logfile = NULL, *pidfile = "/var/run/babel.pid";
+char *logfile = NULL, *pidfile = "/var/run/babeld.pid";
 
 unsigned char *receive_buffer = NULL;
 int receive_buffer_size = 0;

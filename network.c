@@ -29,7 +29,7 @@ THE SOFTWARE.
 #include <net/if.h>
 #include <arpa/inet.h>
 
-#include "babel.h"
+#include "babeld.h"
 #include "util.h"
 #include "kernel.h"
 #include "network.h"

@@ -24,7 +24,7 @@ THE SOFTWARE.
 #include <string.h>
 #include <stdio.h>
 
-#include "babel.h"
+#include "babeld.h"
 #include "util.h"
 #include "network.h"
 #include "config.h"

@@ -30,7 +30,7 @@ THE SOFTWARE.
 #include <netinet/in.h>
 #include <errno.h>
 
-#include "babel.h"
+#include "babeld.h"
 #include "util.h"
 #include "net.h"
 

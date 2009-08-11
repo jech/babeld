@@ -25,7 +25,7 @@ THE SOFTWARE.
 #include <string.h>
 #include <stdlib.h>
 
-#include "babel.h"
+#include "babeld.h"
 #include "util.h"
 #include "neighbour.h"
 #include "resend.h"

@@ -32,7 +32,7 @@ THE SOFTWARE.
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-#include "babel.h"
+#include "babeld.h"
 #include "util.h"
 
 unsigned

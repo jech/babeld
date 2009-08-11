@@ -46,7 +46,7 @@ THE SOFTWARE.
 #define RTA_TABLE 15
 #endif
 
-#include "babel.h"
+#include "babeld.h"
 #include "kernel.h"
 #include "util.h"
 #include "network.h"
