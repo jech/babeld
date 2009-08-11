@@ -1,4 +1,4 @@
-babeld 0.96 (unreleased)
+11 August 2009: babeld 0.96
 
   * Renamed babel to babeld.
   * Routes are now automatically flushed when an interface goes down or an
