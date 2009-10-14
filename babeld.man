@@ -87,7 +87,7 @@ Export routes from the given kernel routing table.
 .TP
 .BI \-c " filename"
 Specify the name of the configuration file.  The default is
-.BR /etc/babel.conf .
+.BR /etc/babeld.conf .
 .TP
 .BI \-C " statement"
 Specify a configuration statement directly on the command line.
@@ -98,7 +98,7 @@ Daemonise at startup.
 .BI \-L " logfile"
 Specify a file to log random ``how do you do?'' messages to.  This
 defaults to standard error if not daemonising, and to
-.B /var/log/babel.log
+.B /var/log/babeld.log
 otherwise.
 .TP
 .BI \-I " pidfile"
@@ -287,7 +287,7 @@ or, if you want to constrain the routes that you redistribute,
     wlan0
 .SH FILES
 .TP
-.B /etc/babel.conf
+.B /etc/babeld.conf
 The default location of the configuration file.
 .TP
 .B /var/lib/babel\-state
@@ -296,7 +296,7 @@ The default location of the file storing long-term state.
 .B /var/run/babeld.pid
 The default location of the pid file.
 .TP
-.B /var/log/babel.log
+.B /var/log/babeld.log
 The default location of the log file.
 .SH SIGNALS
 .TP
