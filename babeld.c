@@ -244,6 +244,10 @@ main(int argc, char **argv)
                     config_file);
             exit(1);
         }
+    } else {
+        if(access("/etc/babel.conf", F_OK) >= 0)
+            fprintf(stderr,
+                    "Warning: /etc/babel.conf exists, it will be ignored.\n");
     }
 
     if(wireless_hello_interval <= 0)
