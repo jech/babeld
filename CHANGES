@@ -1,3 +1,7 @@
+babeld 0.97 (unreleased):
+
+  * Use getopt for parsing command-line options.
+
 11 August 2009: babeld 0.96
 
   * Renamed babel to babeld.
