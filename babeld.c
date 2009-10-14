@@ -233,7 +233,7 @@ main(int argc, char **argv)
 
 
     if(!config_file) {
-        if(access("/etc/babeld.conf", R_OK) >= 0)
+        if(access("/etc/babeld.conf", F_OK) >= 0)
             config_file = "/etc/babeld.conf";
     }
     if(config_file) {
