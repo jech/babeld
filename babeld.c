@@ -233,8 +233,8 @@ main(int argc, char **argv)
 
 
     if(!config_file) {
-        if(access("/etc/babel.conf", R_OK) >= 0)
-            config_file = "/etc/babel.conf";
+        if(access("/etc/babeld.conf", R_OK) >= 0)
+            config_file = "/etc/babeld.conf";
     }
     if(config_file) {
         rc = parse_config_from_file(config_file);
@@ -256,7 +256,7 @@ main(int argc, char **argv)
 
     if(do_daemonise) {
         if(logfile == NULL)
-            logfile = "/var/log/babel.log";
+            logfile = "/var/log/babeld.log";
     }
 
     rc = reopen_logfile();
