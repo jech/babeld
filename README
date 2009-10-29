@@ -37,10 +37,12 @@ address, and/or a unique IPv4 address.
 On every node, run something like:
 
   # ip addr add 192.168.13.33/32 dev eth1
-  # ip -6 addr add $(ahcp-generate-address -r)/128 dev eth1
+  # ip -6 addr add $(generate-ipv6-address -r)/128 dev eth1
 
-You will find the ahcp-generate-address utility, which can generate
-random IPv6 addresses according to RFC 4193, in the ahcpd package.
+You will find the generate-ipv6-address utility, which can generate random
+IPv6 addresses according to RFC 4193, on
+
+    http://www.pps.jussieu.fr/~jch/software/files/
 
 
 A note about tunnels and VPNs
@@ -63,12 +65,12 @@ interface.  This can be done by running e.g.
 Run Babel on every node, specifying the set of interfaces that it
 should consider:
 
-  # babel eth1
+  # babeld eth1
 
 If your node has multiple interfaces which you want to participate in
 the Babel network, just list them all:
 
-  # babel eth0 eth1 sit1
+  # babeld eth0 eth1 sit1
 
 
 4. Setting up an Internet gateway
@@ -83,25 +85,25 @@ attached, so you must say something like:
 
 In order to redistribute all routes, you will say:
 
-  # babel -C 'redistribute metric 128' eth1
+  # babeld -C 'redistribute metric 128' eth1
 
 You may also be more selective in the routes you redistribute, for
 instance by specifying the interface over which the route goes out:
 
-  # babel -C 'redistribute if eth0 metric 128' eth1
+  # babeld -C 'redistribute if eth0 metric 128' eth1
 
 or by constraining the prefix length:
 
-  # babel -C 'redistribute ip ::/0 le 64 metric 128' \
-          -C 'redistribute ip 0.0.0.0/0 le 28 metric 128' \
-          eth1
+  # babeld -C 'redistribute ip ::/0 le 64 metric 128' \
+           -C 'redistribute ip 0.0.0.0/0 le 28 metric 128' \
+           eth1
 
 You may also want to constrain which local routes (routes to local
 interface addresses) you advertise:
 
-  # babel -C 'redistribute local if eth1' -C 'redistribute local deny' \
-          -C 'redistribute metric 128' \
-          eth1
+  # babeld -C 'redistribute local if eth1' -C 'redistribute local deny' \
+           -C 'redistribute metric 128' \
+           eth1
 
 If you find all of this too complicated and error-prone (as I do), you
 may want to consider autoconfiguring your routing domain using AHCP:
