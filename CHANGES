@@ -1,4 +1,4 @@
-babeld 0.97 (unreleased):
+5 November 2009: babeld 0.97:
 
   * INCOMPATIBLE CHANGE: rename babel.{conf,log} to babeld.*.
   * Use getopt for parsing command-line options.
