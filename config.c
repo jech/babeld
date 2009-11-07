@@ -273,7 +273,7 @@ parse_filter(gnc_t gnc, void *closure)
 
     while(c >= 0 && c != '\n') {
         c = skip_whitespace(c, gnc, closure);
-        if(c == '#') {
+        if(c == '\n' || c == '#') {
             c = skip_to_eol(c, gnc, closure);
             break;
         }
@@ -378,7 +378,7 @@ parse_nconf(gnc_t gnc, void *closure)
         goto error;
 
     c = skip_whitespace(c, gnc, closure);
-    if(c < -1 || c == '#')
+    if(c < -1 || c == '\n' || c == '#')
         goto error;
 
     c = getstring(c, &token, gnc, closure);
@@ -389,8 +389,7 @@ parse_nconf(gnc_t gnc, void *closure)
 
     while(c >= 0 && c != '\n') {
         c = skip_whitespace(c, gnc, closure);
-
-        if(c == '#') {
+        if(c == '\n' || c == '#') {
             c = skip_to_eol(c, gnc, closure);
             break;
         }
@@ -503,12 +502,8 @@ parse_config(gnc_t gnc, void *closure)
 
     while(c >= 0) {
         c = skip_whitespace(c, gnc, closure);
-        if(c == '#') {
+        if(c == '\n' || c == '#') {
             c = skip_to_eol(c, gnc, closure);
-            continue;
-        }
-        if(c == '\n') {
-            c = gnc(closure);
             continue;
         }
         if(c < 0)
