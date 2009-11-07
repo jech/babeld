@@ -1,5 +1,7 @@
 babeld 0.98 (unreleased):
 
+  * Implement the ability to prefer Babel routes to external routes
+    according to the kernel priority (-A).
   * Allow trailing whitespace in config file.
 
 5 November 2009: babeld 0.97:
