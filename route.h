@@ -34,7 +34,7 @@ struct route {
 
 extern struct route *routes;
 extern int numroutes, maxroutes;
-extern int kernel_metric;
+extern int kernel_metric, allow_duplicates;
 
 struct route *find_route(const unsigned char *prefix, unsigned char plen,
                          struct neighbour *neigh, const unsigned char *nexthop);

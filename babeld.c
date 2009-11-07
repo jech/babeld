@@ -171,6 +171,11 @@ main(int argc, char **argv)
             if(kernel_metric < 0 || kernel_metric > 0xFFFF)
                 goto usage;
             break;
+        case 'A':
+            allow_duplicates = atoi(optarg);
+            if(allow_duplicates < 0 || allow_duplicates > 0xFFFF)
+                goto usage;
+            break;
         case 'P':
             parasitic = 1;
             break;
@@ -231,7 +236,6 @@ main(int argc, char **argv)
         }
     }
 
-
     if(!config_file) {
         if(access("/etc/babeld.conf", F_OK) >= 0)
             config_file = "/etc/babeld.conf";
@@ -257,6 +261,12 @@ main(int argc, char **argv)
     if(wired_hello_interval <= 0)
         wired_hello_interval = 20000;
     wired_hello_interval = MAX(wired_hello_interval, 5);
+
+    if(parasitic && allow_duplicates >= 0) {
+        /* Too difficult to get right. */
+        fprintf(stderr, "Sorry, -P and -A are incompatible.\n");
+        exit(1);
+    }
 
     if(do_daemonise) {
         if(logfile == NULL)
@@ -776,7 +786,7 @@ main(int argc, char **argv)
             "                "
             "[-h hello] [-H wired_hello] [-i idle_hello]\n"
             "                "
-            "[-k metric] [-s] [-P] [-l] [-w] [-d level] [-g port]\n"
+            "[-k metric] [-A metric] [-s] [-P] [-l] [-w] [-d level] [-g port]\n"
             "                "
             "[-t table] [-T table] [-c file] [-C statement]\n"
             "                "

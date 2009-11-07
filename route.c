@@ -42,6 +42,7 @@ THE SOFTWARE.
 struct route *routes = NULL;
 int numroutes = 0, maxroutes = 0;
 int kernel_metric = 0;
+int allow_duplicates = -1;
 
 struct route *
 find_route(const unsigned char *prefix, unsigned char plen,
@@ -512,6 +513,7 @@ void
 consider_route(struct route *route)
 {
     struct route *installed;
+    struct xroute *xroute;
 
     if(route->installed)
         return;
@@ -519,8 +521,9 @@ consider_route(struct route *route)
     if(!route_feasible(route))
         return;
 
-    if(find_xroute(route->src->prefix, route->src->plen))
-       return;
+    xroute = find_xroute(route->src->prefix, route->src->plen);
+    if(xroute && (allow_duplicates < 0 || xroute->metric >= allow_duplicates))
+        return;
 
     installed = find_installed_route(route->src->prefix, route->src->plen);
 

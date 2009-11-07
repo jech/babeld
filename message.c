@@ -878,16 +878,15 @@ flushupdates(struct network *net)
             }
 
             xroute = find_xroute(b[i].prefix, b[i].plen);
-            if(xroute) {
+            route = find_installed_route(b[i].prefix, b[i].plen);
+
+            if(xroute && (!route || xroute->metric <= kernel_metric)) {
                 really_send_update(net, myid,
                                    xroute->prefix, xroute->plen,
                                    myseqno, xroute->metric);
                 last_prefix = xroute->prefix;
                 last_plen = xroute->plen;
-                continue;
-            }
-            route = find_installed_route(b[i].prefix, b[i].plen);
-            if(route) {
+            } else if(route) {
                 seqno = route->seqno;
                 metric = route->metric;
                 if(metric < INFINITY)
@@ -903,13 +902,12 @@ flushupdates(struct network *net)
                 update_source(route->src, seqno, metric);
                 last_prefix = route->src->prefix;
                 last_plen = route->src->plen;
-                continue;
+            } else {
+            /* There's no route for this prefix.  This can happen shortly
+               after an xroute has been retracted, so send a retraction. */
+                really_send_update(net, myid, b[i].prefix, b[i].plen,
+                                   myseqno, INFINITY);
             }
-            /* If we reach this point, there's no route for this prefix.
-               This can happen after an xroute has been retracted, so send
-               a retraction. */
-            really_send_update(net, myid, b[i].prefix, b[i].plen,
-                               myseqno, INFINITY);
         }
         schedule_flush_now(net);
     done:
@@ -1348,7 +1346,9 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
     struct neighbour *successor = NULL;
 
     xroute = find_xroute(prefix, plen);
-    if(xroute) {
+    route = find_installed_route(prefix, plen);
+
+    if(xroute && (!route || xroute->metric <= kernel_metric)) {
         if(hop_count > 0 && memcmp(id, myid, 8) == 0) {
             if(seqno_compare(seqno, myseqno) > 0) {
                 if(seqno_minus(seqno, myseqno) > 100) {
@@ -1362,7 +1362,6 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
         return;
     }
 
-    route = find_installed_route(prefix, plen);
     if(route &&
        (memcmp(id, route->src->id, 8) != 0 ||
         seqno_compare(seqno, route->seqno) <= 0)) {

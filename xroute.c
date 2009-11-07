@@ -208,8 +208,11 @@ check_xroutes(int send_updates)
             if(rc) {
                 struct route *route;
                 route = find_installed_route(routes[i].prefix, routes[i].plen);
-                if(route)
-                    uninstall_route(route);
+                if(route) {
+                    if(allow_duplicates < 0 ||
+                       routes[i].metric < allow_duplicates)
+                        uninstall_route(route);
+                }
                 change = 1;
                 if(send_updates)
                     send_update(NULL, 0, routes[i].prefix, routes[i].plen);
