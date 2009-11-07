@@ -52,6 +52,12 @@ doing.
 Specify the priority value used when installing routes into the kernel.
 The default is 0.
 .TP
+.BI \-A " priority"
+Allow duplicating external routes when their kernel priority is at least
+.IR priority .
+Do not use this option unless you know what you are doing, as it can cause
+persistent route flapping.
+.TP
 .B \-l
 Use IFF_RUNNING (carrier sense) when determining interface availability.
 .TP
