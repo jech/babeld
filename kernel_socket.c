@@ -609,16 +609,8 @@ socket_read(int sock)
 }
 
 int
-kernel_addresses(char *ifname, int ifindex,
+kernel_addresses(char *ifname, int ifindex, int ll,
                  struct kernel_route *routes, int maxroutes)
-{
-    errno = ENOSYS;
-    return -1;
-}
-
-int
-kernel_ll_addresses(char *ifname, int ifindex,
-                    struct kernel_route *routes, int maxroutes)
 {
     errno = ENOSYS;
     return -1;

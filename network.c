@@ -317,7 +317,7 @@ network_up(struct network *net, int up)
             free(net->ll);
         net->numll = 0;
         net->ll = NULL;
-        rc = kernel_ll_addresses(net->ifname, net->ifindex, ll, 32);
+        rc = kernel_addresses(net->ifname, net->ifindex, 1, ll, 32);
         if(rc < 0) {
             perror("kernel_ll_addresses");
         } else if(rc > 0) {

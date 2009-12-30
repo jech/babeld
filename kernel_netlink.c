@@ -1266,10 +1266,9 @@ filter_netlink(struct nlmsghdr *nh, void *data)
     return 0;
 }
 
-static int
-kernel_addresses_internal(char *ifname, int ifindex,
-                          struct kernel_route *routes, int maxroutes,
-                          int ll)
+int
+kernel_addresses(char *ifname, int ifindex, int ll,
+                 struct kernel_route *routes, int maxroutes)
 {
     int maxr = maxroutes;
     int found = 0;
@@ -1305,20 +1304,6 @@ kernel_addresses_internal(char *ifname, int ifindex,
         return -1;
 
     return found;
-}
-
-int
-kernel_addresses(char *ifname, int ifindex,
-                 struct kernel_route *routes, int maxroutes)
-{
-    return kernel_addresses_internal(ifname, ifindex, routes, maxroutes, 0);
-}
-
-int
-kernel_ll_addresses(char *ifname, int ifindex,
-                    struct kernel_route *routes, int maxroutes)
-{
-    return kernel_addresses_internal(ifname, ifindex, routes, maxroutes, 1);
 }
 
 int
