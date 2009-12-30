@@ -617,6 +617,14 @@ kernel_addresses(char *ifname, int ifindex,
 }
 
 int
+kernel_ll_addresses(char *ifname, int ifindex,
+                    struct kernel_route *routes, int maxroutes)
+{
+    errno = ENOSYS;
+    return -1;
+}
+
+int
 kernel_callback(int (*fn)(int, void*), void *closure)
 {
     int rc;
