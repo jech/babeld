@@ -393,8 +393,6 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     if(!(operation == ROUTE_MODIFY && plen == 128)) {
         rtm->rtm_addrs |= RTA_NETMASK;
     }
-    rtm->rtm_rmx.rmx_hopcount = metric;
-    rtm->rtm_inits = RTV_HOPCOUNT;
 
     sin6 = (struct sockaddr_in6 *)&msg[sizeof(struct rt_msghdr)];
     /* Destination */
@@ -462,7 +460,7 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
     char addr[INET6_ADDRSTRLEN];
 
     memset(route, 0, sizeof(*route));
-    route->metric = rtm->rtm_rmx.rmx_hopcount;
+    route->metric = 0;
     route->ifindex = rtm->rtm_index;
 
     if(!rtm->rtm_addrs && RTA_DST)
