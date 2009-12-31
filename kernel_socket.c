@@ -463,7 +463,7 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
     route->metric = 0;
     route->ifindex = rtm->rtm_index;
 
-    if(!rtm->rtm_addrs && RTA_DST)
+    if(!(rtm->rtm_addrs & RTA_DST))
         return -1;
     sin6 = (struct sockaddr_in6 *)rta;
     if(IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr) 
@@ -474,7 +474,7 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
     memcpy(&route->prefix, &sin6->sin6_addr, 16);
     rta += ROUNDUP(sizeof(struct sockaddr_in6));
    
-    if(!rtm->rtm_addrs && RTA_GATEWAY)
+    if(!(rtm->rtm_addrs & RTA_GATEWAY))
         return -1;
 
     sin6 = (struct sockaddr_in6 *)rta;
@@ -485,7 +485,7 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
     memcpy(&route->gw, &sin6->sin6_addr, 16);
     rta += ROUNDUP(sizeof(struct sockaddr_in6));
 
-    if(!rtm->rtm_addrs && RTA_NETMASK) {
+    if(!(rtm->rtm_addrs & RTA_NETMASK)) {
         route->plen = 0;
     } else {
         sin6 = (struct sockaddr_in6 *)rta;        
