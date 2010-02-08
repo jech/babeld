@@ -222,7 +222,8 @@ If neither
 .B proto
 nor
 .B local
-is specified, this entry applies to all non-local kernel routes.
+is specified, this entry applies to all non-local kernel routes with
+a protocol different from "boot".
 .TP
 .B local
 This entry only applies to local addresses.
