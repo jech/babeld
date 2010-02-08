@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2007, 2008 by Juliusz Chroboczek
+Copyright (c) 2007-2010 by Juliusz Chroboczek
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,13 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+
+#ifndef __APPLE__
+/* For RTPROT_BOOT */
+#include <sys/socket.h>
+#include <linux/netlink.h>
+#include <linux/rtnetlink.h>
+#endif
 
 #include "babeld.h"
 #include "util.h"
@@ -640,7 +647,12 @@ filter_match(struct filter *f, const unsigned char *id,
             return 0;
     } else if(proto == RTPROT_BABEL_LOCAL) {
         return 0;
+#ifndef __APPLE__
+    } else if(proto == RTPROT_BOOT) {
+        return 0;
+#endif
     }
+
     return 1;
 }
 

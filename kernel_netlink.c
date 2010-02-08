@@ -1,5 +1,5 @@
 /*
-Copyright 2007, 2008 by Grégoire Henry, Julien Cristau and Juliusz Chroboczek
+Copyright 2007-2010 by Grégoire Henry, Julien Cristau and Juliusz Chroboczek
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -1005,7 +1005,7 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
     rtm = (struct rtmsg*)NLMSG_DATA(nh);
     len -= NLMSG_LENGTH(0);
 
-    if(rtm->rtm_protocol == RTPROT_BOOT || rtm->rtm_protocol == RTPROT_BABEL)
+    if(rtm->rtm_protocol == RTPROT_BABEL)
         return 0;
 
     if(rtm->rtm_src_len != 0)
