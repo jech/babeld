@@ -25,10 +25,9 @@ THE SOFTWARE.
 #include <stdio.h>
 
 #ifndef __APPLE__
-/* For RTPROT_BOOT */
-#include <sys/socket.h>
-#include <linux/netlink.h>
-#include <linux/rtnetlink.h>
+/* Defining it rather than including <linux/rtnetlink.h> because this
+ * implies <asm/types.h> on Linux 2.4 */
+#define RTPROT_BOOT 3 /* Route installed during boot */
 #endif
 
 #include "babeld.h"
