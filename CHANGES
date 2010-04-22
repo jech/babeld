@@ -1,3 +1,7 @@
+22 April 2010: babeld 1.0:
+
+  * Minor portability fixes.
+
 8 February 2010: babeld 0.98:
 
   * Implement the ability to prefer Babel routes to external routes
