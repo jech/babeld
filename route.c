@@ -80,7 +80,7 @@ flush_route(struct route *route)
     i = route - routes;
     assert(i >= 0 && i < numroutes);
 
-    oldmetric = route->metric;
+    oldmetric = route_metric(route);
 
     if(route->installed) {
         uninstall_route(route);
@@ -166,7 +166,7 @@ install_route(struct route *route)
     rc = kernel_route(ROUTE_ADD, route->src->prefix, route->src->plen,
                       route->nexthop,
                       route->neigh->network->ifindex,
-                      metric_to_kernel(route->metric), NULL, 0, 0);
+                      metric_to_kernel(route_metric(route)), NULL, 0, 0);
     if(rc < 0) {
         int save = errno;
         perror("kernel_route(ADD)");
@@ -188,7 +188,7 @@ uninstall_route(struct route *route)
     rc = kernel_route(ROUTE_FLUSH, route->src->prefix, route->src->plen,
                       route->nexthop,
                       route->neigh->network->ifindex,
-                      metric_to_kernel(route->metric), NULL, 0, 0);
+                      metric_to_kernel(route_metric(route)), NULL, 0, 0);
     if(rc < 0)
         perror("kernel_route(FLUSH)");
 
@@ -219,9 +219,9 @@ switch_routes(struct route *old, struct route *new)
 
     rc = kernel_route(ROUTE_MODIFY, old->src->prefix, old->src->plen,
                       old->nexthop, old->neigh->network->ifindex,
-                      metric_to_kernel(old->metric),
+                      metric_to_kernel(route_metric(old)),
                       new->nexthop, new->neigh->network->ifindex,
-                      metric_to_kernel(new->metric));
+                      metric_to_kernel(route_metric(new)));
     if(rc < 0) {
         perror("kernel_route(MODIFY)");
         return;
@@ -239,10 +239,10 @@ change_route_metric(struct route *route, unsigned newmetric)
 {
     int old, new;
 
-    if(route->metric == newmetric)
+    if(route_metric(route) == newmetric)
         return;
 
-    old = metric_to_kernel(route->metric);
+    old = metric_to_kernel(route_metric(route));
     new = metric_to_kernel(newmetric);
 
     if(route->installed && old != new) {
@@ -316,7 +316,7 @@ find_best_route(const unsigned char *prefix, unsigned char plen, int feasible,
             continue;
         if(exclude && routes[i].neigh == exclude)
             continue;
-        if(route && route->metric <= routes[i].metric)
+        if(route && route_metric(route) <= route_metric(&routes[i]))
             continue;
         route = &routes[i];
     }
@@ -329,7 +329,7 @@ update_route_metric(struct route *route)
     int oldmetric;
     int newmetric;
 
-    oldmetric = route->metric;
+    oldmetric = route_metric(route);
     if(route_expired(route)) {
         if(route->refmetric < INFINITY) {
             route->seqno = seqno_plus(route->src->seqno, 1);
@@ -414,7 +414,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         int lost = 0;
 
         oldsrc = route->src;
-        oldmetric = route->metric;
+        oldmetric = route_metric(route);
 
         /* If a successor switches sources, we must accept his update even
            if it makes a route unfeasible in order to break any routing loops
@@ -498,7 +498,7 @@ send_unfeasible_request(struct neighbour *neigh, int force,
         return;
     }
 
-    if(force || !route || route->metric >= metric + 512) {
+    if(force || !route || route_metric(route) >= metric + 512) {
         send_unicast_multihop_request(neigh, src->prefix, src->plen,
                                       src->metric >= INFINITY ?
                                       src->seqno :
@@ -530,20 +530,20 @@ consider_route(struct route *route)
     if(installed == NULL)
         goto install;
 
-    if(route->metric >= INFINITY)
+    if(route_metric(route) >= INFINITY)
         return;
 
-    if(installed->metric >= INFINITY)
+    if(route_metric(installed) >= INFINITY)
         goto install;
 
-    if(installed->metric >= route->metric + 192)
+    if(route_metric(installed) >= route_metric(route) + 192)
         goto install;
 
     /* Avoid switching sources */
     if(installed->src != route->src)
         return;
 
-    if(installed->metric >= route->metric + 64)
+    if(route_metric(installed) >= route_metric(route) + 64)
         goto install;
 
     return;
@@ -551,7 +551,7 @@ consider_route(struct route *route)
  install:
     switch_routes(installed, route);
     if(installed && route->installed)
-        send_triggered_update(route, installed->src, installed->metric);
+        send_triggered_update(route, installed->src, route_metric(installed));
     else
         send_update(NULL, 1, route->src->prefix, route->src->plen);
     return;
@@ -565,7 +565,7 @@ retract_neighbour_routes(struct neighbour *neigh)
     i = 0;
     while(i < numroutes) {
         if(routes[i].neigh == neigh) {
-            unsigned short oldmetric = routes[i].metric;
+            unsigned short oldmetric = route_metric(&routes[i]);
             if(oldmetric != INFINITY) {
                 change_route_metric(&routes[i], INFINITY);
                 route_changed(&routes[i], routes[i].src, oldmetric);
@@ -586,7 +586,7 @@ send_triggered_update(struct route *route, struct source *oldsrc,
     if(!route->installed)
         return;
 
-    newmetric = route->metric;
+    newmetric = route_metric(route);
     diff =
         newmetric >= oldmetric ? newmetric - oldmetric : oldmetric - newmetric;
 
@@ -639,11 +639,12 @@ route_changed(struct route *route,
               struct source *oldsrc, unsigned short oldmetric)
 {
     if(route->installed) {
-        if(route->metric > oldmetric) {
+        if(route_metric(route) > oldmetric) {
             struct route *better_route;
             better_route =
                 find_best_route(route->src->prefix, route->src->plen, 1, NULL);
-            if(better_route && better_route->metric <= route->metric - 96)
+            if(better_route &&
+               route_metric(better_route) <= route_metric(route) - 96)
                 consider_route(better_route);
         }
 

@@ -949,7 +949,7 @@ dump_tables(FILE *out)
         fprintf(out, "%s metric %d refmetric %d id %s seqno %d age %d "
                 "via %s neigh %s%s%s%s\n",
                 format_prefix(routes[i].src->prefix, routes[i].src->plen),
-                routes[i].metric, routes[i].refmetric,
+                route_metric(&routes[i]), routes[i].refmetric,
                 format_eui64(routes[i].src->id),
                 (int)routes[i].seqno,
                 (int)(now.tv_sec - routes[i].time),

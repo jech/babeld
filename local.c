@@ -206,7 +206,7 @@ local_notify_route(struct route *route, int kind)
                   format_prefix(route->src->prefix, route->src->plen),
                   route->installed ? "yes" : "no",
                   format_eui64(route->src->id),
-                  route->metric, route->refmetric,
+                  route_metric(route), route->refmetric,
                   format_address(route->neigh->address),
                   route->neigh->network->ifname);
     

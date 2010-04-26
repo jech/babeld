@@ -888,7 +888,7 @@ flushupdates(struct network *net)
                 last_plen = xroute->plen;
             } else if(route) {
                 seqno = route->seqno;
-                metric = route->metric;
+                metric = route_metric(route);
                 if(metric < INFINITY)
                     satisfy_request(route->src->prefix, route->src->plen,
                                     seqno, route->src->id, net);
@@ -975,7 +975,7 @@ send_update(struct network *net, int urgent,
             /* Since flushupdates only deals with non-wildcard interfaces, we
                need to do this now. */
             route = find_installed_route(prefix, plen);
-            if(route && route->metric < INFINITY)
+            if(route && route_metric(route) < INFINITY)
                 satisfy_request(prefix, plen, route->src->seqno, route->src->id,
                                 NULL);
         }
@@ -1382,7 +1382,7 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
         return;
 
     /* Let's try to forward this request. */
-    if(route && route->metric < INFINITY)
+    if(route && route_metric(route) < INFINITY)
         successor = route->neigh;
 
     if(!successor || successor == neigh) {
@@ -1391,7 +1391,7 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
         struct route *other_route;
 
         other_route = find_best_route(prefix, plen, 0, neigh);
-        if(other_route && other_route->metric < INFINITY)
+        if(other_route && route_metric(other_route) < INFINITY)
             successor = other_route->neigh;
     }
 
