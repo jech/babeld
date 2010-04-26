@@ -32,6 +32,12 @@ struct route {
     short installed;
 };
 
+static inline int
+route_metric(const struct route *route)
+{
+    return route->metric;
+}
+
 extern struct route *routes;
 extern int numroutes, maxroutes;
 extern int kernel_metric, allow_duplicates;
