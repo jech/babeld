@@ -1,3 +1,7 @@
+babeld 1.0.1 (unreleased):
+
+  * Fixed a bug that could cause input filters to be ignored.
+
 22 April 2010: babeld 1.0:
 
   * Minor portability fixes.
