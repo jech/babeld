@@ -234,7 +234,7 @@ switch_routes(struct route *old, struct route *new)
     local_notify_route(new, LOCAL_CHANGE);
 }
 
-void
+static void
 change_route_metric(struct route *route, unsigned newmetric)
 {
     int old, new;

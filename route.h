@@ -52,7 +52,6 @@ void flush_network_routes(struct network *net, int v4only);
 void install_route(struct route *route);
 void uninstall_route(struct route *route);
 void switch_route(struct route *old, struct route *new);
-void change_route_metric(struct route *route, unsigned newmetric);
 int route_feasible(struct route *route);
 int route_old(struct route *route);
 int route_expired(struct route *route);
