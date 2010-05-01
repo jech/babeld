@@ -337,7 +337,14 @@ update_route_metric(struct route *route)
         }
         newmetric = INFINITY;
     } else {
-        newmetric = MIN(route->refmetric + neighbour_cost(route->neigh),
+        struct neighbour *neigh = route->neigh;
+        int add_metric = input_filter(route->src->id,
+                                      route->src->prefix, route->src->plen,
+                                      neigh->address,
+                                      neigh->network->ifindex);
+        newmetric = MIN(route->refmetric +
+                        add_metric +
+                        neighbour_cost(route->neigh),
                         INFINITY);
     }
 
