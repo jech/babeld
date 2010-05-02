@@ -235,9 +235,10 @@ switch_routes(struct route *old, struct route *new)
 }
 
 static void
-change_route_metric(struct route *route, unsigned newmetric)
+change_route_metric(struct route *route, unsigned cost, unsigned add)
 {
     int old, new;
+    int newmetric = MIN(route->refmetric + cost + add, INFINITY);
 
     if(route_metric(route) == newmetric)
         return;
@@ -266,7 +267,7 @@ static void
 retract_route(struct route *route)
 {
     route->refmetric = INFINITY;
-    change_route_metric(route, INFINITY);
+    change_route_metric(route, INFINITY, 0);
 }
 
 int
@@ -348,15 +349,10 @@ update_route_metric(struct route *route)
                                       route->src->prefix, route->src->plen,
                                       neigh->address,
                                       neigh->network->ifindex);
-        int newmetric = MIN(route->refmetric +
-                            add_metric +
-                            neighbour_cost(route->neigh),
-                            INFINITY);
-
-        if(newmetric != oldmetric) {
-            change_route_metric(route, newmetric);
+        change_route_metric(route,
+                            neighbour_cost(route->neigh), add_metric);
+        if(route_metric(route) != oldmetric)
             route_changed(route, route->src, oldmetric);
-        }
     }
 }
 
@@ -420,7 +416,6 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
     feasible = update_feasible(src, seqno, refmetric);
     route = find_route(p, plen, neigh, nexthop);
     metric = MIN((int)refmetric + neighbour_cost(neigh) + add_metric, INFINITY);
-
     if(route) {
         struct source *oldsrc;
         unsigned short oldmetric;
@@ -451,7 +446,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
             route->time = now.tv_sec;
         route->seqno = seqno;
         route->refmetric = refmetric;
-        change_route_metric(route, metric);
+        change_route_metric(route, neighbour_cost(neigh), add_metric);
         route->hold_time = hold_time;
 
         route_changed(route, oldsrc, oldmetric);
