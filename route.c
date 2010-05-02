@@ -262,6 +262,13 @@ change_route_metric(struct route *route, unsigned newmetric)
     local_notify_route(route, LOCAL_CHANGE);
 }
 
+static void
+retract_route(struct route *route)
+{
+    route->refmetric = INFINITY;
+    change_route_metric(route, INFINITY);
+}
+
 int
 route_feasible(struct route *route)
 {
