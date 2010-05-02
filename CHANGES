@@ -1,4 +1,4 @@
-babeld 1.0.1 (unreleased):
+2 May 2010: babeld 1.0.1:
 
   * Fixed a bug that could cause input filters to be ignored.
 
