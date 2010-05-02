@@ -578,10 +578,11 @@ retract_neighbour_routes(struct neighbour *neigh)
     i = 0;
     while(i < numroutes) {
         if(routes[i].neigh == neigh) {
-            unsigned short oldmetric = route_metric(&routes[i]);
-            if(oldmetric != INFINITY) {
-                retract_route(&routes[i]);
-                route_changed(&routes[i], routes[i].src, oldmetric);
+            if(routes[i].refmetric != INFINITY) {
+                unsigned short oldmetric = route_metric(&routes[i]);
+                    retract_route(&routes[i]);
+                    if(oldmetric != INFINITY)
+                        route_changed(&routes[i], routes[i].src, oldmetric);
             }
         }
         i++;
