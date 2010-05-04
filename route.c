@@ -259,7 +259,8 @@ change_route_metric(struct route *route, unsigned cost, unsigned add)
         }
     }
 
-    route->metric = newmetric;
+    route->cost = cost;
+    route->add_metric = add;
     local_notify_route(route, LOCAL_CHANGE);
 }
 
@@ -478,8 +479,9 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         route = &routes[numroutes];
         route->src = src;
         route->refmetric = refmetric;
+        route->cost = neighbour_cost(neigh);
+        route->add_metric = add_metric;
         route->seqno = seqno;
-        route->metric = metric;
         route->neigh = neigh;
         memcpy(route->nexthop, nexthop, 16);
         route->time = now.tv_sec;

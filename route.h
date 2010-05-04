@@ -22,8 +22,9 @@ THE SOFTWARE.
 
 struct route {
     struct source *src;
-    unsigned short metric;
     unsigned short refmetric;
+    unsigned short cost;
+    unsigned short add_metric;
     unsigned short seqno;
     struct neighbour *neigh;
     unsigned char nexthop[16];
@@ -35,7 +36,8 @@ struct route {
 static inline int
 route_metric(const struct route *route)
 {
-    return route->metric;
+    int m = route->refmetric + route->cost + route->add_metric;
+    return MIN(m, INFINITY);
 }
 
 extern struct route *routes;
