@@ -307,6 +307,13 @@ kernel_interface_wireless(const char *ifname, int ifindex)
 }
 
 int
+kernel_interface_channel(const char *ifname, int ifindex)
+{
+    errno = ENOSYS;
+    return -1;
+}
+
+int
 kernel_route(int operation, const unsigned char *dest, unsigned short plen,
              const unsigned char *gate, int ifindex, unsigned int metric,
              const unsigned char *newgate, int newifindex,

@@ -733,6 +733,77 @@ kernel_interface_wireless(const char *ifname, int ifindex)
     return rc;
 }
 
+/* Sorry for that, but I haven't managed to get <linux/wireless.h>
+   to include cleanly. */
+
+#define SIOCGIWFREQ 0x8B05
+
+struct iw_freq {
+    int m;
+    short e;
+    unsigned char i;
+    unsigned char flags;
+};
+
+struct iwreq_subset {
+    union {
+        char ifrn_name[IFNAMSIZ];
+    } ifr_ifrn;
+
+    union {
+        struct iw_freq freq;
+    } u;
+};
+
+static int
+freq_to_chan(struct iw_freq *freq)
+{
+    int m = freq->m, e = freq->e;
+
+    /* Go figure. */
+    if(e == 0 && m > 0 && m < 1000)
+        return m;
+
+    if(e == 1) {
+        /* m is in units of 10 Hz, so this encodes 1 MHz */
+        int mega = 100000;
+
+        /* Channels 1 through 13 are 5 MHz apart, with channel 1 at 2412. */
+        int step = 5 * mega;
+        int c = 1 + (m - 2412 * mega + step / 2) / step;
+        if(c >= 1 && c <= 13)
+            return c;
+
+        /* Channel 14 is at 2484 MHz  */
+        if(c >= 14 && m < 2484 * mega + step / 2)
+            return 14;
+
+        /* 802.11a channel 36 is at 5180 MHz */
+        c = 36 + (m - 5180 * mega + step / 2) / step;
+        if(c >= 34 && c <= 165)
+            return c;
+    }
+
+    errno = ENOENT;
+    return -1;
+}
+
+int
+kernel_interface_channel(const char *ifname, int ifindex)
+{
+    struct iwreq_subset iwreq;
+    int rc;
+
+    memset(&iwreq, 0, sizeof(iwreq));
+    strncpy(iwreq.ifr_ifrn.ifrn_name, ifname, IFNAMSIZ);
+
+    rc = ioctl(dgram_socket, SIOCGIWFREQ, &iwreq);
+    if(rc >= 0)
+        return freq_to_chan(&iwreq.u.freq);
+    else
+        return -1;
+}
+
 int
 kernel_route(int operation, const unsigned char *dest, unsigned short plen,
              const unsigned char *gate, int ifindex, unsigned int metric,
