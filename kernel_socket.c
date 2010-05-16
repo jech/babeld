@@ -659,7 +659,7 @@ kernel_addresses(char *ifname, int ifindex, int ll,
     i = 0;
 
     while(ifap && i < maxroutes) {
-        if(ifap->ifa_name == NULL || strcmp(ifap->ifa_name, ifname) != 0)
+        if(ifap->ifa_name == NULL || ifname == NULL || strcmp(ifap->ifa_name, ifname) != 0)
             goto next;
         if(ifap->ifa_addr->sa_family == AF_INET6) {
             struct sockaddr_in6 *sin6 = (struct sockaddr_in6*)ifap->ifa_addr;
