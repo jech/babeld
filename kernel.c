@@ -21,6 +21,7 @@ THE SOFTWARE.
 */
 
 #include <sys/time.h>
+#include <sys/param.h>
 #include <time.h>
 
 #include "babeld.h"

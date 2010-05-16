@@ -32,6 +32,7 @@ THE SOFTWARE.
 
 #include <strings.h>
 #include <netinet/in.h>
+#include <netinet/icmp6.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -40,6 +41,7 @@ THE SOFTWARE.
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <net/if_dl.h>
+#include <net/if_media.h>
 #include <net/route.h>
 
 #include "babeld.h"
