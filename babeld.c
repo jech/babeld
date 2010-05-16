@@ -111,7 +111,7 @@ main(int argc, char **argv)
 
     gettime(&now);
 
-    rfd = open("/dev/urandom", O_RDONLY);
+    rfd = open(RND_DEV, O_RDONLY);
     if(rfd < 0) {
         perror("open(random)");
     } else {
