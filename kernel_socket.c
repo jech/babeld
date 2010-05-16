@@ -80,28 +80,6 @@ static int old_accept_redirects = -1;
 static int ifindex_lo = -1;
 static int seq;
 
-static int get_sysctl_int(char *name)
-{
-  int old;
-  size_t len = sizeof (old);
-
-  if (sysctlbyname(name, &old, &len, NULL, 0) < 0)
-    return -1;
-
-  return old;
-}
-
-static int set_sysctl_int(char *name, int new)
-{
-  int old;
-  size_t len = sizeof (old);
-
-  if (sysctlbyname(name, &old, &len, &new, sizeof (new)) < 0)
-    return -1;
-
-  return old;
-}
-
 int
 mask2len(const struct in6_addr *addr)
 {
@@ -156,47 +134,49 @@ int
 kernel_setup(int setup)
 {
     int rc;
-    if(setup) {
-        seq = time(NULL);
-        old_forwarding = get_sysctl_int("net.inet6.ip6.forwarding");
-        if(old_forwarding < 0) {
+    int forwarding = 1;
+    int accept_redirects = 0;
+    int mib[4];
+    size_t datasize;
+
+    mib[0] = CTL_NET;
+    mib[1] = AF_INET6;
+    seq = time(NULL);
+
+    mib[2] = IPPROTO_IPV6;
+    mib[3] = IPV6CTL_FORWARDING;
+    datasize = sizeof(old_forwarding);
+    if (setup)
+        rc = sysctl(mib, 4, &old_forwarding, &datasize,
+		    &forwarding, datasize);
+    else if (0 <= old_forwarding)
+        rc = sysctl(mib, 4, NULL, NULL,
+		    &old_forwarding, datasize);
+    if (rc == -1) {
+	if(errno == ENOMEM)
             perror("Couldn't read forwarding knob.");
-            return -1;
-        }
-        rc = set_sysctl_int("net.inet6.ip6.forwarding",1);
-        if(rc < 0) {
-            perror("Couldn't write forwarding knob.");
-            return -1;
-        }
-        old_accept_redirects = get_sysctl_int("net.inet6.icmp6.rediraccept");
-        if(old_accept_redirects < 0) {
-            perror("Couldn't read accept_redirects knob.");
-            return -1;
-        }
-        rc = set_sysctl_int("net.inet6.icmp6.rediraccept",0);
-        if(rc < 0) {
-            perror("Couldn't write accept_redirects knob.");
-            return -1;
-        }
-        return 1;
-    } else {
-        if(old_forwarding >= 0) {
-            rc = set_sysctl_int("net.inet6.ip6.forwarding",old_forwarding);
-            if(rc < 0) {
-                perror("Couldn't write accept_redirects knob.\n");
-                return -1;
-            }
-        }
-        if(old_accept_redirects >= 0) {
-            rc = set_sysctl_int("net.inet6.icmp6.rediraccept",
-				old_accept_redirects);
-            if(rc < 0) {
-                perror("Couldn't write accept_redirects knob.\n");
-                return -1;
-            }
-        }
-        return 1;
+	else
+	    perror("Couldn't write forwarding knob.");
+        return -1;
     }
+
+    mib[2] = IPPROTO_ICMPV6;
+    mib[3] = ICMPV6CTL_REDIRACCEPT;
+    datasize = sizeof(old_accept_redirects);
+    if (setup)
+        rc = sysctl(mib, 4, &old_accept_redirects, &datasize,
+		    &accept_redirects, datasize);
+    else if (0 <= old_accept_redirects)
+        rc = sysctl(mib, 4, NULL, NULL,
+		    &old_accept_redirects, datasize);
+    if (rc == -1) {
+	if(errno == ENOMEM)
+            perror("Couldn't read accept_redirects knob.");
+	else
+	    perror("Couldn't write accept_redirects knob.");
+        return -1;
+    }
+    return 1;
 }
 
 int
