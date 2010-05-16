@@ -206,7 +206,7 @@ kernel_setup_socket(int setup)
     int zero = 0;
     if(setup) {
         if(kernel_socket < 0) {
-            kernel_socket = socket(PF_ROUTE, SOCK_RAW, AF_INET6);
+            kernel_socket = socket(PF_ROUTE, SOCK_RAW, AF_UNSPEC);
             if(kernel_socket < 0)
                 return -1;
         }
@@ -325,9 +325,13 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     unsigned char msg[512];
     struct rt_msghdr *rtm;
     struct sockaddr_in6 *sin6;
-    int rc, len;
+    struct sockaddr_in *sin4;
+    int rc, len, ipv4;
 
-    char local[1][1][16] = IN6ADDR_LOOPBACK_INIT;
+    char local6[1][1][16] = IN6ADDR_LOOPBACK_INIT;
+    char local4[1][1][16] =
+	{{{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	    0x00, 0x00, 0x00, 0x00, 0x7f, 0x00, 0x00, 0x01 }}};
 
     /* Check that the protocol family is consistent. */
     if(plen >= 96 && v4mapped(dest)) {
@@ -335,17 +339,13 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
             errno = EINVAL;
             return -1;
         }
+        ipv4 = 1;
     } else {
         if(v4mapped(gate)) {
             errno = EINVAL;
             return -1;
         }
-    }
-
-    if(v4mapped(gate)) {
-        /* Not implemented yet. */
-        errno = ENOSYS;
-        return -1;
+        ipv4 = 0;
     }
 
     if(operation == ROUTE_MODIFY && newmetric == metric && 
@@ -403,30 +403,62 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         rtm->rtm_addrs |= RTA_NETMASK;
     }
 
-    sin6 = (struct sockaddr_in6 *)&msg[sizeof(struct rt_msghdr)];
-    /* Destination */
-    sin6->sin6_len = sizeof(struct sockaddr_in6);
-    sin6->sin6_family = AF_INET6;
-    sin6->sin6_addr = *((struct in6_addr *)dest);
-    sin6 = (struct sockaddr_in6 *)((char *)sin6 + ROUNDUP(sin6->sin6_len));
-    /* Gateway */
-    sin6->sin6_len = sizeof(struct sockaddr_in6);
-    sin6->sin6_family = AF_INET6;
-    if (metric == KERNEL_INFINITY) 
-        sin6->sin6_addr = *((struct in6_addr *)*local);
-    else
-        sin6->sin6_addr = *((struct in6_addr *)gate);
-    if(IN6_IS_ADDR_LINKLOCAL (&sin6->sin6_addr))
-        SET_IN6_LINKLOCAL_IFINDEX (sin6->sin6_addr, ifindex);
-    sin6 = (struct sockaddr_in6 *)((char *)sin6 + ROUNDUP(sin6->sin6_len));
-    /* Netmask */
-    if((rtm->rtm_addrs | RTA_NETMASK) != 0) {
-        sin6->sin6_len = sizeof(struct sockaddr_in6);
-        sin6->sin6_family = AF_INET6;
-        plen2mask(plen, &sin6->sin6_addr);
-        sin6 = (struct sockaddr_in6 *)((char *)sin6 + ROUNDUP(sin6->sin6_len));
+#define push_sockaddr_in(ptr, offset) \
+	do { (ptr) = (struct sockaddr_in *)((char *)(ptr) + (offset)); \
+	     (ptr)->sin_len = sizeof(struct sockaddr_in); \
+	     (ptr)->sin_family = AF_INET; } while (0)
+
+#define get_sin_addr(dst,src) \
+	do { memcpy((dst), (src) + 12, 4); } while (0)
+
+#define push_sockaddr_in6(ptr, offset) \
+	do { (ptr) = (struct sockaddr_in6 *)((char *)(ptr) + (offset)); \
+	     (ptr)->sin6_len = sizeof(struct sockaddr_in6); \
+             (ptr)->sin6_family = AF_INET6; } while (0)
+
+#define get_sin6_addr(dst,src) \
+	do { memcpy((dst), (src), 16); } while (0)
+
+    /* KAME ipv6 stack does not support IPv4 mapped IPv6, so we have to */
+    if(ipv4) {
+	sin4 = (struct sockaddr_in *)msg;
+	/* destination */
+        push_sockaddr_in(sin4, sizeof(*rtm));
+        get_sin_addr(&(sin4->sin_addr), dest);
+	/* gateway */
+	push_sockaddr_in(sin4, ROUNDUP(sin4->sin_len));
+        if (metric == KERNEL_INFINITY)
+            get_sin_addr(&(sin4->sin_addr),**local4);
+        else
+            get_sin_addr(&(sin4->sin_addr),gate);
+	/* netmask */
+        if((rtm->rtm_addrs | RTA_NETMASK) != 0) {
+	    struct in6_addr tmp_sin6_addr;
+	    push_sockaddr_in(sin4, ROUNDUP(sin4->sin_len));
+            plen2mask(plen, &tmp_sin6_addr);
+	    get_sin_addr(&(sin4->sin_addr), (char *)&tmp_sin6_addr);
+        }
+        len = (char *)sin4 + ROUNDUP(sin4->sin_len) - (char *)msg;
+    } else {
+	sin6 = (struct sockaddr_in6 *)msg;
+	/* destination */
+	push_sockaddr_in6(sin6, sizeof(*rtm));
+        get_sin6_addr(&(sin6->sin6_addr), dest);
+	/* gateway */
+	push_sockaddr_in6(sin6, ROUNDUP(sin6->sin6_len));
+        if (metric == KERNEL_INFINITY)
+            get_sin6_addr(&(sin6->sin6_addr),**local6);
+        else
+            get_sin6_addr(&(sin6->sin6_addr),gate);
+        if(IN6_IS_ADDR_LINKLOCAL (&sin6->sin6_addr))
+            SET_IN6_LINKLOCAL_IFINDEX (sin6->sin6_addr, ifindex);
+	/* netmask */
+        if((rtm->rtm_addrs | RTA_NETMASK) != 0) {
+	    push_sockaddr_in6(sin6, ROUNDUP(sin6->sin6_len));
+            plen2mask(plen, &sin6->sin6_addr);
+        }
+        len = (char *)sin6 + ROUNDUP(sin6->sin6_len) - (char *)msg;
     }
-    len = (char *)sin6 - (char *)msg;
     rtm->rtm_msglen = len;
 
     rc = write(kernel_socket, msg, rtm->rtm_msglen);
