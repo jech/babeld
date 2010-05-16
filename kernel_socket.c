@@ -285,7 +285,20 @@ kernel_interface_mtu(const char *ifname, int ifindex)
 int
 kernel_interface_wireless(const char *ifname, int ifindex)
 {
-    return -1;
+    struct ifmediareq ifmr;
+    int s, rc;
+
+    s = socket(PF_INET6, SOCK_DGRAM, 0);
+    memset(&ifmr, 0, sizeof(ifmr));
+    strncpy(ifmr.ifm_name, ifname, sizeof(ifmr.ifm_name));
+    rc = ioctl(s, SIOCGIFMEDIA, (caddr_t)&ifmr);
+    close(s);
+    if (rc < 0)
+	return rc;
+    if ((ifmr.ifm_active & IFM_NMASK) == IFM_IEEE80211)
+	return 1;
+    else
+	return 0;
 }
 
 int
