@@ -24,7 +24,7 @@ THE SOFTWARE.
 #include <string.h>
 #include <stdio.h>
 
-#ifndef __APPLE__
+#ifdef __linux
 /* Defining it rather than including <linux/rtnetlink.h> because this
  * implies <asm/types.h> on Linux 2.4 */
 #define RTPROT_BOOT 3 /* Route installed during boot */
@@ -646,7 +646,7 @@ filter_match(struct filter *f, const unsigned char *id,
             return 0;
     } else if(proto == RTPROT_BABEL_LOCAL) {
         return 0;
-#ifndef __APPLE__
+#ifdef __linux
     } else if(proto == RTPROT_BOOT) {
         return 0;
 #endif

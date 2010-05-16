@@ -26,10 +26,10 @@ THE SOFTWARE.
 
 #include "babeld.h"
 
-#ifdef __APPLE__
-#include "kernel_socket.c"
-#else
+#ifdef __linux
 #include "kernel_netlink.c"
+#else
+#include "kernel_socket.c"
 #endif
 
 /* Like gettimeofday, but returns monotonic time.  If POSIX clocks are not
