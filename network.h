@@ -35,6 +35,7 @@ struct network_conf {
     char wired;
     char split_horizon;
     char lq;
+    int channel;
     struct network_conf *next;
 };
 
@@ -47,12 +48,17 @@ struct network_conf {
 #define NET_SPLIT_HORIZON (1 << 2)
 #define NET_LQ (1 << 3)
 
+#define NET_CHANNEL_UNKNOWN 0
+#define NET_CHANNEL_INTERFERING -2
+#define NET_CHANNEL_NONINTERFERING -3
+
 struct network {
     struct network *next;
     struct network_conf *conf;
     unsigned int ifindex;
     unsigned short flags;
     unsigned short cost;
+    int channel;
     struct timeval hello_timeout;
     struct timeval update_timeout;
     struct timeval flush_timeout;

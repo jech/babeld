@@ -182,6 +182,28 @@ check_network_ipv4(struct network *net)
 }
 
 int
+check_network_channel(struct network *net)
+{
+    int channel = NET_CONF(net, channel);
+
+    if(channel == NET_CHANNEL_UNKNOWN) {
+        if((net->flags & NET_WIRED)) {
+            channel = NET_CHANNEL_NONINTERFERING;
+        } else {
+            channel = kernel_interface_channel(net->ifname, net->ifindex);
+            if(channel <= 0)
+                channel = NET_CHANNEL_INTERFERING;
+        }
+    }
+
+    if(net->channel != channel) {
+        net->channel = channel;
+        return 1;
+    }
+    return 0;
+}
+
+int
 network_up(struct network *net, int up)
 {
     int mtu, rc, wired;
@@ -363,6 +385,7 @@ network_up(struct network *net, int up)
         net->numll = 0;
     }
 
+    check_network_channel(net);
     update_network_metric(net);
     rc = check_network_ipv4(net);
     if(up && rc > 0)
@@ -411,6 +434,7 @@ check_networks(void)
             network_up(net, rc > 0);
         }
 
+        check_network_channel(net);
         rc = check_network_ipv4(net);
         if(rc > 0) {
             send_request(net, NULL, 0);
