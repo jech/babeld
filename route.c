@@ -291,6 +291,12 @@ route_expired(struct route *route)
 }
 
 int
+route_interferes(struct route *route, struct network *net)
+{
+    return 1;
+}
+
+int
 update_feasible(struct source *src,
                 unsigned short seqno, unsigned short refmetric)
 {
