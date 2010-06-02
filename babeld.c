@@ -127,7 +127,7 @@ main(int argc, char **argv)
     protocol_port = 8475;
 
     while(1) {
-        opt = getopt(argc, argv, "m:p:h:H:i:k:A:PsS:d:g:lwt:T:c:C:DL:I:");
+        opt = getopt(argc, argv, "m:p:h:H:i:k:A:PsS:d:g:lwz:t:T:c:C:DL:I:");
         if(opt < 0)
             break;
 
@@ -200,6 +200,18 @@ main(int argc, char **argv)
             break;
         case 'w':
             all_wireless = 1;
+            break;
+        case 'z':
+            {
+                char *comma = strchr(optarg, ',');
+                diversity_kind = atoi(optarg);
+                if(comma == NULL)
+                    diversity_factor = 128;
+                else
+                    diversity_factor = atoi(comma + 1);
+                if(diversity_factor <= 0 || diversity_factor > 256)
+                    goto usage;
+            }
             break;
         case 't':
             export_table = atoi(optarg);
@@ -784,7 +796,7 @@ main(int argc, char **argv)
             "Syntax: %s "
             "[-m multicast_address] [-p port] [-S state-file]\n"
             "                "
-            "[-h hello] [-H wired_hello] [-i idle_hello]\n"
+            "[-h hello] [-H wired_hello] [-i idle_hello] [-z kind[,factor]]\n"
             "                "
             "[-k metric] [-A metric] [-s] [-P] [-l] [-w] [-d level] [-g port]\n"
             "                "
