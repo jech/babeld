@@ -40,10 +40,15 @@ route_metric(const struct route *route)
     return MIN(m, INFINITY);
 }
 
+#define DIVERSITY_NONE 0
+#define DIVERSITY_INTERFACE_1 1
+#define DIVERSITY_CHANNEL_1 2
+#define DIVERSITY_CHANNEL_INF 3
+
 extern struct route *routes;
 extern int numroutes, maxroutes;
 extern int kernel_metric, allow_duplicates;
-extern int diversity_factor;
+extern int diversity_kind, diversity_factor;
 
 struct route *find_route(const unsigned char *prefix, unsigned char plen,
                          struct neighbour *neigh, const unsigned char *nexthop);

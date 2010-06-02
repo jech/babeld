@@ -43,6 +43,7 @@ struct route *routes = NULL;
 int numroutes = 0, maxroutes = 0;
 int kernel_metric = 0;
 int allow_duplicates = -1;
+int diversity_kind = DIVERSITY_NONE;
 int diversity_factor = 256;     /* in units of 1/256 */
 
 struct route *
