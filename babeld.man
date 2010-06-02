@@ -51,6 +51,15 @@ at which scheduled hello packets are sent on idle interfaces.  This
 functionality is experimental, don't use it unless you know what you are
 doing.
 .TP
+.BI \-z " kind" , factor
+Enable diversity-sensitive routing.  The algorithm used is defined by
+.BR kind ,
+the values of which are currently undocumented.  The value
+.B factor
+specifies by how much the cost of non-interfering routes is multiplied; the
+default is 0.5.  This option is experimental and subject to change, don't
+use it unless you understand what you are doing.
+.TP
 .BI \-k " priority"
 Specify the priority value used when installing routes into the kernel.
 The default is 0.
