@@ -294,7 +294,24 @@ route_expired(struct route *route)
 int
 route_interferes(struct route *route, struct network *net)
 {
-    return 1;
+    switch(diversity_kind) {
+    case DIVERSITY_NONE:
+        return 1;
+    case DIVERSITY_INTERFACE_1:
+        return route->neigh->network == net;
+    case DIVERSITY_CHANNEL_1:
+        if(route->neigh->network->channel == NET_CHANNEL_NONINTERFERING ||
+           net->channel == NET_CHANNEL_NONINTERFERING)
+            return 0;
+        else if(route->neigh->network->channel == NET_CHANNEL_INTERFERING ||
+                net->channel == NET_CHANNEL_INTERFERING)
+            return 1;
+        else
+            return route->neigh->network->channel == net->channel;
+    default:
+        fprintf(stderr, "Unknown kind of diversity.\n");
+        return 1;
+    }
 }
 
 int
