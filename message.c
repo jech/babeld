@@ -895,6 +895,13 @@ flushupdates(struct network *net)
                 if((net->flags & NET_SPLIT_HORIZON) &&
                    route->neigh->network == net)
                     continue;
+                if(!route_interferes(route, net)) {
+                    /* Announce a smaller metric. */
+                    metric =
+                        route->refmetric +
+                        (diversity_factor * route->cost / + 128) / 256 +
+                        route->add_metric;
+                }
                 really_send_update(net, route->src->id,
                                    route->src->prefix,
                                    route->src->plen,
