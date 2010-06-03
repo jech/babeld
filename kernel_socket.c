@@ -652,7 +652,7 @@ kernel_addresses(char *ifname, int ifindex, int ll,
     i = 0;
 
     while(ifap && i < maxroutes) {
-        if(ifap->ifa_name == NULL || ifname == NULL || strcmp(ifap->ifa_name, ifname) != 0)
+        if((ifname != NULL && strcmp(ifap->ifa_name, ifname) != 0))
             goto next;
         if(ifap->ifa_addr->sa_family == AF_INET6) {
             struct sockaddr_in6 *sin6 = (struct sockaddr_in6*)ifap->ifa_addr;
@@ -664,6 +664,7 @@ kernel_addresses(char *ifname, int ifindex, int ll,
             routes[i].ifindex = ifindex;
             routes[i].proto = RTPROT_BABEL_LOCAL;
             memset(routes[i].gw, 0, 16);
+            i++;
         } else if(ifap->ifa_addr->sa_family == AF_INET) {
             struct sockaddr_in *sin = (struct sockaddr_in*)ifap->ifa_addr;
             if(ll)
@@ -675,10 +676,10 @@ kernel_addresses(char *ifname, int ifindex, int ll,
             routes[i].ifindex = ifindex;
             routes[i].proto = RTPROT_BABEL_LOCAL;
             memset(routes[i].gw, 0, 16);
+            i++;
         }
     next:
         ifap = ifap->ifa_next;
-        i++;
     }
 
     freeifaddrs(ifa);
