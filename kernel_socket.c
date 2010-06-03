@@ -659,6 +659,10 @@ kernel_addresses(char *ifname, int ifindex, int ll,
             if(!!ll != !!IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr))
                 goto next;
             memcpy(routes[i].prefix, &sin6->sin6_addr, 16);
+            if(ll) /* This a perfect example of counter-productive optimisation :
+                KAME encodes interface index onto bytes 2 and 3, so we have to
+                reset those bytes to 0 before passing them to babel. */
+                memset(routes[i].prefix + 2, 0, 2);
             routes[i].plen = 128;
             routes[i].metric = 0;
             routes[i].ifindex = ifindex;
