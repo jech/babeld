@@ -1,6 +1,7 @@
 /*
 Copyright (c) 2007 by Grégoire Henry
 Copyright (c) 2008, 2009 by Juliusz Chroboczek
+Copyright (c) 2010 by Vincent Gross
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -133,7 +134,7 @@ plen2mask(int n, struct in6_addr *dest)
 int
 kernel_setup(int setup)
 {
-    int rc;
+    int rc = 0;
     int forwarding = 1;
     int accept_redirects = 0;
     int mib[4];
@@ -148,32 +149,27 @@ kernel_setup(int setup)
     datasize = sizeof(old_forwarding);
     if (setup)
         rc = sysctl(mib, 4, &old_forwarding, &datasize,
-		    &forwarding, datasize);
-    else if (0 <= old_forwarding)
+                    &forwarding, datasize);
+    else if (old_forwarding >= 0)
         rc = sysctl(mib, 4, NULL, NULL,
-		    &old_forwarding, datasize);
+                    &old_forwarding, datasize);
     if (rc == -1) {
-	if(errno == ENOMEM)
-            perror("Couldn't read forwarding knob.");
-	else
-	    perror("Couldn't write forwarding knob.");
+        perror("Couldn't tweak forwarding knob.");
         return -1;
     }
 
+    rc = 0;
     mib[2] = IPPROTO_ICMPV6;
     mib[3] = ICMPV6CTL_REDIRACCEPT;
     datasize = sizeof(old_accept_redirects);
     if (setup)
         rc = sysctl(mib, 4, &old_accept_redirects, &datasize,
-		    &accept_redirects, datasize);
-    else if (0 <= old_accept_redirects)
+                    &accept_redirects, datasize);
+    else if (old_accept_redirects >= 0)
         rc = sysctl(mib, 4, NULL, NULL,
-		    &old_accept_redirects, datasize);
+                    &old_accept_redirects, datasize);
     if (rc == -1) {
-	if(errno == ENOMEM)
-            perror("Couldn't read accept_redirects knob.");
-	else
-	    perror("Couldn't write accept_redirects knob.");
+        perror("Couldn't tweak accept_redirects knob.");
         return -1;
     }
     return 1;
@@ -294,11 +290,11 @@ kernel_interface_wireless(const char *ifname, int ifindex)
     rc = ioctl(s, SIOCGIFMEDIA, (caddr_t)&ifmr);
     close(s);
     if (rc < 0)
-	return rc;
+        return rc;
     if ((ifmr.ifm_active & IFM_NMASK) == IFM_IEEE80211)
-	return 1;
+        return 1;
     else
-	return 0;
+        return 0;
 }
 
 int
@@ -307,17 +303,16 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
              const unsigned char *newgate, int newifindex,
              unsigned int newmetric)
 {
-
     unsigned char msg[512];
     struct rt_msghdr *rtm;
     struct sockaddr_in6 *sin6;
-    struct sockaddr_in *sin4;
+    struct sockaddr_in *sin;
     int rc, len, ipv4;
 
     char local6[1][1][16] = IN6ADDR_LOOPBACK_INIT;
     char local4[1][1][16] =
-	{{{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	    0x00, 0x00, 0x00, 0x00, 0x7f, 0x00, 0x00, 0x01 }}};
+        {{{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x7f, 0x00, 0x00, 0x01 }}};
 
     /* Check that the protocol family is consistent. */
     if(plen >= 96 && v4mapped(dest)) {
@@ -345,35 +340,35 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     }
 
     kdebugf("kernel_route: %s %s/%d metric %d dev %d nexthop %s\n",
-           operation == ROUTE_ADD ? "add" :
-           operation == ROUTE_FLUSH ? "flush" : "change",
-           format_address(dest), plen, metric, ifindex,
-           format_address(gate));
+            operation == ROUTE_ADD ? "add" :
+            operation == ROUTE_FLUSH ? "flush" : "change",
+            format_address(dest), plen, metric, ifindex,
+            format_address(gate));
 
     if(kernel_socket < 0) kernel_setup_socket(1);
-    
+
     memset(&msg, 0, sizeof(msg));
     rtm = (struct rt_msghdr *)msg;
     rtm->rtm_version = RTM_VERSION;
     switch(operation) {
     case ROUTE_FLUSH:
-      rtm->rtm_type = RTM_DELETE; break;
+        rtm->rtm_type = RTM_DELETE; break;
     case ROUTE_ADD:
-      rtm->rtm_type = RTM_ADD; break;
+        rtm->rtm_type = RTM_ADD; break;
     case ROUTE_MODIFY: 
-      rtm->rtm_type = RTM_CHANGE; break;
+        rtm->rtm_type = RTM_CHANGE; break;
     default: 
-      return -1;
+        return -1;
     };
     rtm->rtm_index = ifindex;
     rtm->rtm_flags = RTF_UP | RTF_PROTO2;
     if(plen == 128) rtm->rtm_flags |= RTF_HOST;
-/*     if(memcmp(nexthop->id, dest, 16) == 0) { */
-/*         rtm -> rtm_flags |= RTF_LLINFO; */
-/*         rtm -> rtm_flags |= RTF_CLONING; */
-/*     } else { */
-        rtm->rtm_flags |= RTF_GATEWAY;
-/*     } */
+    /*     if(memcmp(nexthop->id, dest, 16) == 0) { */
+    /*         rtm -> rtm_flags |= RTF_LLINFO; */
+    /*         rtm -> rtm_flags |= RTF_CLONING; */
+    /*     } else { */
+    rtm->rtm_flags |= RTF_GATEWAY;
+    /*     } */
     if(metric == KERNEL_INFINITY) {
         rtm->rtm_flags |= RTF_BLACKHOLE;
         if(ifindex_lo < 0) {
@@ -390,57 +385,58 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     }
 
 #define push_sockaddr_in(ptr, offset) \
-	do { (ptr) = (struct sockaddr_in *)((char *)(ptr) + (offset)); \
-	     (ptr)->sin_len = sizeof(struct sockaddr_in); \
-	     (ptr)->sin_family = AF_INET; } while (0)
+    do { (ptr) = (struct sockaddr_in *)((char *)(ptr) + (offset)); \
+         (ptr)->sin_len = sizeof(struct sockaddr_in); \
+         (ptr)->sin_family = AF_INET; } while (0)
 
 #define get_sin_addr(dst,src) \
-	do { memcpy((dst), (src) + 12, 4); } while (0)
+    do { memcpy((dst), (src) + 12, 4); } while (0)
 
 #define push_sockaddr_in6(ptr, offset) \
-	do { (ptr) = (struct sockaddr_in6 *)((char *)(ptr) + (offset)); \
-	     (ptr)->sin6_len = sizeof(struct sockaddr_in6); \
-             (ptr)->sin6_family = AF_INET6; } while (0)
+    do { (ptr) = (struct sockaddr_in6 *)((char *)(ptr) + (offset)); \
+         (ptr)->sin6_len = sizeof(struct sockaddr_in6); \
+         (ptr)->sin6_family = AF_INET6; } while (0)
 
 #define get_sin6_addr(dst,src) \
-	do { memcpy((dst), (src), 16); } while (0)
+    do { memcpy((dst), (src), 16); } while (0)
 
-    /* KAME ipv6 stack does not support IPv4 mapped IPv6, so we have to */
+    /* KAME ipv6 stack does not support IPv4 mapped IPv6, so we have to
+     * duplicate the codepath */
     if(ipv4) {
-	sin4 = (struct sockaddr_in *)msg;
-	/* destination */
-        push_sockaddr_in(sin4, sizeof(*rtm));
-        get_sin_addr(&(sin4->sin_addr), dest);
-	/* gateway */
-	push_sockaddr_in(sin4, ROUNDUP(sin4->sin_len));
+        sin = (struct sockaddr_in *)msg;
+        /* destination */
+        push_sockaddr_in(sin, sizeof(*rtm));
+        get_sin_addr(&(sin->sin_addr), dest);
+        /* gateway */
+        push_sockaddr_in(sin, ROUNDUP(sin->sin_len));
         if (metric == KERNEL_INFINITY)
-            get_sin_addr(&(sin4->sin_addr),**local4);
+            get_sin_addr(&(sin->sin_addr),**local4);
         else
-            get_sin_addr(&(sin4->sin_addr),gate);
-	/* netmask */
+            get_sin_addr(&(sin->sin_addr),gate);
+        /* netmask */
         if((rtm->rtm_addrs | RTA_NETMASK) != 0) {
-	    struct in6_addr tmp_sin6_addr;
-	    push_sockaddr_in(sin4, ROUNDUP(sin4->sin_len));
+            struct in6_addr tmp_sin6_addr;
+            push_sockaddr_in(sin, ROUNDUP(sin->sin_len));
             plen2mask(plen, &tmp_sin6_addr);
-	    get_sin_addr(&(sin4->sin_addr), (char *)&tmp_sin6_addr);
+            get_sin_addr(&(sin->sin_addr), (char *)&tmp_sin6_addr);
         }
-        len = (char *)sin4 + ROUNDUP(sin4->sin_len) - (char *)msg;
+        len = (char *)sin + ROUNDUP(sin->sin_len) - (char *)msg;
     } else {
-	sin6 = (struct sockaddr_in6 *)msg;
-	/* destination */
-	push_sockaddr_in6(sin6, sizeof(*rtm));
+        sin6 = (struct sockaddr_in6 *)msg;
+        /* destination */
+        push_sockaddr_in6(sin6, sizeof(*rtm));
         get_sin6_addr(&(sin6->sin6_addr), dest);
-	/* gateway */
-	push_sockaddr_in6(sin6, ROUNDUP(sin6->sin6_len));
+        /* gateway */
+        push_sockaddr_in6(sin6, ROUNDUP(sin6->sin6_len));
         if (metric == KERNEL_INFINITY)
             get_sin6_addr(&(sin6->sin6_addr),**local6);
         else
             get_sin6_addr(&(sin6->sin6_addr),gate);
         if(IN6_IS_ADDR_LINKLOCAL (&sin6->sin6_addr))
             SET_IN6_LINKLOCAL_IFINDEX (sin6->sin6_addr, ifindex);
-	/* netmask */
+        /* netmask */
         if((rtm->rtm_addrs | RTA_NETMASK) != 0) {
-	    push_sockaddr_in6(sin6, ROUNDUP(sin6->sin6_len));
+            push_sockaddr_in6(sin6, ROUNDUP(sin6->sin6_len));
             plen2mask(plen, &sin6->sin6_addr);
         }
         len = (char *)sin6 + ROUNDUP(sin6->sin6_len) - (char *)msg;
@@ -659,9 +655,10 @@ kernel_addresses(char *ifname, int ifindex, int ll,
             if(!!ll != !!IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr))
                 goto next;
             memcpy(routes[i].prefix, &sin6->sin6_addr, 16);
-            if(ll) /* This a perfect example of counter-productive optimisation :
-                KAME encodes interface index onto bytes 2 and 3, so we have to
-                reset those bytes to 0 before passing them to babel. */
+            if(ll)
+                /* This a perfect example of counter-productive optimisation :
+                   KAME encodes interface index onto bytes 2 and 3, so we have to
+                   reset those bytes to 0 before passing them to babeld. */
                 memset(routes[i].prefix + 2, 0, 2);
             routes[i].plen = 128;
             routes[i].metric = 0;
@@ -682,7 +679,7 @@ kernel_addresses(char *ifname, int ifindex, int ll,
             memset(routes[i].gw, 0, 16);
             i++;
         }
-    next:
+ next:
         ifap = ifap->ifa_next;
     }
 

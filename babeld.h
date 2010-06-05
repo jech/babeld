@@ -80,14 +80,6 @@ THE SOFTWARE.
 #endif
 #endif
 
-#if defined(__linux)
-#define RND_DEV "/dev/urandom"
-#elif defined(__OpenBSD__)
-#define RND_DEV "/dev/arandom"
-#else
-#error "don't know which random device to use"
-#endif
-
 extern struct timeval now;
 extern int debug;
 extern time_t reboot_time;
