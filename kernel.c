@@ -76,3 +76,33 @@ gettime(struct timeval *tv)
     previous = tv->tv_sec;
     return rc;
 }
+
+#if defined(__linux)
+#define RND_DEV "/dev/urandom"
+#elif defined (__OpenBSD__)
+#define RND_DEV "/dev/arandom"
+#endif
+
+int
+read_random_bytes(void *buf, size_t len)
+{
+    int rfd;
+    int rc;
+
+#ifdef RND_DEV
+    rfd = open(RND_DEV, O_RDONLY);
+    if(rfd < 0) {
+	rc = -1;
+    } else {
+        rc = read(rfd, buf, len);
+        if(rc < len)
+            rc = -1;
+        close(rfd);
+    }
+#else
+    rc = -1;
+    errno = ENOSYS;
+#endif
+    return rc;
+}
+

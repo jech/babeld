@@ -63,3 +63,4 @@ int kernel_addresses(char *ifname, int ifindex, int ll,
                      struct kernel_route *routes, int maxroutes);
 int if_eui64(char *ifname, int ifindex, unsigned char *eui);
 int gettime(struct timeval *tv);
+int read_random_bytes(void *buf, size_t len);
