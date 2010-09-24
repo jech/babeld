@@ -20,7 +20,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#if defined __GNUC__
+#if defined(i386) || defined(__mc68020__) || defined(__x86_64__)
+#define DO_NTOHS(_d, _s) do { _d = ntohs(*(unsigned short*)(_s)); } while(0)
+#define DO_NTOHL(_d, _s) do { _d = ntohl(*(unsigned*)(_s)); } while(0)
+#define DO_HTONS(_d, _s) do { *(unsigned short*)(_d) = htons(_s); } while(0)
+#define DO_HTONL(_d, _s) do { *(unsigned*)(_d) = htonl(_s); } while(0)
+/* Some versions of gcc seem to be buggy, and ignore the packed attribute.
+   Disable this code until the issue is clarified. */
+/* #elif defined __GNUC__*/
+#elif 0
 struct __us { unsigned short x __attribute__((packed)); };
 #define DO_NTOHS(_d, _s) \
     do { _d = ntohs(((const struct __us*)(_s))->x); } while(0)
