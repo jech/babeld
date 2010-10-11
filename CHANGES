@@ -1,3 +1,7 @@
+1 October 2010: babeld 1.0.2:
+
+  * Worked around a gcc bug that would cause assertion failures on MIPS.
+
 2 May 2010: babeld 1.0.1:
 
   * Fixed a bug that could cause input filters to be ignored.
