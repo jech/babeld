@@ -1,3 +1,7 @@
+babeld 1.0.3 (unreleased):
+
+  * Port to OpenBSD, by Vincent Gross.
+
 1 October 2010: babeld 1.0.2:
 
   * Worked around a gcc bug that would cause assertion failures on MIPS.
