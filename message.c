@@ -25,6 +25,7 @@ THE SOFTWARE.
 #include <stdio.h>
 #include <assert.h>
 
+#include <netinet/in.h>
 #include <arpa/inet.h>
 
 #include "babeld.h"
