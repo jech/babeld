@@ -77,32 +77,24 @@ gettime(struct timeval *tv)
     return rc;
 }
 
-#if defined(__linux)
-#define RND_DEV "/dev/urandom"
-#elif defined (__OpenBSD__)
-#define RND_DEV "/dev/arandom"
-#endif
+/* If /dev/urandom doesn't exist, this will fail with ENOENT, which the
+   caller will deal with gracefully. */
 
 int
 read_random_bytes(void *buf, size_t len)
 {
-    int rfd;
+    int fd;
     int rc;
 
-#ifdef RND_DEV
-    rfd = open(RND_DEV, O_RDONLY);
-    if(rfd < 0) {
+    fd = open("/dev/urandom", O_RDONLY);
+    if(fd < 0) {
 	rc = -1;
     } else {
-        rc = read(rfd, buf, len);
+        rc = read(fd, buf, len);
         if(rc < len)
             rc = -1;
-        close(rfd);
+        close(fd);
     }
-#else
-    rc = -1;
-    errno = ENOSYS;
-#endif
     return rc;
 }
 
