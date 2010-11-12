@@ -112,8 +112,12 @@ main(int argc, char **argv)
 
     gettime(&now);
 
-    if (read_random_bytes(&seed, sizeof(seed)) == -1)
-        perror("read_random_bytes(seed, sizeof(seed))");
+    rc = read_random_bytes(&seed, sizeof(seed));
+    if(rc < 0) {
+        perror("read(random)");
+        seed = 42;
+    }
+
     seed ^= (now.tv_sec ^ now.tv_usec);
     srandom(seed);
 
@@ -396,7 +400,9 @@ main(int argc, char **argv)
 
     fprintf(stderr,
             "Warning: couldn't find router id -- using random value.\n");
-    if(read_random_bytes(myid, 8) == -1) {
+
+    rc = read_random_bytes(myid, 8);
+    if(rc < 0) {
         perror("read(random)");
         goto fail;
     }
