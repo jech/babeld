@@ -1,6 +1,8 @@
-babeld 1.0.3 (unreleased):
+30 January 2011: babeld 1.1.0:
 
-  * Port to OpenBSD, by Vincent Gross.
+  * INCOMPATIBLE CHANGE: the UDP port number and multicast group have
+    been changed to be the ones allocated by IANA.
+  * Initial port to OpenBSD, by Vincent Gross.
 
 1 October 2010: babeld 1.0.2:
 
