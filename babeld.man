@@ -20,11 +20,11 @@ efficiently on wired networks.
 .BI \-m " multicast-address"
 Specify the link-local multicast address to be used by the protocol.
 The default is
-.BR ff02::cca6:c0f9:e182:5373 .
+.BR ff02:0:0:0:0:0:1:6 .
 .TP
 .BI \-p " port"
 Specify the UDP port number to be used by the protocol.  The default is
-.BR 8475 .
+.BR 6697 .
 .TP
 .BI \-S " state-file"
 Set the name of the file used for preserving long-term information

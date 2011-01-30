@@ -121,8 +121,8 @@ main(int argc, char **argv)
     seed ^= (now.tv_sec ^ now.tv_usec);
     srandom(seed);
 
-    parse_address("ff02::cca6:c0f9:e182:5373", protocol_group, NULL);
-    protocol_port = 8475;
+    parse_address("ff02:0:0:0:0:0:1:6", protocol_group, NULL);
+    protocol_port = 6697;
 
     while(1) {
         opt = getopt(argc, argv, "m:p:h:H:i:k:A:PsS:d:g:lwt:T:c:C:DL:I:");
