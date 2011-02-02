@@ -949,12 +949,31 @@ dump_tables(FILE *out)
         const unsigned char *nexthop =
             memcmp(routes[i].nexthop, routes[i].neigh->address, 16) == 0 ?
             NULL : routes[i].nexthop;
-        fprintf(out, "%s metric %d refmetric %d id %s seqno %d age %d "
+        char channels[100];
+        if(routes[i].channels[0] == 0)
+            channels[0] = '\0';
+        else {
+            int k, j = 0;
+            snprintf(channels, 100, "chan (");
+            j = strnlen(channels, 100);
+            for(k = 0; k < DIVERSITY_HOPS; k++) {
+                if(routes[i].channels[k] == 0)
+                    break;
+                if(j > 1)
+                    channels[j++] = ',';
+                snprintf(channels + j, 100 - j, "%d", routes[i].channels[k]);
+                j = strnlen(channels, 100);
+            }
+            snprintf(channels + j, 100 - j, ")");
+        }
+
+        fprintf(out, "%s metric %d refmetric %d id %s seqno %d%s age %d "
                 "via %s neigh %s%s%s%s\n",
                 format_prefix(routes[i].src->prefix, routes[i].src->plen),
                 route_metric(&routes[i]), routes[i].refmetric,
                 format_eui64(routes[i].src->id),
                 (int)routes[i].seqno,
+                channels,
                 (int)(now.tv_sec - routes[i].time),
                 routes[i].neigh->network->ifname,
                 format_address(routes[i].neigh->address),
