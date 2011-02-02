@@ -710,11 +710,15 @@ static void
 really_send_update(struct network *net,
                    const unsigned char *id,
                    const unsigned char *prefix, unsigned char plen,
-                   unsigned short seqno, unsigned short metric)
+                   unsigned short seqno, unsigned short metric,
+                   unsigned char *channels, int channels_len)
 {
     int add_metric, v4, real_plen, omit = 0;
     const unsigned char *real_prefix;
     unsigned short flags = 0;
+    int channels_size =
+        diversity_kind == DIVERSITY_CHANNEL && channels_len >= 0 ?
+        channels_len + 2 : 0;
 
     if(!net_up(net))
         return;
@@ -770,7 +774,8 @@ really_send_update(struct network *net,
         net->have_buffered_id = 1;
     }
 
-    start_message(net, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit);
+    start_message(net, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
+                  channels_size);
     accumulate_byte(net, v4 ? 1 : 2);
     accumulate_byte(net, flags);
     accumulate_byte(net, real_plen);
@@ -779,7 +784,14 @@ really_send_update(struct network *net,
     accumulate_short(net, seqno);
     accumulate_short(net, metric);
     accumulate_bytes(net, real_prefix + omit, (real_plen + 7) / 8 - omit);
-    end_message(net, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit);
+    /* Note that an empty channels TLV is different from no such TLV. */
+    if(channels_len >= 0) {
+        accumulate_byte(net, 2);
+        accumulate_byte(net, channels_len);
+        accumulate_bytes(net, channels, channels_len);
+    }
+    end_message(net, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
+                channels_size);
 
     if(flags & 0x80) {
         memcpy(net->buffered_prefix, prefix, 16);
@@ -884,10 +896,13 @@ flushupdates(struct network *net)
             if(xroute && (!route || xroute->metric <= kernel_metric)) {
                 really_send_update(net, myid,
                                    xroute->prefix, xroute->plen,
-                                   myseqno, xroute->metric);
+                                   myseqno, xroute->metric,
+                                   NULL, 0);
                 last_prefix = xroute->prefix;
                 last_plen = xroute->plen;
             } else if(route) {
+                unsigned char channels[DIVERSITY_HOPS];
+                int channels_len;
                 seqno = route->seqno;
                 metric = route_metric(route);
                 if(metric < INFINITY)
@@ -903,10 +918,14 @@ flushupdates(struct network *net)
                         (diversity_factor * route->cost / + 128) / 256 +
                         route->add_metric;
                 }
+                channels[0] = net->channel;
+                memcpy(channels + 1, route->channels, DIVERSITY_HOPS - 1);
+                channels_len = strnlen((char*)channels, DIVERSITY_HOPS);
                 really_send_update(net, route->src->id,
                                    route->src->prefix,
                                    route->src->plen,
-                                   seqno, metric);
+                                   seqno, metric,
+                                   channels, channels_len);
                 update_source(route->src, seqno, metric);
                 last_prefix = route->src->prefix;
                 last_plen = route->src->plen;
@@ -914,7 +933,7 @@ flushupdates(struct network *net)
             /* There's no route for this prefix.  This can happen shortly
                after an xroute has been retracted, so send a retraction. */
                 really_send_update(net, myid, b[i].prefix, b[i].plen,
-                                   myseqno, INFINITY);
+                                   myseqno, INFINITY, NULL, -1);
             }
         }
         schedule_flush_now(net);
