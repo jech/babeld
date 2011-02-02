@@ -80,7 +80,8 @@ struct route *update_route(const unsigned char *a,
                            const unsigned char *p, unsigned char plen,
                            unsigned short seqno, unsigned short refmetric,
                            unsigned short interval, struct neighbour *neigh,
-                           const unsigned char *nexthop);
+                           const unsigned char *nexthop,
+                           const unsigned char *channels, int channels_len);
 void retract_neighbour_routes(struct neighbour *neigh);
 void send_unfeasible_request(struct neighbour *neigh, int force,
                              unsigned short seqno, unsigned short metric,

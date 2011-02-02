@@ -428,7 +428,8 @@ struct route *
 update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
              unsigned short seqno, unsigned short refmetric,
              unsigned short interval,
-             struct neighbour *neigh, const unsigned char *nexthop)
+             struct neighbour *neigh, const unsigned char *nexthop,
+             const unsigned char *channels, int channels_len)
 {
     struct route *route;
     struct source *src;
@@ -528,6 +529,9 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         route->hold_time = hold_time;
         route->installed = 0;
         memset(&route->channels, 0, sizeof(route->channels));
+        if(channels_len > 0)
+            memcpy(&route->channels, channels,
+                   MIN(channels_len, DIVERSITY_HOPS));
         numroutes++;
         local_notify_route(route, LOCAL_ADD);
         consider_route(route);

@@ -355,7 +355,7 @@ parse_packet(const unsigned char *from, struct network *net,
             }
 
             update_route(router_id, prefix, plen, seqno, metric, interval,
-                         neigh, nh);
+                         neigh, nh, NULL, 0);
         } else if(type == MESSAGE_REQUEST) {
             unsigned char prefix[16], plen;
             int rc;
