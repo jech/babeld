@@ -51,7 +51,7 @@ struct network_conf {
 #define NET_FARAWAY (1 << 4)
 
 /* Only INTERFERING can appear on the wire. */
-#define NET_CHANNEL_UNKNOWN -1
+#define NET_CHANNEL_UNKNOWN 0
 #define NET_CHANNEL_INTERFERING 254
 #define NET_CHANNEL_NONINTERFERING -2
 
