@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -152,6 +153,12 @@ network_address(int ae, const unsigned char *a, unsigned int len,
                 unsigned char *a_r)
 {
     return network_prefix(ae, -1, 0, a, NULL, len, a_r);
+}
+
+static int
+channels_len(unsigned char *channels)
+{
+    return strnlen((char*)channels, DIVERSITY_HOPS);
 }
 
 void
@@ -407,7 +414,7 @@ parse_packet(const unsigned char *from, struct network *net,
 
             update_route(router_id, prefix, plen, seqno, metric, interval,
                          neigh, nh,
-                         channels, strnlen((char*)channels, DIVERSITY_HOPS));
+                         channels, channels_len(channels));
         } else if(type == MESSAGE_REQUEST) {
             unsigned char prefix[16], plen;
             int rc;
@@ -954,7 +961,7 @@ flushupdates(struct network *net)
                 last_plen = xroute->plen;
             } else if(route) {
                 unsigned char channels[DIVERSITY_HOPS];
-                int channels_len;
+                int chlen;
                 seqno = route->seqno;
                 metric = route_metric(route);
                 if(metric < INFINITY)
@@ -982,12 +989,12 @@ flushupdates(struct network *net)
                     memcpy(channels + 1, route->channels, DIVERSITY_HOPS - 1);
                 }
 
-                channels_len = strnlen((char*)channels, DIVERSITY_HOPS);
+                chlen = channels_len(channels);
                 really_send_update(net, route->src->id,
                                    route->src->prefix,
                                    route->src->plen,
                                    seqno, metric,
-                                   channels, channels_len);
+                                   channels, chlen);
                 update_source(route->src, seqno, metric);
                 last_prefix = route->src->prefix;
                 last_plen = route->src->plen;
