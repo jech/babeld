@@ -164,6 +164,11 @@ wireless interfaces; on wired interfaces, the default depends on the
 .B \-s
 flag.
 .TP
+.BR faraway " {" true | false }
+This specifies whether the network is "far away", in the sense that
+networks behind it don't interfere with networks in front of it.  By
+default, networks are not far away.
+.TP
 .BI rxcost " cost"
 This defines the cost of receiving frames on the given interface under
 ideal conditions (no packet loss); how this relates to the actual cost used
