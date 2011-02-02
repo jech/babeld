@@ -113,6 +113,40 @@ network_prefix(int ae, int plen, unsigned int omitted,
     return 1;
 }
 
+static void
+parse_route_attributes(const unsigned char *a, int alen, unsigned char *channels)
+{
+    int type, len, i = 0;
+
+    while(i < alen) {
+        type = a[i];
+        if(type == 0) {
+            i++;
+            continue;
+        }
+
+        if(i + 1 > alen) {
+            fprintf(stderr, "Received truncated attributes.\n");
+            return;
+        }
+        len = a[i + 1];
+        if(i + len > alen) {
+            fprintf(stderr, "Received truncated attributes.\n");
+            return;
+        }
+
+        if(type == 1) {
+        } else if(type == 2) {
+            memset(channels, 0, DIVERSITY_HOPS);
+            memcpy(channels, a + i + 2, MIN(len, DIVERSITY_HOPS));
+        } else {
+            fprintf(stderr, "Received unknown route attribute %d.\n", type);
+        }
+
+        i += len + 2;
+    }
+}
+
 static int
 network_address(int ae, const unsigned char *a, unsigned int len,
                 unsigned char *a_r)
@@ -277,6 +311,7 @@ parse_packet(const unsigned char *from, struct network *net,
         } else if(type == MESSAGE_UPDATE) {
             unsigned char prefix[16], *nh;
             unsigned char plen;
+            unsigned char channels[DIVERSITY_HOPS];
             unsigned short interval, seqno, metric;
             int rc;
             if(len < 10) {
@@ -354,8 +389,25 @@ parse_packet(const unsigned char *from, struct network *net,
                     goto done;
             }
 
+            if((net->flags & NET_FARAWAY)) {
+                channels[0] = 0;
+            } else {
+                int l = 10 + (message[4] + 7) / 8 - message[5];
+                /* If the peer doesn't send diversity information,
+                   assume that routes with a zero metric are non-interfering. */
+                if(metric == 0) {
+                    channels[0] = 0;
+                } else {
+                    channels[0] = NET_CHANNEL_INTERFERING;
+                    channels[1] = 0;
+                }
+                if(l < len)
+                    parse_route_attributes(message + 2 + l, len - l, channels);
+            }
+
             update_route(router_id, prefix, plen, seqno, metric, interval,
-                         neigh, nh, NULL, 0);
+                         neigh, nh,
+                         channels, strnlen((char*)channels, DIVERSITY_HOPS));
         } else if(type == MESSAGE_REQUEST) {
             unsigned char prefix[16], plen;
             int rc;
