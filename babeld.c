@@ -359,7 +359,6 @@ main(int argc, char **argv)
     }
 
     for(i = optind; i < argc; i++) {
-        debugf("Adding network %s.\n", argv[i]);
         vrc = add_network(argv[i], NULL);
         if(vrc == NULL)
             goto fail;

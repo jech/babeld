@@ -85,6 +85,7 @@ add_network(char *ifname, struct network_conf *conf)
         networks = net;
     else
         last_network()->next = net;
+
     return net;
 }
 
@@ -391,6 +392,13 @@ network_up(struct network *net, int up)
     check_network_channel(net);
     update_network_metric(net);
     rc = check_network_ipv4(net);
+
+    debugf("Upped network %s (%s, cost=%d%s).\n",
+           net->ifname,
+           (net->flags & NET_WIRED) ? "wired" : "wireless",
+           net->cost,
+           net->ipv4 ? ", IPv4" : "");
+
     if(up && rc > 0)
         send_update(net, 0, NULL, 0);
 
