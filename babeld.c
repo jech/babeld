@@ -441,7 +441,7 @@ main(int argc, char **argv)
                 } else {
                     struct timeval realnow;
                     debugf("Got %s %d %ld from babel-state.\n",
-                           format_address(sid), s, t);
+                           format_eui64(sid), s, t);
                     gettimeofday(&realnow, NULL);
                     if(memcmp(sid, myid, 8) == 0)
                         myseqno = seqno_plus(s, 1);
