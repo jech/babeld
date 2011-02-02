@@ -427,6 +427,12 @@ parse_nconf(gnc_t gnc, void *closure)
             if(c < -1)
                 goto error;
             nconf->wired = v;
+        } else if(strcmp(token, "faraway") == 0) {
+            int v;
+            c = getbool(c, &v, gnc, closure);
+            if(c < -1)
+                goto error;
+            nconf->faraway = v;
         } else if(strcmp(token, "link-quality") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);

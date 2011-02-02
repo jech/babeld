@@ -312,6 +312,9 @@ network_up(struct network *net, int up)
                 net->flags |= NET_LQ;
         }
 
+        if(NET_CONF(net, faraway) == CONFIG_YES)
+            net->flags |= NET_FARAWAY;
+
         net->activity_time = now.tv_sec;
         update_hello_interval(net);
         /* Since the interface was marked as active above, the

@@ -35,6 +35,7 @@ struct network_conf {
     char wired;
     char split_horizon;
     char lq;
+    char faraway;
     int channel;
     struct network_conf *next;
 };
