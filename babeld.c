@@ -953,17 +953,19 @@ dump_tables(FILE *out)
             channels[0] = '\0';
         else {
             int k, j = 0;
-            snprintf(channels, 100, "chan (");
+            snprintf(channels, 100, " chan (");
             j = strnlen(channels, 100);
             for(k = 0; k < DIVERSITY_HOPS; k++) {
                 if(routes[i].channels[k] == 0)
                     break;
-                if(j > 1)
+                if(k > 1)
                     channels[j++] = ',';
                 snprintf(channels + j, 100 - j, "%d", routes[i].channels[k]);
                 j = strnlen(channels, 100);
             }
             snprintf(channels + j, 100 - j, ")");
+            if(k == 0)
+                channels[0] = '\0';
         }
 
         fprintf(out, "%s metric %d refmetric %d id %s seqno %d%s age %d "
