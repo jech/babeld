@@ -402,7 +402,7 @@ parse_packet(const unsigned char *from, struct network *net,
                 int l = 10 + (message[4] + 7) / 8 - message[5];
                 /* If the peer doesn't send diversity information,
                    assume that routes with a small metric are non-interfering. */
-                if(metric <= 192) {
+                if(metric < 256) {
                     channels[0] = 0;
                 } else {
                     channels[0] = NET_CHANNEL_INTERFERING;
