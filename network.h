@@ -47,6 +47,7 @@ struct network_conf {
 #define NET_WIRED (1<<1)
 #define NET_SPLIT_HORIZON (1 << 2)
 #define NET_LQ (1 << 3)
+#define NET_FARAWAY (1 << 4)
 
 #define NET_CHANNEL_UNKNOWN 0
 #define NET_CHANNEL_INTERFERING 253
