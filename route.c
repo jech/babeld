@@ -289,6 +289,16 @@ route_expired(struct route *route)
     return route->time < now.tv_sec - route->hold_time;
 }
 
+static int
+channels_interfere(unsigned char ch1, unsigned char ch2)
+{
+    if(ch1 == NET_CHANNEL_NONINTERFERING || ch2 == NET_CHANNEL_NONINTERFERING)
+        return 0;
+    if(ch1 == NET_CHANNEL_INTERFERING || ch2 == NET_CHANNEL_INTERFERING)
+        return 1;
+    return ch1 == ch2;
+}
+
 int
 route_interferes(struct route *route, struct network *net)
 {
@@ -298,14 +308,21 @@ route_interferes(struct route *route, struct network *net)
     case DIVERSITY_INTERFACE_1:
         return route->neigh->network == net;
     case DIVERSITY_CHANNEL_1:
-        if(route->neigh->network->channel == NET_CHANNEL_NONINTERFERING ||
-           net->channel == NET_CHANNEL_NONINTERFERING)
-            return 0;
-        else if(route->neigh->network->channel == NET_CHANNEL_INTERFERING ||
-                net->channel == NET_CHANNEL_INTERFERING)
+    case DIVERSITY_CHANNEL:
+        if(route->neigh->network == net)
             return 1;
-        else
-            return route->neigh->network->channel == net->channel;
+        if(channels_interfere(net->channel, route->neigh->network->channel))
+            return 1;
+        if(diversity_kind == DIVERSITY_CHANNEL) {
+            int i;
+            for(i = 0; i < DIVERSITY_HOPS; i++) {
+                if(route->channels[i] == 0)
+                    break;
+                if(channels_interfere(net->channel, route->channels[i]))
+                    return 1;
+            }
+        }
+        return 0;
     default:
         fprintf(stderr, "Unknown kind of diversity.\n");
         return 1;
@@ -510,6 +527,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         route->time = now.tv_sec;
         route->hold_time = hold_time;
         route->installed = 0;
+        memset(&route->channels, 0, sizeof(route->channels));
         numroutes++;
         local_notify_route(route, LOCAL_ADD);
         consider_route(route);

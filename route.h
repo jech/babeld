@@ -20,6 +20,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#define DIVERSITY_NONE 0
+#define DIVERSITY_INTERFACE_1 1
+#define DIVERSITY_CHANNEL_1 2
+#define DIVERSITY_CHANNEL 3
+
+#define DIVERSITY_HOPS 8
+
 struct route {
     struct source *src;
     unsigned short refmetric;
@@ -31,6 +38,7 @@ struct route {
     time_t time;
     unsigned short hold_time;    /* in seconds */
     short installed;
+    unsigned char channels[DIVERSITY_HOPS];
 };
 
 static inline int
@@ -39,11 +47,6 @@ route_metric(const struct route *route)
     int m = route->refmetric + route->cost + route->add_metric;
     return MIN(m, INFINITY);
 }
-
-#define DIVERSITY_NONE 0
-#define DIVERSITY_INTERFACE_1 1
-#define DIVERSITY_CHANNEL_1 2
-#define DIVERSITY_CHANNEL 3
 
 extern struct route *routes;
 extern int numroutes, maxroutes;
