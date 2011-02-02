@@ -49,8 +49,8 @@ struct network_conf {
 #define NET_LQ (1 << 3)
 
 #define NET_CHANNEL_UNKNOWN 0
-#define NET_CHANNEL_INTERFERING -2
-#define NET_CHANNEL_NONINTERFERING -3
+#define NET_CHANNEL_INTERFERING 253
+#define NET_CHANNEL_NONINTERFERING 254
 
 struct network {
     struct network *next;
@@ -58,7 +58,7 @@ struct network {
     unsigned int ifindex;
     unsigned short flags;
     unsigned short cost;
-    int channel;
+    unsigned char channel;
     struct timeval hello_timeout;
     struct timeval update_timeout;
     struct timeval flush_timeout;
