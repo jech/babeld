@@ -954,14 +954,14 @@ dump_tables(FILE *out)
         else {
             int k, j = 0;
             snprintf(channels, 100, " chan (");
-            j = strnlen(channels, 100);
+            j = strlen(channels);
             for(k = 0; k < DIVERSITY_HOPS; k++) {
                 if(routes[i].channels[k] == 0)
                     break;
                 if(k > 1)
                     channels[j++] = ',';
                 snprintf(channels + j, 100 - j, "%d", routes[i].channels[k]);
-                j = strnlen(channels, 100);
+                j = strlen(channels);
             }
             snprintf(channels + j, 100 - j, ")");
             if(k == 0)
