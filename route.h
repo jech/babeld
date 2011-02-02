@@ -43,7 +43,7 @@ route_metric(const struct route *route)
 #define DIVERSITY_NONE 0
 #define DIVERSITY_INTERFACE_1 1
 #define DIVERSITY_CHANNEL_1 2
-#define DIVERSITY_CHANNEL_INF 3
+#define DIVERSITY_CHANNEL 3
 
 extern struct route *routes;
 extern int numroutes, maxroutes;
