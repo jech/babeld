@@ -970,8 +970,18 @@ flushupdates(struct network *net)
                         (diversity_factor * route->cost / + 128) / 256 +
                         route->add_metric;
                 }
-                channels[0] = net->channel;
-                memcpy(channels + 1, route->channels, DIVERSITY_HOPS - 1);
+                if(net->channel == NET_CHANNEL_NONINTERFERING) {
+                    memcpy(channels, route->channels, DIVERSITY_HOPS);
+                } else {
+                    if(net->channel == NET_CHANNEL_UNKNOWN)
+                        channels[0] = NET_CHANNEL_INTERFERING;
+                    else {
+                        assert(net->channel > 0 && net->channel < 254);
+                        channels[0] = net->channel;
+                    }
+                    memcpy(channels + 1, route->channels, DIVERSITY_HOPS - 1);
+                }
+
                 channels_len = strnlen((char*)channels, DIVERSITY_HOPS);
                 really_send_update(net, route->src->id,
                                    route->src->prefix,
