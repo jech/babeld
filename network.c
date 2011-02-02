@@ -393,10 +393,11 @@ network_up(struct network *net, int up)
     update_network_metric(net);
     rc = check_network_ipv4(net);
 
-    debugf("Upped network %s (%s, cost=%d%s).\n",
+    debugf("Upped network %s (%s, cost=%d, channel=%d%s).\n",
            net->ifname,
            (net->flags & NET_WIRED) ? "wired" : "wireless",
            net->cost,
+           net->channel,
            net->ipv4 ? ", IPv4" : "");
 
     if(up && rc > 0)
