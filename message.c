@@ -965,6 +965,7 @@ flushupdates(struct network *net)
             } else if(route) {
                 unsigned char channels[DIVERSITY_HOPS];
                 int chlen;
+                struct network *route_net = route->neigh->network;
                 seqno = route->seqno;
                 metric = route_metric(route);
                 if(metric < INFINITY)
@@ -980,14 +981,15 @@ flushupdates(struct network *net)
                         (diversity_factor * route->cost / + 128) / 256 +
                         route->add_metric;
                 }
-                if(net->channel == NET_CHANNEL_NONINTERFERING) {
+                if(route_net->channel == NET_CHANNEL_NONINTERFERING) {
                     memcpy(channels, route->channels, DIVERSITY_HOPS);
                 } else {
-                    if(net->channel == NET_CHANNEL_UNKNOWN)
+                    if(route_net->channel == NET_CHANNEL_UNKNOWN)
                         channels[0] = NET_CHANNEL_INTERFERING;
                     else {
-                        assert(net->channel > 0 && net->channel < 254);
-                        channels[0] = net->channel;
+                        assert(route_net->channel > 0 &&
+                               route_net->channel < 254);
+                        channels[0] = route_net->channel;
                     }
                     memcpy(channels + 1, route->channels, DIVERSITY_HOPS - 1);
                 }
