@@ -290,7 +290,7 @@ route_expired(struct route *route)
 }
 
 static int
-channels_interfere(unsigned char ch1, unsigned char ch2)
+channels_interfere(int ch1, int ch2)
 {
     if(ch1 == NET_CHANNEL_NONINTERFERING || ch2 == NET_CHANNEL_NONINTERFERING)
         return 0;
