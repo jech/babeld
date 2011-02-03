@@ -775,9 +775,12 @@ really_send_update(struct network *net,
     int add_metric, v4, real_plen, omit = 0;
     const unsigned char *real_prefix;
     unsigned short flags = 0;
-    int channels_size =
-        diversity_kind == DIVERSITY_CHANNEL && channels_len >= 0 ?
-        channels_len + 2 : 0;
+    int channels_size;
+
+    if(diversity_kind != DIVERSITY_CHANNEL)
+        channels_len = -1;
+
+    channels_size = channels_len >= 0 ? channels_len + 2 : 0;
 
     if(!net_up(net))
         return;
