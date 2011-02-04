@@ -975,11 +975,11 @@ flushupdates(struct network *net)
                    route->neigh->network == net)
                     continue;
                 if(!route_interferes(route, net)) {
-                    /* Announce a smaller metric. */
                     metric =
                         route->refmetric +
                         (diversity_factor * route->cost / + 128) / 256 +
                         route->add_metric;
+                    metric = MAX(metric, route->refmetric + 1);
                 }
                 if(route_net->channel == NET_CHANNEL_NONINTERFERING) {
                     memcpy(channels, route->channels, DIVERSITY_HOPS);
