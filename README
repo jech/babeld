@@ -1,5 +1,5 @@
 Babel
-*****
+=====
 
 Babel is a loop-avoiding distance-vector routing protocol roughly
 based on HSDV and AODV, but with provisions for link cost estimation
@@ -7,46 +7,46 @@ and redistribution of routes from other routing protocols.
 
 
 Installation
-************
+============
 
-  $ make
-  $ su -c 'make install'
+    $ make
+    $ su -c 'make install'
 
 If compiling for OpenWRT, you will probably want to say something like
 
-  $ make CC=mipsel-linux-gcc PLATFORM_DEFINES='-march=mips32'
+    $ make CC=mipsel-linux-gcc PLATFORM_DEFINES='-march=mips32'
 
 On Mac OS X, you'll need to do
 
-  $ make LDLIBS=''
+    $ make LDLIBS=''
 
 
 Setting up a network for use with Babel
-***************************************
+=======================================
 
 1. Set up every node's interface
-================================
+--------------------------------
 
 On every node, set up the wireless interface:
 
-  # iwconfig eth1 mode ad-hoc channel 11 essid "my-mesh-network"
-  # ip link set up dev eth1
+    # iwconfig eth1 mode ad-hoc channel 11 essid "my-mesh-network"
+    # ip link set up dev eth1
 
 2. Set up every node's IP addresses
-===================================
+-----------------------------------
 
 You will need to make sure that all of your nodes have a unique IPv6
 address, and/or a unique IPv4 address.
 
 On every node, run something like:
 
-  # ip addr add 192.168.13.33/32 dev eth1
-  # ip -6 addr add $(generate-ipv6-address -r)/128 dev eth1
+    # ip addr add 192.168.13.33/32 dev eth1
+    # ip -6 addr add $(generate-ipv6-address -r)/128 dev eth1
 
 You will find the generate-ipv6-address utility, which can generate random
 IPv6 addresses according to RFC 4193, on
 
-    http://www.pps.jussieu.fr/~jch/software/files/
+      http://www.pps.jussieu.fr/~jch/software/files/
 
 
 A note about tunnels and VPNs
@@ -60,58 +60,58 @@ that it ``couldn't allocate requested address''.
 The solution is to manually add the link-local address to the
 interface.  This can be done by running e.g.
 
-  # ip -6 addr add $(ahcp-generate-address fe80::) dev gre0
+    # ip -6 addr add $(ahcp-generate-address fe80::) dev gre0
 
 
 3. Start the routing daemon
-===========================
+---------------------------
 
 Run Babel on every node, specifying the set of interfaces that it
 should consider:
 
-  # babeld eth1
+    # babeld eth1
 
 If your node has multiple interfaces which you want to participate in
 the Babel network, just list them all:
 
-  # babeld eth0 eth1 sit1
+    # babeld eth0 eth1 sit1
 
 
 4. Setting up an Internet gateway
-=================================
+---------------------------------
 
 If you have one or more Internet gateways on your mesh network, you
 will want to set them up so that they redistribute the default route.
 Babel will only redistribute routes with an explicit protocol
 attached, so you must say something like:
 
-  # ip route add 0.0.0.0/0 via 1.2.3.4 dev eth0 proto static
+    # ip route add 0.0.0.0/0 via 1.2.3.4 dev eth0 proto static
 
 In order to redistribute all routes, you will say:
 
-  # babeld -C 'redistribute metric 128' eth1
+    # babeld -C 'redistribute metric 128' eth1
 
 You may also be more selective in the routes you redistribute, for
 instance by specifying the interface over which the route goes out:
 
-  # babeld -C 'redistribute if eth0 metric 128' eth1
+    # babeld -C 'redistribute if eth0 metric 128' eth1
 
 or by constraining the prefix length:
 
-  # babeld -C 'redistribute ip ::/0 le 64 metric 128' \
-           -C 'redistribute ip 0.0.0.0/0 le 28 metric 128' \
-           eth1
+    # babeld -C 'redistribute ip ::/0 le 64 metric 128' \
+             -C 'redistribute ip 0.0.0.0/0 le 28 metric 128' \
+             eth1
 
 You may also want to constrain which local routes (routes to local
 interface addresses) you advertise:
 
-  # babeld -C 'redistribute local if eth1' -C 'redistribute local deny' \
-           -C 'redistribute metric 128' \
-           eth1
+    # babeld -C 'redistribute local if eth1' -C 'redistribute local deny' \
+             -C 'redistribute metric 128' \
+             eth1
 
 If you find all of this too complicated and error-prone (as I do), you
 may want to consider autoconfiguring your routing domain using AHCP:
 
-  http://www.pps.jussieu.fr/~jch/software/ahcp/
+    http://www.pps.jussieu.fr/~jch/software/ahcp/
 
-                                        Juliusz Chroboczek
+-- Juliusz Chroboczek
