@@ -857,7 +857,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         /* It is better to add the new route before removing the old
            one, to avoid losing packets.  However, this only appears
            to work if the metrics are different. */
-        if(newmetric != metric) {
+        if(newmetric != metric && newmetric < KERNEL_INFINITY) {
             rc = kernel_route(ROUTE_ADD, dest, plen,
                               newgate, newifindex, newmetric,
                               NULL, 0, 0);
