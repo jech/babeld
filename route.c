@@ -25,6 +25,7 @@ THE SOFTWARE.
 #include <stdio.h>
 #include <errno.h>
 #include <assert.h>
+#include <sys/time.h>
 
 #include "babeld.h"
 #include "util.h"

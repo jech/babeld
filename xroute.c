@@ -25,6 +25,7 @@ THE SOFTWARE.
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 
 #include "babeld.h"

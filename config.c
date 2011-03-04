@@ -23,6 +23,7 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <sys/time.h>
 
 #ifdef __linux
 /* Defining it rather than including <linux/rtnetlink.h> because this
