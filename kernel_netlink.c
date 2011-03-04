@@ -60,6 +60,11 @@ static int old_rp_filter = -1;
 
 static int dgram_socket = -1;
 
+#ifndef ARPHRD_ETHER
+#define ARPHRD_ETHER 1
+#define NO_ARPHRD
+#endif
+
 /* Determine an interface's hardware address, in modified EUI-64 format */
 int
 if_eui64(char *ifname, int ifindex, unsigned char *eui)
@@ -82,9 +87,12 @@ if_eui64(char *ifname, int ifindex, unsigned char *eui)
 
     switch(ifr.ifr_hwaddr.sa_family) {
     case ARPHRD_ETHER:
+#ifndef NO_ARPHRD
     case ARPHRD_FDDI:
     case ARPHRD_IEEE802_TR:
-    case ARPHRD_IEEE802: {
+    case ARPHRD_IEEE802:
+#endif
+    {
         unsigned char *mac;
         mac = (unsigned char *)ifr.ifr_hwaddr.sa_data;
         /* Check for null address and group and global bits */
@@ -100,6 +108,7 @@ if_eui64(char *ifname, int ifindex, unsigned char *eui)
         eui[0] ^= 2;
         return 1;
     }
+#ifndef NO_ARPHRD
     case ARPHRD_EUI64:
     case ARPHRD_IEEE1394:
     case ARPHRD_INFINIBAND: {
@@ -114,6 +123,7 @@ if_eui64(char *ifname, int ifindex, unsigned char *eui)
         eui[0] ^= 2;
         return 1;
     }
+#endif
     default:
         errno = ENOENT;
         return -1;
