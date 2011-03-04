@@ -23,6 +23,7 @@ THE SOFTWARE.
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "babeld.h"
 #include "util.h"
