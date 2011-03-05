@@ -197,11 +197,10 @@ local_notify_route(struct route *route, int kind)
         return;
 
     rc = snprintf(buf, 512,
-                  "%s route %s-%s-%lx prefix %s installed %s "
+                  "%s route %s-%lx prefix %s installed %s "
                   "id %s metric %d refmetric %d via %s if %s\n",
                   local_kind(kind),
                   format_prefix(route->src->prefix, route->src->plen),
-                  format_eui64(route->src->id),
                   (unsigned long)route->neigh,
                   format_prefix(route->src->prefix, route->src->plen),
                   route->installed ? "yes" : "no",
