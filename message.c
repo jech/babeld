@@ -988,7 +988,7 @@ flushupdates(struct network *net)
                         channels[0] = NET_CHANNEL_INTERFERING;
                     else {
                         assert(route_net->channel > 0 &&
-                               route_net->channel < 254);
+                               route_net->channel <= 254);
                         channels[0] = route_net->channel;
                     }
                     memcpy(channels + 1, route->channels, DIVERSITY_HOPS - 1);
