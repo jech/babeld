@@ -291,7 +291,7 @@ parse_packet(const unsigned char *from, struct network *net,
                (message[3] == 1 ? have_v4_prefix : have_v6_prefix))
                 rc = network_prefix(message[2], message[4], message[5],
                                     message + 12,
-                                    message[3] == 1 ? v4_prefix : v6_prefix,
+                                    message[2] == 1 ? v4_prefix : v6_prefix,
                                     len - 10, prefix);
             else
                 rc = -1;
