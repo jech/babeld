@@ -84,7 +84,8 @@ network_prefix(int ae, int plen, unsigned int omitted,
     switch(ae) {
     case 0: break;
     case 1:
-        if(pb > 4 || (pb > omitted && len < pb - omitted)) return -1;
+        if(omitted > 4 || pb > 4 || (pb > omitted && len < pb - omitted))
+            return -1;
         memcpy(prefix, v4prefix, 12);
         if(omitted) {
             if (dp == NULL || !v4mapped(dp)) return -1;
@@ -93,7 +94,7 @@ network_prefix(int ae, int plen, unsigned int omitted,
         if(pb > omitted) memcpy(prefix + 12 + omitted, p, pb);
         break;
     case 2:
-        if(pb > omitted && len < pb - omitted) return -1;
+        if(omitted > 16 || (pb > omitted && len < pb - omitted)) return -1;
         if(omitted) {
             if (dp == NULL || v4mapped(dp)) return -1;
             memcpy(prefix, dp, omitted);
