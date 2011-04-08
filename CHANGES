@@ -1,6 +1,6 @@
 babeld 1.1.1 (unreleased):
 
-  * Fixed a bug in the message parser that could cause IPv4 updates to
+  * Fixed two bugs in the message parser that could cause IPv4 updates to
     get lost.
   * Fixed a bug in the monitoring interface that could cause route ids
     to change (thanks to Gabriel Kerneis).
