@@ -269,7 +269,7 @@ main(int argc, char **argv)
     wireless_hello_interval = MAX(wireless_hello_interval, 5);
 
     if(wired_hello_interval <= 0)
-        wired_hello_interval = 20000;
+        wired_hello_interval = 4000;
     wired_hello_interval = MAX(wired_hello_interval, 5);
 
     if(parasitic && allow_duplicates >= 0) {
