@@ -4,6 +4,7 @@ babeld 1.1.1 (unreleased):
     get lost.
   * Fixed a bug in the monitoring interface that could cause route ids
     to change (thanks to Gabriel Kerneis).
+  * INCOMPATIBLE CHANGE: the default wired hello interval is now 4 seconds.
   * Ported to Bionic libc.
 
 30 January 2011: babeld 1.1.0:
