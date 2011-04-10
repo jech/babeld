@@ -42,7 +42,7 @@ sent on wireless interfaces.  The default is 4 seconds.
 .TP
 .BI \-H " wired-hello-interval"
 Specify the interval in seconds at which scheduled hello packets are
-sent on wired interfaces.  The default is 20 seconds.
+sent on wired interfaces.  The default is 4 seconds.
 .TP
 .BI \-i " idle-hello-interval"
 Enable detection of idle networks (networks on which we haven't received
