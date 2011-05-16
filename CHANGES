@@ -1,4 +1,4 @@
-babeld 1.1.1 (unreleased):
+16 May 2011: babeld 1.1.1:
 
   * Fixed two bugs in the message parser that could cause IPv4 updates to
     get lost.
