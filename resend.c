@@ -138,7 +138,7 @@ record_resend(int kind, const unsigned char *prefix, unsigned char plen,
 
     if(resend->delay) {
         struct timeval timeout;
-        timeval_plus_msec(&timeout, &resend->time, resend->delay);
+        timeval_add_msec(&timeout, &resend->time, resend->delay);
         timeval_min(&resend_time, &timeout);
     }
     return 1;
@@ -268,7 +268,7 @@ recompute_resend_time()
     while(request) {
         if(!resend_expired(request) && request->delay > 0 && request->max > 0) {
             struct timeval timeout;
-            timeval_plus_msec(&timeout, &request->time, request->delay);
+            timeval_add_msec(&timeout, &request->time, request->delay);
             timeval_min(&resend, &timeout);
         }
         request = request->next;
@@ -286,7 +286,7 @@ do_resend()
     while(resend) {
         if(!resend_expired(resend) && resend->delay > 0 && resend->max > 0) {
             struct timeval timeout;
-            timeval_plus_msec(&timeout, &resend->time, resend->delay);
+            timeval_add_msec(&timeout, &resend->time, resend->delay);
             if(timeval_compare(&now, &timeout) >= 0) {
                 switch(resend->kind) {
                 case RESEND_REQUEST:
