@@ -176,8 +176,7 @@ parse_packet(const unsigned char *from, struct network *net,
     unsigned char router_id[8], v4_prefix[16], v6_prefix[16],
         v4_nh[16], v6_nh[16];
 
-
-    if(from[0] != 0xFE || (from[1] & 0xC0) != 0x80) {
+    if(!in_prefix(from, ll_prefix, 64)) {
         fprintf(stderr, "Received packet from non-local address %s.\n",
                 format_address(from));
         return;
