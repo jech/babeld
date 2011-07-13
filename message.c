@@ -541,7 +541,7 @@ schedule_flush(struct network *net)
     if(net->flush_timeout.tv_sec != 0 &&
        timeval_minus_msec(&net->flush_timeout, &now) < msecs)
         return;
-    delay_jitter(&net->flush_timeout, msecs);
+    set_timeout(&net->flush_timeout, msecs);
 }
 
 static void
@@ -552,7 +552,7 @@ schedule_flush_now(struct network *net)
     if(net->flush_timeout.tv_sec != 0 &&
        timeval_minus_msec(&net->flush_timeout, &now) < msecs)
         return;
-    delay_jitter(&net->flush_timeout, msecs);
+    set_timeout(&net->flush_timeout, msecs);
 }
 
 static void
@@ -689,7 +689,7 @@ send_hello_noupdate(struct network *net, unsigned interval)
         flushbuf(net);
 
     net->hello_seqno = seqno_plus(net->hello_seqno, 1);
-    delay_jitter(&net->hello_timeout, net->hello_interval);
+    set_timeout(&net->hello_timeout, net->hello_interval);
 
     if(!net_up(net))
         return;
@@ -1027,7 +1027,7 @@ schedule_update_flush(struct network *net, int urgent)
     if(net->update_flush_timeout.tv_sec != 0 &&
        timeval_minus_msec(&net->update_flush_timeout, &now) < msecs)
         return;
-    delay_jitter(&net->update_flush_timeout, msecs);
+    set_timeout(&net->update_flush_timeout, msecs);
 }
 
 static void
@@ -1105,7 +1105,7 @@ send_update(struct network *net, int urgent,
                                       routes[i].src->plen);
             }
         }
-        delay_jitter(&net->update_timeout, net->update_interval);
+        set_timeout(&net->update_timeout, net->update_interval);
     }
     schedule_update_flush(net, urgent);
 }
