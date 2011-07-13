@@ -101,7 +101,7 @@ int network_idle(struct network *net);
 int update_hello_interval(struct network *net);
 unsigned jitter(struct network *net, int urgent);
 unsigned update_jitter(struct network *net, int urgent);
-void delay_jitter(struct timeval *timeout, int msecs);
+void set_timeout(struct timeval *timeout, int msecs);
 int network_up(struct network *net, int up);
 int network_ll_address(struct network *net, const unsigned char *address);
 void check_networks(void);
