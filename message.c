@@ -57,8 +57,6 @@ struct timeval unicast_flush_timeout = {0, 0};
 
 static const unsigned char v4prefix[16] =
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0 };
-static const unsigned char ll_prefix[16] =
-    {0xFE, 0x80};
 
 static int
 network_prefix(int ae, int plen, unsigned int omitted,
@@ -135,7 +133,7 @@ parse_packet(const unsigned char *from, struct network *net,
     unsigned char router_id[8], v4_prefix[16], v6_prefix[16],
         v4_nh[16], v6_nh[16];
 
-    if(!in_prefix(from, ll_prefix, 64)) {
+    if(!linklocal(from)) {
         fprintf(stderr, "Received packet from non-local address %s.\n",
                 format_address(from));
         return;
@@ -1127,7 +1125,7 @@ send_ihu(struct neighbour *neigh, struct network *net)
            neigh->network->ifname,
            format_address(neigh->address));
 
-    ll = in_prefix(neigh->address, ll_prefix, 64);
+    ll = linklocal(neigh->address);
 
     if(unicast_neighbour != neigh) {
         start_message(net, MESSAGE_IHU, ll ? 14 : 22);

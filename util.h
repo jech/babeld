@@ -95,6 +95,7 @@ int parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r,
 int parse_eui64(const char *eui, unsigned char *eui_r);
 int wait_for_fd(int direction, int fd, int msecs);
 int martian_prefix(const unsigned char *prefix, int plen) ATTRIBUTE ((pure));
+int linklocal(const unsigned char *address) ATTRIBUTE ((pure));
 int v4mapped(const unsigned char *address) ATTRIBUTE ((pure));
 void v4tov6(unsigned char *dst, const unsigned char *src);
 int daemonise(void);
