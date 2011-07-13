@@ -818,7 +818,7 @@ schedule_neighbours_check(int msecs, int override)
 {
     struct timeval timeout;
 
-    timeval_plus_msec(&timeout, &now, roughly(msecs * 3 / 2));
+    timeval_add_msec(&timeout, &now, roughly(msecs * 3 / 2));
     if(override)
         check_neighbours_timeout = timeout;
     else

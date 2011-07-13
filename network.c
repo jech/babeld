@@ -147,7 +147,7 @@ update_jitter(struct network *net, int urgent)
 void
 delay_jitter(struct timeval *timeout, int msecs)
 {
-    timeval_plus_msec(timeout, &now, roughly(msecs));
+    timeval_add_msec(timeout, &now, roughly(msecs));
 }
 
 static int
