@@ -89,7 +89,7 @@ static int kernel_addr_changed = 0;
 
 struct timeval check_neighbours_timeout;
 
-static volatile sig_atomic_t exiting = 0, dumping = 0, changed = 0;
+static volatile sig_atomic_t exiting = 0, dumping = 0, reopening = 0;
 
 int local_server_socket = -1, local_socket = -1;
 int local_server_port = -1;
@@ -631,7 +631,7 @@ main(int argc, char **argv)
         }
 #endif
 
-        if(changed) {
+        if(reopening) {
             kernel_dump_time = now.tv_sec;
             check_neighbours_timeout = now;
             expiry_time = now.tv_sec;
@@ -640,7 +640,7 @@ main(int argc, char **argv)
                 perror("reopen_logfile");
                 break;
             }
-            changed = 0;
+            reopening = 0;
         }
 
         if(kernel_link_changed || kernel_addr_changed) {
@@ -864,9 +864,9 @@ sigdump(int signo)
 }
 
 static void
-sigchanged(int signo)
+sigreopening(int signo)
 {
-    changed = 1;
+    reopening = 1;
 }
 
 static void
@@ -906,7 +906,7 @@ init_signals(void)
     sigaction(SIGUSR1, &sa, NULL);
 
     sigemptyset(&ss);
-    sa.sa_handler = sigchanged;
+    sa.sa_handler = sigreopening;
     sa.sa_mask = ss;
     sa.sa_flags = 0;
     sigaction(SIGUSR2, &sa, NULL);
