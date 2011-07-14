@@ -790,33 +790,43 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     ipv4 = v4mapped(gate);
 
     if(operation == ROUTE_MODIFY) {
+        int added;
         if(newmetric == metric && memcmp(newgate, gate, 16) == 0 &&
            newifindex == ifindex)
             return 0;
         /* It is better to add the new route before removing the old
-           one, to avoid losing packets.  However, this only appears
-           to work if the metrics are different. */
-        if(newmetric != metric) {
-            rc = kernel_route(ROUTE_ADD, dest, plen,
-                              newgate, newifindex, newmetric,
-                              NULL, 0, 0);
-            if(rc < 0 && errno != EEXIST)
+           one, to avoid losing packets.  However, if the old and new
+           priorities are equal, this only works if the kernel supports
+           ECMP.  So we first try the "right" order, and fall back on
+           the "wrong" order if it fails with EEXIST. */
+        rc = kernel_route(ROUTE_ADD, dest, plen,
+                          newgate, newifindex, newmetric,
+                          NULL, 0, 0);
+        if(rc < 0) {
+            if(errno != EEXIST)
                 return rc;
-            rc = kernel_route(ROUTE_FLUSH, dest, plen,
-                              gate, ifindex, metric,
-                              NULL, 0, 0);
-            if(rc < 0 && (errno == ENOENT || errno == ESRCH))
-                rc = 1;
+            added = 0;
         } else {
-            rc = kernel_route(ROUTE_FLUSH, dest, plen,
-                              gate, ifindex, metric,
-                              NULL, 0, 0);
+            added = 1;
+        }
+
+        kernel_route(ROUTE_FLUSH, dest, plen,
+                     gate, ifindex, metric,
+                     NULL, 0, 0);
+
+        if(!added) {
             rc = kernel_route(ROUTE_ADD, dest, plen,
                               newgate, newifindex, newmetric,
                               NULL, 0, 0);
-            if(rc < 0 && errno == EEXIST)
-                rc = 1;
+            if(rc < 0) {
+                if(errno == EEXIST)
+                    rc = 1;
+                /* In principle, we should try to re-install the flushed
+                   route on failure to preserve.  However, this should
+                   hopefully not matter much in practice. */
+            }
         }
+
         return rc;
     }
 
