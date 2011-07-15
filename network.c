@@ -23,6 +23,7 @@ THE SOFTWARE.
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -60,14 +61,13 @@ add_network(char *ifname, struct network_conf *conf)
 {
     struct network *net;
 
-    if(conf) {
-        if(strcmp(ifname, conf->ifname) != 0)
-            return NULL;
-    }
+    assert(!conf || strcmp(ifname, conf->ifname) == 0);
 
     FOR_ALL_NETS(net) {
-        if(strcmp(net->ifname, ifname) == 0)
+        if(strcmp(net->ifname, ifname) == 0) {
+            assert(conf == NULL);
             return net;
+        }
     }
 
     net = malloc(sizeof(struct network));
