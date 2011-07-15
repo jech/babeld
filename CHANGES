@@ -1,3 +1,10 @@
+babeld 1.1.2 (unreleased):
+
+  * Changed the strategy used to tweak an installed route in a way that
+    should avoid packet loss (thanks to Dave Taht).
+  * Fixed the handling of duplicate interface definitions in the config
+    file (thanks to Matthieu Boutier).
+
 16 May 2011: babeld 1.1.1:
 
   * Fixed two bugs in the message parser that could cause IPv4 updates to
