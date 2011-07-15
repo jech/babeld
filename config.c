@@ -24,6 +24,7 @@ THE SOFTWARE.
 #include <string.h>
 #include <stdio.h>
 #include <sys/time.h>
+#include <assert.h>
 
 #ifdef __linux
 /* Defining it rather than including <linux/rtnetlink.h> because this
@@ -500,7 +501,22 @@ add_filter(struct filter *filter, struct filter **filters)
 static void
 merge_nconf(struct network_conf *dest, struct network_conf *src)
 {
-    return;
+    assert(strcmp(dest->ifname, src->ifname) == 0);
+
+#define MERGE(field)                            \
+    do {                                        \
+        if(src->field)                          \
+            dest->field = src->field;           \
+    } while(0)
+
+    MERGE(hello_interval);
+    MERGE(update_interval);
+    MERGE(cost);
+    MERGE(wired);
+    MERGE(split_horizon);
+    MERGE(lq);
+
+#undef MERGE
 }
 
 static void
