@@ -38,7 +38,7 @@ THE SOFTWARE.
 #include "neighbour.h"
 #include "message.h"
 #include "route.h"
-#include "config.h"
+#include "configuration.h"
 
 struct network *networks = NULL;
 

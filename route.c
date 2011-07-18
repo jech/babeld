@@ -37,7 +37,7 @@ THE SOFTWARE.
 #include "xroute.h"
 #include "message.h"
 #include "resend.h"
-#include "config.h"
+#include "configuration.h"
 #include "local.h"
 
 struct route *routes = NULL;
