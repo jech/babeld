@@ -328,8 +328,7 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
                     kdebugf("(ACK)\n");
                     return 0;
                 } else {
-                    errno = -err->error;
-                    perror("netlink_read");
+                    kdebugf("netlink_read: %s\n", strerror(-err->error));
                     errno = -err->error;
                     return -1;
                 }
