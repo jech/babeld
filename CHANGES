@@ -1,4 +1,4 @@
-babeld 1.1.2 (unreleased):
+27 July 2011: babeld 1.1.2:
 
   * Changed the strategy used to tweak an installed route in a way that
     should avoid packet loss (thanks to Dave Taht).
