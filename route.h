@@ -44,7 +44,7 @@ struct route {
 static inline int
 route_metric(const struct route *route)
 {
-    int m = route->refmetric + route->cost + route->add_metric;
+    int m = (int)route->refmetric + route->cost + route->add_metric;
     return MIN(m, INFINITY);
 }
 
