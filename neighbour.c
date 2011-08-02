@@ -105,7 +105,8 @@ find_neighbour(const unsigned char *address, struct network *net)
     return neigh;
 }
 
-/* Recompute a neighbour's rxcost.  Return true if anything changed. */
+/* Recompute a neighbour's rxcost.  Return true if anything changed.
+   This does not call local_notify_neighbour, see update_neighbour_metric. */
 int
 update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
 {
@@ -190,8 +191,6 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
         send_unicast_request(neigh, NULL, 0);
         send_ihu(neigh, NULL);
     }
-    if(rc)
-        local_notify_neighbour(neigh, LOCAL_CHANGE);
     return rc;
 }
 
@@ -248,10 +247,8 @@ check_neighbours()
         rc = reset_txcost(neigh);
         changed = changed || rc;
 
-        if(changed) {
+        if(changed)
             update_neighbour_metric(neigh);
-            local_notify_neighbour(neigh, LOCAL_CHANGE);
-        }
 
         if(neigh->hello_interval > 0)
             msecs = MIN(msecs, neigh->hello_interval * 10);

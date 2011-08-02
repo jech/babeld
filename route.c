@@ -361,6 +361,8 @@ update_route_metric(struct route *route)
     }
 }
 
+/* Called whenever a neighbour's cost changes, to update the metric of
+   all routes through that neighbour.  Calls local_notify_neighbour. */
 void
 update_neighbour_metric(struct neighbour *neigh)
 {
@@ -372,6 +374,7 @@ update_neighbour_metric(struct neighbour *neigh)
             update_route_metric(&routes[i]);
         i++;
     }
+    local_notify_neighbour(neigh, LOCAL_CHANGE);
 }
 
 void
