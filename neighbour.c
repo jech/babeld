@@ -247,8 +247,7 @@ check_neighbours()
         rc = reset_txcost(neigh);
         changed = changed || rc;
 
-        if(changed)
-            update_neighbour_metric(neigh);
+        update_neighbour_metric(neigh, changed);
 
         if(neigh->hello_interval > 0)
             msecs = MIN(msecs, neigh->hello_interval * 10);

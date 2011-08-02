@@ -213,8 +213,7 @@ parse_packet(const unsigned char *from, struct network *net,
             net->activity_time = now.tv_sec;
             update_hello_interval(net);
             changed = update_neighbour(neigh, seqno, interval);
-            if(changed)
-                update_neighbour_metric(neigh);
+            update_neighbour_metric(neigh, changed);
             if(interval > 0)
                 schedule_neighbours_check(interval * 10, 0);
         } else if(type == MESSAGE_IHU) {
@@ -235,8 +234,7 @@ parse_packet(const unsigned char *from, struct network *net,
                 neigh->txcost = txcost;
                 neigh->ihu_time = now;
                 neigh->ihu_interval = interval;
-                if(changed)
-                    update_neighbour_metric(neigh);
+                update_neighbour_metric(neigh, changed);
                 if(interval > 0)
                     schedule_neighbours_check(interval * 10 * 3, 0);
             }
