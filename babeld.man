@@ -72,6 +72,11 @@ explicitly overridden in the configuration file.
 Do not perform split-horizon processing on wired interfaces.
 Split-horizon is not performed on wireless interfaces.
 .TP
+.B \-u
+Do not flush unfeasible (useless) routes.  This is useful in order to
+announce more information to a front-end (see
+.BR \-g ).
+.TP
 .B \-P
 Run in parasitic (passive) mode.  The daemon will only announce
 redistributed routes.
