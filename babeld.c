@@ -125,7 +125,7 @@ main(int argc, char **argv)
     protocol_port = 6697;
 
     while(1) {
-        opt = getopt(argc, argv, "m:p:h:H:i:k:A:PsS:d:g:lwt:T:c:C:DL:I:");
+        opt = getopt(argc, argv, "m:p:h:H:i:k:A:PsuS:d:g:lwt:T:c:C:DL:I:");
         if(opt < 0)
             break;
 
@@ -179,6 +179,9 @@ main(int argc, char **argv)
             break;
         case 's':
             split_horizon = 0;
+            break;
+        case 'u':
+            keep_unfeasible = 1;
             break;
         case 'S':
             state_file = optarg;
@@ -776,11 +779,11 @@ main(int argc, char **argv)
             "                "
             "[-h hello] [-H wired_hello] [-i idle_hello]\n"
             "                "
-            "[-k metric] [-A metric] [-s] [-P] [-l] [-w] [-d level] [-g port]\n"
+            "[-k metric] [-A metric] [-s] [-P] [-l] [-w] [-u] [-g port]\n"
             "                "
             "[-t table] [-T table] [-c file] [-C statement]\n"
             "                "
-            "[-D] [-L logfile] [-I pidfile]\n"
+            "[-d level] [-D] [-L logfile] [-I pidfile]\n"
             "                "
             "[id] interface...\n",
             argv[0]);
