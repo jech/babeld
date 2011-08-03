@@ -331,7 +331,6 @@ network_up(struct network *net, int up)
                 for(i = 0; i < rc; i++)
                     memcpy(net->ll[i], ll[i].prefix, 16);
                 net->numll = rc;
-                memcpy(net->ll, ll, rc * 16);
             }
         }
         set_timeout(&net->hello_timeout, net->hello_interval);
