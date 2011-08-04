@@ -31,7 +31,7 @@ THE SOFTWARE.
 #include "resend.h"
 #include "message.h"
 #include "network.h"
-#include "config.h"
+#include "configuration.h"
 
 struct timeval resend_time = {0, 0};
 struct resend *to_resend = NULL;

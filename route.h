@@ -52,6 +52,7 @@ extern struct route *routes;
 extern int numroutes, maxroutes;
 extern int kernel_metric, allow_duplicates;
 extern int diversity_kind, diversity_factor;
+extern int keep_unfeasible;
 
 struct route *find_route(const unsigned char *prefix, unsigned char plen,
                          struct neighbour *neigh, const unsigned char *nexthop);
@@ -73,7 +74,7 @@ struct route *find_best_route(const unsigned char *prefix, unsigned char plen,
                               int feasible, struct neighbour *exclude);
 struct route *install_best_route(const unsigned char prefix[16],
                                  unsigned char plen);
-void update_neighbour_metric(struct neighbour *neigh);
+void update_neighbour_metric(struct neighbour *neigh, int changed);
 void update_network_metric(struct network *net);
 void update_route_metric(struct route *route);
 struct route *update_route(const unsigned char *a,

@@ -1,4 +1,12 @@
-babeld 1.1.2 (unreleased):
+3 August 2011: babeld 1.1.3
+
+  * Implemented an option -u to keep unfeasible routes; this is useful
+    for giving more data to front-end interfaces.
+  * Fixed a number of minor bugs in the front-end interface.
+  * Fixed incorrect handling of interfaces with multiple link-local
+    addresses (thanks to Matthieu Boutier).
+
+27 July 2011: babeld 1.1.2:
 
   * Changed the strategy used to tweak an installed route in a way that
     should avoid packet loss (thanks to Dave Taht).
