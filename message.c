@@ -937,9 +937,6 @@ flushupdates(struct network *net)
         qsort(b, n, sizeof(struct buffered_update), compare_buffered_updates);
 
         for(i = 0; i < n; i++) {
-            unsigned short seqno;
-            unsigned short metric;
-
             /* The same update may be scheduled multiple times before it is
                sent out.  Since our buffer is now sorted, it is enough to
                compare with the previous update. */
@@ -964,6 +961,9 @@ flushupdates(struct network *net)
                 unsigned char channels[DIVERSITY_HOPS];
                 int chlen;
                 struct network *route_net = route->neigh->network;
+                int metric;
+                unsigned short seqno;
+
                 seqno = route->seqno;
                 metric = route_metric(route);
                 if(metric < INFINITY)
@@ -977,6 +977,7 @@ flushupdates(struct network *net)
                         (int)route->refmetric +
                         (diversity_factor * route->cost + 128) / 256 +
                         route->add_metric;
+                    metric = MIN(metric, INFINITY);
                     metric = MAX(metric, route->refmetric + 1);
                 }
                 if(route_net->channel == NET_CHANNEL_NONINTERFERING) {
