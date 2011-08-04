@@ -961,25 +961,23 @@ flushupdates(struct network *net)
                 unsigned char channels[DIVERSITY_HOPS];
                 int chlen;
                 struct network *route_net = route->neigh->network;
-                int metric;
+                unsigned short metric;
                 unsigned short seqno;
 
                 seqno = route->seqno;
-                metric = route_metric(route);
+                metric =
+                    route_interferes(route, net) ?
+                    route_metric(route) :
+                    route_metric_noninterfering(route);
+
                 if(metric < INFINITY)
                     satisfy_request(route->src->prefix, route->src->plen,
                                     seqno, route->src->id, net);
+
                 if((net->flags & NET_SPLIT_HORIZON) &&
                    route->neigh->network == net)
                     continue;
-                if(!route_interferes(route, net)) {
-                    metric =
-                        (int)route->refmetric +
-                        (diversity_factor * route->cost + 128) / 256 +
-                        route->add_metric;
-                    metric = MIN(metric, INFINITY);
-                    metric = MAX(metric, route->refmetric + 1);
-                }
+
                 if(route_net->channel == NET_CHANNEL_NONINTERFERING) {
                     memcpy(channels, route->channels, DIVERSITY_HOPS);
                 } else {

@@ -41,6 +41,12 @@ struct route {
     unsigned char channels[DIVERSITY_HOPS];
 };
 
+extern struct route *routes;
+extern int numroutes, maxroutes;
+extern int kernel_metric, allow_duplicates;
+extern int diversity_kind, diversity_factor;
+extern int keep_unfeasible;
+
 static inline int
 route_metric(const struct route *route)
 {
@@ -48,11 +54,16 @@ route_metric(const struct route *route)
     return MIN(m, INFINITY);
 }
 
-extern struct route *routes;
-extern int numroutes, maxroutes;
-extern int kernel_metric, allow_duplicates;
-extern int diversity_kind, diversity_factor;
-extern int keep_unfeasible;
+static inline int
+route_metric_noninterfering(const struct route *route)
+{
+    int m =
+        (int)route->refmetric +
+        (diversity_factor * route->cost + 128) / 256 +
+        route->add_metric;
+    m = MAX(m, route->refmetric + 1);
+    return MIN(m, INFINITY);
+}
 
 struct route *find_route(const unsigned char *prefix, unsigned char plen,
                          struct neighbour *neigh, const unsigned char *nexthop);
