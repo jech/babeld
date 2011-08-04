@@ -975,7 +975,7 @@ flushupdates(struct network *net)
                 if(!route_interferes(route, net)) {
                     metric =
                         (int)route->refmetric +
-                        (diversity_factor * route->cost / 128) / 256 +
+                        (diversity_factor * route->cost + 128) / 256 +
                         route->add_metric;
                     metric = MAX(metric, route->refmetric + 1);
                 }
