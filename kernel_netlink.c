@@ -769,17 +769,21 @@ freq_to_chan(struct iw_freq *freq)
 {
     int m = freq->m, e = freq->e;
 
-    /* Go figure. */
-    if(e == 0 && m > 0 && m < 1000)
+    /* If exponent is 0, assume the channel is encoded directly in m. */
+    if(e == 0 && m > 0 && m < 254)
         return m;
 
-    if(e == 1) {
-        /* m is in units of 10 Hz, so this encodes 1 MHz */
-        int mega = 100000;
+    if(e <= 6) {
+        int mega, step, c, i;
+
+        /* This encodes 1 MHz */
+        mega = 1000000;
+        for(i = 0; i < e; i++)
+            mega /= 10;
 
         /* Channels 1 through 13 are 5 MHz apart, with channel 1 at 2412. */
-        int step = 5 * mega;
-        int c = 1 + (m - 2412 * mega + step / 2) / step;
+        step = 5 * mega;
+        c = 1 + (m - 2412 * mega + step / 2) / step;
         if(c >= 1 && c <= 13)
             return c;
 
