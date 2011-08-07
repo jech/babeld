@@ -122,7 +122,8 @@ network_prefix(int ae, int plen, unsigned int omitted,
 }
 
 static void
-parse_route_attributes(const unsigned char *a, int alen, unsigned char *channels)
+parse_route_attributes(const unsigned char *a, int alen,
+                       unsigned char *channels)
 {
     int type, len, i = 0;
 
@@ -144,9 +145,21 @@ parse_route_attributes(const unsigned char *a, int alen, unsigned char *channels
         }
 
         if(type == 1) {
+            /* Nothing. */
         } else if(type == 2) {
+            if(len > DIVERSITY_HOPS) {
+                fprintf(stderr,
+                        "Received overlong channel information (%d > %d).\n",
+                        len, DIVERSITY_HOPS);
+                len = DIVERSITY_HOPS;
+            }
+            if(memchr(a + i + 2, 0, len) != NULL) {
+                /* 0 is reserved. */
+                fprintf(stderr, "Channel information contains 0!");
+                return;
+            }
             memset(channels, 0, DIVERSITY_HOPS);
-            memcpy(channels, a + i + 2, MIN(len, DIVERSITY_HOPS));
+            memcpy(channels, a + i + 2, len);
         } else {
             fprintf(stderr, "Received unknown route attribute %d.\n", type);
         }
