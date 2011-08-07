@@ -52,7 +52,7 @@ struct network_conf {
 
 /* Only INTERFERING can appear on the wire. */
 #define NET_CHANNEL_UNKNOWN 0
-#define NET_CHANNEL_INTERFERING 254
+#define NET_CHANNEL_INTERFERING 255
 #define NET_CHANNEL_NONINTERFERING -2
 
 struct network {
