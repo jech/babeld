@@ -961,7 +961,7 @@ dump_tables(FILE *out)
             for(k = 0; k < DIVERSITY_HOPS; k++) {
                 if(routes[i].channels[k] == 0)
                     break;
-                if(k > 1)
+                if(k > 0)
                     channels[j++] = ',';
                 snprintf(channels + j, 100 - j, "%d", routes[i].channels[k]);
                 j = strlen(channels);
