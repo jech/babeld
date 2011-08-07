@@ -125,7 +125,7 @@ main(int argc, char **argv)
     protocol_port = 6697;
 
     while(1) {
-        opt = getopt(argc, argv, "m:p:h:H:i:k:A:PsuS:d:g:lwt:T:c:C:DL:I:");
+        opt = getopt(argc, argv, "m:p:h:H:i:k:A:PsuS:d:g:lwz:t:T:c:C:DL:I:");
         if(opt < 0)
             break;
 
@@ -201,6 +201,18 @@ main(int argc, char **argv)
             break;
         case 'w':
             all_wireless = 1;
+            break;
+        case 'z':
+            {
+                char *comma = strchr(optarg, ',');
+                diversity_kind = atoi(optarg);
+                if(comma == NULL)
+                    diversity_factor = 128;
+                else
+                    diversity_factor = atoi(comma + 1);
+                if(diversity_factor <= 0 || diversity_factor > 256)
+                    goto usage;
+            }
             break;
         case 't':
             export_table = atoi(optarg);
@@ -777,7 +789,7 @@ main(int argc, char **argv)
             "Syntax: %s "
             "[-m multicast_address] [-p port] [-S state-file]\n"
             "                "
-            "[-h hello] [-H wired_hello] [-i idle_hello]\n"
+            "[-h hello] [-H wired_hello] [-i idle_hello] [-z kind[,factor]]\n"
             "                "
             "[-k metric] [-A metric] [-s] [-P] [-l] [-w] [-u] [-g port]\n"
             "                "
@@ -922,12 +934,13 @@ dump_tables(FILE *out)
     fprintf(out, "My id %s seqno %d\n", format_eui64(myid), myseqno);
 
     FOR_ALL_NEIGHBOURS(neigh) {
-        fprintf(out, "Neighbour %s dev %s reach %04x rxcost %d txcost %d%s.\n",
+        fprintf(out, "Neighbour %s dev %s reach %04x rxcost %d txcost %d chan %d%s.\n",
                 format_address(neigh->address),
                 neigh->network->ifname,
                 neigh->reach,
                 neighbour_rxcost(neigh),
                 neigh->txcost,
+                neigh->network->channel,
                 net_up(neigh->network) ? "" : " (down)");
     }
     for(i = 0; i < numxroutes; i++) {
@@ -939,12 +952,33 @@ dump_tables(FILE *out)
         const unsigned char *nexthop =
             memcmp(routes[i].nexthop, routes[i].neigh->address, 16) == 0 ?
             NULL : routes[i].nexthop;
-        fprintf(out, "%s metric %d refmetric %d id %s seqno %d age %d "
+        char channels[100];
+        if(routes[i].channels[0] == 0)
+            channels[0] = '\0';
+        else {
+            int k, j = 0;
+            snprintf(channels, 100, " chan (");
+            j = strlen(channels);
+            for(k = 0; k < DIVERSITY_HOPS; k++) {
+                if(routes[i].channels[k] == 0)
+                    break;
+                if(k > 0)
+                    channels[j++] = ',';
+                snprintf(channels + j, 100 - j, "%d", routes[i].channels[k]);
+                j = strlen(channels);
+            }
+            snprintf(channels + j, 100 - j, ")");
+            if(k == 0)
+                channels[0] = '\0';
+        }
+
+        fprintf(out, "%s metric %d refmetric %d id %s seqno %d%s age %d "
                 "via %s neigh %s%s%s%s\n",
                 format_prefix(routes[i].src->prefix, routes[i].src->plen),
                 route_metric(&routes[i]), routes[i].refmetric,
                 format_eui64(routes[i].src->id),
                 (int)routes[i].seqno,
+                channels,
                 (int)(now.tv_sec - routes[i].time),
                 routes[i].neigh->network->ifname,
                 format_address(routes[i].neigh->address),

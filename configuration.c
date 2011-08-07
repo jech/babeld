@@ -429,6 +429,12 @@ parse_nconf(gnc_t gnc, void *closure)
             if(c < -1)
                 goto error;
             nconf->wired = v;
+        } else if(strcmp(token, "faraway") == 0) {
+            int v;
+            c = getbool(c, &v, gnc, closure);
+            if(c < -1)
+                goto error;
+            nconf->faraway = v;
         } else if(strcmp(token, "link-quality") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
@@ -441,6 +447,28 @@ parse_nconf(gnc_t gnc, void *closure)
             if(c < -1)
                 goto error;
             nconf->split_horizon = v;
+        } else if(strcmp(token, "channel") == 0) {
+            char *t, *end;
+
+            c = getword(c, &t, gnc, closure);
+            if(c < -1)
+                goto error;
+
+            if(strcmp(t, "noninterfering") == 0)
+                nconf->channel = NET_CHANNEL_NONINTERFERING;
+            else if(strcmp(t, "interfering") == 0)
+                nconf->channel = NET_CHANNEL_INTERFERING;
+            else {
+                nconf->channel = strtol(t, &end, 0);
+                if(*end != '\0')
+                    goto error;
+            }
+
+            free(t);
+
+            if((nconf->channel < 1 || nconf->channel > 254) &&
+               nconf->channel != NET_CHANNEL_NONINTERFERING)
+                goto error;
         } else {
             goto error;
         }

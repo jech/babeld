@@ -23,6 +23,7 @@ THE SOFTWARE.
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <assert.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
@@ -184,6 +185,32 @@ check_network_ipv4(struct network *net)
 }
 
 int
+check_network_channel(struct network *net)
+{
+    int channel = NET_CONF(net, channel);
+
+    if(channel == NET_CHANNEL_UNKNOWN) {
+        if((net->flags & NET_WIRED)) {
+            channel = NET_CHANNEL_NONINTERFERING;
+        } else {
+            channel = kernel_interface_channel(net->ifname, net->ifindex);
+            if(channel < 0)
+                fprintf(stderr,
+                        "Couldn't determine channel of interface %s: %s.\n",
+                       net->ifname, strerror(errno));
+            if(channel <= 0)
+                channel = NET_CHANNEL_INTERFERING;
+        }
+    }
+
+    if(net->channel != channel) {
+        net->channel = channel;
+        return 1;
+    }
+    return 0;
+}
+
+int
 network_up(struct network *net, int up)
 {
     int mtu, rc, wired;
@@ -292,6 +319,9 @@ network_up(struct network *net, int up)
                 net->flags |= NET_LQ;
         }
 
+        if(NET_CONF(net, faraway) == CONFIG_YES)
+            net->flags |= NET_FARAWAY;
+
         net->activity_time = now.tv_sec;
         update_hello_interval(net);
         /* Since the interface was marked as active above, the
@@ -364,13 +394,15 @@ network_up(struct network *net, int up)
         net->numll = 0;
     }
 
+    check_network_channel(net);
     update_network_metric(net);
     rc = check_network_ipv4(net);
 
-    debugf("Upped network %s (%s, cost=%d%s).\n",
+    debugf("Upped network %s (%s, cost=%d, channel=%d%s).\n",
            net->ifname,
            (net->flags & NET_WIRED) ? "wired" : "wireless",
            net->cost,
+           net->channel,
            net->ipv4 ? ", IPv4" : "");
 
     if(up && rc > 0)
@@ -419,6 +451,7 @@ check_networks(void)
             network_up(net, rc > 0);
         }
 
+        check_network_channel(net);
         rc = check_network_ipv4(net);
         if(rc > 0) {
             send_request(net, NULL, 0);

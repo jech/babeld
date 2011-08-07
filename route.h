@@ -20,28 +20,50 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#define DIVERSITY_NONE 0
+#define DIVERSITY_INTERFACE_1 1
+#define DIVERSITY_CHANNEL_1 2
+#define DIVERSITY_CHANNEL 3
+
+#define DIVERSITY_HOPS 8
+
 struct route {
     struct source *src;
-    unsigned short metric;
     unsigned short refmetric;
+    unsigned short cost;
+    unsigned short add_metric;
     unsigned short seqno;
     struct neighbour *neigh;
     unsigned char nexthop[16];
     time_t time;
     unsigned short hold_time;    /* in seconds */
     short installed;
+    unsigned char channels[DIVERSITY_HOPS];
 };
-
-static inline int
-route_metric(const struct route *route)
-{
-    return route->metric;
-}
 
 extern struct route *routes;
 extern int numroutes, maxroutes;
 extern int kernel_metric, allow_duplicates;
+extern int diversity_kind, diversity_factor;
 extern int keep_unfeasible;
+
+static inline int
+route_metric(const struct route *route)
+{
+    int m = (int)route->refmetric + route->cost + route->add_metric;
+    return MIN(m, INFINITY);
+}
+
+static inline int
+route_metric_noninterfering(const struct route *route)
+{
+    int m =
+        (int)route->refmetric +
+        (diversity_factor * route->cost + 128) / 256 +
+        route->add_metric;
+    m = MAX(m, route->refmetric + 1);
+    return MIN(m, INFINITY);
+}
 
 struct route *find_route(const unsigned char *prefix, unsigned char plen,
                          struct neighbour *neigh, const unsigned char *nexthop);
@@ -56,6 +78,7 @@ void switch_route(struct route *old, struct route *new);
 int route_feasible(struct route *route);
 int route_old(struct route *route);
 int route_expired(struct route *route);
+int route_interferes(struct route *route, struct network *net);
 int update_feasible(struct source *src,
                     unsigned short seqno, unsigned short refmetric);
 struct route *find_best_route(const unsigned char *prefix, unsigned char plen,
@@ -69,7 +92,8 @@ struct route *update_route(const unsigned char *a,
                            const unsigned char *p, unsigned char plen,
                            unsigned short seqno, unsigned short refmetric,
                            unsigned short interval, struct neighbour *neigh,
-                           const unsigned char *nexthop);
+                           const unsigned char *nexthop,
+                           const unsigned char *channels, int channels_len);
 void retract_neighbour_routes(struct neighbour *neigh);
 void send_unfeasible_request(struct neighbour *neigh, int force,
                              unsigned short seqno, unsigned short metric,

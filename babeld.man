@@ -51,6 +51,24 @@ at which scheduled hello packets are sent on idle interfaces.  This
 functionality is experimental, don't use it unless you know what you are
 doing.
 .TP
+.BI \-z " kind" " \fR[\fB," factor "\fR]"
+Enable diversity-sensitive routing.  The value
+.B kind
+defines the diversity algorithm used, and can be one of
+.B 0
+(no diversity),
+.B 1
+(per-interface diversity with no memory),
+.B 2
+(per-channel diversity with no memory),
+or
+.B 3
+(per-channel diversity with memory).
+The value
+.B factor
+specifies by how much the cost of non-interfering routes is multiplied,
+in units of 1/256; the default is 128 (i.e. division by 2).
+.TP
 .BI \-k " priority"
 Specify the priority value used when installing routes into the kernel.
 The default is 0.
@@ -166,6 +184,23 @@ ideal conditions (no packet loss); how this relates to the actual cost used
 for computing metrics of routes going through this interface depends on
 whether link quality estimation is being done.  The default is 96 for wired
 interfaces, and 256 for wireless ones.
+.TP
+.BI channel " channel"
+Sets the channel for this interface.  The value
+.I channel
+can be either an integer, or one of the strings
+.B interfering
+or
+.BR noninterfering .
+The default is to autodetect the channel number for wireless interfaces,
+and
+.B noninterfering
+for wired interfaces.
+.TP
+.BR faraway " {" true | false }
+This specifies whether the network is "far away", in the sense that
+networks behind it don't interfere with networks in front of it.  By
+default, networks are not far away.
 .TP
 .BI hello\-interval " interval"
 This defines the interval between hello packets sent on this interface.

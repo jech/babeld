@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -58,6 +59,8 @@ struct timeval unicast_flush_timeout = {0, 0};
 static const unsigned char v4prefix[16] =
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0 };
 
+/* Parse a network prefix, encoded in the somewhat baroque compressed
+   representation used by Babel.  Return the number of bytes parsed. */
 static int
 network_prefix(int ae, int plen, unsigned int omitted,
                const unsigned char *p, const unsigned char *dp,
@@ -65,6 +68,7 @@ network_prefix(int ae, int plen, unsigned int omitted,
 {
     unsigned pb;
     unsigned char prefix[16];
+    int ret = -1;
 
     if(plen >= 0)
         pb = (plen + 7) / 8;
@@ -79,7 +83,9 @@ network_prefix(int ae, int plen, unsigned int omitted,
     memset(prefix, 0, 16);
 
     switch(ae) {
-    case 0: break;
+    case 0:
+        ret = 0;
+        break;
     case 1:
         if(omitted > 4 || pb > 4 || (pb > omitted && len < pb - omitted))
             return -1;
@@ -89,6 +95,7 @@ network_prefix(int ae, int plen, unsigned int omitted,
             memcpy(prefix, dp, 12 + omitted);
         }
         if(pb > omitted) memcpy(prefix + 12 + omitted, p, pb - omitted);
+        ret = pb - omitted;
         break;
     case 2:
         if(omitted > 16 || (pb > omitted && len < pb - omitted)) return -1;
@@ -97,19 +104,68 @@ network_prefix(int ae, int plen, unsigned int omitted,
             memcpy(prefix, dp, omitted);
         }
         if(pb > omitted) memcpy(prefix + omitted, p, pb - omitted);
+        ret = pb - omitted;
         break;
     case 3:
         if(pb > 8 && len < pb - 8) return -1;
         prefix[0] = 0xfe;
         prefix[1] = 0x80;
         if(pb > 8) memcpy(prefix + 8, p, pb - 8);
+        ret = pb - 8;
         break;
     default:
         return -1;
     }
 
     mask_prefix(p_r, prefix, plen < 0 ? 128 : ae == 1 ? plen + 96 : plen);
-    return 1;
+    return ret;
+}
+
+static void
+parse_route_attributes(const unsigned char *a, int alen,
+                       unsigned char *channels)
+{
+    int type, len, i = 0;
+
+    while(i < alen) {
+        type = a[i];
+        if(type == 0) {
+            i++;
+            continue;
+        }
+
+        if(i + 1 > alen) {
+            fprintf(stderr, "Received truncated attributes.\n");
+            return;
+        }
+        len = a[i + 1];
+        if(i + len > alen) {
+            fprintf(stderr, "Received truncated attributes.\n");
+            return;
+        }
+
+        if(type == 1) {
+            /* Nothing. */
+        } else if(type == 2) {
+            if(len > DIVERSITY_HOPS) {
+                fprintf(stderr,
+                        "Received overlong channel information (%d > %d).\n",
+                        len, DIVERSITY_HOPS);
+                len = DIVERSITY_HOPS;
+            }
+            if(memchr(a + i + 2, 0, len) != NULL) {
+                /* 0 is reserved. */
+                fprintf(stderr, "Channel information contains 0!");
+                return;
+            }
+            memset(channels, 0, DIVERSITY_HOPS);
+            memcpy(channels, a + i + 2, len);
+        } else {
+            fprintf(stderr, "Received unknown route attribute %d.\n", type);
+        }
+
+        i += len + 2;
+    }
 }
 
 static int
@@ -117,6 +173,12 @@ network_address(int ae, const unsigned char *a, unsigned int len,
                 unsigned char *a_r)
 {
     return network_prefix(ae, -1, 0, a, NULL, len, a_r);
+}
+
+static int
+channels_len(unsigned char *channels)
+{
+    return strnlen((char*)channels, DIVERSITY_HOPS);
 }
 
 void
@@ -275,8 +337,9 @@ parse_packet(const unsigned char *from, struct network *net,
         } else if(type == MESSAGE_UPDATE) {
             unsigned char prefix[16], *nh;
             unsigned char plen;
+            unsigned char channels[DIVERSITY_HOPS];
             unsigned short interval, seqno, metric;
-            int rc;
+            int rc, parsed_len;
             if(len < 10) {
                 if(len < 2 || message[3] & 0x80)
                     have_v4_prefix = have_v6_prefix = 0;
@@ -298,6 +361,7 @@ parse_packet(const unsigned char *from, struct network *net,
                     have_v4_prefix = have_v6_prefix = 0;
                 goto fail;
             }
+            parsed_len = 10 + rc;
 
             plen = message[4] + (message[2] == 1 ? 96 : 0);
 
@@ -352,8 +416,27 @@ parse_packet(const unsigned char *from, struct network *net,
                     goto done;
             }
 
+            if((net->flags & NET_FARAWAY)) {
+                channels[0] = 0;
+            } else {
+                /* This will be overwritten by parse_route_attributes below. */
+                if(metric < 256) {
+                    /* Assume non-interfering (wired) link. */
+                    channels[0] = 0;
+                } else {
+                    /* Assume interfering. */
+                    channels[0] = NET_CHANNEL_INTERFERING;
+                    channels[1] = 0;
+                }
+
+                if(parsed_len < len)
+                    parse_route_attributes(message + 2 + parsed_len,
+                                           len - parsed_len, channels);
+            }
+
             update_route(router_id, prefix, plen, seqno, metric, interval,
-                         neigh, nh);
+                         neigh, nh,
+                         channels, channels_len(channels));
         } else if(type == MESSAGE_REQUEST) {
             unsigned char prefix[16], plen;
             int rc;
@@ -708,11 +791,18 @@ static void
 really_send_update(struct network *net,
                    const unsigned char *id,
                    const unsigned char *prefix, unsigned char plen,
-                   unsigned short seqno, unsigned short metric)
+                   unsigned short seqno, unsigned short metric,
+                   unsigned char *channels, int channels_len)
 {
     int add_metric, v4, real_plen, omit = 0;
     const unsigned char *real_prefix;
     unsigned short flags = 0;
+    int channels_size;
+
+    if(diversity_kind != DIVERSITY_CHANNEL)
+        channels_len = -1;
+
+    channels_size = channels_len >= 0 ? channels_len + 2 : 0;
 
     if(!net_up(net))
         return;
@@ -768,7 +858,8 @@ really_send_update(struct network *net,
         net->have_buffered_id = 1;
     }
 
-    start_message(net, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit);
+    start_message(net, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
+                  channels_size);
     accumulate_byte(net, v4 ? 1 : 2);
     accumulate_byte(net, flags);
     accumulate_byte(net, real_plen);
@@ -777,7 +868,14 @@ really_send_update(struct network *net,
     accumulate_short(net, seqno);
     accumulate_short(net, metric);
     accumulate_bytes(net, real_prefix + omit, (real_plen + 7) / 8 - omit);
-    end_message(net, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit);
+    /* Note that an empty channels TLV is different from no such TLV. */
+    if(channels_len >= 0) {
+        accumulate_byte(net, 2);
+        accumulate_byte(net, channels_len);
+        accumulate_bytes(net, channels, channels_len);
+    }
+    end_message(net, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
+                channels_size);
 
     if(flags & 0x80) {
         memcpy(net->buffered_prefix, prefix, 16);
@@ -863,9 +961,6 @@ flushupdates(struct network *net)
         qsort(b, n, sizeof(struct buffered_update), compare_buffered_updates);
 
         for(i = 0; i < n; i++) {
-            unsigned short seqno;
-            unsigned short metric;
-
             /* The same update may be scheduled multiple times before it is
                sent out.  Since our buffer is now sorted, it is enough to
                compare with the previous update. */
@@ -882,22 +977,50 @@ flushupdates(struct network *net)
             if(xroute && (!route || xroute->metric <= kernel_metric)) {
                 really_send_update(net, myid,
                                    xroute->prefix, xroute->plen,
-                                   myseqno, xroute->metric);
+                                   myseqno, xroute->metric,
+                                   NULL, 0);
                 last_prefix = xroute->prefix;
                 last_plen = xroute->plen;
             } else if(route) {
+                unsigned char channels[DIVERSITY_HOPS];
+                int chlen;
+                struct network *route_net = route->neigh->network;
+                unsigned short metric;
+                unsigned short seqno;
+
                 seqno = route->seqno;
-                metric = route_metric(route);
+                metric =
+                    route_interferes(route, net) ?
+                    route_metric(route) :
+                    route_metric_noninterfering(route);
+
                 if(metric < INFINITY)
                     satisfy_request(route->src->prefix, route->src->plen,
                                     seqno, route->src->id, net);
+
                 if((net->flags & NET_SPLIT_HORIZON) &&
                    route->neigh->network == net)
                     continue;
+
+                if(route_net->channel == NET_CHANNEL_NONINTERFERING) {
+                    memcpy(channels, route->channels, DIVERSITY_HOPS);
+                } else {
+                    if(route_net->channel == NET_CHANNEL_UNKNOWN)
+                        channels[0] = NET_CHANNEL_INTERFERING;
+                    else {
+                        assert(route_net->channel > 0 &&
+                               route_net->channel <= 254);
+                        channels[0] = route_net->channel;
+                    }
+                    memcpy(channels + 1, route->channels, DIVERSITY_HOPS - 1);
+                }
+
+                chlen = channels_len(channels);
                 really_send_update(net, route->src->id,
                                    route->src->prefix,
                                    route->src->plen,
-                                   seqno, metric);
+                                   seqno, metric,
+                                   channels, chlen);
                 update_source(route->src, seqno, metric);
                 last_prefix = route->src->prefix;
                 last_plen = route->src->plen;
@@ -905,7 +1028,7 @@ flushupdates(struct network *net)
             /* There's no route for this prefix.  This can happen shortly
                after an xroute has been retracted, so send a retraction. */
                 really_send_update(net, myid, b[i].prefix, b[i].plen,
-                                   myseqno, INFINITY);
+                                   myseqno, INFINITY, NULL, -1);
             }
         }
         schedule_flush_now(net);

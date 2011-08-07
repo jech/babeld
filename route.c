@@ -44,6 +44,8 @@ struct route *routes = NULL;
 int numroutes = 0, maxroutes = 0;
 int kernel_metric = 0;
 int allow_duplicates = -1;
+int diversity_kind = DIVERSITY_NONE;
+int diversity_factor = 256;     /* in units of 1/256 */
 int keep_unfeasible = 0;
 
 struct route *
@@ -237,12 +239,11 @@ switch_routes(struct route *old, struct route *new)
 }
 
 static void
-change_route_metric(struct route *route, unsigned newmetric)
+change_route_metric(struct route *route,
+                    unsigned refmetric, unsigned cost, unsigned add)
 {
     int old, new;
-
-    if(route_metric(route) == newmetric)
-        return;
+    int newmetric = MIN(refmetric + cost + add, INFINITY);
 
     old = metric_to_kernel(route_metric(route));
     new = metric_to_kernel(newmetric);
@@ -260,15 +261,16 @@ change_route_metric(struct route *route, unsigned newmetric)
         }
     }
 
-    route->metric = newmetric;
+    route->refmetric = refmetric;
+    route->cost = cost;
+    route->add_metric = add;
     local_notify_route(route, LOCAL_CHANGE);
 }
 
 static void
 retract_route(struct route *route)
 {
-    route->refmetric = INFINITY;
-    change_route_metric(route, INFINITY);
+    change_route_metric(route, INFINITY, INFINITY, 0);
 }
 
 int
@@ -287,6 +289,46 @@ int
 route_expired(struct route *route)
 {
     return route->time < now.tv_sec - route->hold_time;
+}
+
+static int
+channels_interfere(int ch1, int ch2)
+{
+    if(ch1 == NET_CHANNEL_NONINTERFERING || ch2 == NET_CHANNEL_NONINTERFERING)
+        return 0;
+    if(ch1 == NET_CHANNEL_INTERFERING || ch2 == NET_CHANNEL_INTERFERING)
+        return 1;
+    return ch1 == ch2;
+}
+
+int
+route_interferes(struct route *route, struct network *net)
+{
+    switch(diversity_kind) {
+    case DIVERSITY_NONE:
+        return 1;
+    case DIVERSITY_INTERFACE_1:
+        return route->neigh->network == net;
+    case DIVERSITY_CHANNEL_1:
+    case DIVERSITY_CHANNEL:
+        if(route->neigh->network == net)
+            return 1;
+        if(channels_interfere(net->channel, route->neigh->network->channel))
+            return 1;
+        if(diversity_kind == DIVERSITY_CHANNEL) {
+            int i;
+            for(i = 0; i < DIVERSITY_HOPS; i++) {
+                if(route->channels[i] == 0)
+                    break;
+                if(channels_interfere(net->channel, route->channels[i]))
+                    return 1;
+            }
+        }
+        return 0;
+    default:
+        fprintf(stderr, "Unknown kind of diversity.\n");
+        return 1;
+    }
 }
 
 int
@@ -350,15 +392,10 @@ update_route_metric(struct route *route)
                                       route->src->prefix, route->src->plen,
                                       neigh->address,
                                       neigh->network->ifindex);
-        int newmetric = MIN(route->refmetric +
-                            add_metric +
-                            neighbour_cost(route->neigh),
-                            INFINITY);
-
-        if(newmetric != oldmetric) {
-            change_route_metric(route, newmetric);
+        change_route_metric(route, route->refmetric,
+                            neighbour_cost(route->neigh), add_metric);
+        if(route_metric(route) != oldmetric)
             route_changed(route, route->src, oldmetric);
-        }
     }
 }
 
@@ -400,7 +437,8 @@ struct route *
 update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
              unsigned short seqno, unsigned short refmetric,
              unsigned short interval,
-             struct neighbour *neigh, const unsigned char *nexthop)
+             struct neighbour *neigh, const unsigned char *nexthop,
+             const unsigned char *channels, int channels_len)
 {
     struct route *route;
     struct source *src;
@@ -429,7 +467,6 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
     feasible = update_feasible(src, seqno, refmetric);
     route = find_route(p, plen, neigh, nexthop);
     metric = MIN((int)refmetric + neighbour_cost(neigh) + add_metric, INFINITY);
-
     if(route) {
         struct source *oldsrc;
         unsigned short oldmetric;
@@ -459,8 +496,8 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         if((feasible || keep_unfeasible) && refmetric < INFINITY)
             route->time = now.tv_sec;
         route->seqno = seqno;
-        route->refmetric = refmetric;
-        change_route_metric(route, metric);
+        change_route_metric(route,
+                            refmetric, neighbour_cost(neigh), add_metric);
         route->hold_time = hold_time;
 
         route_changed(route, oldsrc, oldmetric);
@@ -494,13 +531,18 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         route = &routes[numroutes];
         route->src = src;
         route->refmetric = refmetric;
+        route->cost = neighbour_cost(neigh);
+        route->add_metric = add_metric;
         route->seqno = seqno;
-        route->metric = metric;
         route->neigh = neigh;
         memcpy(route->nexthop, nexthop, 16);
         route->time = now.tv_sec;
         route->hold_time = hold_time;
         route->installed = 0;
+        memset(&route->channels, 0, sizeof(route->channels));
+        if(channels_len > 0)
+            memcpy(&route->channels, channels,
+                   MIN(channels_len, DIVERSITY_HOPS));
         numroutes++;
         local_notify_route(route, LOCAL_ADD);
         consider_route(route);
