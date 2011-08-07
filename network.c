@@ -23,6 +23,7 @@ THE SOFTWARE.
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <assert.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
@@ -193,6 +194,10 @@ check_network_channel(struct network *net)
             channel = NET_CHANNEL_NONINTERFERING;
         } else {
             channel = kernel_interface_channel(net->ifname, net->ifindex);
+            if(channel < 0)
+                fprintf(stderr,
+                        "Couldn't determine channel of interface %s: %s.\n",
+                       net->ifname, strerror(errno));
             if(channel <= 0)
                 channel = NET_CHANNEL_INTERFERING;
         }
