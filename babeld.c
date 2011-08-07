@@ -934,12 +934,13 @@ dump_tables(FILE *out)
     fprintf(out, "My id %s seqno %d\n", format_eui64(myid), myseqno);
 
     FOR_ALL_NEIGHBOURS(neigh) {
-        fprintf(out, "Neighbour %s dev %s reach %04x rxcost %d txcost %d%s.\n",
+        fprintf(out, "Neighbour %s dev %s reach %04x rxcost %d txcost %d chan %d%s.\n",
                 format_address(neigh->address),
                 neigh->network->ifname,
                 neigh->reach,
                 neighbour_rxcost(neigh),
                 neigh->txcost,
+                neigh->network->channel,
                 net_up(neigh->network) ? "" : " (down)");
     }
     for(i = 0; i < numxroutes; i++) {
