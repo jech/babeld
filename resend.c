@@ -251,6 +251,7 @@ expire_resend()
             }
             recompute = 1;
         } else {
+            previous = current;
             current = current->next;
         }
     }
