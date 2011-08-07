@@ -59,6 +59,8 @@ struct timeval unicast_flush_timeout = {0, 0};
 static const unsigned char v4prefix[16] =
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0 };
 
+/* Parse a network prefix, encoded in the somewhat baroque compressed
+   representation used by Babel.  Return the number of bytes parsed. */
 static int
 network_prefix(int ae, int plen, unsigned int omitted,
                const unsigned char *p, const unsigned char *dp,
@@ -66,6 +68,7 @@ network_prefix(int ae, int plen, unsigned int omitted,
 {
     unsigned pb;
     unsigned char prefix[16];
+    int ret = -1;
 
     if(plen >= 0)
         pb = (plen + 7) / 8;
@@ -80,7 +83,9 @@ network_prefix(int ae, int plen, unsigned int omitted,
     memset(prefix, 0, 16);
 
     switch(ae) {
-    case 0: break;
+    case 0:
+        ret = 0;
+        break;
     case 1:
         if(omitted > 4 || pb > 4 || (pb > omitted && len < pb - omitted))
             return -1;
@@ -90,6 +95,7 @@ network_prefix(int ae, int plen, unsigned int omitted,
             memcpy(prefix, dp, 12 + omitted);
         }
         if(pb > omitted) memcpy(prefix + 12 + omitted, p, pb - omitted);
+        ret = pb - omitted;
         break;
     case 2:
         if(omitted > 16 || (pb > omitted && len < pb - omitted)) return -1;
@@ -98,19 +104,21 @@ network_prefix(int ae, int plen, unsigned int omitted,
             memcpy(prefix, dp, omitted);
         }
         if(pb > omitted) memcpy(prefix + omitted, p, pb - omitted);
+        ret = pb - omitted;
         break;
     case 3:
         if(pb > 8 && len < pb - 8) return -1;
         prefix[0] = 0xfe;
         prefix[1] = 0x80;
         if(pb > 8) memcpy(prefix + 8, p, pb - 8);
+        ret = pb - 8;
         break;
     default:
         return -1;
     }
 
     mask_prefix(p_r, prefix, plen < 0 ? 128 : ae == 1 ? plen + 96 : plen);
-    return 1;
+    return ret;
 }
 
 static void
@@ -318,7 +326,7 @@ parse_packet(const unsigned char *from, struct network *net,
             unsigned char plen;
             unsigned char channels[DIVERSITY_HOPS];
             unsigned short interval, seqno, metric;
-            int rc;
+            int rc, parsed_len;
             if(len < 10) {
                 if(len < 2 || message[3] & 0x80)
                     have_v4_prefix = have_v6_prefix = 0;
@@ -340,6 +348,7 @@ parse_packet(const unsigned char *from, struct network *net,
                     have_v4_prefix = have_v6_prefix = 0;
                 goto fail;
             }
+            parsed_len = 10 + rc;
 
             plen = message[4] + (message[2] == 1 ? 96 : 0);
 
@@ -397,17 +406,19 @@ parse_packet(const unsigned char *from, struct network *net,
             if((net->flags & NET_FARAWAY)) {
                 channels[0] = 0;
             } else {
-                int l = 10 + (message[4] + 7) / 8 - message[5];
-                /* If the peer doesn't send diversity information,
-                   assume that routes with a small metric are non-interfering. */
+                /* This will be overwritten by parse_route_attributes below. */
                 if(metric < 256) {
+                    /* Assume non-interfering (wired) link. */
                     channels[0] = 0;
                 } else {
+                    /* Assume interfering. */
                     channels[0] = NET_CHANNEL_INTERFERING;
                     channels[1] = 0;
                 }
-                if(l < len)
-                    parse_route_attributes(message + 2 + l, len - l, channels);
+
+                if(parsed_len < len)
+                    parse_route_attributes(message + 2 + parsed_len,
+                                           len - parsed_len, channels);
             }
 
             update_route(router_id, prefix, plen, seqno, metric, interval,
