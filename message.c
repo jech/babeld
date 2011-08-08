@@ -20,7 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#define _GNU_SOURCE
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -178,7 +177,8 @@ network_address(int ae, const unsigned char *a, unsigned int len,
 static int
 channels_len(unsigned char *channels)
 {
-    return strnlen((char*)channels, DIVERSITY_HOPS);
+    unsigned char *p = memchr(channels, 0, DIVERSITY_HOPS);
+    return p ? (p - channels) : DIVERSITY_HOPS;
 }
 
 void
