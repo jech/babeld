@@ -122,7 +122,7 @@ main(int argc, char **argv)
     srandom(seed);
 
     parse_address("ff02:0:0:0:0:0:1:6", protocol_group, NULL);
-    protocol_port = 6697;
+    protocol_port = 6696;
 
     while(1) {
         opt = getopt(argc, argv, "m:p:h:H:i:k:A:PsuS:d:g:lwt:T:c:C:DL:I:");
