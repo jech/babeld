@@ -24,7 +24,7 @@ The default is
 .TP
 .BI \-p " port"
 Specify the UDP port number to be used by the protocol.  The default is
-.BR 6697 .
+.BR 6696 .
 .TP
 .BI \-S " state-file"
 Set the name of the file used for preserving long-term information

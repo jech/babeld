@@ -4,6 +4,10 @@ babeld 1.2.0 (unreleased):
     "-z" flag in the manual page.
   * Fixed a memory leak when expiring resent messages.
 
+27 August 2011: babeld 1.1.4
+
+  * Change the default port number to 6696, as allocated by IANA.
+
 3 August 2011: babeld 1.1.3
 
   * Implemented an option -u to keep unfeasible routes; this is useful
