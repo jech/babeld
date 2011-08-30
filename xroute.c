@@ -169,10 +169,8 @@ check_xroutes(int send_updates)
                    memcmp(xroutes[i].prefix, routes[j].prefix, 16) == 0 &&
                    xroutes[i].ifindex == routes[j].ifindex &&
                    xroutes[i].proto == routes[j].proto) {
-                    if(metric < INFINITY) {
-                        export = 1;
-                        break;
-                    }
+                    export = 1;
+                    break;
                 }
             }
         }
@@ -206,7 +204,7 @@ check_xroutes(int send_updates)
         if(metric < INFINITY) {
             rc = add_xroute(routes[i].prefix, routes[i].plen,
                             metric, routes[i].ifindex, routes[i].proto);
-            if(rc) {
+            if(rc > 0) {
                 struct route *route;
                 route = find_installed_route(routes[i].prefix, routes[i].plen);
                 if(route) {
