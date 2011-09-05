@@ -119,7 +119,7 @@ if_eui64(char *ifname, int ifindex, unsigned char *eui)
             errno = ENOENT;
             return -1;
         }
-        memcpy(eui, mac, 64);
+        memcpy(eui, mac, 8);
         eui[0] ^= 2;
         return 1;
     }
