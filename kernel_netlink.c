@@ -49,7 +49,7 @@ THE SOFTWARE.
 #include "babeld.h"
 #include "kernel.h"
 #include "util.h"
-#include "network.h"
+#include "interface.h"
 
 int export_table = -1, import_table = -1;
 

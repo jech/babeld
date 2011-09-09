@@ -34,7 +34,7 @@ THE SOFTWARE.
 
 #include "babeld.h"
 #include "util.h"
-#include "network.h"
+#include "interface.h"
 #include "configuration.h"
 
 struct filter *input_filters = NULL;

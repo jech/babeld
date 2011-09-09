@@ -35,7 +35,7 @@ THE SOFTWARE.
 #include "babeld.h"
 #include "util.h"
 #include "kernel.h"
-#include "network.h"
+#include "interface.h"
 #include "neighbour.h"
 #include "message.h"
 #include "route.h"

@@ -28,7 +28,7 @@ THE SOFTWARE.
 #include "babeld.h"
 #include "util.h"
 #include "source.h"
-#include "network.h"
+#include "interface.h"
 #include "route.h"
 
 struct source *srcs = NULL;

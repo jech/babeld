@@ -30,7 +30,7 @@ THE SOFTWARE.
 #include "neighbour.h"
 #include "resend.h"
 #include "message.h"
-#include "network.h"
+#include "interface.h"
 #include "configuration.h"
 
 struct timeval resend_time = {0, 0};

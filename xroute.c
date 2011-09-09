@@ -36,7 +36,7 @@ THE SOFTWARE.
 #include "xroute.h"
 #include "util.h"
 #include "configuration.h"
-#include "network.h"
+#include "interface.h"
 #include "local.h"
 
 struct xroute *xroutes;

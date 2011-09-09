@@ -27,7 +27,7 @@ THE SOFTWARE.
 #include <errno.h>
 
 #include "babeld.h"
-#include "network.h"
+#include "interface.h"
 #include "source.h"
 #include "neighbour.h"
 #include "xroute.h"
