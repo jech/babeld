@@ -1,8 +1,10 @@
-babeld 1.2.0 (unreleased):
+9 September 2011: babeld 1.2.0
 
   * Merged the interference-aware branch ("babelz").  Please see the
     "-z" flag in the manual page.
   * Fixed a memory leak when expiring resent messages.
+  * Fixed a buffer overflow when parsing MAC addresses (Matthieu Boutier).
+  * Implemented MAC address parsing for BSD (Matthieu Boutier).
 
 27 August 2011: babeld 1.1.4
 
