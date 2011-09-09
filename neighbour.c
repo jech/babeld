@@ -39,12 +39,12 @@ THE SOFTWARE.
 struct neighbour *neighs = NULL;
 
 static struct neighbour *
-find_neighbour_nocreate(const unsigned char *address, struct network *net)
+find_neighbour_nocreate(const unsigned char *address, struct interface *ifp)
 {
     struct neighbour *neigh;
     FOR_ALL_NEIGHBOURS(neigh) {
         if(memcmp(address, neigh->address, 16) == 0 &&
-           neigh->network == net)
+           neigh->ifp == ifp)
             return neigh;
     }
     return NULL;
@@ -71,17 +71,17 @@ flush_neighbour(struct neighbour *neigh)
 }
 
 struct neighbour *
-find_neighbour(const unsigned char *address, struct network *net)
+find_neighbour(const unsigned char *address, struct interface *ifp)
 {
     struct neighbour *neigh;
     const struct timeval zero = {0, 0};
 
-    neigh = find_neighbour_nocreate(address, net);
+    neigh = find_neighbour_nocreate(address, ifp);
     if(neigh)
         return neigh;
 
     debugf("Creating neighbour %s on %s.\n",
-           format_address(address), net->ifname);
+           format_address(address), ifp->name);
 
     neigh = malloc(sizeof(struct neighbour));
     if(neigh == NULL) {
@@ -97,11 +97,11 @@ find_neighbour(const unsigned char *address, struct network *net)
     neigh->hello_time = zero;
     neigh->hello_interval = 0;
     neigh->ihu_interval = 0;
-    neigh->network = net;
+    neigh->ifp = ifp;
     neigh->next = neighs;
     neighs = neigh;
     local_notify_neighbour(neigh, LOCAL_ADD);
-    send_hello(net);
+    send_hello(ifp);
     return neigh;
 }
 
@@ -174,14 +174,14 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
     /* Make sure to give neighbours some feedback early after association */
     if((neigh->reach & 0xBF00) == 0x8000) {
         /* A new neighbour */
-        send_hello(neigh->network);
+        send_hello(neigh->ifp);
     } else {
         /* Don't send hellos, in order to avoid a positive feedback loop. */
         int a = (neigh->reach & 0xC000);
         int b = (neigh->reach & 0x3000);
         if((a == 0xC000 && b == 0) || (a == 0 && b == 0x3000)) {
             /* Reachability is either 1100 or 0011 */
-            send_self_update(neigh->network);
+            send_self_update(neigh->ifp);
         }
     }
 
@@ -269,25 +269,25 @@ neighbour_rxcost(struct neighbour *neigh)
 
     if((reach & 0xFFF0) == 0 || delay >= 180000) {
         return INFINITY;
-    } else if((neigh->network->flags & NET_LQ)) {
+    } else if((neigh->ifp->flags & IF_LQ)) {
         int sreach =
             ((reach & 0x8000) >> 2) +
             ((reach & 0x4000) >> 1) +
             (reach & 0x3FFF);
         /* 0 <= sreach <= 0x7FFF */
-        int cost = (0x8000 * neigh->network->cost) / (sreach + 1);
-        /* cost >= network->cost */
+        int cost = (0x8000 * neigh->ifp->cost) / (sreach + 1);
+        /* cost >= interface->cost */
         if(delay >= 40000)
             cost = (cost * (delay - 20000) + 10000) / 20000;
         return MIN(cost, INFINITY);
     } else {
         /* To lose one hello is a misfortune, to lose two is carelessness. */
         if((reach & 0xC000) == 0xC000)
-            return neigh->network->cost;
+            return neigh->ifp->cost;
         else if((reach & 0xC000) == 0)
             return INFINITY;
         else if((reach & 0x2000))
-            return neigh->network->cost;
+            return neigh->ifp->cost;
         else
             return INFINITY;
     }
@@ -298,7 +298,7 @@ neighbour_cost(struct neighbour *neigh)
 {
     unsigned a, b;
 
-    if(!net_up(neigh->network))
+    if(!if_up(neigh->ifp))
         return INFINITY;
 
     a = neighbour_txcost(neigh);
@@ -310,7 +310,7 @@ neighbour_cost(struct neighbour *neigh)
     if(b >= INFINITY)
         return INFINITY;
 
-    if(!(neigh->network->flags & NET_LQ) || (a <= 256 && b <= 256)) {
+    if(!(neigh->ifp->flags & IF_LQ) || (a <= 256 && b <= 256)) {
         return a;
     } else {
         /* a = 256/alpha, b = 256/beta, where alpha and beta are the expected

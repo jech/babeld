@@ -83,10 +83,10 @@ find_request(const unsigned char *prefix, unsigned char plen,
 int
 record_resend(int kind, const unsigned char *prefix, unsigned char plen,
               unsigned short seqno, const unsigned char *id,
-              struct network *network, int delay)
+              struct interface *ifp, int delay)
 {
     struct resend *resend;
-    unsigned int ifindex = network ? network->ifindex : 0;
+    unsigned int ifindex = ifp ? ifp->ifindex : 0;
 
     if((kind == RESEND_REQUEST &&
         input_filter(NULL, prefix, plen, NULL, ifindex) >= INFINITY) ||
@@ -114,8 +114,8 @@ record_resend(int kind, const unsigned char *prefix, unsigned char plen,
         else
             memset(resend->id, 0, 8);
         resend->seqno = seqno;
-        if(resend->network != network)
-            resend->network = NULL;
+        if(resend->ifp != ifp)
+            resend->ifp = NULL;
     } else {
         resend = malloc(sizeof(struct resend));
         if(resend == NULL)
@@ -130,7 +130,7 @@ record_resend(int kind, const unsigned char *prefix, unsigned char plen,
             memcpy(resend->id, id, 8);
         else
             memset(resend->id, 0, 8);
-        resend->network = network;
+        resend->ifp = ifp;
         resend->time = now;
         resend->next = to_resend;
         to_resend = resend;
@@ -174,7 +174,7 @@ unsatisfied_request(const unsigned char *prefix, unsigned char plen,
 
 /* Determine whether a given request should be forwarded. */
 int
-request_redundant(struct network *net,
+request_redundant(struct interface *ifp,
                   const unsigned char *prefix, unsigned char plen,
                   unsigned short seqno, const unsigned char *id)
 {
@@ -188,7 +188,7 @@ request_redundant(struct network *net,
        seqno_compare(request->seqno, seqno) > 0)
         return 0;
 
-    if(request->network != NULL && request->network != net)
+    if(request->ifp != NULL && request->ifp != ifp)
         return 0;
 
     if(request->max > 0)
@@ -196,7 +196,7 @@ request_redundant(struct network *net,
         return 1;
 
     if(timeval_minus_msec(&now, &request->time) <
-       (net ? MIN(net->hello_interval, 1000) : 1000))
+       (ifp ? MIN(ifp->hello_interval, 1000) : 1000))
         /* Fairly recent. */
         return 1;
 
@@ -206,7 +206,7 @@ request_redundant(struct network *net,
 int
 satisfy_request(const unsigned char *prefix, unsigned char plen,
                 unsigned short seqno, const unsigned char *id,
-                struct network *network)
+                struct interface *ifp)
 {
     struct resend *request, *previous;
 
@@ -214,7 +214,7 @@ satisfy_request(const unsigned char *prefix, unsigned char plen,
     if(request == NULL)
         return 0;
 
-    if(network != NULL && request->network != network)
+    if(ifp != NULL && request->ifp != ifp)
         return 0;
 
     if(memcmp(request->id, id, 8) != 0 ||
@@ -291,12 +291,12 @@ do_resend()
             if(timeval_compare(&now, &timeout) >= 0) {
                 switch(resend->kind) {
                 case RESEND_REQUEST:
-                    send_multihop_request(resend->network,
+                    send_multihop_request(resend->ifp,
                                           resend->prefix, resend->plen,
                                           resend->seqno, resend->id, 127);
                     break;
                 case RESEND_UPDATE:
-                    send_update(resend->network, 1,
+                    send_update(resend->ifp, 1,
                                 resend->prefix, resend->plen);
                     break;
                 default: abort();

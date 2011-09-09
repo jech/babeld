@@ -27,7 +27,7 @@ struct buffered_update {
     unsigned char pad[3];
 };
 
-struct network_conf {
+struct interface_conf {
     char *ifname;
     unsigned hello_interval;
     unsigned update_interval;
@@ -37,27 +37,27 @@ struct network_conf {
     char lq;
     char faraway;
     int channel;
-    struct network_conf *next;
+    struct interface_conf *next;
 };
 
 #define CONFIG_DEFAULT 0
 #define CONFIG_NO 1
 #define CONFIG_YES 2
 
-#define NET_UP (1 << 0)
-#define NET_WIRED (1<<1)
-#define NET_SPLIT_HORIZON (1 << 2)
-#define NET_LQ (1 << 3)
-#define NET_FARAWAY (1 << 4)
+#define IF_UP (1 << 0)
+#define IF_WIRED (1<<1)
+#define IF_SPLIT_HORIZON (1 << 2)
+#define IF_LQ (1 << 3)
+#define IF_FARAWAY (1 << 4)
 
 /* Only INTERFERING can appear on the wire. */
-#define NET_CHANNEL_UNKNOWN 0
-#define NET_CHANNEL_INTERFERING 255
-#define NET_CHANNEL_NONINTERFERING -2
+#define IF_CHANNEL_UNKNOWN 0
+#define IF_CHANNEL_INTERFERING 255
+#define IF_CHANNEL_NONINTERFERING -2
 
-struct network {
-    struct network *next;
-    struct network_conf *conf;
+struct interface {
+    struct interface *next;
+    struct interface_conf *conf;
     unsigned int ifindex;
     unsigned short flags;
     unsigned short cost;
@@ -66,7 +66,7 @@ struct network {
     struct timeval update_timeout;
     struct timeval flush_timeout;
     struct timeval update_flush_timeout;
-    char ifname[IF_NAMESIZE];
+    char name[IF_NAMESIZE];
     unsigned char *ipv4;
     int numll;
     unsigned char (*ll)[16];
@@ -91,26 +91,25 @@ struct network {
     unsigned update_interval;
 };
 
-#define NET_CONF(_net, _field) \
-    ((_net)->conf ? (_net)->conf->_field : 0)
+#define IF_CONF(_ifp, _field) \
+    ((_ifp)->conf ? (_ifp)->conf->_field : 0)
 
-extern struct network *networks;
-extern int numnets;
+extern struct interface *interfaces;
 
-#define FOR_ALL_NETS(_net) for(_net = networks; _net; _net = _net->next)
+#define FOR_ALL_INTERFACES(_ifp) for(_ifp = interfaces; _ifp; _ifp = _ifp->next)
 
 static inline int
-net_up(struct network *net)
+if_up(struct interface *ifp)
 {
-    return !!(net->flags & NET_UP);
+    return !!(ifp->flags & IF_UP);
 }
 
-struct network *add_network(char *ifname, struct network_conf *conf);
-int network_idle(struct network *net);
-int update_hello_interval(struct network *net);
-unsigned jitter(struct network *net, int urgent);
-unsigned update_jitter(struct network *net, int urgent);
+struct interface *add_interface(char *ifname, struct interface_conf *if_conf);
+int interface_idle(struct interface *ifp);
+int update_hello_interval(struct interface *ifp);
+unsigned jitter(struct interface *ifp, int urgent);
+unsigned update_jitter(struct interface *ifp, int urgent);
 void set_timeout(struct timeval *timeout, int msecs);
-int network_up(struct network *net, int up);
-int network_ll_address(struct network *net, const unsigned char *address);
-void check_networks(void);
+int interface_up(struct interface *ifp, int up);
+int interface_ll_address(struct interface *ifp, const unsigned char *address);
+void check_interfaces(void);

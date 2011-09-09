@@ -31,7 +31,7 @@ struct neighbour {
     struct timeval ihu_time;
     unsigned short hello_interval; /* in centiseconds */
     unsigned short ihu_interval;   /* in centiseconds */
-    struct network *network;
+    struct interface *ifp;
 };
 
 extern struct neighbour *neighs;
@@ -42,7 +42,7 @@ extern struct neighbour *neighs;
 int neighbour_valid(struct neighbour *neigh);
 void flush_neighbour(struct neighbour *neigh);
 struct neighbour *find_neighbour(const unsigned char *address,
-                                 struct network *net);
+                                 struct interface *ifp);
 int update_neighbour(struct neighbour *neigh, int hello, int hello_interval);
 unsigned check_neighbours(void);
 unsigned neighbour_txcost(struct neighbour *neigh);

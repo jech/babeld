@@ -35,7 +35,7 @@ struct resend {
     unsigned char plen;
     unsigned short seqno;
     unsigned char id[8];
-    struct network *network;
+    struct interface *ifp;
     struct resend *next;
 };
 
@@ -46,15 +46,15 @@ struct resend *find_request(const unsigned char *prefix, unsigned char plen,
 void flush_resends(struct neighbour *neigh);
 int record_resend(int kind, const unsigned char *prefix, unsigned char plen,
                    unsigned short seqno, const unsigned char *id,
-                   struct network *net, int delay);
+                   struct interface *ifp, int delay);
 int unsatisfied_request(const unsigned char *prefix, unsigned char plen,
                         unsigned short seqno, const unsigned char *id);
-int request_redundant(struct network *net,
+int request_redundant(struct interface *ifp,
                       const unsigned char *prefix, unsigned char plen,
                       unsigned short seqno, const unsigned char *id);
 int satisfy_request(const unsigned char *prefix, unsigned char plen,
                     unsigned short seqno, const unsigned char *id,
-                    struct network *net);
+                    struct interface *ifp);
 
 void expire_resend(void);
 void recompute_resend_time(void);

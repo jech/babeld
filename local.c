@@ -140,7 +140,7 @@ local_notify_neighbour(struct neighbour *neigh, int kind)
                      address as a unique identifier. */
                   (unsigned long int)neigh,
                   format_address(neigh->address),
-                  neigh->network->ifname,
+                  neigh->ifp->name,
                   neigh->reach,
                   neighbour_rxcost(neigh),
                   neighbour_txcost(neigh),
@@ -207,7 +207,7 @@ local_notify_route(struct route *route, int kind)
                   format_eui64(route->src->id),
                   route_metric(route), route->refmetric,
                   format_address(route->neigh->address),
-                  route->neigh->network->ifname);
+                  route->neigh->ifp->name);
     
     if(rc < 0 || rc >= 512)
         goto fail;

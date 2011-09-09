@@ -134,13 +134,13 @@ flush_neighbour_routes(struct neighbour *neigh)
 }
 
 void
-flush_network_routes(struct network *net, int v4only)
+flush_interface_routes(struct interface *ifp, int v4only)
 {
     int i;
 
     i = 0;
     while(i < numroutes) {
-        if(routes[i].neigh->network == net &&
+        if(routes[i].neigh->ifp == ifp &&
            (!v4only || v4mapped(routes[i].nexthop))) {
            flush_route(&routes[i]);
            continue;
@@ -169,7 +169,7 @@ install_route(struct route *route)
 
     rc = kernel_route(ROUTE_ADD, route->src->prefix, route->src->plen,
                       route->nexthop,
-                      route->neigh->network->ifindex,
+                      route->neigh->ifp->ifindex,
                       metric_to_kernel(route_metric(route)), NULL, 0, 0);
     if(rc < 0) {
         int save = errno;
@@ -191,7 +191,7 @@ uninstall_route(struct route *route)
 
     rc = kernel_route(ROUTE_FLUSH, route->src->prefix, route->src->plen,
                       route->nexthop,
-                      route->neigh->network->ifindex,
+                      route->neigh->ifp->ifindex,
                       metric_to_kernel(route_metric(route)), NULL, 0, 0);
     if(rc < 0)
         perror("kernel_route(FLUSH)");
@@ -222,9 +222,9 @@ switch_routes(struct route *old, struct route *new)
                 "(this shouldn't happen).");
 
     rc = kernel_route(ROUTE_MODIFY, old->src->prefix, old->src->plen,
-                      old->nexthop, old->neigh->network->ifindex,
+                      old->nexthop, old->neigh->ifp->ifindex,
                       metric_to_kernel(route_metric(old)),
-                      new->nexthop, new->neigh->network->ifindex,
+                      new->nexthop, new->neigh->ifp->ifindex,
                       metric_to_kernel(route_metric(new)));
     if(rc < 0) {
         perror("kernel_route(MODIFY)");
@@ -251,9 +251,9 @@ change_route_metric(struct route *route,
     if(route->installed && old != new) {
         int rc;
         rc = kernel_route(ROUTE_MODIFY, route->src->prefix, route->src->plen,
-                          route->nexthop, route->neigh->network->ifindex,
+                          route->nexthop, route->neigh->ifp->ifindex,
                           old,
-                          route->nexthop, route->neigh->network->ifindex,
+                          route->nexthop, route->neigh->ifp->ifindex,
                           new);
         if(rc < 0) {
             perror("kernel_route(MODIFY metric)");
@@ -294,33 +294,33 @@ route_expired(struct route *route)
 static int
 channels_interfere(int ch1, int ch2)
 {
-    if(ch1 == NET_CHANNEL_NONINTERFERING || ch2 == NET_CHANNEL_NONINTERFERING)
+    if(ch1 == IF_CHANNEL_NONINTERFERING || ch2 == IF_CHANNEL_NONINTERFERING)
         return 0;
-    if(ch1 == NET_CHANNEL_INTERFERING || ch2 == NET_CHANNEL_INTERFERING)
+    if(ch1 == IF_CHANNEL_INTERFERING || ch2 == IF_CHANNEL_INTERFERING)
         return 1;
     return ch1 == ch2;
 }
 
 int
-route_interferes(struct route *route, struct network *net)
+route_interferes(struct route *route, struct interface *ifp)
 {
     switch(diversity_kind) {
     case DIVERSITY_NONE:
         return 1;
     case DIVERSITY_INTERFACE_1:
-        return route->neigh->network == net;
+        return route->neigh->ifp == ifp;
     case DIVERSITY_CHANNEL_1:
     case DIVERSITY_CHANNEL:
-        if(route->neigh->network == net)
+        if(route->neigh->ifp == ifp)
             return 1;
-        if(channels_interfere(net->channel, route->neigh->network->channel))
+        if(channels_interfere(ifp->channel, route->neigh->ifp->channel))
             return 1;
         if(diversity_kind == DIVERSITY_CHANNEL) {
             int i;
             for(i = 0; i < DIVERSITY_HOPS; i++) {
                 if(route->channels[i] == 0)
                     break;
-                if(channels_interfere(net->channel, route->channels[i]))
+                if(channels_interfere(ifp->channel, route->channels[i]))
                     return 1;
             }
         }
@@ -391,7 +391,7 @@ update_route_metric(struct route *route)
         int add_metric = input_filter(route->src->id,
                                       route->src->prefix, route->src->plen,
                                       neigh->address,
-                                      neigh->network->ifindex);
+                                      neigh->ifp->ifindex);
         change_route_metric(route, route->refmetric,
                             neighbour_cost(route->neigh), add_metric);
         if(route_metric(route) != oldmetric)
@@ -420,13 +420,13 @@ update_neighbour_metric(struct neighbour *neigh, int changed)
 }
 
 void
-update_network_metric(struct network *net)
+update_interface_metric(struct interface *ifp)
 {
     int i;
 
     i = 0;
     while(i < numroutes) {
-        if(routes[i].neigh->network == net)
+        if(routes[i].neigh->ifp == ifp)
             update_route_metric(&routes[i]);
         i++;
     }
@@ -456,7 +456,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
     }
 
     add_metric = input_filter(a, p, plen,
-                              neigh->address, neigh->network->ifindex);
+                              neigh->address, neigh->ifp->ifindex);
     if(add_metric >= INFINITY)
         return NULL;
 

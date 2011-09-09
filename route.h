@@ -71,14 +71,14 @@ struct route *find_installed_route(const unsigned char *prefix,
                                    unsigned char plen);
 void flush_route(struct route *route);
 void flush_neighbour_routes(struct neighbour *neigh);
-void flush_network_routes(struct network *net, int v4only);
+void flush_interface_routes(struct interface *ifp, int v4only);
 void install_route(struct route *route);
 void uninstall_route(struct route *route);
 void switch_route(struct route *old, struct route *new);
 int route_feasible(struct route *route);
 int route_old(struct route *route);
 int route_expired(struct route *route);
-int route_interferes(struct route *route, struct network *net);
+int route_interferes(struct route *route, struct interface *ifp);
 int update_feasible(struct source *src,
                     unsigned short seqno, unsigned short refmetric);
 struct route *find_best_route(const unsigned char *prefix, unsigned char plen,
@@ -86,7 +86,7 @@ struct route *find_best_route(const unsigned char *prefix, unsigned char plen,
 struct route *install_best_route(const unsigned char prefix[16],
                                  unsigned char plen);
 void update_neighbour_metric(struct neighbour *neigh, int changed);
-void update_network_metric(struct network *net);
+void update_interface_metric(struct interface *ifp);
 void update_route_metric(struct route *route);
 struct route *update_route(const unsigned char *a,
                            const unsigned char *p, unsigned char plen,

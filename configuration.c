@@ -40,7 +40,7 @@ THE SOFTWARE.
 struct filter *input_filters = NULL;
 struct filter *output_filters = NULL;
 struct filter *redistribute_filters = NULL;
-struct network_conf *network_confs = NULL;
+struct interface_conf *interface_confs = NULL;
 
 /* get_next_char callback */
 typedef int (*gnc_t)(void*);
@@ -370,15 +370,15 @@ parse_filter(gnc_t gnc, void *closure)
     return NULL;
 }
 
-static struct network_conf *
-parse_nconf(gnc_t gnc, void *closure)
+static struct interface_conf *
+parse_ifconf(gnc_t gnc, void *closure)
 {
     int c;
     char *token;
-    struct network_conf *nconf;
+    struct interface_conf *if_conf;
 
-    nconf = calloc(1, sizeof(struct network_conf));
-    if(nconf == NULL)
+    if_conf = calloc(1, sizeof(struct interface_conf));
+    if(if_conf == NULL)
         goto error;
 
     c = gnc(closure);
@@ -393,7 +393,7 @@ parse_nconf(gnc_t gnc, void *closure)
     if(c < -1 || token == NULL)
         goto error;
 
-    nconf->ifname = token;
+    if_conf->ifname = token;
 
     while(c >= 0 && c != '\n') {
         c = skip_whitespace(c, gnc, closure);
@@ -410,43 +410,43 @@ parse_nconf(gnc_t gnc, void *closure)
             c = getint(c, &cost, gnc, closure);
             if(c < -1 || cost <= 0 || cost > 0xFFFF)
                 goto error;
-            nconf->cost = cost;
+            if_conf->cost = cost;
         } else if(strcmp(token, "hello-interval") == 0) {
             int interval;
             c = getmsec(c, &interval, gnc, closure);
             if(c < -1 || interval <= 0 || interval > 10 * 0xFFFF)
                 goto error;
-            nconf->hello_interval = interval;
+            if_conf->hello_interval = interval;
         } else if(strcmp(token, "update-interval") == 0) {
             int interval;
             c = getmsec(c, &interval, gnc, closure);
             if(c < -1 || interval <= 0 || interval > 10 * 0xFFFF)
                 goto error;
-            nconf->update_interval = interval;
+            if_conf->update_interval = interval;
         } else if(strcmp(token, "wired") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
             if(c < -1)
                 goto error;
-            nconf->wired = v;
+            if_conf->wired = v;
         } else if(strcmp(token, "faraway") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
             if(c < -1)
                 goto error;
-            nconf->faraway = v;
+            if_conf->faraway = v;
         } else if(strcmp(token, "link-quality") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
             if(c < -1)
                 goto error;
-            nconf->lq = v;
+            if_conf->lq = v;
         } else if(strcmp(token, "split-horizon") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
             if(c < -1)
                 goto error;
-            nconf->split_horizon = v;
+            if_conf->split_horizon = v;
         } else if(strcmp(token, "channel") == 0) {
             char *t, *end;
 
@@ -455,19 +455,19 @@ parse_nconf(gnc_t gnc, void *closure)
                 goto error;
 
             if(strcmp(t, "noninterfering") == 0)
-                nconf->channel = NET_CHANNEL_NONINTERFERING;
+                if_conf->channel = IF_CHANNEL_NONINTERFERING;
             else if(strcmp(t, "interfering") == 0)
-                nconf->channel = NET_CHANNEL_INTERFERING;
+                if_conf->channel = IF_CHANNEL_INTERFERING;
             else {
-                nconf->channel = strtol(t, &end, 0);
+                if_conf->channel = strtol(t, &end, 0);
                 if(*end != '\0')
                     goto error;
             }
 
             free(t);
 
-            if((nconf->channel < 1 || nconf->channel > 254) &&
-               nconf->channel != NET_CHANNEL_NONINTERFERING)
+            if((if_conf->channel < 1 || if_conf->channel > 254) &&
+               if_conf->channel != IF_CHANNEL_NONINTERFERING)
                 goto error;
         } else {
             goto error;
@@ -475,10 +475,10 @@ parse_nconf(gnc_t gnc, void *closure)
         free(token);
     }
 
-    return nconf;
+    return if_conf;
 
  error:
-    free(nconf);
+    free(if_conf);
     return NULL;
 }
 
@@ -499,7 +499,7 @@ add_filter(struct filter *filter, struct filter **filters)
 }
 
 static void
-merge_nconf(struct network_conf *dest, struct network_conf *src)
+merge_ifconf(struct interface_conf *dest, struct interface_conf *src)
 {
     assert(strcmp(dest->ifname, src->ifname) == 0);
 
@@ -520,24 +520,24 @@ merge_nconf(struct network_conf *dest, struct network_conf *src)
 }
 
 static void
-add_nconf(struct network_conf *nconf, struct network_conf **nconfs)
+add_ifconf(struct interface_conf *if_conf, struct interface_conf **if_confs)
 {
-    if(*nconfs == NULL) {
-        nconf->next = NULL;
-        *nconfs = nconf;
+    if(*if_confs == NULL) {
+        if_conf->next = NULL;
+        *if_confs = if_conf;
     } else {
-        struct network_conf *n;
-        n = *nconfs;
-        while(n->next) {
-            if(strcmp(n->ifname, nconf->ifname) == 0) {
-                merge_nconf(n, nconf);
-                free(nconf);
+        struct interface_conf *if_c;
+        if_c = *if_confs;
+        while(if_c->next) {
+            if(strcmp(if_c->ifname, if_conf->ifname) == 0) {
+                merge_ifconf(if_c, if_conf);
+                free(if_conf);
                 return;
             }
-            n = n->next;
+            if_c = if_c->next;
         }
-        nconf->next = NULL;
-        n->next = nconf;
+        if_conf->next = NULL;
+        if_c->next = if_conf;
     }
 }
 
@@ -582,11 +582,11 @@ parse_config(gnc_t gnc, void *closure)
                 return -1;
             add_filter(filter, &redistribute_filters);
         } else if(strcmp(token, "interface") == 0) {
-            struct network_conf *nconf;
-            nconf = parse_nconf(gnc, closure);
-            if(nconf == NULL)
+            struct interface_conf *if_conf;
+            if_conf = parse_ifconf(gnc, closure);
+            if(if_conf == NULL)
                 return -1;
-            add_nconf(nconf, &network_confs);
+            add_ifconf(if_conf, &interface_confs);
         } else {
             return -1;
         }
@@ -759,15 +759,15 @@ finalise_config()
     filter->plen_le = 128;
     add_filter(filter, &redistribute_filters);
 
-    while(network_confs) {
-        struct network_conf *n;
+    while(interface_confs) {
+        struct interface_conf *if_conf;
         void *vrc;
-        n = network_confs;
-        network_confs = network_confs->next;
-        n->next = NULL;
-        vrc = add_network(n->ifname, n);
+        if_conf = interface_confs;
+        interface_confs = interface_confs->next;
+        if_conf->next = NULL;
+        vrc = add_interface(if_conf->ifname, if_conf);
         if(vrc == NULL) {
-            fprintf(stderr, "Couldn't add interface %s.\n", n->ifname);
+            fprintf(stderr, "Couldn't add interface %s.\n", if_conf->ifname);
             return -1;
         }
     }

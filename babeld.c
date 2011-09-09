@@ -108,7 +108,7 @@ main(int argc, char **argv)
     char *config_file = NULL;
     void *vrc;
     unsigned int seed;
-    struct network *net;
+    struct interface *ifp;
 
     gettime(&now);
 
@@ -362,22 +362,22 @@ main(int argc, char **argv)
     }
 
     for(i = optind; i < argc; i++) {
-        vrc = add_network(argv[i], NULL);
+        vrc = add_interface(argv[i], NULL);
         if(vrc == NULL)
             goto fail;
     }
 
-    if(networks == NULL) {
+    if(interfaces == NULL) {
         fprintf(stderr, "Eek... asked to run on no interfaces!\n");
         goto fail;
     }
 
-    FOR_ALL_NETS(net) {
-        /* net->ifindex is not necessarily valid at this point */
-        int ifindex = if_nametoindex(net->ifname);
+    FOR_ALL_INTERFACES(ifp) {
+        /* ifp->ifindex is not necessarily valid at this point */
+        int ifindex = if_nametoindex(ifp->name);
         if(ifindex > 0) {
             unsigned char eui[8];
-            rc = if_eui64(net->ifname, ifindex, eui);
+            rc = if_eui64(ifp->name, ifindex, eui);
             if(rc < 0)
                 continue;
             memcpy(myid, eui, 8);
@@ -482,7 +482,7 @@ main(int argc, char **argv)
     rc = resize_receive_buffer(1500);
     if(rc < 0)
         goto fail;
-    check_networks();
+    check_interfaces();
     if(receive_buffer == NULL)
         goto fail;
 
@@ -499,27 +499,27 @@ main(int argc, char **argv)
 
     /* Make some noise so that others notice us, and send retractions in
        case we were restarted recently */
-    FOR_ALL_NETS(net) {
-        if(!net_up(net))
+    FOR_ALL_INTERFACES(ifp) {
+        if(!if_up(ifp))
             continue;
         /* Apply jitter before we send the first message. */
         usleep(roughly(10000));
         gettime(&now);
-        send_hello(net);
-        send_wildcard_retraction(net);
+        send_hello(ifp);
+        send_wildcard_retraction(ifp);
     }
 
-    FOR_ALL_NETS(net) {
-        if(!net_up(net))
+    FOR_ALL_INTERFACES(ifp) {
+        if(!if_up(ifp))
             continue;
         usleep(roughly(10000));
         gettime(&now);
-        send_hello(net);
-        send_wildcard_retraction(net);
-        send_self_update(net);
-        send_request(net, NULL, 0);
-        flushupdates(net);
-        flushbuf(net);
+        send_hello(ifp);
+        send_wildcard_retraction(ifp);
+        send_self_update(ifp);
+        send_request(ifp, NULL, 0);
+        flushupdates(ifp);
+        flushbuf(ifp);
     }
 
     debugf("Entering main loop.\n");
@@ -535,13 +535,13 @@ main(int argc, char **argv)
         timeval_min_sec(&tv, source_expiry_time);
         timeval_min_sec(&tv, kernel_dump_time);
         timeval_min(&tv, &resend_time);
-        FOR_ALL_NETS(net) {
-            if(!net_up(net))
+        FOR_ALL_INTERFACES(ifp) {
+            if(!if_up(ifp))
                 continue;
-            timeval_min(&tv, &net->flush_timeout);
-            timeval_min(&tv, &net->hello_timeout);
-            timeval_min(&tv, &net->update_timeout);
-            timeval_min(&tv, &net->update_flush_timeout);
+            timeval_min(&tv, &ifp->flush_timeout);
+            timeval_min(&tv, &ifp->hello_timeout);
+            timeval_min(&tv, &ifp->update_timeout);
+            timeval_min(&tv, &ifp->update_flush_timeout);
         }
         timeval_min(&tv, &unicast_flush_timeout);
         FD_ZERO(&readfds);
@@ -593,11 +593,11 @@ main(int argc, char **argv)
                     sleep(1);
                 }
             } else {
-                FOR_ALL_NETS(net) {
-                    if(!net_up(net))
+                FOR_ALL_INTERFACES(ifp) {
+                    if(!if_up(ifp))
                         continue;
-                    if(net->ifindex == sin6.sin6_scope_id) {
-                        parse_packet((unsigned char*)&sin6.sin6_addr, net,
+                    if(ifp->ifindex == sin6.sin6_scope_id) {
+                        parse_packet((unsigned char*)&sin6.sin6_addr, ifp,
                                      receive_buffer, rc);
                         VALGRIND_MAKE_MEM_UNDEFINED(receive_buffer,
                                                     receive_buffer_size);
@@ -647,7 +647,7 @@ main(int argc, char **argv)
         }
 
         if(kernel_link_changed || kernel_addr_changed) {
-            check_networks();
+            check_interfaces();
             kernel_link_changed = 0;
         }
 
@@ -671,7 +671,7 @@ main(int argc, char **argv)
         }
 
         if(now.tv_sec >= expiry_time) {
-            check_networks();
+            check_interfaces();
             expire_routes();
             expire_resend();
             expiry_time = now.tv_sec + roughly(30);
@@ -682,15 +682,15 @@ main(int argc, char **argv)
             source_expiry_time = now.tv_sec + roughly(300);
         }
 
-        FOR_ALL_NETS(net) {
-            if(!net_up(net))
+        FOR_ALL_INTERFACES(ifp) {
+            if(!if_up(ifp))
                 continue;
-            if(timeval_compare(&now, &net->hello_timeout) >= 0)
-                send_hello(net);
-            if(timeval_compare(&now, &net->update_timeout) >= 0)
-                send_update(net, 0, NULL, 0);
-            if(timeval_compare(&now, &net->update_flush_timeout) >= 0)
-                flushupdates(net);
+            if(timeval_compare(&now, &ifp->hello_timeout) >= 0)
+                send_hello(ifp);
+            if(timeval_compare(&now, &ifp->update_timeout) >= 0)
+                send_update(ifp, 0, NULL, 0);
+            if(timeval_compare(&now, &ifp->update_flush_timeout) >= 0)
+                flushupdates(ifp);
         }
 
         if(resend_time.tv_sec != 0) {
@@ -703,12 +703,12 @@ main(int argc, char **argv)
                 flush_unicast(1);
         }
 
-        FOR_ALL_NETS(net) {
-            if(!net_up(net))
+        FOR_ALL_INTERFACES(ifp) {
+            if(!if_up(ifp))
                 continue;
-            if(net->flush_timeout.tv_sec != 0) {
-                if(timeval_compare(&now, &net->flush_timeout) >= 0)
-                    flushbuf(net);
+            if(ifp->flush_timeout.tv_sec != 0) {
+                if(timeval_compare(&now, &ifp->flush_timeout) >= 0)
+                    flushbuf(ifp);
             }
         }
 
@@ -726,31 +726,31 @@ main(int argc, char **argv)
     while(numroutes > 0) {
         if(routes[0].installed)
             uninstall_route(&routes[0]);
-        /* We need to flush the route so network_up won't reinstall it */
+        /* We need to flush the route so interface_up won't reinstall it */
         flush_route(&routes[0]);
     }
 
-    FOR_ALL_NETS(net) {
-        if(!net_up(net))
+    FOR_ALL_INTERFACES(ifp) {
+        if(!if_up(ifp))
             continue;
-        send_wildcard_retraction(net);
+        send_wildcard_retraction(ifp);
         /* Make sure that we expire quickly from our neighbours'
            association caches. */
-        send_hello_noupdate(net, 10);
-        flushbuf(net);
+        send_hello_noupdate(ifp, 10);
+        flushbuf(ifp);
         usleep(roughly(1000));
         gettime(&now);
     }
-    FOR_ALL_NETS(net) {
-        if(!net_up(net))
+    FOR_ALL_INTERFACES(ifp) {
+        if(!if_up(ifp))
             continue;
         /* Make sure they got it. */
-        send_wildcard_retraction(net);
-        send_hello_noupdate(net, 1);
-        flushbuf(net);
+        send_wildcard_retraction(ifp);
+        send_hello_noupdate(ifp, 1);
+        flushbuf(ifp);
         usleep(roughly(10000));
         gettime(&now);
-        network_up(net, 0);
+        interface_up(ifp, 0);
     }
     kernel_setup_socket(0);
     kernel_setup(0);
@@ -802,10 +802,10 @@ main(int argc, char **argv)
     exit(1);
 
  fail:
-    FOR_ALL_NETS(net) {
-        if(!net_up(net))
+    FOR_ALL_INTERFACES(ifp) {
+        if(!if_up(ifp))
             continue;
-        network_up(net, 0);
+        interface_up(ifp, 0);
     }
     kernel_setup_socket(0);
     kernel_setup(0);
@@ -936,12 +936,12 @@ dump_tables(FILE *out)
     FOR_ALL_NEIGHBOURS(neigh) {
         fprintf(out, "Neighbour %s dev %s reach %04x rxcost %d txcost %d chan %d%s.\n",
                 format_address(neigh->address),
-                neigh->network->ifname,
+                neigh->ifp->name,
                 neigh->reach,
                 neighbour_rxcost(neigh),
                 neigh->txcost,
-                neigh->network->channel,
-                net_up(neigh->network) ? "" : " (down)");
+                neigh->ifp->channel,
+                if_up(neigh->ifp) ? "" : " (down)");
     }
     for(i = 0; i < numxroutes; i++) {
         fprintf(out, "%s metric %d (exported)\n",
@@ -980,7 +980,7 @@ dump_tables(FILE *out)
                 (int)routes[i].seqno,
                 channels,
                 (int)(now.tv_sec - routes[i].time),
-                routes[i].neigh->network->ifname,
+                routes[i].neigh->ifp->name,
                 format_address(routes[i].neigh->address),
                 nexthop ? " nexthop " : "",
                 nexthop ? format_address(nexthop) : "",

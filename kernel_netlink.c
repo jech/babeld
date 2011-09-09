@@ -1239,7 +1239,7 @@ filter_link(struct nlmsghdr *nh, void *data)
     int ifindex;
     char *ifname;
     unsigned int ifflags;
-    struct network *net;
+    struct interface *ifp;
 
     len = nh->nlmsg_len;
 
@@ -1257,8 +1257,8 @@ filter_link(struct nlmsghdr *nh, void *data)
         return 0;
     kdebugf("filter_interfaces: link change on if %s(%d): 0x%x\n",
             ifname, ifindex, (unsigned)ifflags);
-    FOR_ALL_NETS(net) {
-        if (strcmp(net->ifname, ifname) == 0)
+    FOR_ALL_INTERFACES(ifp) {
+        if (strcmp(ifp->name, ifname) == 0)
             return 1;
     }
     return 0;
