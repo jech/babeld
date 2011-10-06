@@ -216,7 +216,7 @@ flush_route(struct route *route)
 
         if(routes[i] == NULL) {
             if(i < route_slots - 1)
-                memmove(routes + i + 1, routes + i,
+                memmove(routes + i, routes + i + 1,
                         (route_slots - i - 1) * sizeof(struct route*));
             routes[route_slots - 1] = NULL;
             route_slots--;
