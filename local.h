@@ -35,7 +35,7 @@ void local_notify_self(void);
 void local_notify_neighbour(struct neighbour *neigh, int kind);
 void local_notify_xroute(struct xroute *xroute, int kind);
 void local_notify_route(struct route *route, int kind);
-void local_dump(void);
+void local_notify_all(void);
 
 #else
 

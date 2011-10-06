@@ -619,7 +619,7 @@ main(int argc, char **argv)
                 if(errno != EINTR && errno != EAGAIN)
                     perror("accept(local_server_socket)");
             } else {
-                local_dump();
+                local_notify_all();
             }
         }
 

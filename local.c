@@ -223,7 +223,7 @@ local_notify_route(struct route *route, int kind)
 }
 
 void
-local_dump()
+local_notify_all()
 {
     int i, rc;
     struct neighbour *neigh;
