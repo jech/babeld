@@ -223,6 +223,12 @@ local_notify_route(struct route *route, int kind)
 }
 
 static void
+local_notify_xroute_callback(struct xroute *xroute, void *closure)
+{
+    local_notify_xroute(xroute, LOCAL_ADD);
+}
+
+static void
 local_notify_route_callback(struct route *route, void *closure)
 {
     local_notify_route(route, LOCAL_ADD);
@@ -231,7 +237,7 @@ local_notify_route_callback(struct route *route, void *closure)
 void
 local_notify_all()
 {
-    int i, rc;
+    int rc;
     struct neighbour *neigh;
     const char *header = "BABEL 0.0\n";
 
@@ -246,8 +252,7 @@ local_notify_all()
     FOR_ALL_NEIGHBOURS(neigh) {
         local_notify_neighbour(neigh, LOCAL_ADD);
     }
-    for(i = 0; i < numxroutes; i++)
-        local_notify_xroute(&xroutes[i], LOCAL_ADD);
+    for_all_xroutes(local_notify_xroute_callback, NULL);
     for_all_routes(local_notify_route_callback, NULL);
     return;
 

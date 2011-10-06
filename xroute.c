@@ -39,9 +39,8 @@ THE SOFTWARE.
 #include "interface.h"
 #include "local.h"
 
-struct xroute *xroutes;
-int numxroutes = 0;
-int maxxroutes = 0;
+static struct xroute *xroutes;
+static int numxroutes = 0, maxxroutes = 0;
 
 struct xroute *
 find_xroute(const unsigned char *prefix, unsigned char plen)
@@ -118,6 +117,15 @@ add_xroute(unsigned char prefix[16], unsigned char plen,
     numxroutes++;
     local_notify_xroute(&xroutes[numxroutes - 1], LOCAL_ADD);
     return 1;
+}
+
+void
+for_all_xroutes(void (*f)(struct xroute*, void*), void *closure)
+{
+    int i;
+
+    for(i = 0; i < numxroutes; i++)
+        (*f)(&xroutes[i], closure);
 }
 
 int

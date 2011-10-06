@@ -963,10 +963,18 @@ dump_route_callback(struct route *route, void *closure)
 }
 
 static void
+dump_xroute_callback(struct xroute *xroute, void *closure)
+{
+    FILE *out = (FILE*)closure;
+    fprintf(out, "%s metric %d (exported)\n",
+            format_prefix(xroute->prefix, xroute->plen),
+            xroute->metric);
+}
+
+static void
 dump_tables(FILE *out)
 {
     struct neighbour *neigh;
-    int i;
 
     fprintf(out, "\n");
 
@@ -982,11 +990,7 @@ dump_tables(FILE *out)
                 neigh->ifp->channel,
                 if_up(neigh->ifp) ? "" : " (down)");
     }
-    for(i = 0; i < numxroutes; i++) {
-        fprintf(out, "%s metric %d (exported)\n",
-                format_prefix(xroutes[i].prefix, xroutes[i].plen),
-                xroutes[i].metric);
-    }
+    for_all_xroutes(dump_xroute_callback, out);
     for_all_routes(dump_route_callback, out);
     fflush(out);
 }
