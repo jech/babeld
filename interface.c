@@ -363,9 +363,22 @@ interface_up(struct interface *ifp, int up)
                 ifp->numll = rc;
             }
         }
+        check_interface_channel(ifp);
+        update_interface_metric(ifp);
+        rc = check_interface_ipv4(ifp);
+
+        debugf("Upped interface %s (%s, cost=%d, channel=%d%s).\n",
+               ifp->name,
+               (ifp->flags & IF_WIRED) ? "wired" : "wireless",
+               ifp->cost,
+               ifp->channel,
+               ifp->ipv4 ? ", IPv4" : "");
+
         set_timeout(&ifp->hello_timeout, ifp->hello_interval);
         set_timeout(&ifp->update_timeout, ifp->update_interval);
         send_hello(ifp);
+        if(rc > 0)
+            send_update(ifp, 0, NULL, 0);
         send_request(ifp, NULL, 0);
     } else {
         flush_interface_routes(ifp, 0);
@@ -393,20 +406,6 @@ interface_up(struct interface *ifp, int up)
         ifp->ll = NULL;
         ifp->numll = 0;
     }
-
-    check_interface_channel(ifp);
-    update_interface_metric(ifp);
-    rc = check_interface_ipv4(ifp);
-
-    debugf("Upped interface %s (%s, cost=%d, channel=%d%s).\n",
-           ifp->name,
-           (ifp->flags & IF_WIRED) ? "wired" : "wireless",
-           ifp->cost,
-           ifp->channel,
-           ifp->ipv4 ? ", IPv4" : "");
-
-    if(up && rc > 0)
-        send_update(ifp, 0, NULL, 0);
 
     return 1;
 }
