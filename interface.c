@@ -450,12 +450,14 @@ check_interfaces(void)
             interface_up(ifp, rc > 0);
         }
 
-        check_interface_channel(ifp);
-        rc = check_interface_ipv4(ifp);
-        if(rc > 0) {
-            send_request(ifp, NULL, 0);
-            send_update(ifp, 0, NULL, 0);
-         }
+        if(if_up(ifp)) {
+            check_interface_channel(ifp);
+            rc = check_interface_ipv4(ifp);
+            if(rc > 0) {
+                send_request(ifp, NULL, 0);
+                send_update(ifp, 0, NULL, 0);
+            }
+        }
     }
 
     if(ifindex_changed)
