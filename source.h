@@ -32,9 +32,6 @@ struct source {
     time_t time;
 };
 
-int source_match(struct source *src,
-                 const unsigned char *p, unsigned char plen)
-    ATTRIBUTE ((pure));
 struct source *find_source(const unsigned char *id,
                            const unsigned char *p,
                            unsigned char plen,

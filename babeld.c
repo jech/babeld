@@ -722,13 +722,8 @@ main(int argc, char **argv)
     usleep(roughly(10000));
     gettime(&now);
 
-    /* Uninstall and flush all routes. */
-    while(numroutes > 0) {
-        if(routes[0].installed)
-            uninstall_route(&routes[0]);
-        /* We need to flush the route so interface_up won't reinstall it */
-        flush_route(&routes[0]);
-    }
+    /* We need to flush so interface_up won't try to reinstall. */
+    flush_all_routes();
 
     FOR_ALL_INTERFACES(ifp) {
         if(!if_up(ifp))
@@ -924,6 +919,50 @@ init_signals(void)
 }
 
 static void
+dump_route_callback(struct route *route, void *closure)
+{
+    FILE *out = (FILE*)closure;
+    const unsigned char *nexthop =
+        memcmp(route->nexthop, route->neigh->address, 16) == 0 ?
+        NULL : route->nexthop;
+    char channels[100];
+
+    if(route->channels[0] == 0)
+        channels[0] = '\0';
+    else {
+        int k, j = 0;
+        snprintf(channels, 100, " chan (");
+        j = strlen(channels);
+        for(k = 0; k < DIVERSITY_HOPS; k++) {
+            if(route->channels[k] == 0)
+                break;
+            if(k > 0)
+                channels[j++] = ',';
+            snprintf(channels + j, 100 - j, "%d", route->channels[k]);
+            j = strlen(channels);
+        }
+        snprintf(channels + j, 100 - j, ")");
+        if(k == 0)
+            channels[0] = '\0';
+    }
+
+    fprintf(out, "%s metric %d refmetric %d id %s seqno %d%s age %d "
+            "via %s neigh %s%s%s%s\n",
+            format_prefix(route->src->prefix, route->src->plen),
+            route_metric(route), route->refmetric,
+            format_eui64(route->src->id),
+            (int)route->seqno,
+            channels,
+            (int)(now.tv_sec - route->time),
+            route->neigh->ifp->name,
+            format_address(route->neigh->address),
+            nexthop ? " nexthop " : "",
+            nexthop ? format_address(nexthop) : "",
+            route->installed ? " (installed)" :
+            route_feasible(route) ? " (feasible)" : "");
+}
+
+static void
 dump_tables(FILE *out)
 {
     struct neighbour *neigh;
@@ -948,45 +987,7 @@ dump_tables(FILE *out)
                 format_prefix(xroutes[i].prefix, xroutes[i].plen),
                 xroutes[i].metric);
     }
-    for(i = 0; i < numroutes; i++) {
-        const unsigned char *nexthop =
-            memcmp(routes[i].nexthop, routes[i].neigh->address, 16) == 0 ?
-            NULL : routes[i].nexthop;
-        char channels[100];
-        if(routes[i].channels[0] == 0)
-            channels[0] = '\0';
-        else {
-            int k, j = 0;
-            snprintf(channels, 100, " chan (");
-            j = strlen(channels);
-            for(k = 0; k < DIVERSITY_HOPS; k++) {
-                if(routes[i].channels[k] == 0)
-                    break;
-                if(k > 0)
-                    channels[j++] = ',';
-                snprintf(channels + j, 100 - j, "%d", routes[i].channels[k]);
-                j = strlen(channels);
-            }
-            snprintf(channels + j, 100 - j, ")");
-            if(k == 0)
-                channels[0] = '\0';
-        }
-
-        fprintf(out, "%s metric %d refmetric %d id %s seqno %d%s age %d "
-                "via %s neigh %s%s%s%s\n",
-                format_prefix(routes[i].src->prefix, routes[i].src->plen),
-                route_metric(&routes[i]), routes[i].refmetric,
-                format_eui64(routes[i].src->id),
-                (int)routes[i].seqno,
-                channels,
-                (int)(now.tv_sec - routes[i].time),
-                routes[i].neigh->ifp->name,
-                format_address(routes[i].neigh->address),
-                nexthop ? " nexthop " : "",
-                nexthop ? format_address(nexthop) : "",
-                routes[i].installed ? " (installed)" :
-                route_feasible(&routes[i]) ? " (feasible)" : "");
-    }
+    for_all_routes(dump_route_callback, out);
     fflush(out);
 }
 

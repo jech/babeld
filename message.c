@@ -1083,11 +1083,16 @@ buffer_update(struct interface *ifp,
 }
 
 void
+buffer_update_callback(struct route *route, void *closure)
+{
+    buffer_update((struct interface*)closure,
+                  route->src->prefix, route->src->plen);
+}
+
+void
 send_update(struct interface *ifp, int urgent,
             const unsigned char *prefix, unsigned char plen)
 {
-    int i;
-
     if(ifp == NULL) {
         struct interface *ifp_aux;
         struct route *route;
@@ -1118,11 +1123,7 @@ send_update(struct interface *ifp, int urgent,
             send_self_update(ifp);
             if(!parasitic) {
                 debugf("Sending update to %s for any.\n", ifp->name);
-                for(i = 0; i < numroutes; i++)
-                    if(routes[i].installed)
-                        buffer_update(ifp,
-                                      routes[i].src->prefix,
-                                      routes[i].src->plen);
+                for_all_installed_routes(buffer_update_callback, ifp);
             }
         }
         set_timeout(&ifp->update_timeout, ifp->update_interval);

@@ -46,8 +46,10 @@ find_source(const unsigned char *id, const unsigned char *p, unsigned char plen,
             continue;
         if(memcmp(src->id, id, 8) != 0)
             continue;
-        if(source_match(src, p, plen))
-           return src;
+        if(src->plen != plen)
+            continue;
+        if(memcmp(src->prefix, p, 16) == 0)
+            return src;
     }
 
     if(!create)
@@ -73,15 +75,10 @@ find_source(const unsigned char *id, const unsigned char *p, unsigned char plen,
 int
 flush_source(struct source *src)
 {
-    int i;
-
     /* This is absolutely horrible -- it makes expire_sources quadratic.
        But it's not called very often. */
-
-    for(i = 0; i < numroutes; i++) {
-        if(routes[i].src == src)
-            return 0;
-    }
+    if(find_route_with_source(src))
+        return 0;
 
     if(srcs == src) {
         srcs = src->next;
@@ -93,19 +90,6 @@ flush_source(struct source *src)
     }
 
     free(src);
-    return 1;
-}
-
-int
-source_match(struct source *src,
-             const unsigned char *p, unsigned char plen)
-{
-    if(src->plen != plen)
-        return 0;
-    if(src->prefix[15] != p[15])
-        return 0;
-    if(memcmp(src->prefix, p, 16) != 0)
-        return 0;
     return 1;
 }
 

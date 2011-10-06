@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2007, 2008 by Juliusz Chroboczek
+Copyright (c) 2007-2011 by Juliusz Chroboczek
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -39,10 +39,10 @@ struct route {
     unsigned short hold_time;    /* in seconds */
     short installed;
     unsigned char channels[DIVERSITY_HOPS];
+    struct route *next;
 };
 
-extern struct route *routes;
-extern int numroutes, maxroutes;
+extern struct route **routes;
 extern int kernel_metric, allow_duplicates;
 extern int diversity_kind, diversity_factor;
 extern int keep_unfeasible;
@@ -70,8 +70,12 @@ struct route *find_route(const unsigned char *prefix, unsigned char plen,
 struct route *find_installed_route(const unsigned char *prefix,
                                    unsigned char plen);
 void flush_route(struct route *route);
+void flush_all_routes(void);
 void flush_neighbour_routes(struct neighbour *neigh);
 void flush_interface_routes(struct interface *ifp, int v4only);
+void for_all_routes(void (*f)(struct route*, void*), void *closure);
+void for_all_installed_routes(void (*f)(struct route*, void*), void *closure);
+struct route *find_route_with_source(struct source *src);
 void install_route(struct route *route);
 void uninstall_route(struct route *route);
 void switch_route(struct route *old, struct route *new);

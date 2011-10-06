@@ -222,6 +222,12 @@ local_notify_route(struct route *route, int kind)
     return;
 }
 
+static void
+local_notify_route_callback(struct route *route, void *closure)
+{
+    local_notify_route(route, LOCAL_ADD);
+}
+
 void
 local_notify_all()
 {
@@ -242,8 +248,7 @@ local_notify_all()
     }
     for(i = 0; i < numxroutes; i++)
         local_notify_xroute(&xroutes[i], LOCAL_ADD);
-    for(i = 0; i < numroutes; i++)
-        local_notify_route(&routes[i], LOCAL_ADD);
+    for_all_routes(local_notify_route_callback, NULL);
     return;
 
  fail:
