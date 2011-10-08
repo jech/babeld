@@ -260,9 +260,9 @@ flush_neighbour_routes(struct neighbour *neigh)
 {
     int i;
 
-    for(i = 0; i < route_slots; i++) {
+    i = 0;
+    while(i < route_slots) {
         struct route *r;
-    again:
         r = routes[i];
         while(r) {
             if(r->neigh == neigh) {
@@ -271,6 +271,9 @@ flush_neighbour_routes(struct neighbour *neigh)
             }
             r = r->next;
         }
+        i++;
+    again:
+        ;
     }
 }
 
@@ -279,9 +282,9 @@ flush_interface_routes(struct interface *ifp, int v4only)
 {
     int i;
 
-    for(i = 0; i < route_slots; i++) {
+    i = 0;
+    while(i < route_slots) {
         struct route *r;
-    again:
         r = routes[i];
         while(r) {
             if(r->neigh->ifp == ifp &&
@@ -291,6 +294,9 @@ flush_interface_routes(struct interface *ifp, int v4only)
             }
             r = r->next;
         }
+        i++;
+    again:
+        ;
     }
 }
 
@@ -983,8 +989,8 @@ expire_routes(void)
 
     debugf("Expiring old routes.\n");
 
-    for(i = 0; i < route_slots; i++) {
-    again:
+    i = 0;
+    while(i < route_slots) {
         r = routes[i];
         while(r) {
             /* Protect against clock being stepped. */
@@ -1003,5 +1009,8 @@ expire_routes(void)
             }
             r = r->next;
         }
+        i++;
+    again:
+        ;
     }
 }
