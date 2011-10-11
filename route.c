@@ -835,13 +835,6 @@ consider_route(struct route *route)
     if(route_metric(installed) >= INFINITY)
         goto install;
 
-    if(route_metric(installed) >= route_metric(route) + 192)
-        goto install;
-
-    /* Avoid switching sources */
-    if(installed->src != route->src)
-        return;
-
     if(route_metric(installed) >= route_metric(route) + 64)
         goto install;
 
