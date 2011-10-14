@@ -310,7 +310,7 @@ neighbour_cost(struct neighbour *neigh)
     if(b >= INFINITY)
         return INFINITY;
 
-    if(!(neigh->ifp->flags & IF_LQ) || (a <= 256 && b <= 256)) {
+    if(!(neigh->ifp->flags & IF_LQ) || (a < 256 && b < 256)) {
         return a;
     } else {
         /* a = 256/alpha, b = 256/beta, where alpha and beta are the expected
