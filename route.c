@@ -680,13 +680,20 @@ update_route(const unsigned char *id,
     if(add_metric >= INFINITY)
         return NULL;
 
-    src = find_source(id, prefix, plen, 1, seqno);
+    route = find_route(prefix, plen, neigh, nexthop);
+
+    if(route && memcmp(route->src->id, id, 8) == 0)
+        /* Avoid scanning the source table. */
+        src = route->src;
+    else
+        src = find_source(id, prefix, plen, 1, seqno);
+
     if(src == NULL)
         return NULL;
 
     feasible = update_feasible(src, seqno, refmetric);
-    route = find_route(prefix, plen, neigh, nexthop);
     metric = MIN((int)refmetric + neighbour_cost(neigh) + add_metric, INFINITY);
+
     if(route) {
         struct source *oldsrc;
         unsigned short oldmetric;
