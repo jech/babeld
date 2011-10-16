@@ -91,8 +91,8 @@ struct route *install_best_route(const unsigned char prefix[16],
 void update_neighbour_metric(struct neighbour *neigh, int changed);
 void update_interface_metric(struct interface *ifp);
 void update_route_metric(struct route *route);
-struct route *update_route(const unsigned char *a,
-                           const unsigned char *p, unsigned char plen,
+struct route *update_route(const unsigned char *id,
+                           const unsigned char *prefix, unsigned char plen,
                            unsigned short seqno, unsigned short refmetric,
                            unsigned short interval, struct neighbour *neigh,
                            const unsigned char *nexthop,

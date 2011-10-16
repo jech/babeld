@@ -653,7 +653,8 @@ update_interface_metric(struct interface *ifp)
 
 /* This is called whenever we receive an update. */
 struct route *
-update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
+update_route(const unsigned char *id,
+             const unsigned char *prefix, unsigned char plen,
              unsigned short seqno, unsigned short refmetric,
              unsigned short interval,
              struct neighbour *neigh, const unsigned char *nexthop,
@@ -665,26 +666,26 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
     int add_metric;
     int hold_time = MAX((4 * interval) / 100 + interval / 50, 15);
 
-    if(memcmp(a, myid, 8) == 0)
+    if(memcmp(id, myid, 8) == 0)
         return NULL;
 
-    if(martian_prefix(p, plen)) {
+    if(martian_prefix(prefix, plen)) {
         fprintf(stderr, "Rejecting martian route to %s through %s.\n",
-                format_prefix(p, plen), format_address(a));
+                format_prefix(prefix, plen), format_address(id));
         return NULL;
     }
 
-    add_metric = input_filter(a, p, plen,
+    add_metric = input_filter(id, prefix, plen,
                               neigh->address, neigh->ifp->ifindex);
     if(add_metric >= INFINITY)
         return NULL;
 
-    src = find_source(a, p, plen, 1, seqno);
+    src = find_source(id, prefix, plen, 1, seqno);
     if(src == NULL)
         return NULL;
 
     feasible = update_feasible(src, seqno, refmetric);
-    route = find_route(p, plen, neigh, nexthop);
+    route = find_route(prefix, plen, neigh, nexthop);
     metric = MIN((int)refmetric + neighbour_cost(neigh) + add_metric, INFINITY);
     if(route) {
         struct source *oldsrc;
