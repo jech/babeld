@@ -1009,7 +1009,7 @@ flushupdates(struct interface *ifp)
                         channels[0] = IF_CHANNEL_INTERFERING;
                     else {
                         assert(route_ifp->channel > 0 &&
-                               route_ifp->channel <= 254);
+                               route_ifp->channel <= 255);
                         channels[0] = route_ifp->channel;
                     }
                     memcpy(channels + 1, route->channels, DIVERSITY_HOPS - 1);
