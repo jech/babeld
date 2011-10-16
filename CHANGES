@@ -1,3 +1,8 @@
+16 October 2011: babeld-1.2.1
+
+  * Fixed an incorrect assertion that would cause a crash when -w was
+    being used (reported by Thomas McLure).
+
 9 September 2011: babeld 1.2.0
 
   * Merged the interference-aware branch ("babelz").  Please see the
