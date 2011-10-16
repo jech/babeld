@@ -24,6 +24,7 @@ THE SOFTWARE.
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
+#include <assert.h>
 
 #include "babeld.h"
 #include "util.h"
@@ -67,17 +68,32 @@ find_source(const unsigned char *id, const unsigned char *p, unsigned char plen,
     src->seqno = seqno;
     src->metric = INFINITY;
     src->time = now.tv_sec;
+    src->route_count = 0;
     src->next = srcs;
     srcs = src;
     return src;
 }
 
+struct source *
+retain_source(struct source *src)
+{
+    assert(src->route_count < 0xffff);
+    src->route_count++;
+    return src;
+}
+
+void
+release_source(struct source *src)
+{
+    assert(src->route_count > 0);
+    src->route_count--;
+}
+
 int
 flush_source(struct source *src)
 {
-    /* This is absolutely horrible -- it makes expire_sources quadratic.
-       But it's not called very often. */
-    if(find_route_with_source(src))
+    if(src->route_count > 0)
+        /* The source is in use by a route. */
         return 0;
 
     if(srcs == src) {
@@ -126,5 +142,19 @@ expire_sources()
             continue;
         }
         src = src->next;
+    }
+}
+
+void
+check_sources_released(void)
+{
+    struct source *src;
+
+    for(src = srcs; src; src = src->next) {
+        if(src->route_count != 0)
+            fprintf(stderr, "Warning: source %s %s has refcount %d.\n",
+                    format_eui64(src->id),
+                    format_prefix(src->prefix, src->plen),
+                    (int)src->route_count);
     }
 }

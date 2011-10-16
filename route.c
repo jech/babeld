@@ -237,13 +237,17 @@ flush_route(struct route *route)
 
     if(lost)
         route_lost(src, oldmetric);
+
+    release_source(src);
 }
 
 void
 flush_all_routes()
 {
+    int i;
+
     /* Start from the end, to avoid shifting the table. */
-    int i = route_slots - 1;
+    i = route_slots - 1;
     while(i >= 0) {
         while(i < route_slots) {
         /* Uninstall first, to avoid calling route_lost. */
@@ -253,6 +257,8 @@ flush_all_routes()
         }
         i--;
     }
+
+    check_sources_released();
 }
 
 void
@@ -324,24 +330,6 @@ for_all_installed_routes(void (*f)(struct route*, void*), void *closure)
         if(routes[i]->installed)
             (*f)(routes[i], closure);
     }
-}
-
-/* Find any route with a given source.  This should go when we fix our
-   data structures. */
-struct route *
-find_route_with_source(struct source *src)
-{
-    int i;
-
-    for(i = 0; i < route_slots; i++) {
-        struct route *r = routes[i];
-        while(r) {
-            if(r->src == src)
-                return r;
-            r = r->next;
-        }
-    }
-    return NULL;
 }
 
 static int
@@ -723,7 +711,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
             }
         }
 
-        route->src = src;
+        route->src = retain_source(src);
         if((feasible || keep_unfeasible) && refmetric < INFINITY)
             route->time = now.tv_sec;
         route->seqno = seqno;
@@ -738,6 +726,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
         if(!feasible)
             send_unfeasible_request(neigh, route->installed && route_old(route),
                                     seqno, metric, src);
+        release_source(oldsrc);
     } else {
         struct route *new_route;
 
@@ -756,7 +745,7 @@ update_route(const unsigned char *a, const unsigned char *p, unsigned char plen,
             return NULL;
         }
 
-        route->src = src;
+        route->src = retain_source(src);
         route->refmetric = refmetric;
         route->cost = neighbour_cost(neigh);
         route->add_metric = add_metric;

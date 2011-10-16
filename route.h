@@ -75,7 +75,6 @@ void flush_neighbour_routes(struct neighbour *neigh);
 void flush_interface_routes(struct interface *ifp, int v4only);
 void for_all_routes(void (*f)(struct route*, void*), void *closure);
 void for_all_installed_routes(void (*f)(struct route*, void*), void *closure);
-struct route *find_route_with_source(struct source *src);
 void install_route(struct route *route);
 void uninstall_route(struct route *route);
 void switch_route(struct route *old, struct route *new);
