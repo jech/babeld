@@ -32,5 +32,6 @@ struct xroute *find_xroute(const unsigned char *prefix, unsigned char plen);
 void flush_xroute(struct xroute *xroute);
 int add_xroute(unsigned char prefix[16], unsigned char plen,
                unsigned short metric, unsigned int ifindex, int proto);
+int xroutes_estimate(void);
 void for_all_xroutes(void (*f)(struct xroute*, void*), void *closure);
 int check_xroutes(int send_updates);

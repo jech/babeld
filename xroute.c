@@ -119,6 +119,13 @@ add_xroute(unsigned char prefix[16], unsigned char plen,
     return 1;
 }
 
+/* Returns an overestimate of the number of xroutes. */
+int
+xroutes_estimate()
+{
+    return numxroutes;
+}
+
 void
 for_all_xroutes(void (*f)(struct xroute*, void*), void *closure)
 {
