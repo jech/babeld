@@ -134,6 +134,13 @@ find_installed_route(const unsigned char *prefix, unsigned char plen)
     return NULL;
 }
 
+/* Returns an overestimate of the number of installed routes. */
+int
+installed_routes_estimate(void)
+{
+    return route_slots;
+}
+
 static int
 resize_route_table(int new_slots)
 {

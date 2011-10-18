@@ -69,6 +69,7 @@ struct route *find_route(const unsigned char *prefix, unsigned char plen,
                          struct neighbour *neigh, const unsigned char *nexthop);
 struct route *find_installed_route(const unsigned char *prefix,
                                    unsigned char plen);
+int installed_routes_estimate(void);
 void flush_route(struct route *route);
 void flush_all_routes(void);
 void flush_neighbour_routes(struct neighbour *neigh);
