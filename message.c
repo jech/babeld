@@ -1061,12 +1061,17 @@ buffer_update(struct interface *ifp,
     if(ifp->update_bufsize == 0) {
         int n;
         assert(ifp->buffered_updates == NULL);
-        n = MAX(ifp->bufsize / 16, 4);
+        /* Allocate enough space to hold a full update.  Since the
+           number of installed routes will grow over time, make sure we
+           have enough space to send a full-ish frame. */
+        n = installed_routes_estimate() + xroutes_estimate() + 4;
+        n = MAX(n, ifp->bufsize / 16);
     again:
         ifp->buffered_updates = malloc(n * sizeof(struct buffered_update));
         if(ifp->buffered_updates == NULL) {
             perror("malloc(buffered_updates)");
             if(n > 4) {
+                /* Try again with a tiny buffer. */
                 n = 4;
                 goto again;
             }
