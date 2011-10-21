@@ -308,6 +308,7 @@ parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r,
     if(strcmp(net, "default") == 0) {
         memset(prefix, 0, 16);
         plen = 0;
+        af = AF_INET6;
     } else {
         slash = strchr(net, '/');
         if(slash == NULL) {
