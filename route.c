@@ -647,7 +647,6 @@ update_interface_metric(struct interface *ifp)
 {
     int i;
 
-    i = 0;
     for(i = 0; i < route_slots; i++) {
         struct route *r = routes[i];
         while(r) {
