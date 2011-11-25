@@ -116,6 +116,10 @@ update_source(struct source *src,
     if(metric >= INFINITY)
         return;
 
+    /* If a source is expired, pretend that it doesn't exist and update
+       it unconditionally.  This makes ensures that old data will
+       eventually be overridden, and prevents us from getting stuck if
+       a router loses its sequence number. */
     if(src->time < now.tv_sec - SOURCE_GC_TIME ||
        seqno_compare(src->seqno, seqno) < 0 ||
        (src->seqno == seqno && src->metric > metric)) {
