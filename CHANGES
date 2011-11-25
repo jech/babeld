@@ -1,3 +1,14 @@
+babeld-1.3 (unreleased):
+
+  * Made the route table into a sorted array, and use binary sort for
+    searching for routes.  This makes most route operations O(log n), at
+    a slight cost in memory usage.
+  * Changed the update sending strategy to use buffers large enough for
+    a full update.  This makes the duplicate suppression mechanism
+    effective in large networks, at a small cost in memory usage.
+  * Fixed a bug that prevented usage of the "default" keyword in
+    configuration files.
+
 16 October 2011: babeld-1.2.1
 
   * Fixed an incorrect assertion that would cause a crash when -w was
