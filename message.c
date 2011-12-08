@@ -1132,6 +1132,7 @@ send_update(struct interface *ifp, int urgent,
             }
         }
         set_timeout(&ifp->update_timeout, ifp->update_interval);
+        ifp->last_update_time = now.tv_sec;
     }
     schedule_update_flush(ifp, urgent);
 }
