@@ -452,7 +452,13 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 /* If a neighbour is requesting a full route dump from us,
                    we might as well send it an IHU. */
                 send_ihu(neigh, NULL);
-                send_update(neigh->ifp, 0, NULL, 0);
+                /* Since nodes send wildcard requests on boot, booting
+                   a large number of nodes at the same time may cause an
+                   update storm.  Ignore a wildcard request that happens
+                   shortly after we sent a full update. */
+                if(neigh->ifp->last_update_time <
+                   now.tv_sec - MAX(neigh->ifp->hello_interval / 100, 1))
+                    send_update(neigh->ifp, 0, NULL, 0);
             } else {
                 send_update(neigh->ifp, 0, prefix, plen);
             }
