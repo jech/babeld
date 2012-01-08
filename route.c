@@ -40,7 +40,7 @@ THE SOFTWARE.
 #include "configuration.h"
 #include "local.h"
 
-struct route **routes = NULL;
+struct babel_route **routes = NULL;
 static int route_slots = 0, max_route_slots = 0;
 int kernel_metric = 0;
 int allow_duplicates = -1;
@@ -54,7 +54,7 @@ int keep_unfeasible = 0;
 
 static int
 route_compare(const unsigned char *prefix, unsigned char plen,
-               struct route *route)
+               struct babel_route *route)
 {
     int i = memcmp(prefix, route->src->prefix, 16);
     if(i != 0)
@@ -102,11 +102,11 @@ find_route_slot(const unsigned char *prefix, unsigned char plen,
     return -1;
 }
 
-struct route *
+struct babel_route *
 find_route(const unsigned char *prefix, unsigned char plen,
            struct neighbour *neigh, const unsigned char *nexthop)
 {
-    struct route *route;
+    struct babel_route *route;
     int i = find_route_slot(prefix, plen, NULL);
 
     if(i < 0)
@@ -123,7 +123,7 @@ find_route(const unsigned char *prefix, unsigned char plen,
     return NULL;
 }
 
-struct route *
+struct babel_route *
 find_installed_route(const unsigned char *prefix, unsigned char plen)
 {
     int i = find_route_slot(prefix, plen, NULL);
@@ -144,14 +144,14 @@ installed_routes_estimate(void)
 static int
 resize_route_table(int new_slots)
 {
-    struct route **new_routes;
+    struct babel_route **new_routes;
     assert(new_slots >= route_slots);
 
     if(new_slots == 0) {
         new_routes = NULL;
         free(routes);
     } else {
-        new_routes = realloc(routes, new_slots * sizeof(struct route*));
+        new_routes = realloc(routes, new_slots * sizeof(struct babel_route*));
         if(new_routes == NULL)
             return -1;
     }
@@ -163,8 +163,8 @@ resize_route_table(int new_slots)
 
 /* Insert a route into the table.  If successful, retains the route.
    On failure, caller must free the route. */
-static struct route *
-insert_route(struct route *route)
+static struct babel_route *
+insert_route(struct babel_route *route)
 {
     int i, n;
 
@@ -180,11 +180,11 @@ insert_route(struct route *route)
         route->next = NULL;
         if(n < route_slots)
             memmove(routes + n + 1, routes + n,
-                    (route_slots - n) * sizeof(struct route*));
+                    (route_slots - n) * sizeof(struct babel_route*));
         route_slots++;
         routes[n] = route;
     } else {
-        struct route *r;
+        struct babel_route *r;
         r = routes[i];
         while(r->next)
             r = r->next;
@@ -196,7 +196,7 @@ insert_route(struct route *route)
 }
 
 void
-flush_route(struct route *route)
+flush_route(struct babel_route *route)
 {
     int i;
     struct source *src;
@@ -224,7 +224,7 @@ flush_route(struct route *route)
         if(routes[i] == NULL) {
             if(i < route_slots - 1)
                 memmove(routes + i, routes + i + 1,
-                        (route_slots - i - 1) * sizeof(struct route*));
+                        (route_slots - i - 1) * sizeof(struct babel_route*));
             routes[route_slots - 1] = NULL;
             route_slots--;
         }
@@ -234,7 +234,7 @@ flush_route(struct route *route)
         else if(max_route_slots > 8 && route_slots < max_route_slots / 4)
             resize_route_table(max_route_slots / 2);
     } else {
-        struct route *r = routes[i];
+        struct babel_route *r = routes[i];
         while(r->next != route)
             r = r->next;
         r->next = route->next;
@@ -275,7 +275,7 @@ flush_neighbour_routes(struct neighbour *neigh)
 
     i = 0;
     while(i < route_slots) {
-        struct route *r;
+        struct babel_route *r;
         r = routes[i];
         while(r) {
             if(r->neigh == neigh) {
@@ -297,7 +297,7 @@ flush_interface_routes(struct interface *ifp, int v4only)
 
     i = 0;
     while(i < route_slots) {
-        struct route *r;
+        struct babel_route *r;
         r = routes[i];
         while(r) {
             if(r->neigh->ifp == ifp &&
@@ -315,12 +315,12 @@ flush_interface_routes(struct interface *ifp, int v4only)
 
 /* Iterate a function over all routes. */
 void
-for_all_routes(void (*f)(struct route*, void*), void *closure)
+for_all_routes(void (*f)(struct babel_route*, void*), void *closure)
 {
     int i;
 
     for(i = 0; i < route_slots; i++) {
-        struct route *r = routes[i];
+        struct babel_route *r = routes[i];
         while(r) {
             (*f)(r, closure);
             r = r->next;
@@ -329,7 +329,7 @@ for_all_routes(void (*f)(struct route*, void*), void *closure)
 }
 
 void
-for_all_installed_routes(void (*f)(struct route*, void*), void *closure)
+for_all_installed_routes(void (*f)(struct babel_route*, void*), void *closure)
 {
     int i;
 
@@ -348,13 +348,13 @@ metric_to_kernel(int metric)
 /* This is used to maintain the invariant that the installed route is at
    the head of the list. */
 static void
-move_installed_route(struct route *route, int i)
+move_installed_route(struct babel_route *route, int i)
 {
     assert(i >= 0 && i < route_slots);
     assert(route->installed);
 
     if(route != routes[i]) {
-        struct route *r = routes[i];
+        struct babel_route *r = routes[i];
         while(r->next != route)
             r = r->next;
         r->next = route->next;
@@ -364,7 +364,7 @@ move_installed_route(struct route *route, int i)
 }
 
 void
-install_route(struct route *route)
+install_route(struct babel_route *route)
 {
     int i, rc;
 
@@ -401,7 +401,7 @@ install_route(struct route *route)
 }
 
 void
-uninstall_route(struct route *route)
+uninstall_route(struct babel_route *route)
 {
     int rc;
 
@@ -424,7 +424,7 @@ uninstall_route(struct route *route)
    must be the same. */
 
 static void
-switch_routes(struct route *old, struct route *new)
+switch_routes(struct babel_route *old, struct babel_route *new)
 {
     int rc;
 
@@ -459,7 +459,7 @@ switch_routes(struct route *old, struct route *new)
 }
 
 static void
-change_route_metric(struct route *route,
+change_route_metric(struct babel_route *route,
                     unsigned refmetric, unsigned cost, unsigned add)
 {
     int old, new;
@@ -488,25 +488,25 @@ change_route_metric(struct route *route,
 }
 
 static void
-retract_route(struct route *route)
+retract_route(struct babel_route *route)
 {
     change_route_metric(route, INFINITY, INFINITY, 0);
 }
 
 int
-route_feasible(struct route *route)
+route_feasible(struct babel_route *route)
 {
     return update_feasible(route->src, route->seqno, route->refmetric);
 }
 
 int
-route_old(struct route *route)
+route_old(struct babel_route *route)
 {
     return route->time < now.tv_sec - route->hold_time * 7 / 8;
 }
 
 int
-route_expired(struct route *route)
+route_expired(struct babel_route *route)
 {
     return route->time < now.tv_sec - route->hold_time;
 }
@@ -522,7 +522,7 @@ channels_interfere(int ch1, int ch2)
 }
 
 int
-route_interferes(struct route *route, struct interface *ifp)
+route_interferes(struct babel_route *route, struct interface *ifp)
 {
     switch(diversity_kind) {
     case DIVERSITY_NONE:
@@ -571,11 +571,11 @@ update_feasible(struct source *src,
 }
 
 /* This returns the feasible route with the smallest metric. */
-struct route *
+struct babel_route *
 find_best_route(const unsigned char *prefix, unsigned char plen, int feasible,
                 struct neighbour *exclude)
 {
-    struct route *route, *r;
+    struct babel_route *route, *r;
     int i = find_route_slot(prefix, plen, NULL);
 
     if(i < 0)
@@ -596,7 +596,7 @@ find_best_route(const unsigned char *prefix, unsigned char plen, int feasible,
 }
 
 void
-update_route_metric(struct route *route)
+update_route_metric(struct babel_route *route)
 {
     int oldmetric = route_metric(route);
 
@@ -630,7 +630,7 @@ update_neighbour_metric(struct neighbour *neigh, int changed)
         int i;
 
         for(i = 0; i < route_slots; i++) {
-            struct route *r = routes[i];
+            struct babel_route *r = routes[i];
             while(r) {
                 if(r->neigh == neigh)
                     update_route_metric(r);
@@ -648,7 +648,7 @@ update_interface_metric(struct interface *ifp)
     int i;
 
     for(i = 0; i < route_slots; i++) {
-        struct route *r = routes[i];
+        struct babel_route *r = routes[i];
         while(r) {
             if(r->neigh->ifp == ifp)
                 update_route_metric(r);
@@ -658,7 +658,7 @@ update_interface_metric(struct interface *ifp)
 }
 
 /* This is called whenever we receive an update. */
-struct route *
+struct babel_route *
 update_route(const unsigned char *id,
              const unsigned char *prefix, unsigned char plen,
              unsigned short seqno, unsigned short refmetric,
@@ -666,7 +666,7 @@ update_route(const unsigned char *id,
              struct neighbour *neigh, const unsigned char *nexthop,
              const unsigned char *channels, int channels_len)
 {
-    struct route *route;
+    struct babel_route *route;
     struct source *src;
     int metric, feasible;
     int add_metric;
@@ -742,7 +742,7 @@ update_route(const unsigned char *id,
                                     seqno, metric, src);
         release_source(oldsrc);
     } else {
-        struct route *new_route;
+        struct babel_route *new_route;
 
         if(refmetric >= INFINITY)
             /* Somebody's retracting a route we never saw. */
@@ -753,7 +753,7 @@ update_route(const unsigned char *id,
                 return NULL;
         }
 
-        route = malloc(sizeof(struct route));
+        route = malloc(sizeof(struct babel_route));
         if(route == NULL) {
             perror("malloc(route)");
             return NULL;
@@ -793,7 +793,7 @@ send_unfeasible_request(struct neighbour *neigh, int force,
                         unsigned short seqno, unsigned short metric,
                         struct source *src)
 {
-    struct route *route = find_installed_route(src->prefix, src->plen);
+    struct babel_route *route = find_installed_route(src->prefix, src->plen);
 
     if(seqno_minus(src->seqno, seqno) > 100) {
         /* Probably a source that lost its seqno.  Let it time-out. */
@@ -812,9 +812,9 @@ send_unfeasible_request(struct neighbour *neigh, int force,
 /* This takes a feasible route and decides whether to install it. */
 
 void
-consider_route(struct route *route)
+consider_route(struct babel_route *route)
 {
-    struct route *installed;
+    struct babel_route *installed;
     struct xroute *xroute;
 
     if(route->installed)
@@ -858,7 +858,7 @@ retract_neighbour_routes(struct neighbour *neigh)
     int i;
 
     for(i = 0; i < route_slots; i++) {
-        struct route *r = routes[i];
+        struct babel_route *r = routes[i];
         while(r) {
             if(r->neigh == neigh) {
                 if(r->refmetric != INFINITY) {
@@ -875,7 +875,7 @@ retract_neighbour_routes(struct neighbour *neigh)
 }
 
 void
-send_triggered_update(struct route *route, struct source *oldsrc,
+send_triggered_update(struct babel_route *route, struct source *oldsrc,
                       unsigned oldmetric)
 {
     unsigned newmetric, diff;
@@ -934,12 +934,12 @@ send_triggered_update(struct route *route, struct source *oldsrc,
 /* A route has just changed.  Decide whether to switch to a different route or
    send an update. */
 void
-route_changed(struct route *route,
+route_changed(struct babel_route *route,
               struct source *oldsrc, unsigned short oldmetric)
 {
     if(route->installed) {
         if(route_metric(route) > oldmetric) {
-            struct route *better_route;
+            struct babel_route *better_route;
             better_route =
                 find_best_route(route->src->prefix, route->src->plen, 1, NULL);
             if(better_route &&
@@ -961,7 +961,7 @@ route_changed(struct route *route,
 void
 route_lost(struct source *src, unsigned oldmetric)
 {
-    struct route *new_route;
+    struct babel_route *new_route;
     new_route = find_best_route(src->prefix, src->plen, 1, NULL);
     if(new_route) {
         consider_route(new_route);
@@ -980,7 +980,7 @@ route_lost(struct source *src, unsigned oldmetric)
 void
 expire_routes(void)
 {
-    struct route *r;
+    struct babel_route *r;
     int i;
 
     debugf("Expiring old routes.\n");

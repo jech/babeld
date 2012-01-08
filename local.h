@@ -21,7 +21,7 @@ THE SOFTWARE.
 */
 
 struct neighbour;
-struct route;
+struct babel_route;
 struct xroute;
 
 #define LOCAL_FLUSH 0
@@ -34,7 +34,7 @@ int local_read(int s);
 void local_notify_self(void);
 void local_notify_neighbour(struct neighbour *neigh, int kind);
 void local_notify_xroute(struct xroute *xroute, int kind);
-void local_notify_route(struct route *route, int kind);
+void local_notify_route(struct babel_route *route, int kind);
 void local_notify_all(void);
 
 #else

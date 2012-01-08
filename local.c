@@ -188,7 +188,7 @@ local_notify_xroute(struct xroute *xroute, int kind)
 }
 
 void
-local_notify_route(struct route *route, int kind)
+local_notify_route(struct babel_route *route, int kind)
 {
     char buf[512];
     int rc;
@@ -229,7 +229,7 @@ local_notify_xroute_callback(struct xroute *xroute, void *closure)
 }
 
 static void
-local_notify_route_callback(struct route *route, void *closure)
+local_notify_route_callback(struct babel_route *route, void *closure)
 {
     local_notify_route(route, LOCAL_ADD);
 }

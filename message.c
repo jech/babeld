@@ -923,7 +923,7 @@ void
 flushupdates(struct interface *ifp)
 {
     struct xroute *xroute;
-    struct route *route;
+    struct babel_route *route;
     const unsigned char *last_prefix = NULL;
     unsigned char last_plen = 0xFF;
     int i;
@@ -1090,7 +1090,7 @@ buffer_update(struct interface *ifp,
 }
 
 void
-buffer_update_callback(struct route *route, void *closure)
+buffer_update_callback(struct babel_route *route, void *closure)
 {
     buffer_update((struct interface*)closure,
                   route->src->prefix, route->src->plen);
@@ -1102,7 +1102,7 @@ send_update(struct interface *ifp, int urgent,
 {
     if(ifp == NULL) {
         struct interface *ifp_aux;
-        struct route *route;
+        struct babel_route *route;
         FOR_ALL_INTERFACES(ifp_aux)
             send_update(ifp_aux, urgent, prefix, plen);
         if(prefix) {
@@ -1460,7 +1460,7 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
                unsigned short seqno, const unsigned char *id)
 {
     struct xroute *xroute;
-    struct route *route;
+    struct babel_route *route;
     struct neighbour *successor = NULL;
 
     xroute = find_xroute(prefix, plen);
@@ -1506,7 +1506,7 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
     if(!successor || successor == neigh) {
         /* We were about to forward a request to its requestor.  Try to
            find a different neighbour to forward the request to. */
-        struct route *other_route;
+        struct babel_route *other_route;
 
         other_route = find_best_route(prefix, plen, 0, neigh);
         if(other_route && route_metric(other_route) < INFINITY)

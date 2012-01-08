@@ -192,7 +192,7 @@ check_xroutes(int send_updates)
 
         if(!export) {
             unsigned char prefix[16], plen;
-            struct route *route;
+            struct babel_route *route;
             memcpy(prefix, xroutes[i].prefix, 16);
             plen = xroutes[i].plen;
             flush_xroute(&xroutes[i]);
@@ -220,7 +220,7 @@ check_xroutes(int send_updates)
             rc = add_xroute(routes[i].prefix, routes[i].plen,
                             metric, routes[i].ifindex, routes[i].proto);
             if(rc > 0) {
-                struct route *route;
+                struct babel_route *route;
                 route = find_installed_route(routes[i].prefix, routes[i].plen);
                 if(route) {
                     if(allow_duplicates < 0 ||

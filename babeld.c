@@ -919,7 +919,7 @@ init_signals(void)
 }
 
 static void
-dump_route_callback(struct route *route, void *closure)
+dump_route_callback(struct babel_route *route, void *closure)
 {
     FILE *out = (FILE*)closure;
     const unsigned char *nexthop =
