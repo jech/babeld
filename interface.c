@@ -78,7 +78,6 @@ add_interface(char *ifname, struct interface_conf *if_conf)
     memset(ifp, 0, sizeof(struct interface));
     strncpy(ifp->name, ifname, IF_NAMESIZE);
     ifp->conf = if_conf;
-    ifp->activity_time = now.tv_sec;
     ifp->bucket_time = now.tv_sec;
     ifp->bucket = BUCKET_TOKENS_MAX;
     ifp->hello_seqno = (random() & 0xFFFF);
@@ -89,36 +88,6 @@ add_interface(char *ifname, struct interface_conf *if_conf)
         last_interface()->next = ifp;
 
     return ifp;
-}
-
-int
-interface_idle(struct interface *ifp)
-{
-    return (idle_hello_interval > 0 &&
-            ifp->activity_time < now.tv_sec - idle_time);
-}
-
-int
-update_hello_interval(struct interface *ifp)
-{
-    int rc = 0;
-    unsigned short interval;
-
-    if(interface_idle(ifp))
-        interval = idle_hello_interval;
-    else if(IF_CONF(ifp, hello_interval) > 0)
-        interval = IF_CONF(ifp, hello_interval);
-    else if((ifp->flags & IF_WIRED))
-        interval = wired_hello_interval;
-    else
-        interval = wireless_hello_interval;
-
-    if(ifp->hello_interval != interval) {
-        ifp->hello_interval = interval;
-            rc = 1;
-    }
-
-    return rc;
 }
 
 /* This should be no more than half the hello interval, so that hellos
@@ -322,14 +291,17 @@ interface_up(struct interface *ifp, int up)
         if(IF_CONF(ifp, faraway) == CONFIG_YES)
             ifp->flags |= IF_FARAWAY;
 
-        ifp->activity_time = now.tv_sec;
-        update_hello_interval(ifp);
-        /* Since the interface was marked as active above, the
-           idle_hello_interval cannot be the one being used here. */
+        if(IF_CONF(ifp, hello_interval) > 0)
+            ifp->hello_interval = IF_CONF(ifp, hello_interval);
+        else if((ifp->flags & IF_WIRED))
+            ifp->hello_interval = wired_hello_interval;
+        else
+            ifp->hello_interval = wireless_hello_interval;
+
         ifp->update_interval =
             IF_CONF(ifp, update_interval) > 0 ?
             IF_CONF(ifp, update_interval) :
-            ifp->hello_interval * 4;
+           ifp->hello_interval * 4;
 
         memset(&mreq, 0, sizeof(mreq));
         memcpy(&mreq.ipv6mr_multiaddr, protocol_group, 16);

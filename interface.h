@@ -85,7 +85,6 @@ struct interface {
     int update_bufsize;
     time_t bucket_time;
     unsigned int bucket;
-    time_t activity_time;
     time_t last_update_time;
     unsigned short hello_seqno;
     unsigned hello_interval;
@@ -106,8 +105,6 @@ if_up(struct interface *ifp)
 }
 
 struct interface *add_interface(char *ifname, struct interface_conf *if_conf);
-int interface_idle(struct interface *ifp);
-int update_hello_interval(struct interface *ifp);
 unsigned jitter(struct interface *ifp, int urgent);
 unsigned update_jitter(struct interface *ifp, int urgent);
 void set_timeout(struct timeval *timeout, int msecs);

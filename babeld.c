@@ -60,12 +60,10 @@ int debug = 0;
 
 time_t reboot_time;
 
-int idle_time = 320;
 int link_detect = 0;
 int all_wireless = 0;
 int wireless_hello_interval = -1;
 int wired_hello_interval = -1;
-int idle_hello_interval = -1;
 int do_daemonise = 0;
 char *logfile = NULL, *pidfile = "/var/run/babeld.pid";
 
@@ -157,11 +155,6 @@ main(int argc, char **argv)
         case 'H':
             wired_hello_interval = parse_msec(optarg);
             if(wired_hello_interval <= 0 || wired_hello_interval > 0xFFFF * 10)
-                goto usage;
-            break;
-        case 'i':
-            idle_hello_interval = parse_msec(optarg);
-            if(idle_hello_interval <= 0 || idle_hello_interval > 0xFFFF * 10)
                 goto usage;
             break;
         case 'k':
@@ -784,7 +777,7 @@ main(int argc, char **argv)
             "Syntax: %s "
             "[-m multicast_address] [-p port] [-S state-file]\n"
             "                "
-            "[-h hello] [-H wired_hello] [-i idle_hello] [-z kind[,factor]]\n"
+            "[-h hello] [-H wired_hello] [-z kind[,factor]]\n"
             "                "
             "[-k metric] [-A metric] [-s] [-P] [-l] [-w] [-u] [-g port]\n"
             "                "

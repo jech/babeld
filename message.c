@@ -272,8 +272,6 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             debugf("Received hello %d (%d) from %s on %s.\n",
                    seqno, interval,
                    format_address(from), ifp->name);
-            ifp->activity_time = now.tv_sec;
-            update_hello_interval(ifp);
             changed = update_neighbour(neigh, seqno, interval);
             update_neighbour_metric(neigh, changed);
             if(interval > 0)
@@ -735,11 +733,9 @@ send_hello_noupdate(struct interface *ifp, unsigned interval)
 void
 send_hello(struct interface *ifp)
 {
-    int changed;
-    changed = update_hello_interval(ifp);
     send_hello_noupdate(ifp, (ifp->hello_interval + 9) / 10);
     /* Send full IHU every 3 hellos, and marginal IHU each time */
-    if(changed || ifp->hello_seqno % 3 == 0)
+    if(ifp->hello_seqno % 3 == 0)
         send_ihu(NULL, ifp);
     else
         send_marginal_ihu(ifp);
@@ -1130,12 +1126,10 @@ send_update(struct interface *ifp, int urgent,
             buffer_update(ifp, prefix, plen);
         }
     } else {
-        if(!interface_idle(ifp)) {
-            send_self_update(ifp);
-            if(!parasitic) {
-                debugf("Sending update to %s for any.\n", ifp->name);
-                for_all_installed_routes(buffer_update_callback, ifp);
-            }
+        send_self_update(ifp);
+        if(!parasitic) {
+            debugf("Sending update to %s for any.\n", ifp->name);
+            for_all_installed_routes(buffer_update_callback, ifp);
         }
         set_timeout(&ifp->update_timeout, ifp->update_interval);
         ifp->last_update_time = now.tv_sec;
@@ -1213,10 +1207,8 @@ send_self_update(struct interface *ifp)
         return;
     }
 
-    if(!interface_idle(ifp)) {
-        debugf("Sending self update to %s.\n", ifp->name);
-        for_all_xroutes(send_xroute_update_callback, ifp);
-    }
+    debugf("Sending self update to %s.\n", ifp->name);
+    for_all_xroutes(send_xroute_update_callback, ifp);
 }
 
 void
