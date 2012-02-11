@@ -104,7 +104,7 @@ record_resend(int kind, const unsigned char *prefix, unsigned char plen,
         else if(delay)
             resend->delay = delay;
         resend->time = now;
-        resend->max = kind == RESEND_REQUEST ? 128 : UPDATE_MAX;
+        resend->max = RESEND_MAX;
         if(id && memcmp(resend->id, id, 8) == 0 &&
            seqno_compare(resend->seqno, seqno) > 0) {
             return 0;
@@ -121,7 +121,7 @@ record_resend(int kind, const unsigned char *prefix, unsigned char plen,
         if(resend == NULL)
             return -1;
         resend->kind = kind;
-        resend->max = kind == RESEND_REQUEST ? 128 : UPDATE_MAX;
+        resend->max = RESEND_MAX;
         resend->delay = delay;
         memcpy(resend->prefix, prefix, 16);
         resend->plen = plen;
