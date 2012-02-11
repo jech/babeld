@@ -64,6 +64,7 @@ int link_detect = 0;
 int all_wireless = 0;
 int wireless_hello_interval = -1;
 int wired_hello_interval = -1;
+int resend_delay = -1;
 int do_daemonise = 0;
 char *logfile = NULL, *pidfile = "/var/run/babeld.pid";
 
@@ -267,6 +268,11 @@ main(int argc, char **argv)
     if(wired_hello_interval <= 0)
         wired_hello_interval = 4000;
     wired_hello_interval = MAX(wired_hello_interval, 5);
+
+    resend_delay = 2000;
+    resend_delay = MIN(resend_delay, wireless_hello_interval / 2);
+    resend_delay = MIN(resend_delay, wired_hello_interval / 2);
+    resend_delay = MAX(resend_delay, 20);
 
     if(parasitic && allow_duplicates >= 0) {
         /* Too difficult to get right. */

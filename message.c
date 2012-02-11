@@ -1141,17 +1141,10 @@ void
 send_update_resend(struct interface *ifp,
                    const unsigned char *prefix, unsigned char plen)
 {
-    int delay;
-
     assert(prefix != NULL);
 
     send_update(ifp, 1, prefix, plen);
-
-    delay = 2000;
-    delay = MIN(delay, wireless_hello_interval / 2);
-    delay = MIN(delay, wired_hello_interval / 2);
-    delay = MAX(delay, 10);
-    record_resend(RESEND_UPDATE, prefix, plen, 0, 0, NULL, delay);
+    record_resend(RESEND_UPDATE, prefix, plen, 0, 0, NULL, resend_delay);
 }
 
 void
@@ -1452,19 +1445,13 @@ send_request_resend(struct neighbour *neigh,
                     const unsigned char *prefix, unsigned char plen,
                     unsigned short seqno, unsigned char *id)
 {
-    int delay;
-
     if(neigh)
         send_unicast_multihop_request(neigh, prefix, plen, seqno, id, 127);
     else
         send_multihop_request(NULL, prefix, plen, seqno, id, 127);
 
-    delay = 2000;
-    delay = MIN(delay, wireless_hello_interval / 2);
-    delay = MIN(delay, wired_hello_interval / 2);
-    delay = MAX(delay, 10);
     record_resend(RESEND_REQUEST, prefix, plen, seqno, id,
-                  neigh ? neigh->ifp : NULL, delay);
+                  neigh ? neigh->ifp : NULL, resend_delay);
 }
 
 void
