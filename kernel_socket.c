@@ -153,7 +153,7 @@ static int old_accept_redirects = -1;
 static int ifindex_lo = -1;
 static int seq;
 
-int
+static int
 mask2len(const struct in6_addr *addr)
 {
     int i = 0, j;
@@ -180,7 +180,7 @@ mask2len(const struct in6_addr *addr)
     return i;
 }
 
-void
+static void
 plen2mask(int n, struct in6_addr *dest)
 {
     unsigned char *p;

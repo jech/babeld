@@ -112,7 +112,7 @@ local_notify_self()
     return;
 }
 
-static char *
+static const char *
 local_kind(int kind)
 {
     switch(kind) {

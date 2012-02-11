@@ -91,7 +91,7 @@ read_random_bytes(void *buf, size_t len)
 	rc = -1;
     } else {
         rc = read(fd, buf, len);
-        if(rc < len)
+        if(rc < 0 || (unsigned)rc < len)
             rc = -1;
         close(fd);
     }

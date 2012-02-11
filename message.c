@@ -1089,7 +1089,7 @@ buffer_update(struct interface *ifp,
     ifp->num_buffered_updates++;
 }
 
-void
+static void
 buffer_update_callback(struct babel_route *route, void *closure)
 {
     buffer_update((struct interface*)closure,

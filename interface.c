@@ -153,7 +153,7 @@ check_interface_ipv4(struct interface *ifp)
     return 0;
 }
 
-int
+static int
 check_interface_channel(struct interface *ifp)
 {
     int channel = IF_CONF(ifp, channel);
@@ -401,7 +401,8 @@ void
 check_interfaces(void)
 {
     struct interface *ifp;
-    int rc, ifindex, ifindex_changed = 0;
+    int rc, ifindex_changed = 0;
+    unsigned int ifindex;
 
     FOR_ALL_INTERFACES(ifp) {
         ifindex = if_nametoindex(ifp->name);
