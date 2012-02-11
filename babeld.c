@@ -58,8 +58,6 @@ struct timeval now;
 unsigned char myid[8];
 int debug = 0;
 
-time_t reboot_time;
-
 int link_detect = 0;
 int all_wireless = 0;
 int default_wireless_hello_interval = -1;
@@ -412,7 +410,6 @@ main(int argc, char **argv)
     myid[0] &= ~3;
 
  have_id:
-    reboot_time = now.tv_sec;
     myseqno = (random() & 0xFFFF);
 
     fd = open(state_file, O_RDONLY);
@@ -450,9 +447,6 @@ main(int argc, char **argv)
                         myseqno = seqno_plus(s, 1);
                     else
                         fprintf(stderr, "ID mismatch in babel-state.\n");
-                    /* Convert realtime into monotonic time. */
-                    if(t >= 1176800000L && t <= realnow.tv_sec)
-                        reboot_time = now.tv_sec - (realnow.tv_sec - t);
                 }
             } else {
                 fprintf(stderr, "Couldn't parse babel-state.\n");
