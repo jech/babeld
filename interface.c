@@ -294,9 +294,9 @@ interface_up(struct interface *ifp, int up)
         if(IF_CONF(ifp, hello_interval) > 0)
             ifp->hello_interval = IF_CONF(ifp, hello_interval);
         else if((ifp->flags & IF_WIRED))
-            ifp->hello_interval = wired_hello_interval;
+            ifp->hello_interval = default_wired_hello_interval;
         else
-            ifp->hello_interval = wireless_hello_interval;
+            ifp->hello_interval = default_wireless_hello_interval;
 
         ifp->update_interval =
             IF_CONF(ifp, update_interval) > 0 ?
