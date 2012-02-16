@@ -43,7 +43,6 @@ THE SOFTWARE.
 
 unsigned char packet_header[4] = {42, 2};
 
-int parasitic = 0;
 int split_horizon = 1;
 
 unsigned short myseqno = 0;
@@ -1120,17 +1119,13 @@ send_update(struct interface *ifp, int urgent,
         return;
 
     if(prefix) {
-        if(!parasitic || find_xroute(prefix, plen)) {
-            debugf("Sending update to %s for %s.\n",
-                   ifp->name, format_prefix(prefix, plen));
-            buffer_update(ifp, prefix, plen);
-        }
+        debugf("Sending update to %s for %s.\n",
+               ifp->name, format_prefix(prefix, plen));
+        buffer_update(ifp, prefix, plen);
     } else {
         send_self_update(ifp);
-        if(!parasitic) {
-            debugf("Sending update to %s for any.\n", ifp->name);
-            for_all_installed_routes(buffer_update_callback, ifp);
-        }
+        debugf("Sending update to %s for any.\n", ifp->name);
+        for_all_installed_routes(buffer_update_callback, ifp);
         set_timeout(&ifp->update_timeout, ifp->update_interval);
         ifp->last_update_time = now.tv_sec;
     }

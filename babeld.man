@@ -88,10 +88,6 @@ Do not flush unfeasible (useless) routes.  This is useful in order to
 announce more information to a front-end (see
 .BR \-g ).
 .TP
-.B \-P
-Run in parasitic (passive) mode.  The daemon will only announce
-redistributed routes.
-.TP
 .BI \-d " level"
 Debug level.  A value of 1 requests a routing table dump at every
 iteration through the daemon's main loop.  A value of 2 additionally
