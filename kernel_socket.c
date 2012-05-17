@@ -532,70 +532,26 @@ static void
 print_kernel_route(int add, struct kernel_route *route)
 {
     char ifname[IFNAMSIZ];
-    char addr_prefix[INET6_ADDRSTRLEN];
-    char addr_gw[INET6_ADDRSTRLEN];
-    
-    if(!inet_ntop(AF_INET6, route->prefix,
-                  addr_prefix, sizeof(addr_prefix)) ||
-       !inet_ntop(AF_INET6,route->gw, addr_gw, sizeof(addr_gw)) ||
-       !if_indextoname(route->ifindex, ifname)) {
-        fprintf(stderr,"Couldn't format kernel route for printing.");
-        // return;
-    }
+
+    if(!if_indextoname(route->ifindex, ifname))
+      memcpy(ifname,"unk",4);
 
     fprintf(stderr,
-            "%s kernel route: dest: %s/%d gw: %s metric: %d if: %s(%d) \n",
+            "%s kernel route: dest: %s gw: %s metric: %d if: %s(%d) \n",
             add == RTM_ADD ? "Add" :
             add == RTM_DELETE ? "Delete" : "Change",
-            addr_prefix, route->plen, addr_gw, route->metric, ifname, 
-            route->ifindex
+            format_prefix(route->prefix, route->plen),
+            format_address(route->gw),
+            route->metric,
+            ifname, route->ifindex
             );
 }
 
 static int
 parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
 {
-
+    struct sockaddr *sa;
     void *rta = (void*)rtm + sizeof(struct rt_msghdr);
-    struct sockaddr_in6 *sin6;
-    char addr[INET6_ADDRSTRLEN];
-
-    memset(route, 0, sizeof(*route));
-    route->metric = 0;
-    route->ifindex = rtm->rtm_index;
-
-    if(!(rtm->rtm_addrs & RTA_DST))
-        return -1;
-    sin6 = (struct sockaddr_in6 *)rta;
-    if(IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr) 
-       || IN6_IS_ADDR_MC_LINKLOCAL(&sin6->sin6_addr))
-        return -1;
-    if((rtm->rtm_flags & RTF_PROTO2) != 0)
-        return -1;
-    memcpy(&route->prefix, &sin6->sin6_addr, 16);
-    rta += ROUNDUP(sizeof(struct sockaddr_in6));
-   
-    if(!(rtm->rtm_addrs & RTA_GATEWAY))
-        return -1;
-
-    sin6 = (struct sockaddr_in6 *)rta;
-    if(IN6_IS_ADDR_LINKLOCAL (&sin6->sin6_addr)) {
-        route->ifindex = IN6_LINKLOCAL_IFINDEX(sin6->sin6_addr);
-        SET_IN6_LINKLOCAL_IFINDEX(sin6->sin6_addr, 0);
-    }
-    memcpy(&route->gw, &sin6->sin6_addr, 16);
-    rta += ROUNDUP(sizeof(struct sockaddr_in6));
-
-    if(!(rtm->rtm_addrs & RTA_NETMASK)) {
-        route->plen = 0;
-    } else {
-        sin6 = (struct sockaddr_in6 *)rta;        
-        route->plen = mask2len(&sin6->sin6_addr);
-        inet_ntop(AF_INET6, &sin6->sin6_addr, addr, sizeof(addr));
-        rta += ROUNDUP(sizeof(struct sockaddr_in6));
-    }
-    if (rtm->rtm_flags & RTF_HOST)
-        route->plen = 128;
 
     if(ifindex_lo < 0) {
         ifindex_lo = if_nametoindex("lo0");
@@ -603,11 +559,77 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
             return -1;
     }
 
+    memset(route, 0, sizeof(*route));
+    route->metric = 0;
+    route->ifindex = rtm->rtm_index;
+
+    /* filter out kernel route (cache) */
+    if((rtm->rtm_flags & RTF_IFSCOPE) != 0)
+        return -1;
+
+    /* filter out our own route */
+    if((rtm->rtm_flags & RTF_PROTO2) != 0)
+        return -1;
+
+    /* Prefix */
+    if(!(rtm->rtm_addrs & RTA_DST))
+        return -1;
+    sa = (struct sockaddr *)rta;
+    rta += ROUNDUP(sa->sa_len);
+    if(sa->sa_family == AF_INET6) {
+          struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
+        memcpy(route->prefix, &sin6->sin6_addr, 16);
+        if(IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr)
+             || IN6_IS_ADDR_MC_LINKLOCAL(&sin6->sin6_addr))
+           return -1;
+    } else if(sa->sa_family == AF_INET) {
+        struct sockaddr_in *sin = (struct sockaddr_in *)sa;
+#ifdef __APPLE__
+        if(IN_LINKLOCAL(ntohl(sin->sin_addr.s_addr)))
+            return -1;
+#endif
+        if(IN_MULTICAST(ntohl(sin->sin_addr.s_addr)))
+            return -1;
+        v4tov6(route->prefix, (unsigned char *)&sin->sin_addr);
+    } else {
+        return -1;
+    }
+
+    /* Gateway */
+    if(!(rtm->rtm_addrs & RTA_GATEWAY))
+        return -1;
+    sa = (struct sockaddr *)rta;
+    rta += ROUNDUP(sa->sa_len);
+    if(sa->sa_family == AF_INET6) {
+          struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
+        memcpy(route->gw, &sin6->sin6_addr, 16);
+        if(IN6_IS_ADDR_LINKLOCAL (&sin6->sin6_addr)) {
+            route->ifindex = IN6_LINKLOCAL_IFINDEX(sin6->sin6_addr);
+            SET_IN6_LINKLOCAL_IFINDEX(sin6->sin6_addr, 0);
+        }
+    } else if(sa->sa_family == AF_INET) {
+        struct sockaddr_in *sin = (struct sockaddr_in *)sa;
+        v4tov6(route->gw, (unsigned char *)&sin->sin_addr);
+    }
     if(route->ifindex == ifindex_lo)
         return -1;
 
-    return 0;
+    /* Netmask */
+    if((rtm->rtm_addrs & RTA_NETMASK) != 0) {
+        sa = (struct sockaddr *)rta;
+        rta += ROUNDUP(sa->sa_len);
+        if(!v4mapped(route->prefix)) {
+              struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
+            route->plen = mask2len(sin6->sin6_addr.__u6_addr.__u6_addr8, 16);
+        } else {
+            struct sockaddr_in *sin = (struct sockaddr_in *)sa;
+            route->plen = mask2len((unsigned char*)&sin->sin_addr, 4);
+        }
+    }
+    if(v4mapped(route->prefix)) route->plen += 96;
+    if(rtm->rtm_flags & RTF_HOST) route->plen = 128;
 
+    return 0;
 }
 
 int
@@ -622,7 +644,7 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
     mib[0] = CTL_NET;
     mib[1] = PF_ROUTE;
     mib[2] = 0;
-    mib[3] = AF_INET6;	  /* Address family */
+    mib[3] = AF_UNSPEC;      /* Address family */
     mib[4] = NET_RT_DUMP; /* Dump the kernel routing table */
     mib[5] = 0;		  /* No flags */
 
@@ -748,6 +770,10 @@ kernel_addresses(char *ifname, int ifindex, int ll,
             struct sockaddr_in *sin = (struct sockaddr_in*)ifap->ifa_addr;
             if(ll)
                 goto next;
+#ifdef __APPLE__
+            if(IN_LINKLOCAL(htonl(sin->sin_addr.s_addr)))
+                goto next;
+#endif
             memcpy(routes[i].prefix, v4prefix, 12);
             memcpy(routes[i].prefix + 12, &sin->sin_addr, 4);
             routes[i].plen = 128;
