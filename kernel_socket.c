@@ -143,9 +143,8 @@ fail:
         (a).s6_addr[3] = (i) & 0xff;            \
     } while (0)
 
-#define ROUNDUP(a)                                                      \
-    ((a) > 0 ? (1 + (((a) - 1) | (sizeof(long) - 1))) : sizeof(long))
-
+#define ROUNDUP(a) \
+    ((a) > 0 ? (1 + (((a) - 1) | (sizeof(uint32_t) - 1))) : sizeof(uint32_t))
 
 static int old_forwarding = -1;
 static int old_accept_redirects = -1;
