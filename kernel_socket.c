@@ -412,9 +412,18 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
       return 0;
 
     if(operation == ROUTE_MODIFY) {
-        metric = newmetric;
-        gate = newgate;
-        ifindex = newifindex;
+        if(metric == KERNEL_INFINITY || newmetric == KERNEL_INFINITY) {
+            kernel_route(ROUTE_FLUSH, dest, plen,
+                         gate, ifindex, metric,
+                         NULL, 0, 0);
+            return kernel_route(ROUTE_ADD, dest, plen,
+                                newgate, newifindex, newmetric,
+                                NULL, 0, 0);
+        } else {
+            metric = newmetric;
+            gate = newgate;
+            ifindex = newifindex;
+        }
     }
 
     kdebugf("kernel_route: %s %s/%d metric %d dev %d nexthop %s\n",
