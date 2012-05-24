@@ -153,17 +153,16 @@ static int ifindex_lo = -1;
 static int seq;
 
 static int
-mask2len(const struct in6_addr *addr)
+mask2len(const unsigned char *p, const int size)
 {
     int i = 0, j;
-    const u_char *p = (const u_char *)addr;
 
-    for(j = 0; j < 16; j++, p++) {
+    for(j = 0; j < size; j++, p++) {
         if(*p != 0xff)
             break;
         i += 8;
     }
-    if(j < 16) {
+    if(j < size) {
         switch(*p) {
 #define	MASKLEN(m, l)	case m: do { i += l; break; } while (0)
             MASKLEN(0xfe, 7); break;
