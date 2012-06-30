@@ -1,4 +1,10 @@
-11 February 2011: babeld-1.3.1
+30 June 2012: babeld-1.3.2
+
+  * INCOMPATIBLE CHANGE: removed parasitic mode (-P).
+  * Fixes to IPv4 support on BSD.
+  * More reduction to the rate of sending requests.  
+
+11 February 2012: babeld-1.3.1
 
   * Made the resend logic less aggressive.  This should lead to fewer
     request messages upon link failure, at the cost of somewhat worse
