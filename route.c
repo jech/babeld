@@ -964,12 +964,16 @@ route_lost(struct source *src, unsigned oldmetric)
     if(new_route) {
         consider_route(new_route);
     } else if(oldmetric < INFINITY) {
-        /* Complain loudly. */
+        /* Avoid creating a blackhole. */
         send_update_resend(NULL, src->prefix, src->plen);
-        send_request_resend(NULL, src->prefix, src->plen,
-                            src->metric >= INFINITY ?
-                            src->seqno : seqno_plus(src->seqno, 1),
-                            src->id);
+        /* If the route was usable enough, try to get an alternate one.
+           If it was not, we could be dealing with oscillations around
+           the value of INFINITY. */
+        if(oldmetric <= INFINITY / 2)
+            send_request_resend(NULL, src->prefix, src->plen,
+                                src->metric >= INFINITY ?
+                                src->seqno : seqno_plus(src->seqno, 1),
+                                src->id);
     }
 }
 
