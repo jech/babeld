@@ -36,10 +36,15 @@ THE SOFTWARE.
 #include "babeld.h"
 #include "util.h"
 
-unsigned
-roughly(unsigned value)
+int
+roughly(int value)
 {
-    return value * 3 / 4 + random() % (value / 2);
+    if(value < 0)
+        return -roughly(-value);
+    else if(value <= 1)
+        return value;
+    else
+        return value * 3 / 4 + random() % (value / 2);
 }
 
 void

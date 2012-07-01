@@ -66,7 +66,7 @@ seqno_plus(unsigned short s, int plus)
     return ((s + plus) & 0xFFFF);
 }
 
-unsigned roughly(unsigned value);
+int roughly(int value);
 void timeval_minus(struct timeval *d,
                    const struct timeval *s1, const struct timeval *s2);
 unsigned timeval_minus_msec(const struct timeval *s1, const struct timeval *s2)
