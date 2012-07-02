@@ -570,7 +570,19 @@ update_feasible(struct source *src,
             (src->seqno == seqno && refmetric < src->metric));
 }
 
-/* This returns the feasible route with the smallest metric. */
+static int
+route_acceptable(struct babel_route *route, int feasible,
+                 struct neighbour *exclude)
+{
+    if(route_expired(route))
+        return 0;
+    if(feasible && !route_feasible(route))
+        return 0;
+    if(exclude && route->neigh == exclude)
+        return 0;
+    return 1;
+}
+
 struct babel_route *
 find_best_route(const unsigned char *prefix, unsigned char plen, int feasible,
                 struct neighbour *exclude)
@@ -582,16 +594,20 @@ find_best_route(const unsigned char *prefix, unsigned char plen, int feasible,
         return NULL;
 
     route = routes[i];
+    while(route && !route_acceptable(route, feasible, exclude))
+        route = route->next;
+
+    if(!route)
+        return NULL;
 
     r = route->next;
     while(r) {
-        if(!route_expired(r) &&
-           (!feasible || route_feasible(r)) &&
-           (!exclude || r->neigh != exclude) &&
+        if(route_acceptable(r, feasible, exclude) &&
            (route_metric(r) < route_metric(route)))
             route = r;
         r = r->next;
     }
+
     return route;
 }
 
