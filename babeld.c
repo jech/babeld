@@ -120,9 +120,10 @@ main(int argc, char **argv)
 
     parse_address("ff02:0:0:0:0:0:1:6", protocol_group, NULL);
     protocol_port = 6696;
+    change_smoothing_half_life(4);
 
     while(1) {
-        opt = getopt(argc, argv, "m:p:h:H:i:k:A:PsuS:d:g:lwz:t:T:c:C:DL:I:");
+        opt = getopt(argc, argv, "m:p:h:H:i:k:A:PsuS:d:g:lwz:M:t:T:c:C:DL:I:");
         if(opt < 0)
             break;
 
@@ -212,6 +213,13 @@ main(int argc, char **argv)
                     goto usage;
             }
             break;
+        case 'M': {
+            int l = parse_nat(optarg);
+            if(l < 0 || l > 3600)
+                goto usage;
+            change_smoothing_half_life(l);
+            break;
+        }
         case 't':
             export_table = parse_nat(optarg);
             if(export_table < 0 || export_table > 0xFFFF)
@@ -939,10 +947,10 @@ dump_route_callback(struct babel_route *route, void *closure)
             channels[0] = '\0';
     }
 
-    fprintf(out, "%s metric %d refmetric %d id %s seqno %d%s age %d "
+    fprintf(out, "%s metric %d (%d) refmetric %d id %s seqno %d%s age %d "
             "via %s neigh %s%s%s%s\n",
             format_prefix(route->src->prefix, route->src->plen),
-            route_metric(route), route->refmetric,
+            route_metric(route), route_smoothed_metric(route), route->refmetric,
             format_eui64(route->src->id),
             (int)route->seqno,
             channels,

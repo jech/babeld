@@ -37,6 +37,8 @@ struct babel_route {
     unsigned char nexthop[16];
     time_t time;
     unsigned short hold_time;    /* in seconds */
+    unsigned short smoothed_metric; /* for route selection */
+    time_t smoothed_metric_time;
     short installed;
     unsigned char channels[DIVERSITY_HOPS];
     struct babel_route *next;
@@ -85,6 +87,8 @@ int route_expired(struct babel_route *route);
 int route_interferes(struct babel_route *route, struct interface *ifp);
 int update_feasible(struct source *src,
                     unsigned short seqno, unsigned short refmetric);
+void change_smoothing_half_life(int half_life);
+int route_smoothed_metric(struct babel_route *route);
 struct babel_route *find_best_route(const unsigned char *prefix, unsigned char plen,
                               int feasible, struct neighbour *exclude);
 struct babel_route *install_best_route(const unsigned char prefix[16],

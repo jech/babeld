@@ -62,6 +62,11 @@ The value
 specifies by how much the cost of non-interfering routes is multiplied,
 in units of 1/256; the default is 128 (i.e. division by 2).
 .TP
+.BI \-M " half-time"
+Specify the half-time in seconds of the exponential decay used for
+smoothing metrics for performing route selection; the value 0 disables
+smoothing.  The default is 4s.
+.TP
 .BI \-k " priority"
 Specify the priority value used when installing routes into the kernel.
 The default is 0.
