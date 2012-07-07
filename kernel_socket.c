@@ -421,7 +421,9 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
       return 0;
 
     if(operation == ROUTE_MODIFY) {
-        if(metric == KERNEL_INFINITY || newmetric == KERNEL_INFINITY) {
+        /* Do not use ROUTE_MODIFY when changing to a neighbour.
+           It is the only way to remove the "gateway" flag. */
+        if(ipv4 && plen == 128 && memcmp(dest, newgate, 16) == 0) {
             kernel_route(ROUTE_FLUSH, dest, plen,
                          gate, ifindex, metric,
                          NULL, 0, 0);
@@ -458,7 +460,6 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     msg.m_rtm.rtm_index = ifindex;
     msg.m_rtm.rtm_flags = RTF_UP | RTF_PROTO2;
     if(plen == 128) msg.m_rtm.rtm_flags |= RTF_HOST;
-    msg.m_rtm.rtm_flags |= RTF_GATEWAY;
     if(metric == KERNEL_INFINITY) {
         msg.m_rtm.rtm_flags |= RTF_BLACKHOLE;
         if(ifindex_lo < 0) {
@@ -471,6 +472,16 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     msg.m_rtm.rtm_seq = ++seq;
     msg.m_rtm.rtm_addrs = RTA_DST | RTA_GATEWAY;
     if(plen != 128) msg.m_rtm.rtm_addrs |= RTA_NETMASK;
+
+#define PUSHEUI(ifindex) \
+    do { char ifname[IFNAMSIZ]; \
+         struct sockaddr_dl *sdl = (struct sockaddr_dl*) data; \
+         if(!if_indextoname((ifindex), ifname))  \
+             return -1; \
+         if(get_sdl(sdl, ifname) < 0)   \
+             return -1; \
+         data = data + ROUNDUP(sdl->sdl_len); \
+    } while (0)
 
 #define PUSHADDR(src) \
     do { struct sockaddr_in *sin = (struct sockaddr_in*) data; \
@@ -497,7 +508,13 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         PUSHADDR(dest);
         if (metric == KERNEL_INFINITY) {
             PUSHADDR(**local4);
+        } else if(plen == 128 && memcmp(dest+12, gate+12, 4) == 0) {
+#if defined(RTF_CLONING)
+            msg.m_rtm.rtm_flags |= RTF_CLONING;
+#endif
+            PUSHEUI(ifindex);
         } else {
+            msg.m_rtm.rtm_flags |= RTF_GATEWAY;
             PUSHADDR(gate);
         }
         if((msg.m_rtm.rtm_addrs & RTA_NETMASK) != 0) {
@@ -512,6 +529,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         if (metric == KERNEL_INFINITY) {
             PUSHADDR6(**local6);
         } else {
+            msg.m_rtm.rtm_flags |= RTF_GATEWAY;
             PUSHADDR6(gate);
         }
         if((msg.m_rtm.rtm_addrs & RTA_NETMASK) != 0) {
@@ -522,6 +540,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
 
     }
 
+#undef PUSHEUI
 #undef PUSHADDR
 #undef PUSHADDR6
 
