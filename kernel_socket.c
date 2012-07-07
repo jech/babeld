@@ -143,8 +143,13 @@ fail:
         (a).s6_addr[3] = (i) & 0xff;            \
     } while (0)
 
+#if defined(__APPLE__)
 #define ROUNDUP(a) \
     ((a) > 0 ? (1 + (((a) - 1) | (sizeof(uint32_t) - 1))) : sizeof(uint32_t))
+#else
+#define ROUNDUP(a) \
+    ((a) > 0 ? (1 + (((a) - 1) | (sizeof(long) - 1))) : sizeof(long))
+#endif
 
 static int old_forwarding = -1;
 static int old_accept_redirects = -1;
@@ -230,7 +235,11 @@ kernel_setup(int setup)
 
     rc = 0;
     mib[2] = IPPROTO_ICMPV6;
+#if defined(IPV6CTL_SENDREDIRECTS)
+    mib[3] = IPV6CTL_SENDREDIRECTS;
+#else
     mib[3] = ICMPV6CTL_REDIRACCEPT;
+#endif
     datasize = sizeof(old_accept_redirects);
     if (setup)
         rc = sysctl(mib, 4, &old_accept_redirects, &datasize,
@@ -560,6 +569,7 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
 {
     struct sockaddr *sa;
     void *rta = (void*)rtm + sizeof(struct rt_msghdr);
+    uint32_t excluded_flags = 0;
 
     if(ifindex_lo < 0) {
         ifindex_lo = if_nametoindex("lo0");
@@ -571,12 +581,17 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
     route->metric = 0;
     route->ifindex = rtm->rtm_index;
 
-    /* filter out kernel route (cache) */
-    if((rtm->rtm_flags & RTF_IFSCOPE) != 0)
-        return -1;
-
-    /* filter out our own route */
-    if((rtm->rtm_flags & RTF_PROTO2) != 0)
+#if defined(RTF_IFSCOPE)
+    /* Filter out kernel route on OS X */
+    excluded_flags |= RTF_IFSCOPE;
+#endif
+#if defined(RTF_MULTICAST)
+    /* Filter out multicast route on others BSD */
+    excluded_flags |= RTF_MULTICAST;
+#endif
+    /* Filter out our own route */
+    excluded_flags |= RTF_PROTO2;
+    if((rtm->rtm_flags & excluded_flags) != 0)
         return -1;
 
     /* Prefix */
@@ -592,7 +607,7 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
            return -1;
     } else if(sa->sa_family == AF_INET) {
         struct sockaddr_in *sin = (struct sockaddr_in *)sa;
-#ifdef __APPLE__
+#if defined(IN_LINKLOCAL)
         if(IN_LINKLOCAL(ntohl(sin->sin_addr.s_addr)))
             return -1;
 #endif
@@ -627,8 +642,8 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
         sa = (struct sockaddr *)rta;
         rta += ROUNDUP(sa->sa_len);
         if(!v4mapped(route->prefix)) {
-              struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
-            route->plen = mask2len(sin6->sin6_addr.__u6_addr.__u6_addr8, 16);
+            struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
+            route->plen = mask2len((unsigned char*)&sin6->sin6_addr, 16);
         } else {
             struct sockaddr_in *sin = (struct sockaddr_in *)sa;
             route->plen = mask2len((unsigned char*)&sin->sin_addr, 4);
@@ -778,7 +793,7 @@ kernel_addresses(char *ifname, int ifindex, int ll,
             struct sockaddr_in *sin = (struct sockaddr_in*)ifap->ifa_addr;
             if(ll)
                 goto next;
-#ifdef __APPLE__
+#if defined(IN_LINKLOCAL)
             if(IN_LINKLOCAL(htonl(sin->sin_addr.s_addr)))
                 goto next;
 #endif
