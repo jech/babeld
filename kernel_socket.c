@@ -458,7 +458,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         return -1;
     };
     msg.m_rtm.rtm_index = ifindex;
-    msg.m_rtm.rtm_flags = RTF_UP | RTF_PROTO2;
+    msg.m_rtm.rtm_flags = RTF_UP;
     if(plen == 128) msg.m_rtm.rtm_flags |= RTF_HOST;
     if(metric == KERNEL_INFINITY) {
         msg.m_rtm.rtm_flags |= RTF_BLACKHOLE;
@@ -596,10 +596,6 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
     /* Filter out multicast route on others BSD */
     excluded_flags |= RTF_MULTICAST;
 #endif
-    /* Filter out our own route */
-    excluded_flags |= RTF_PROTO2;
-    if((rtm->rtm_flags & excluded_flags) != 0)
-        return -1;
 
     /* Prefix */
     if(!(rtm->rtm_addrs & RTA_DST))
