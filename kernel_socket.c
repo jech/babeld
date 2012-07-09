@@ -108,6 +108,8 @@ get_sdl(struct sockaddr_dl *sdl, char *ifname)
         return -1;
 
     buffer = (char *)malloc(buf_len);
+    if(buffer == NULL)
+        return -1;
 
     rc = sysctl(mib, 6, buffer, &buf_len, NULL, 0);
     if(rc < 0)
