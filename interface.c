@@ -237,7 +237,11 @@ interface_up(struct interface *ifp, int up)
             return interface_up(ifp, 0);
         }
 
-        resize_receive_buffer(mtu);
+        rc = resize_receive_buffer(mtu);
+        if(rc < 0)
+            fprintf(stderr, "Warning: couldn't resize "
+                    "receive buffer for interface %s (%d) (%d bytes).\n",
+                    ifp->name, ifp->ifindex, mtu);
 
         if(IF_CONF(ifp, wired) == CONFIG_NO) {
             wired = 0;
