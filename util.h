@@ -77,6 +77,7 @@ int timeval_compare(const struct timeval *s1, const struct timeval *s2)
     ATTRIBUTE ((pure));
 void timeval_min(struct timeval *d, const struct timeval *s);
 void timeval_min_sec(struct timeval *d, time_t secs);
+int parse_nat(const char *string) ATTRIBUTE ((pure));
 int parse_msec(const char *string) ATTRIBUTE ((pure));
 void do_debugf(int level, const char *format, ...)
     ATTRIBUTE ((format (printf, 2, 3))) COLD;
