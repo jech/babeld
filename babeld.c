@@ -143,7 +143,9 @@ main(int argc, char **argv)
             }
             break;
         case 'p':
-            protocol_port = atoi(optarg);
+            protocol_port = parse_nat(optarg);
+            if(protocol_port <= 0 || protocol_port > 0xFFFF)
+                goto usage;
             break;
         case 'h':
             default_wireless_hello_interval = parse_msec(optarg);
@@ -158,12 +160,12 @@ main(int argc, char **argv)
                 goto usage;
             break;
         case 'k':
-            kernel_metric = atoi(optarg);
+            kernel_metric = parse_nat(optarg);
             if(kernel_metric < 0 || kernel_metric > 0xFFFF)
                 goto usage;
             break;
         case 'A':
-            allow_duplicates = atoi(optarg);
+            allow_duplicates = parse_nat(optarg);
             if(allow_duplicates < 0 || allow_duplicates > 0xFFFF)
                 goto usage;
             break;
@@ -177,13 +179,17 @@ main(int argc, char **argv)
             state_file = optarg;
             break;
         case 'd':
-            debug = atoi(optarg);
+            debug = parse_nat(optarg);
+            if(debug < 0)
+                goto usage;
             break;
         case 'g':
 #ifdef NO_LOCAL_INTERFACE
             fprintf(stderr, "Warning: no local interface in this version.\n");
 #else
-            local_server_port = atoi(optarg);
+            local_server_port = parse_nat(optarg);
+            if(local_server_port <= 0 || local_server_port > 0xFFFF)
+                goto usage;
 #endif
             break;
         case 'l':
@@ -194,23 +200,25 @@ main(int argc, char **argv)
             break;
         case 'z':
             {
-                char *comma = strchr(optarg, ',');
-                diversity_kind = atoi(optarg);
-                if(comma == NULL)
+                char *comma;
+                diversity_kind = (int)strtol(optarg, &comma, 0);
+                if(*comma == '\0')
                     diversity_factor = 128;
+                else if(*comma == ',')
+                    diversity_factor = parse_nat(comma + 1);
                 else
-                    diversity_factor = atoi(comma + 1);
+                    goto usage;
                 if(diversity_factor <= 0 || diversity_factor > 256)
                     goto usage;
             }
             break;
         case 't':
-            export_table = atoi(optarg);
+            export_table = parse_nat(optarg);
             if(export_table < 0 || export_table > 0xFFFF)
                 goto usage;
             break;
         case 'T':
-            import_table = atoi(optarg);
+            import_table = parse_nat(optarg);
             if(import_table < 0 || import_table > 0xFFFF)
                 goto usage;
             break;
