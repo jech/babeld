@@ -314,13 +314,13 @@ parse_filter(gnc_t gnc, void *closure)
                 goto error;
             filter->plen_ge = MAX(filter->plen_ge, p);
         } else if(strcmp(token, "neigh") == 0) {
-            unsigned char *neigh;
+            unsigned char *neigh = NULL;
             c = getip(c, &neigh, NULL, gnc, closure);
             if(c < -1)
                 goto error;
             filter->neigh = neigh;
         } else if(strcmp(token, "id") == 0) {
-            unsigned char *id;
+            unsigned char *id = NULL;
             c = getid(c, &id, gnc, closure);
             if(c < -1)
                 goto error;
