@@ -42,6 +42,13 @@ struct filter *output_filters = NULL;
 struct filter *redistribute_filters = NULL;
 struct interface_conf *interface_confs = NULL;
 
+/* This file implements a recursive descent parser with one character
+   lookahead.  The looked-ahead character is returned from most
+   functions.
+
+   Throughout this file, -1 signals that the look-ahead is EOF,
+   while -2 signals an error. */
+
 /* get_next_char callback */
 typedef int (*gnc_t)(void*);
 
@@ -70,9 +77,7 @@ getword(int c, char **token_r, gnc_t gnc, void *closure)
     int i = 0;
 
     c = skip_whitespace(c, gnc, closure);
-    if(c < 0)
-        return c;
-    if(c == '"' || c == '\n')
+    if(c < 0 || c == '"' || c == '\n')
         return -2;
     do {
         if(i >= 255) return -2;
@@ -110,6 +115,10 @@ getstring(int c, char **token_r, gnc_t gnc, void *closure)
         }
         if(c == '\\')
             c = gnc(closure);
+
+        if(c < 0)
+            return -2;
+
         buf[i++] = c;
         c = gnc(closure);
     }
