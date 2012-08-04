@@ -557,7 +557,7 @@ parse_config(gnc_t gnc, void *closure)
     char *token;
 
     c = gnc(closure);
-    if(c < 2)
+    if(c < -1)
         return -1;
 
     while(c >= 0) {
