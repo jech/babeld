@@ -712,6 +712,25 @@ isbridge(const char *ifname, int ifindex)
     return 0;
 }
 
+static int
+isbatman(const char *ifname, int ifindex)
+{
+    char buf[256];
+    int rc;
+
+    rc = snprintf(buf, 256, "/sys/devices/virtual/net/%s/mesh", ifname);
+    if(rc < 0 || rc >= 256)
+        return -1;
+
+    if(access(buf, F_OK) >= 0)
+        return 1;
+
+    if(errno != ENOENT)
+        return -1;
+
+    return 0;
+}
+
 int
 kernel_interface_wireless(const char *ifname, int ifindex)
 {
@@ -721,10 +740,8 @@ kernel_interface_wireless(const char *ifname, int ifindex)
     struct ifreq req;
     int rc;
 
-    if(isbridge(ifname, ifindex) != 0) {
-        /* Give up. */
+    if(isbridge(ifname, ifindex) != 0 || isbatman(ifname, ifindex) != 0)
         return -1;
-    }
 
     memset(&req, 0, sizeof(req));
     strncpy(req.ifr_name, ifname, sizeof(req.ifr_name));
