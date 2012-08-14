@@ -422,21 +422,17 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
        memcmp(newgate, gate, 16) == 0 && newifindex == ifindex)
       return 0;
 
+
     if(operation == ROUTE_MODIFY) {
-        /* Do not use ROUTE_MODIFY when changing to a neighbour.
-           It is the only way to remove the "gateway" flag. */
-        if(ipv4 && plen == 128 && memcmp(dest, newgate, 16) == 0) {
-            kernel_route(ROUTE_FLUSH, dest, plen,
-                         gate, ifindex, metric,
-                         NULL, 0, 0);
-            return kernel_route(ROUTE_ADD, dest, plen,
-                                newgate, newifindex, newmetric,
-                                NULL, 0, 0);
-        } else {
-            metric = newmetric;
-            gate = newgate;
-            ifindex = newifindex;
-        }
+
+        /* Avoid atomic route changes that is buggy on OS X. */
+        kernel_route(ROUTE_FLUSH, dest, plen,
+                     gate, ifindex, metric,
+                     NULL, 0, 0);
+        return kernel_route(ROUTE_ADD, dest, plen,
+                            newgate, newifindex, newmetric,
+                            NULL, 0, 0);
+
     }
 
     kdebugf("kernel_route: %s %s/%d metric %d dev %d nexthop %s\n",
