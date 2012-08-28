@@ -598,7 +598,7 @@ change_smoothing_half_life(int half_life)
     case 3: two_to_the_one_over_hl = 82570; break;
     case 4: two_to_the_one_over_hl = 77935; break;
     default:
-        /* 1/2^(1/x) is 1 + log(2)/x + O(1/x^2) at infinity. */
+        /* 2^(1/x) is 1 + log(2)/x + O(1/x^2) at infinity. */
         two_to_the_one_over_hl = 0x10000 + 45426 / half_life;
     }
 }
