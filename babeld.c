@@ -122,7 +122,7 @@ main(int argc, char **argv)
     protocol_port = 6696;
 
     while(1) {
-        opt = getopt(argc, argv, "m:p:h:H:i:k:A:PsuS:d:g:lwz:t:T:c:C:DL:I:");
+        opt = getopt(argc, argv, "m:p:h:H:i:k:A:suS:d:g:lwz:t:T:c:C:DL:I:");
         if(opt < 0)
             break;
 
