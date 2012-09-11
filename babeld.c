@@ -123,7 +123,7 @@ main(int argc, char **argv)
     change_smoothing_half_life(4);
 
     while(1) {
-        opt = getopt(argc, argv, "m:p:h:H:i:k:A:PsuS:d:g:lwz:M:t:T:c:C:DL:I:");
+        opt = getopt(argc, argv, "m:p:h:H:i:k:A:suS:d:g:lwz:M:t:T:c:C:DL:I:");
         if(opt < 0)
             break;
 
