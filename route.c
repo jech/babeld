@@ -627,7 +627,7 @@ route_smoothed_metric(struct babel_route *route)
         while(route->smoothed_metric_time < now.tv_sec) {
             diff = metric - route->smoothed_metric;
             route->smoothed_metric +=
-                roughly(diff) / two_to_the_one_over_hl / 0x10000;
+                roughly(diff) * (two_to_the_one_over_hl - 0x10000) / 0x10000;
             route->smoothed_metric_time++;
         }
 
