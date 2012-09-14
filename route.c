@@ -611,7 +611,7 @@ route_smoothed_metric(struct babel_route *route)
 
     if(smoothing_half_life <= 0 ||
        /* Protect against clock stepping. */
-       route->smoothed_metric_time >= now.tv_sec ||
+       route->smoothed_metric_time > now.tv_sec ||
        route->smoothed_metric == metric) {
         route->smoothed_metric = metric;
         route->smoothed_metric_time = now.tv_sec;
