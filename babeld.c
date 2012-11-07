@@ -100,7 +100,7 @@ int
 main(int argc, char **argv)
 {
     struct sockaddr_in6 sin6;
-    int rc, fd, i, opt;
+    int rc, fd, i, opt, random_id = 0;
     time_t expiry_time, source_expiry_time, kernel_dump_time;
     char *config_file = NULL;
     void *vrc;
@@ -123,7 +123,7 @@ main(int argc, char **argv)
     change_smoothing_half_life(4);
 
     while(1) {
-        opt = getopt(argc, argv, "m:p:h:H:i:k:A:suS:d:g:lwz:M:t:T:c:C:DL:I:");
+        opt = getopt(argc, argv, "m:p:h:H:i:k:A:sruS:d:g:lwz:M:t:T:c:C:DL:I:");
         if(opt < 0)
             break;
 
@@ -172,6 +172,9 @@ main(int argc, char **argv)
             break;
         case 's':
             split_horizon = 0;
+            break;
+        case 'r':
+            random_id = 1;
             break;
         case 'u':
             keep_unfeasible = 1;
@@ -377,6 +380,9 @@ main(int argc, char **argv)
         goto fail;
     }
 
+    if(random_id)
+        goto random_id;
+
     FOR_ALL_INTERFACES(ifp) {
         /* ifp->ifindex is not necessarily valid at this point */
         int ifindex = if_nametoindex(ifp->name);
@@ -408,6 +414,7 @@ main(int argc, char **argv)
     fprintf(stderr,
             "Warning: couldn't find router id -- using random value.\n");
 
+ random_id:
     rc = read_random_bytes(myid, 8);
     if(rc < 0) {
         perror("read(random)");
@@ -452,7 +459,7 @@ main(int argc, char **argv)
                     gettimeofday(&realnow, NULL);
                     if(memcmp(sid, myid, 8) == 0)
                         myseqno = seqno_plus(s, 1);
-                    else
+                    else if(!random_id)
                         fprintf(stderr, "ID mismatch in babel-state.\n");
                 }
             } else {
@@ -787,7 +794,7 @@ main(int argc, char **argv)
             "                "
             "[-h hello] [-H wired_hello] [-z kind[,factor]]\n"
             "                "
-            "[-k metric] [-A metric] [-s] [-l] [-w] [-u] [-g port]\n"
+            "[-k metric] [-A metric] [-s] [-l] [-w] [-r] [-u] [-g port]\n"
             "                "
             "[-t table] [-T table] [-c file] [-C statement]\n"
             "                "
