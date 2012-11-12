@@ -475,7 +475,7 @@ parse_ifconf(gnc_t gnc, void *closure)
 
             free(t);
 
-            if((if_conf->channel < 1 || if_conf->channel > 254) &&
+            if((if_conf->channel < 1 || if_conf->channel > 255) &&
                if_conf->channel != IF_CHANNEL_NONINTERFERING)
                 goto error;
         } else {
