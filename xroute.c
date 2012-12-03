@@ -129,9 +129,9 @@ xroutes_estimate()
 void
 for_all_xroutes(void (*f)(struct xroute*, void*), void *closure)
 {
-    int i;
+    int i, n = numxroutes;
 
-    for(i = 0; i < numxroutes; i++)
+    for(i = 0; i < n; i++)
         (*f)(&xroutes[i], closure);
 }
 

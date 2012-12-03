@@ -320,9 +320,9 @@ flush_interface_routes(struct interface *ifp, int v4only)
 void
 for_all_routes(void (*f)(struct babel_route*, void*), void *closure)
 {
-    int i;
+    int i, n = route_slots;
 
-    for(i = 0; i < route_slots; i++) {
+    for(i = 0; i < n; i++) {
         struct babel_route *r = routes[i];
         while(r) {
             (*f)(r, closure);
@@ -334,9 +334,9 @@ for_all_routes(void (*f)(struct babel_route*, void*), void *closure)
 void
 for_all_installed_routes(void (*f)(struct babel_route*, void*), void *closure)
 {
-    int i;
+    int i, n = route_slots;
 
-    for(i = 0; i < route_slots; i++) {
+    for(i = 0; i < n; i++) {
         if(routes[i]->installed)
             (*f)(routes[i], closure);
     }
