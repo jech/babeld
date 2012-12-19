@@ -91,13 +91,19 @@ void
 local_notify_self()
 {
     char buf[512];
+    char host[64];
     int rc;
-    
+
     if(local_socket < 0)
         return;
 
-    rc = snprintf(buf, 512, "add self alamakota id %s\n",
-                  format_eui64(myid));
+    rc = gethostname(host, 64);
+
+    if(rc < 0)
+        strncpy(host, "alamakota", 64);
+
+    rc = snprintf(buf, 512, "add self %64s id %s\n",
+                  host, format_eui64(myid));
 
     if(rc < 0 || rc >= 512)
         goto fail;
