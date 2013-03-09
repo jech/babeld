@@ -502,6 +502,8 @@ change_route_metric(struct babel_route *route,
 static void
 retract_route(struct babel_route *route)
 {
+    /* We cannot simply remove the route from the kernel, as that might
+       cause a routing loop -- see RFC 6126 Sections 2.8 and 3.5.5. */
     change_route_metric(route, INFINITY, INFINITY, 0);
 }
 
