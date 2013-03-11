@@ -568,7 +568,7 @@ kernel_setup(int setup)
 
         if(old_rp_filter >= 0) {
             rc = write_proc("/proc/sys/net/ipv4/conf/all/rp_filter",
-                            old_accept_redirects);
+                            old_rp_filter);
             if(rc < 0) {
                 perror("Couldn't write rp_filter knob.\n");
                 return -1;
