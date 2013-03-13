@@ -611,10 +611,10 @@ route_smoothed_metric(struct babel_route *route)
 {
     int metric = route_metric(route);
 
-    if(smoothing_half_life <= 0 ||
-       /* Protect against clock stepping. */
-       route->smoothed_metric_time > now.tv_sec ||
-       route->smoothed_metric == metric) {
+    if(smoothing_half_life <= 0 ||                 /* no smoothing */
+       metric >= INFINITY ||                       /* route retracted */
+       route->smoothed_metric_time > now.tv_sec || /* clock stepped */
+       route->smoothed_metric == metric) {         /* already converged */
         route->smoothed_metric = metric;
         route->smoothed_metric_time = now.tv_sec;
     } else {
