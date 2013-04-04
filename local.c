@@ -260,6 +260,9 @@ local_notify_all()
     }
     for_all_xroutes(local_notify_xroute_callback, NULL);
     for_all_routes(local_notify_route_callback, NULL);
+    rc = write_timeout(local_socket, "done\n", 5);
+    if(rc < 0)
+        goto fail;
     return;
 
  fail:
