@@ -289,11 +289,10 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    format_address(from), ifp->name,
                    format_address(address));
             if(message[2] == 0 || interface_ll_address(ifp, address)) {
-                int changed = txcost != neigh->txcost;
                 neigh->txcost = txcost;
                 neigh->ihu_time = now;
                 neigh->ihu_interval = interval;
-                update_neighbour_metric(neigh, changed);
+                update_neighbour_metric(neigh, 1);
                 if(interval > 0)
                     schedule_neighbours_check(interval * 10 * 3, 0);
             }
