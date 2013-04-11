@@ -674,7 +674,8 @@ main(int argc, char **argv)
         if(timeval_compare(&check_neighbours_timeout, &now) < 0) {
             int msecs;
             msecs = check_neighbours();
-            msecs = MAX(msecs, 10);
+            /* Multiply by 3/2 to allow neighbours to expire. */
+            msecs = MAX(3 * msecs / 2, 10);
             schedule_neighbours_check(msecs, 1);
         }
 
@@ -818,13 +819,12 @@ main(int argc, char **argv)
     exit(1);
 }
 
-/* Schedule a neighbours check after roughly 3/2 times msecs have elapsed. */
 void
 schedule_neighbours_check(int msecs, int override)
 {
     struct timeval timeout;
 
-    timeval_add_msec(&timeout, &now, roughly(msecs * 3 / 2));
+    timeval_add_msec(&timeout, &now, roughly(msecs));
     if(override)
         check_neighbours_timeout = timeout;
     else

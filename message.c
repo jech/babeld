@@ -274,7 +274,8 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             changed = update_neighbour(neigh, seqno, interval);
             update_neighbour_metric(neigh, changed);
             if(interval > 0)
-                schedule_neighbours_check(interval * 10, 0);
+                /* Multiply by 3/2 to allow hellos to expire. */
+                schedule_neighbours_check(interval * 15, 0);
         } else if(type == MESSAGE_IHU) {
             unsigned short txcost, interval;
             unsigned char address[16];
@@ -295,7 +296,8 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 neigh->ihu_interval = interval;
                 update_neighbour_metric(neigh, changed);
                 if(interval > 0)
-                    schedule_neighbours_check(interval * 10 * 3, 0);
+                    /* Multiply by 3/2 to allow neighbours to expire. */
+                    schedule_neighbours_check(interval * 45, 0);
             }
         } else if(type == MESSAGE_ROUTER_ID) {
             if(len < 10) {
