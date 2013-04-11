@@ -84,7 +84,7 @@ static int kernel_routes_changed = 0;
 static int kernel_link_changed = 0;
 static int kernel_addr_changed = 0;
 
-struct timeval check_neighbours_timeout;
+struct timeval check_neighbours_timeout, check_interfaces_timeout;
 
 static volatile sig_atomic_t exiting = 0, dumping = 0, reopening = 0;
 
@@ -490,18 +490,21 @@ main(int argc, char **argv)
     rc = resize_receive_buffer(1500);
     if(rc < 0)
         goto fail;
-    check_interfaces();
     if(receive_buffer == NULL)
         goto fail;
+
+    check_interfaces();
 
     rc = check_xroutes(0);
     if(rc < 0)
         fprintf(stderr, "Warning: couldn't check exported routes.\n");
+
     kernel_routes_changed = 0;
     kernel_link_changed = 0;
     kernel_addr_changed = 0;
     kernel_dump_time = now.tv_sec + roughly(30);
     schedule_neighbours_check(5000, 1);
+    schedule_interfaces_check(30000, 1);
     expiry_time = now.tv_sec + roughly(30);
     source_expiry_time = now.tv_sec + roughly(300);
 
@@ -539,6 +542,7 @@ main(int argc, char **argv)
         gettime(&now);
 
         tv = check_neighbours_timeout;
+        timeval_min(&tv, &check_interfaces_timeout);
         timeval_min_sec(&tv, expiry_time);
         timeval_min_sec(&tv, source_expiry_time);
         timeval_min_sec(&tv, kernel_dump_time);
@@ -679,8 +683,12 @@ main(int argc, char **argv)
             schedule_neighbours_check(msecs, 1);
         }
 
-        if(now.tv_sec >= expiry_time) {
+        if(timeval_compare(&check_interfaces_timeout, &now) < 0) {
             check_interfaces();
+            schedule_interfaces_check(30000, 1);
+        }
+
+        if(now.tv_sec >= expiry_time) {
             expire_routes();
             expire_resend();
             expiry_time = now.tv_sec + roughly(30);
@@ -829,6 +837,18 @@ schedule_neighbours_check(int msecs, int override)
         check_neighbours_timeout = timeout;
     else
         timeval_min(&check_neighbours_timeout, &timeout);
+}
+
+void
+schedule_interfaces_check(int msecs, int override)
+{
+    struct timeval timeout;
+
+    timeval_add_msec(&timeout, &now, roughly(msecs));
+    if(override)
+        check_interfaces_timeout = timeout;
+    else
+        timeval_min(&check_interfaces_timeout, &timeout);
 }
 
 int
