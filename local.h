@@ -30,16 +30,22 @@ struct xroute;
 
 #ifndef NO_LOCAL_INTERFACE
 
+#ifndef MAX_LOCAL_SOCKETS
+#define MAX_LOCAL_SOCKETS 4
+#endif
+
+extern int local_server_socket, local_sockets[MAX_LOCAL_SOCKETS];
+extern int num_local_sockets;
+extern int local_server_port;
+
 int local_read(int s);
-void local_notify_self(void);
 void local_notify_neighbour(struct neighbour *neigh, int kind);
 void local_notify_xroute(struct xroute *xroute, int kind);
 void local_notify_route(struct babel_route *route, int kind);
-void local_notify_all(void);
+void local_notify_all_1(int s);
 
 #else
 
-#define local_notify_self() do {} while(0)
 #define local_notify_neighbour(n, k) do {} while(0)
 #define local_notify_xroute(x, k) do {} while(0)
 #define local_notify_route(r, k) do {} while(0)
