@@ -87,7 +87,6 @@ extern int default_wireless_hello_interval, default_wired_hello_interval;
 extern int resend_delay;
 extern int link_detect;
 extern int all_wireless;
-extern int local_socket;
 
 extern unsigned char myid[8];
 

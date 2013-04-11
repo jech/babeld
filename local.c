@@ -41,6 +41,10 @@ int dummy;
 
 #else
 
+int local_server_socket = -1, local_sockets[MAX_LOCAL_SOCKETS];
+int num_local_sockets = 0;
+int local_server_port = -1;
+
 int
 local_read(int s)
 {
@@ -88,33 +92,30 @@ write_timeout(int fd, const void *buf, int len)
 }
 
 void
-local_notify_self()
+local_notify_self_1(int s)
 {
     char buf[512];
     char host[64];
     int rc;
-
-    if(local_socket < 0)
-        return;
 
     rc = gethostname(host, 64);
 
     if(rc < 0)
         strncpy(host, "alamakota", 64);
 
-    rc = snprintf(buf, 512, "add self %64s id %s\n",
+    rc = snprintf(buf, 512, "add self %.64s id %s\n",
                   host, format_eui64(myid));
 
     if(rc < 0 || rc >= 512)
         goto fail;
 
-    rc = write_timeout(local_socket, buf, rc);
+    rc = write_timeout(s, buf, rc);
     if(rc < 0)
         goto fail;
     return;
 
  fail:
-    shutdown(local_socket, 1);
+    shutdown(s, 1);
     return;
 }
 
@@ -129,14 +130,11 @@ local_kind(int kind)
     }
 }
 
-void
-local_notify_neighbour(struct neighbour *neigh, int kind)
+static void
+local_notify_neighbour_1(int s, struct neighbour *neigh, int kind)
 {
     char buf[512];
     int rc;
-    
-    if(local_socket < 0)
-        return;
 
     rc = snprintf(buf, 512,
                   "%s neighbour %lx address %s "
@@ -155,52 +153,62 @@ local_notify_neighbour(struct neighbour *neigh, int kind)
     if(rc < 0 || rc >= 512)
         goto fail;
 
-    rc = write_timeout(local_socket, buf, rc);
+    rc = write_timeout(s, buf, rc);
     if(rc < 0)
         goto fail;
     return;
 
  fail:
-    shutdown(local_socket, 1);
+    shutdown(s, 1);
     return;
 }
 
 void
-local_notify_xroute(struct xroute *xroute, int kind)
+local_notify_neighbour(struct neighbour *neigh, int kind)
+{
+    int i;
+    for(i = 0; i < num_local_sockets; i++)
+        local_notify_neighbour_1(local_sockets[i], neigh, kind);
+}
+
+static void
+local_notify_xroute_1(int s, struct xroute *xroute, int kind)
 {
     char buf[512];
     int rc;
-
-    if(local_socket < 0)
-        return;
 
     rc = snprintf(buf, 512, "%s xroute %s prefix %s metric %d\n",
                   local_kind(kind),
                   format_prefix(xroute->prefix, xroute->plen),
                   format_prefix(xroute->prefix, xroute->plen),
                   xroute->metric);
-    
+
     if(rc < 0 || rc >= 512)
         goto fail;
 
-    rc = write_timeout(local_socket, buf, rc);
+    rc = write_timeout(s, buf, rc);
     if(rc < 0)
         goto fail;
     return;
 
  fail:
-    shutdown(local_socket, 1);
+    shutdown(s, 1);
     return;
 }
 
 void
-local_notify_route(struct babel_route *route, int kind)
+local_notify_xroute(struct xroute *xroute, int kind)
+{
+    int i;
+    for(i = 0; i < num_local_sockets; i++)
+        local_notify_xroute_1(local_sockets[i], xroute, kind);
+}
+
+static void
+local_notify_route_1(int s, struct babel_route *route, int kind)
 {
     char buf[512];
     int rc;
-
-    if(local_socket < 0)
-        return;
 
     rc = snprintf(buf, 512,
                   "%s route %s-%lx prefix %s installed %s "
@@ -214,59 +222,64 @@ local_notify_route(struct babel_route *route, int kind)
                   route_metric(route), route->refmetric,
                   format_address(route->neigh->address),
                   route->neigh->ifp->name);
-    
+
     if(rc < 0 || rc >= 512)
         goto fail;
 
-    rc = write_timeout(local_socket, buf, rc);
+    rc = write_timeout(s, buf, rc);
     if(rc < 0)
         goto fail;
     return;
 
  fail:
-    shutdown(local_socket, 1);
+    shutdown(s, 1);
     return;
+}
+
+void
+local_notify_route(struct babel_route *route, int kind)
+{
+    int i;
+    for(i = 0; i < num_local_sockets; i++)
+        local_notify_route_1(local_sockets[i], route, kind);
 }
 
 static void
 local_notify_xroute_callback(struct xroute *xroute, void *closure)
 {
-    local_notify_xroute(xroute, LOCAL_ADD);
+    local_notify_xroute_1(*(int*)xroute, xroute, LOCAL_ADD);
 }
 
 static void
 local_notify_route_callback(struct babel_route *route, void *closure)
 {
-    local_notify_route(route, LOCAL_ADD);
+    local_notify_route_1(*(int*)closure, route, LOCAL_ADD);
 }
 
 void
-local_notify_all()
+local_notify_all_1(int s)
 {
     int rc;
     struct neighbour *neigh;
     const char *header = "BABEL 0.0\n";
 
-    if(local_socket < 0)
-        return;
-
-    rc = write_timeout(local_socket, header, strlen(header));
+    rc = write_timeout(s, header, strlen(header));
     if(rc < 0)
         goto fail;
 
-    local_notify_self();
+    local_notify_self_1(s);
     FOR_ALL_NEIGHBOURS(neigh) {
-        local_notify_neighbour(neigh, LOCAL_ADD);
+        local_notify_neighbour_1(s, neigh, LOCAL_ADD);
     }
-    for_all_xroutes(local_notify_xroute_callback, NULL);
-    for_all_routes(local_notify_route_callback, NULL);
-    rc = write_timeout(local_socket, "done\n", 5);
+    for_all_xroutes(local_notify_xroute_callback, &s);
+    for_all_routes(local_notify_route_callback, &s);
+    rc = write_timeout(s, "done\n", 5);
     if(rc < 0)
         goto fail;
     return;
 
  fail:
-    shutdown(local_socket, 1);
+    shutdown(s, 1);
     return;
 }
 

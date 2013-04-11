@@ -88,9 +88,6 @@ struct timeval check_neighbours_timeout;
 
 static volatile sig_atomic_t exiting = 0, dumping = 0, reopening = 0;
 
-int local_server_socket = -1, local_socket = -1;
-int local_server_port = -1;
-
 static int kernel_routes_callback(int changed, void *closure);
 static void init_signals(void);
 static void dump_tables(FILE *out);
@@ -564,12 +561,14 @@ main(int argc, char **argv)
                 maxfd = MAX(maxfd, kernel_socket);
             }
 #ifndef NO_LOCAL_INTERFACE
-            if(local_socket >= 0) {
-                FD_SET(local_socket, &readfds);
-                maxfd = MAX(maxfd, local_socket);
-            } else if(local_server_socket >= 0) {
+            if(local_server_socket >= 0 &&
+               num_local_sockets < MAX_LOCAL_SOCKETS) {
                 FD_SET(local_server_socket, &readfds);
                 maxfd = MAX(maxfd, local_server_socket);
+            }
+            for(i = 0; i < num_local_sockets; i++) {
+                FD_SET(local_sockets[i], &readfds);
+                maxfd = MAX(maxfd, local_sockets[i]);
             }
 #endif
             rc = select(maxfd + 1, &readfds, NULL, NULL, &tv);
@@ -618,26 +617,31 @@ main(int argc, char **argv)
 #ifndef NO_LOCAL_INTERFACE
         if(local_server_socket >= 0 &&
            FD_ISSET(local_server_socket, &readfds)) {
-            if(local_socket >= 0) {
-                close(local_socket);
-                local_socket = -1;
-            }
-            local_socket = accept(local_server_socket, NULL, NULL);
-            if(local_socket < 0) {
+            int s;
+            s = accept(local_server_socket, NULL, NULL);
+            if(s < 0) {
                 if(errno != EINTR && errno != EAGAIN)
                     perror("accept(local_server_socket)");
+            } else if(num_local_sockets >= MAX_LOCAL_SOCKETS) {
+                /* This should never happen, since we don't select for
+                   the server socket in this case.  But I'm paranoid. */
+                fprintf(stderr, "Internal error: too many local sockets.\n");
+                close(s);
             } else {
-                local_notify_all();
+                local_sockets[num_local_sockets++] = s;
+                local_notify_all_1(s);
             }
         }
 
-        if(local_socket >= 0 && FD_ISSET(local_socket, &readfds)) {
-            rc = local_read(local_socket);
-            if(rc <= 0) {
-                if(rc < 0)
-                    perror("read(local_socket)");
-                close(local_socket);
-                local_socket = -1;
+        for(i = 0; i < num_local_sockets; i++) {
+            if(FD_ISSET(local_sockets[i], &readfds)) {
+                rc = local_read(local_sockets[i]);
+                if(rc <= 0) {
+                    if(rc < 0)
+                        perror("read(local_socket)");
+                    close(local_sockets[i]);
+                    local_sockets[i] = local_sockets[--num_local_sockets];
+                }
             }
         }
 #endif
