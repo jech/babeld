@@ -102,7 +102,7 @@ local_notify_self()
     if(rc < 0)
         strncpy(host, "alamakota", 64);
 
-    rc = snprintf(buf, 512, "add self %64s id %s\n",
+    rc = snprintf(buf, 512, "add self %.64s id %s\n",
                   host, format_eui64(myid));
 
     if(rc < 0 || rc >= 512)
