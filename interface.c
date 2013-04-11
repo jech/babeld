@@ -198,14 +198,14 @@ interface_up(struct interface *ifp, int up)
         if(ifp->ifindex <= 0) {
             fprintf(stderr,
                     "Upping unknown interface %s.\n", ifp->name);
-            return interface_up(ifp, 0);
+            goto fail;
         }
 
         rc = kernel_setup_interface(1, ifp->name, ifp->ifindex);
         if(rc < 0) {
             fprintf(stderr, "kernel_setup_interface(%s, %d) failed.\n",
                     ifp->name, ifp->ifindex);
-            return interface_up(ifp, 0);
+            goto fail;
         }
 
         mtu = kernel_interface_mtu(ifp->name, ifp->ifindex);
@@ -234,7 +234,7 @@ interface_up(struct interface *ifp, int up)
         if(ifp->sendbuf == NULL) {
             fprintf(stderr, "Couldn't allocate sendbuf.\n");
             ifp->bufsize = 0;
-            return interface_up(ifp, 0);
+            goto fail;
         }
 
         rc = resize_receive_buffer(mtu);
@@ -311,24 +311,21 @@ interface_up(struct interface *ifp, int up)
         memcpy(&mreq.ipv6mr_multiaddr, protocol_group, 16);
         mreq.ipv6mr_interface = ifp->ifindex;
 
-        rc = setsockopt(protocol_socket, IPPROTO_IPV6, IPV6_JOIN_GROUP,
-                        (char*)&mreq, sizeof(mreq));
-        if(rc < 0) {
-            perror("setsockopt(IPV6_JOIN_GROUP)");
-            /* This is probably due to a missing link-local address,
-               so down this interface, and wait until the main loop
-               tries to up it again. */
-            return interface_up(ifp, 0);
-        }
-
         if(ifp->ll)
             free(ifp->ll);
         ifp->numll = 0;
         ifp->ll = NULL;
         rc = kernel_addresses(ifp->name, ifp->ifindex, 1, ll, 32);
         if(rc < 0) {
-            perror("kernel_ll_addresses");
-        } else if(rc > 0) {
+            perror("kernel_addresses(link local)");
+            goto fail;
+        } else if(rc == 0) {
+            fprintf(stderr, "Interface %s has no link-local address.\n",
+                    ifp->name);
+            /* Most probably DAD hasn't finished yet.  Reschedule us
+               real soon. */
+            goto fail_retry;
+        } else {
             ifp->ll = malloc(16 * rc);
             if(ifp->ll == NULL) {
                 perror("malloc(ll)");
@@ -339,6 +336,14 @@ interface_up(struct interface *ifp, int up)
                 ifp->numll = rc;
             }
         }
+
+        rc = setsockopt(protocol_socket, IPPROTO_IPV6, IPV6_JOIN_GROUP,
+                        (char*)&mreq, sizeof(mreq));
+        if(rc < 0) {
+            perror("setsockopt(IPV6_JOIN_GROUP)");
+            goto fail;
+        }
+
         check_interface_channel(ifp);
         update_interface_metric(ifp);
         rc = check_interface_ipv4(ifp);
@@ -384,6 +389,13 @@ interface_up(struct interface *ifp, int up)
     }
 
     return 1;
+
+ fail_retry:
+    schedule_interfaces_check(2000, 0);
+ fail:
+    assert(up);
+    interface_up(ifp, 0);
+    return -1;
 }
 
 int
@@ -428,6 +440,8 @@ check_interfaces(void)
         }
 
         if(if_up(ifp)) {
+            /* Bother, said Pooh.  We should probably check for a change
+               in link-local and IPv4 addresses at this point. */
             check_interface_channel(ifp);
             rc = check_interface_ipv4(ifp);
             if(rc > 0) {
