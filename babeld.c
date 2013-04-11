@@ -633,16 +633,22 @@ main(int argc, char **argv)
             }
         }
 
-        for(i = 0; i < num_local_sockets; i++) {
+        i = 0;
+        while(i < num_local_sockets) {
             if(FD_ISSET(local_sockets[i], &readfds)) {
                 rc = local_read(local_sockets[i]);
                 if(rc <= 0) {
-                    if(rc < 0)
+                    if(rc < 0) {
+                        if(errno == EINTR)
+                            continue;
                         perror("read(local_socket)");
+                    }
                     close(local_sockets[i]);
                     local_sockets[i] = local_sockets[--num_local_sockets];
+                    continue;
                 }
             }
+            i++;
         }
 #endif
 
