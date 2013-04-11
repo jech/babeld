@@ -328,7 +328,11 @@ interface_up(struct interface *ifp, int up)
         rc = kernel_addresses(ifp->name, ifp->ifindex, 1, ll, 32);
         if(rc < 0) {
             perror("kernel_ll_addresses");
-        } else if(rc > 0) {
+        } else if(rc == 0) {
+            fprintf(stderr, "Interface %s has no link-local address.\n",
+                    ifp->name);
+            return interface_up(ifp, 0);
+        } else {
             ifp->ll = malloc(16 * rc);
             if(ifp->ll == NULL) {
                 perror("malloc(ll)");
