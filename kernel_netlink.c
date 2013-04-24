@@ -1089,6 +1089,10 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
     if(rtm->rtm_src_len != 0)
         return 0;
 
+    /* Ignore cached routes, advertised by some kernels (linux 3.x). */
+    if(rtm->rtm_flags & RTM_F_CLONED)
+        return 0;
+
     if(data)
         current_route = &routes[*found];
     else
