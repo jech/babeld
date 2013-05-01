@@ -79,6 +79,8 @@ const unsigned char ones[16] =
 
 int protocol_port;
 unsigned char protocol_group[16];
+unsigned char source_specific_addr[16];
+unsigned char source_specific_plen;
 int protocol_socket = -1;
 int kernel_socket = -1;
 static int kernel_routes_changed = 0;
@@ -121,11 +123,19 @@ main(int argc, char **argv)
     change_smoothing_half_life(4);
 
     while(1) {
-        opt = getopt(argc, argv, "m:p:h:H:i:k:A:sruS:d:g:lwz:M:t:T:c:C:DL:I:");
+        opt = getopt(argc, argv, "a:m:p:h:H:i:k:A:sruS:d:g:lwz:M:t:T:c:C:DL:I:");
         if(opt < 0)
             break;
 
         switch(opt) {
+        case 'a':
+            rc = parse_net(optarg, source_specific_addr,
+                           &source_specific_plen, NULL);
+            if (rc < 0) {
+                fprintf(stderr, "invalid source-specific prefix\n");
+                goto usage;
+            }
+            break;
         case 'm':
             rc = parse_address(optarg, protocol_group, NULL);
             if(rc < 0)
@@ -820,6 +830,8 @@ main(int argc, char **argv)
             "[-t table] [-T table] [-c file] [-C statement]\n"
             "                "
             "[-d level] [-D] [-L logfile] [-I pidfile]\n"
+            "                "
+            "[-a source-specific-prefix]\n"
             "                "
             "[id] interface...\n",
             argv[0]);

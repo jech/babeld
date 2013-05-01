@@ -17,6 +17,9 @@ While it is optimised for wireless mesh networks, Babel will also work
 efficiently on wired networks.
 .SH OPTIONS
 .TP
+.BI \-a " source-specific-address"
+Specify the source specific prefix of the host. For example 192.168.7.0/24.
+.TP
 .BI \-m " multicast-address"
 Specify the link-local multicast address to be used by the protocol.
 The default is
