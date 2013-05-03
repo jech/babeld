@@ -976,7 +976,7 @@ dump_route_callback(struct babel_route *route, void *closure)
                 break;
             if(k > 0)
                 channels[j++] = ',';
-            snprintf(channels + j, 100 - j, "%d", route->channels[k]);
+            snprintf(channels + j, 100 - j, "%u", (unsigned)route->channels[k]);
             j = strlen(channels);
         }
         snprintf(channels + j, 100 - j, ")");
