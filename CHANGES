@@ -1,4 +1,4 @@
-babeld-1.4.0 (unreleased):
+3 May 2013: babeld-1.4.0
 
   * Change the route selection algorithm to used a smoothed metric in
     addition to the "real" metric.  This reduces the amount of route
