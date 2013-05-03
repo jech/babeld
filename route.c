@@ -656,6 +656,11 @@ route_acceptable(struct babel_route *route, int feasible,
     return 1;
 }
 
+/* Find the best route according to the weak ordering.  Any
+   linearisation of the strong ordering (see consider_route) will do,
+   we use sm <= sm'.  We could probably use a lexical ordering, but
+   that's probably overkill. */
+
 struct babel_route *
 find_best_route(const unsigned char *prefix, unsigned char plen, int feasible,
                 struct neighbour *exclude)
@@ -902,7 +907,10 @@ send_unfeasible_request(struct neighbour *neigh, int force,
     }
 }
 
-/* This takes a feasible route and decides whether to install it. */
+/* This takes a feasible route and decides whether to install it.
+   This uses the strong ordering, which is defined by sm <= sm' AND
+   m <= m'.  This ordering is not total, which is what causes
+   hysteresis. */
 
 void
 consider_route(struct babel_route *route)
