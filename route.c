@@ -745,6 +745,12 @@ update_route(const unsigned char *id,
         if((feasible || keep_unfeasible) && refmetric < INFINITY)
             route->time = now.tv_sec;
         route->seqno = seqno;
+
+        memset(&route->channels, 0, sizeof(route->channels));
+        if(channels_len > 0)
+            memcpy(&route->channels, channels,
+                   MIN(channels_len, DIVERSITY_HOPS));
+
         change_route_metric(route,
                             refmetric, neighbour_cost(neigh), add_metric);
         route->hold_time = hold_time;
