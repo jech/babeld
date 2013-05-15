@@ -36,6 +36,8 @@ THE SOFTWARE.
 #define MESSAGE_UPDATE 8
 #define MESSAGE_REQUEST 9
 #define MESSAGE_MH_REQUEST 10
+/* 11 and 12 are for authentication */
+#define MESSAGE_UPDATE_SRC_SPECIFIC 13
 
 
 extern unsigned short myseqno;

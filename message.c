@@ -190,8 +190,10 @@ parse_packet(const unsigned char *from, struct interface *ifp,
     int bodylen;
     struct neighbour *neigh;
     int have_router_id = 0, have_v4_prefix = 0, have_v6_prefix = 0,
+        have_v4_src_prefix = 0, have_v6_src_prefix = 0,
         have_v4_nh = 0, have_v6_nh = 0;
     unsigned char router_id[8], v4_prefix[16], v6_prefix[16],
+        v4_src_prefix[16], v6_src_prefix[16],
         v4_nh[16], v6_nh[16];
 
     if(!linklocal(from)) {
@@ -433,8 +435,8 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                                            len - parsed_len, channels);
             }
 
-            update_route(router_id, prefix, plen, NULL, 0, seqno, metric, interval,
-                         neigh, nh,
+            update_route(router_id, prefix, plen, zeroes, 0, seqno,
+                         metric, interval, neigh, nh,
                          channels, channels_len(channels));
         } else if(type == MESSAGE_REQUEST) {
             unsigned char prefix[16], plen;
@@ -478,6 +480,148 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    format_eui64(message + 8), seqno);
             handle_request(neigh, prefix, plen, message[6],
                            seqno, message + 8);
+        } else if (type == MESSAGE_UPDATE_SRC_SPECIFIC) {
+            unsigned char prefix[16], src_prefix[16], *nh;
+            const unsigned char  *src_prefix_beginning;
+            unsigned char plen, src_plen, src_omitted;
+            unsigned char channels[DIVERSITY_HOPS];
+            unsigned short interval, seqno, metric;
+            const unsigned char *src_message = NULL;
+            int rc, parsed_len;
+            if(len < 12) {
+                if(len < 2 || message[3] & 0x80)
+                    have_v4_prefix = have_v6_prefix = 0;
+                if(len < 2 || message[3] & 0x20)
+                    have_v4_src_prefix = have_v6_src_prefix = 0;
+                goto fail;
+            }
+            DO_NTOHS(interval, message + 6);
+            DO_NTOHS(seqno, message + 8);
+            DO_NTOHS(metric, message + 10);
+            if(message[5] == 0 ||
+               (message[3] == 1 ? have_v4_prefix : have_v6_prefix))
+                rc = network_prefix(message[2], message[4], message[5],
+                                    message + 12,
+                                    message[2] == 1 ? v4_prefix : v6_prefix,
+                                    len - 10, prefix);
+            else
+                rc = -1;
+            if(rc < 0) {
+                if(message[3] & 0x80)
+                    have_v4_prefix = have_v6_prefix = 0;
+                if(message[3] & 0x20)
+                    have_v4_src_prefix = have_v6_src_prefix = 0;
+                goto fail;
+            }
+            if(message[3] & 0x80) {
+                if(message[2] == 1) {
+                    memcpy(v4_prefix, prefix, 16);
+                    have_v4_prefix = 1;
+                } else {
+                    memcpy(v6_prefix, prefix, 16);
+                    have_v6_prefix = 1;
+                }
+            }
+
+            parsed_len = 10 + rc;
+            plen = message[4] + (message[2] == 1 ? 96 : 0);
+            src_message = message + parsed_len + 2;
+            src_plen    = src_message[0];
+            src_omitted = src_message[1];
+            src_prefix_beginning = src_message + 2;
+            parsed_len += 2;
+
+            if(src_omitted == 0 ||
+               (message[2] == 1 ? have_v4_src_prefix : have_v6_src_prefix))
+                rc = network_prefix(message[2], src_plen, src_omitted,
+                                    src_prefix_beginning,
+                                    message[2] == 1 ? v4_src_prefix :
+                                    v6_src_prefix,
+                                    len - parsed_len - 2, src_prefix);
+            else
+                rc = -1;
+            if(rc < 0) {
+                if(message[3] & 0x20)
+                    have_v4_src_prefix = have_v6_src_prefix = 0;
+                goto fail;
+            }
+            parsed_len += rc;
+            if (message[2] == 1)
+                src_plen += 96;
+
+            if(message[3] & 0x20) {
+                if(message[2] == 1) {
+                    memcpy(v4_src_prefix, src_prefix, 16);
+                    have_v4_src_prefix = 1;
+                } else {
+                    memcpy(v6_src_prefix, src_prefix, 16);
+                    have_v6_src_prefix = 1;
+                }
+            }
+            if(message[3] & 0x40) {
+                if(message[2] == 1) {
+                    memset(router_id, 0, 4);
+                    memcpy(router_id + 4, prefix + 12, 4);
+                } else {
+                    memcpy(router_id, prefix + 8, 8);
+                }
+                have_router_id = 1;
+            }
+            if(!have_router_id && message[2] != 0) {
+                fprintf(stderr, "Received prefix with no router id.\n");
+                goto fail;
+            }
+            debugf("Received update%s%s for (%s from %s) from %s on %s.\n",
+                   (message[3] & 0x80) ? "/prefix" : "",
+                   (message[3] & 0x40) ? "/id" : "",
+                   format_prefix(prefix, plen),
+                   format_prefix(src_prefix, src_plen),
+                   format_address(from), ifp->name);
+
+            if(message[2] == 0) {
+                if(metric < 0xFFFF) {
+                    fprintf(stderr,
+                            "Received wildcard update with finite metric.\n");
+                    goto done;
+                }
+                retract_neighbour_routes(neigh);
+                goto done;
+            } else if(message[2] == 1) {
+                if(!have_v4_nh)
+                    goto fail;
+                nh = v4_nh;
+            } else if(have_v6_nh) {
+                nh = v6_nh;
+            } else {
+                nh = neigh->address;
+            }
+
+            if(message[2] == 1) {
+                if(!ifp->ipv4)
+                    goto done;
+            }
+
+            if((ifp->flags & IF_FARAWAY)) {
+                channels[0] = 0;
+            } else {
+                /* This will be overwritten by parse_route_attributes below. */
+                if(metric < 256) {
+                    /* Assume non-interfering (wired) link. */
+                    channels[0] = 0;
+                } else {
+                    /* Assume interfering. */
+                    channels[0] = IF_CHANNEL_INTERFERING;
+                    channels[1] = 0;
+                }
+
+                if(parsed_len < len)
+                    parse_route_attributes(message + 2 + parsed_len,
+                                           len - parsed_len, channels);
+            }
+
+            update_route(router_id, prefix, plen, src_prefix, src_plen,
+                         seqno, metric, interval, neigh, nh,
+                         channels, channels_len(channels));
         } else {
             debugf("Received unknown packet type %d from %s on %s.\n",
                    type, format_address(from), ifp->name);
@@ -794,11 +938,14 @@ static void
 really_send_update(struct interface *ifp,
                    const unsigned char *id,
                    const unsigned char *prefix, unsigned char plen,
+                   const unsigned char *src_prefix, unsigned char src_plen,
                    unsigned short seqno, unsigned short metric,
                    unsigned char *channels, int channels_len)
 {
     int add_metric, v4, real_plen, omit = 0;
     const unsigned char *real_prefix;
+    const unsigned char *real_src_prefix = NULL;
+    int real_src_plen = 0, src_omit = 0;
     unsigned short flags = 0;
     int channels_size;
 
@@ -810,14 +957,14 @@ really_send_update(struct interface *ifp,
     if(!if_up(ifp))
         return;
 
-    add_metric = output_filter(id, prefix, plen, zeroes,
-                               0, ifp->ifindex);
+    add_metric = output_filter(id, prefix, plen, src_prefix,
+                               src_plen, ifp->ifindex);
     if(add_metric >= INFINITY)
         return;
 
     metric = MIN(metric + add_metric, INFINITY);
     /* Worst case */
-    ensure_space(ifp, 20 + 12 + 28);
+    ensure_space(ifp, 20 + 12 + 28 + 18);
 
     v4 = plen >= 96 && v4mapped(prefix);
 
@@ -837,6 +984,10 @@ really_send_update(struct interface *ifp,
 
         real_prefix = prefix + 12;
         real_plen = plen - 96;
+        if (src_plen != 0 /* it should never be 96 */) {
+            real_src_prefix = src_prefix + 12;
+            real_src_plen = src_plen - 96;
+        }
     } else {
         if(ifp->have_buffered_prefix) {
             while(omit < plen / 8 &&
@@ -847,6 +998,18 @@ really_send_update(struct interface *ifp,
             flags |= 0x80;
         real_prefix = prefix;
         real_plen = plen;
+
+        if (src_plen != 0) {
+            if(ifp->have_buffered_src_prefix) {
+                while(src_omit < src_plen / 8 &&
+                      ifp->buffered_src_prefix[src_omit] ==src_prefix[src_omit])
+                    src_omit++;
+            }
+            if(!ifp->have_buffered_src_prefix || plen >= 48)
+                flags |= 0x20;
+            real_src_prefix = src_prefix;
+            real_src_plen = src_plen;
+        }
     }
 
     if(!ifp->have_buffered_id || memcmp(id, ifp->buffered_id, 8) != 0) {
@@ -862,8 +1025,13 @@ really_send_update(struct interface *ifp,
         ifp->have_buffered_id = 1;
     }
 
-    start_message(ifp, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
-                  channels_size);
+    if (src_plen == 0)
+        start_message(ifp, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
+                      channels_size);
+    else
+        start_message(ifp, MESSAGE_UPDATE_SRC_SPECIFIC,
+                      10 + (real_plen + 7) / 8 - omit +
+                      2 + (real_src_plen + 7) / 8 - src_omit + channels_size);
     accumulate_byte(ifp, v4 ? 1 : 2);
     accumulate_byte(ifp, flags);
     accumulate_byte(ifp, real_plen);
@@ -872,18 +1040,33 @@ really_send_update(struct interface *ifp,
     accumulate_short(ifp, seqno);
     accumulate_short(ifp, metric);
     accumulate_bytes(ifp, real_prefix + omit, (real_plen + 7) / 8 - omit);
+    if (src_plen != 0) {
+        accumulate_byte(ifp, real_src_plen);
+        accumulate_byte(ifp, src_omit);
+        accumulate_bytes(ifp, real_src_prefix + src_omit,
+                         (real_src_plen + 7) / 8 - src_omit);
+    }
     /* Note that an empty channels TLV is different from no such TLV. */
     if(channels_len >= 0) {
         accumulate_byte(ifp, 2);
         accumulate_byte(ifp, channels_len);
         accumulate_bytes(ifp, channels, channels_len);
     }
-    end_message(ifp, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
-                channels_size);
+    if (src_plen == 0)
+        end_message(ifp, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
+                    channels_size);
+    else
+        end_message(ifp, MESSAGE_UPDATE_SRC_SPECIFIC,
+                    10 + (real_plen + 7) / 8 - omit +
+                    2 + (real_src_plen + 7) / 8 - src_omit + channels_size);
 
     if(flags & 0x80) {
         memcpy(ifp->buffered_prefix, prefix, 16);
         ifp->have_buffered_prefix = 1;
+    }
+    if(src_plen != 0 && flags & 0x20) {
+        memcpy(ifp->buffered_src_prefix, src_prefix, 16);
+        ifp->have_buffered_src_prefix = 1;
     }
 }
 
@@ -918,7 +1101,16 @@ compare_buffered_updates(const void *av, const void *bv)
     else if(a->plen > b->plen)
         return -1;
 
-    return memcmp(a->prefix, b->prefix, 16);
+    rc = memcmp(a->prefix, b->prefix, 16);
+    if(rc != 0)
+        return rc;
+
+    if(a->src_plen < b->src_plen)
+        return -1;
+    else if(a->src_plen > b->src_plen)
+        return 1;
+
+    return memcmp(a->src_prefix, b->src_prefix, 16);
 }
 
 void
@@ -927,7 +1119,9 @@ flushupdates(struct interface *ifp)
     struct xroute *xroute;
     struct babel_route *route;
     const unsigned char *last_prefix = NULL;
+    const unsigned char *last_src_prefix = NULL;
     unsigned char last_plen = 0xFF;
+    unsigned char last_src_plen = 0xFF;
     int i;
 
     if(ifp == NULL) {
@@ -955,7 +1149,8 @@ flushupdates(struct interface *ifp)
            with the same router-id together, with IPv6 going out before IPv4. */
 
         for(i = 0; i < n; i++) {
-            route = find_installed_route(b[i].prefix, b[i].plen, zeroes, 0);
+            route = find_installed_route(b[i].prefix, b[i].plen,
+                                         b[i].src_prefix, b[i].src_plen);
             if(route)
                 memcpy(b[i].id, route->src->id, 8);
             else
@@ -969,24 +1164,31 @@ flushupdates(struct interface *ifp)
                sent out.  Since our buffer is now sorted, it is enough to
                compare with the previous update. */
 
-            if(last_prefix) {
-                if(b[i].plen == last_plen &&
-                   memcmp(b[i].prefix, last_prefix, 16) == 0)
-                    continue;
-            }
+            if(last_prefix &&
+               b[i].plen == last_plen &&
+               b[i].src_plen == last_src_plen &&
+               memcmp(b[i].prefix, last_prefix, 16) == 0 &&
+               (b[i].src_plen == 0 ||
+                memcmp(b[i].src_prefix, last_src_prefix, 16) == 0))
+                continue;
 
             xroute = find_xroute(b[i].prefix, b[i].plen,
-                                 zeroes, 0);
+                                 b[i].src_prefix, b[i].src_plen);
             route = find_installed_route(b[i].prefix, b[i].plen,
-                                         zeroes, 0);
+                                         b[i].src_prefix, b[i].src_plen);
 
             if(xroute && (!route || xroute->metric <= kernel_metric)) {
                 really_send_update(ifp, myid,
                                    xroute->prefix, xroute->plen,
+                                   xroute->src_prefix, xroute->src_plen,
                                    myseqno, xroute->metric,
                                    NULL, 0);
                 last_prefix = xroute->prefix;
                 last_plen = xroute->plen;
+                if(xroute->src_plen != 0) {
+                    last_src_prefix = xroute->src_prefix;
+                    last_src_plen = xroute->src_plen;
+                }
             } else if(route) {
                 unsigned char channels[DIVERSITY_HOPS];
                 int chlen;
@@ -1025,17 +1227,22 @@ flushupdates(struct interface *ifp)
 
                 chlen = channels_len(channels);
                 really_send_update(ifp, route->src->id,
-                                   route->src->prefix,
-                                   route->src->plen,
+                                   route->src->prefix, route->src->plen,
+                                   route->src->src_prefix, route->src->src_plen,
                                    seqno, metric,
                                    channels, chlen);
                 update_source(route->src, seqno, metric);
                 last_prefix = route->src->prefix;
                 last_plen = route->src->plen;
+                if(route->src->src_plen != 0) {
+                    last_src_prefix = route->src->src_prefix;
+                    last_src_plen = route->src->src_plen;
+                }
             } else {
             /* There's no route for this prefix.  This can happen shortly
                after an xroute has been retracted, so send a retraction. */
                 really_send_update(ifp, myid, b[i].prefix, b[i].plen,
+                                   b[i].src_prefix, b[i].src_plen,
                                    myseqno, INFINITY, NULL, -1);
             }
         }
@@ -1060,7 +1267,8 @@ schedule_update_flush(struct interface *ifp, int urgent)
 
 static void
 buffer_update(struct interface *ifp,
-              const unsigned char *prefix, unsigned char plen)
+              const unsigned char *prefix, unsigned char plen,
+              const unsigned char *src_prefix, unsigned char src_plen)
 {
     if(ifp->num_buffered_updates > 0 &&
        ifp->num_buffered_updates >= ifp->update_bufsize)
@@ -1092,6 +1300,9 @@ buffer_update(struct interface *ifp,
     memcpy(ifp->buffered_updates[ifp->num_buffered_updates].prefix,
            prefix, 16);
     ifp->buffered_updates[ifp->num_buffered_updates].plen = plen;
+    memcpy(ifp->buffered_updates[ifp->num_buffered_updates].src_prefix,
+           src_prefix, 16);
+    ifp->buffered_updates[ifp->num_buffered_updates].src_plen = src_plen;
     ifp->num_buffered_updates++;
 }
 
@@ -1099,7 +1310,8 @@ static void
 buffer_update_callback(struct babel_route *route, void *closure)
 {
     buffer_update((struct interface*)closure,
-                  route->src->prefix, route->src->plen);
+                  route->src->prefix, route->src->plen,
+                  route->src->src_prefix, route->src->src_plen);
 }
 
 void
@@ -1127,9 +1339,10 @@ send_update(struct interface *ifp, int urgent,
         return;
 
     if(prefix) {
-        debugf("Sending update to %s for %s.\n",
-               ifp->name, format_prefix(prefix, plen));
-        buffer_update(ifp, prefix, plen);
+        debugf("Sending update to %s for %s from %s.\n",
+               ifp->name, format_prefix(prefix, plen),
+               format_prefix(src_prefix, src_plen));
+        buffer_update(ifp, prefix, plen, src_prefix, src_plen);
     } else {
         send_self_update(ifp);
         debugf("Sending update to %s for any.\n", ifp->name);

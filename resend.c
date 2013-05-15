@@ -24,6 +24,7 @@ THE SOFTWARE.
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "babeld.h"
 #include "util.h"
@@ -38,10 +39,13 @@ struct resend *to_resend = NULL;
 
 static int
 resend_match(struct resend *resend,
-             int kind, const unsigned char *prefix, unsigned char plen)
+             int kind, const unsigned char *prefix, unsigned char plen,
+             const unsigned char *src_prefix, unsigned char src_plen)
 {
     return (resend->kind == kind &&
-            resend->plen == plen && memcmp(resend->prefix, prefix, 16) == 0);
+            resend->plen == plen && memcmp(resend->prefix, prefix, 16) == 0 &&
+            resend->src_plen == src_plen &&
+            (src_plen == 0 || memcmp(resend->src_prefix, src_prefix, 16)));
 }
 
 /* This is called by neigh.c when a neighbour is flushed */
@@ -54,14 +58,15 @@ flush_resends(struct neighbour *neigh)
 
 static struct resend *
 find_resend(int kind, const unsigned char *prefix, unsigned char plen,
-             struct resend **previous_return)
+            const unsigned char *src_prefix, unsigned char src_plen,
+            struct resend **previous_return)
 {
     struct resend *current, *previous;
 
     previous = NULL;
     current = to_resend;
     while(current) {
-        if(resend_match(current, kind, prefix, plen)) {
+        if(resend_match(current, kind, prefix, plen, src_prefix, src_plen)) {
             if(previous_return)
                 *previous_return = previous;
             return current;
@@ -78,7 +83,10 @@ find_request(const unsigned char *prefix, unsigned char plen,
              const unsigned char *src_prefix, unsigned char src_plen,
              struct resend **previous_return)
 {
-    return find_resend(RESEND_REQUEST, prefix, plen, previous_return);
+    if (src_plen != 0)
+        return NULL;
+    return find_resend(RESEND_REQUEST, prefix, plen, src_prefix, src_plen,
+                       previous_return);
 }
 
 int
@@ -90,6 +98,10 @@ record_resend(int kind, const unsigned char *prefix, unsigned char plen,
     struct resend *resend;
     unsigned int ifindex = ifp ? ifp->ifindex : 0;
 
+    if (src_plen != 0)
+        return 0;
+
+    assert(src_prefix != NULL);
     if((kind == RESEND_REQUEST &&
         input_filter(NULL, prefix, plen, NULL, 0, NULL, ifindex)
         >= INFINITY) ||
@@ -101,7 +113,7 @@ record_resend(int kind, const unsigned char *prefix, unsigned char plen,
     if(delay >= 0xFFFF)
         delay = 0xFFFF;
 
-    resend = find_resend(kind, prefix, plen, NULL);
+    resend = find_resend(kind, prefix, plen, src_prefix, src_plen, NULL);
     if(resend) {
         if(resend->delay && delay)
             resend->delay = MIN(resend->delay, delay);
@@ -129,6 +141,8 @@ record_resend(int kind, const unsigned char *prefix, unsigned char plen,
         resend->delay = delay;
         memcpy(resend->prefix, prefix, 16);
         resend->plen = plen;
+        memcpy(resend->src_prefix, src_prefix, 16);
+        resend->src_plen = src_plen;
         resend->seqno = seqno;
         if(id)
             memcpy(resend->id, id, 8);
@@ -214,6 +228,10 @@ satisfy_request(const unsigned char *prefix, unsigned char plen,
                 struct interface *ifp)
 {
     struct resend *request, *previous;
+
+    /* TODO */
+    if (src_plen != 0)
+        return 0;
 
     request = find_request(prefix, plen, zeroes, 0, &previous);
     if(request == NULL)
@@ -303,7 +321,7 @@ do_resend()
                 case RESEND_UPDATE:
                     send_update(resend->ifp, 1,
                                 resend->prefix, resend->plen,
-                                zeroes, 0);
+                                resend->src_prefix, resend->src_plen);
                     break;
                 default: abort();
                 }
