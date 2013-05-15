@@ -541,8 +541,8 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                                         len - parsed_len, channels);
             }
 
-            update_route(router_id, prefix, plen, NULL, 0, seqno, metric, interval,
-                         neigh, nh,
+            update_route(router_id, prefix, plen, zeroes, 0, seqno,
+                         metric, interval, neigh, nh,
                          channels, channels_len(channels));
         } else if(type == MESSAGE_REQUEST) {
             unsigned char prefix[16], plen;
