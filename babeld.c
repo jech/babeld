@@ -998,9 +998,10 @@ dump_route_callback(struct babel_route *route, void *closure)
             channels[0] = '\0';
     }
 
-    fprintf(out, "%s metric %d (%d) refmetric %d id %s seqno %d%s age %d "
+    fprintf(out, "%s from %s metric %d (%d) refmetric %d id %s seqno %d%s age %d "
             "via %s neigh %s%s%s%s\n",
             format_prefix(route->src->prefix, route->src->plen),
+            format_prefix(route->src->src_prefix, route->src->src_plen),
             route_metric(route), route_smoothed_metric(route), route->refmetric,
             format_eui64(route->src->id),
             (int)route->seqno,
@@ -1018,8 +1019,9 @@ static void
 dump_xroute_callback(struct xroute *xroute, void *closure)
 {
     FILE *out = (FILE*)closure;
-    fprintf(out, "%s metric %d (exported)\n",
+    fprintf(out, "%s from %s metric %d (exported)\n",
             format_prefix(xroute->prefix, xroute->plen),
+            format_prefix(xroute->src_prefix, xroute->src_plen),
             xroute->metric);
 }
 
