@@ -194,6 +194,28 @@ check_xroutes(int send_updates)
     if(numroutes >= maxroutes)
         goto resize;
 
+    /* Cast kernel routes to our prefix. */
+
+    for (i = 0; i < numroutes;) {
+        switch (prefixes_cmp(routes[i].src_prefix, routes[i].src_plen,
+                             source_specific_addr, source_specific_plen)) {
+            case PST_DISJOINT:
+                if (i < numroutes - 1)
+                    memcpy(&routes[i], &routes[numroutes-1],
+                           sizeof(struct kernel_route));
+                numroutes--; /* no i ++ */
+                break;
+            case PST_LESS_SPECIFIC:
+                memcpy(routes[i].src_prefix, source_specific_addr, 16);
+                routes[i].src_plen = source_specific_plen;
+                /* fall through */;
+            case PST_EQUALS:
+            case PST_MORE_SPECIFIC:
+                i ++;
+                break;
+        }
+    }
+
     /* Check for any routes that need to be flushed */
 
     i = 0;
