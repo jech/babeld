@@ -1034,6 +1034,9 @@ dump_tables(FILE *out)
 
     fprintf(out, "My id %s seqno %d\n", format_eui64(myid), myseqno);
 
+    fprintf(out, "My source prefix: %s\n",
+            format_prefix(source_specific_addr, source_specific_plen));
+
     FOR_ALL_NEIGHBOURS(neigh) {
         fprintf(out, "Neighbour %s dev %s reach %04x rxcost %d txcost %d chan %d%s.\n",
                 format_address(neigh->address),
