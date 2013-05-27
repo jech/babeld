@@ -434,10 +434,243 @@ move_installed_route(struct babel_route *route, int i)
     }
 }
 
+struct route_closure {
+    struct babel_route *rt;
+    struct babel_route *rt_new;
+    int rt_newmetric;
+    int rc;
+};
+
+struct zone {
+    const unsigned char *dst_prefix;
+    unsigned char dst_plen;
+    const unsigned char *src_prefix;
+    unsigned char src_plen;
+    int rc;
+};
+
+static void
+get_lowest_dst_1(struct babel_route *installed_route, void *closure)
+{
+    void ** data = closure;
+    struct zone *cz = (struct zone *)data[0];
+    struct source *rt = installed_route->src;
+    struct babel_route *result = (struct babel_route *)data[1];
+    enum prefixes_status dst_st, src_st;
+
+    src_st = prefixes_cmp(cz->src_prefix, cz->src_plen,
+                          rt->src_prefix, rt->src_plen);
+    if (src_st != PST_EQUALS)
+        return;
+    dst_st = prefixes_cmp(cz->dst_prefix, cz->dst_plen, rt->prefix, rt->plen);
+    if (dst_st != PST_MORE_SPECIFIC)
+        return;
+    if (result != NULL) {
+        dst_st = prefixes_cmp(rt->prefix, rt->plen,
+                              result->src->prefix, result->src->plen);
+        /* because x < y and x < z implies that y and z are comparable ! */
+        if (dst_st != PST_MORE_SPECIFIC)
+            return;
+    }
+    data[1] = installed_route;
+}
+
+/* same as search_conflict_solution, but searching for the source instead of
+ the destination. */
+static struct babel_route *
+get_lowest_dst(struct zone *zone)
+{
+    void *closure[2] = {zone, NULL};
+    for_all_installed_routes(get_lowest_dst_1, closure);
+    return closure[1];
+}
+
+static void
+has_conflict_1(struct babel_route *installed_route, void *closure)
+{
+    struct zone *cz = closure;
+    struct source *rt = installed_route->src;
+    enum prefixes_status dst_st, src_st;
+
+    if (cz->rc)
+        return;
+
+    src_st = prefixes_cmp(cz->src_prefix, cz->src_plen,
+                          rt->src_prefix, rt->src_plen);
+    if (src_st != PST_EQUALS)
+        return;
+    dst_st = prefixes_cmp(cz->dst_prefix, cz->dst_plen, rt->prefix, rt->plen);
+    if (dst_st != PST_MORE_SPECIFIC)
+        return;
+    cz->rc = 1;
+}
+
+/* return true if the zone (d,s) is a conflict, i.e. if there exists (d1,s1) and
+ (d2,s2) such that d1 == d, s < s1, d < d2 and s == s2.
+ ATTENTION : it doen't return 0 if (d,s) exists ! */
+static int
+has_conflict(struct zone *conflict_zone)
+{
+    int next = -1;
+    struct babel_route *rt;
+    struct babel_route *rt1 = NULL;
+    enum prefixes_status src_st;
+
+    /* first, find (d1, s1) such that d == d1 and s < s1. */
+    while (1) {
+        rt = find_next_installed_route(conflict_zone->dst_prefix,
+                                       conflict_zone->dst_plen, &next);
+        if (rt == NULL) break;
+        src_st = prefixes_cmp(conflict_zone->src_prefix,
+                              conflict_zone->src_plen,
+                              rt->src->src_prefix, rt->src->src_plen);
+        if (src_st == PST_MORE_SPECIFIC) {
+            rt1 = rt;
+            break;
+        }
+    }
+    if (rt1 == NULL)
+        return 0;
+
+    conflict_zone->rc = 0;
+    for_all_installed_routes(has_conflict_1, conflict_zone);
+    return conflict_zone->rc;
+}
+
+/* return the route avoiding a given conflict zone. */
+static struct babel_route *
+search_conflict_solution(struct zone *conflict_zone)
+{
+    int next = -1;
+    struct babel_route *rt;
+    struct babel_route *result = NULL;
+    enum prefixes_status src_st;
+
+    while (1) {
+        rt = find_next_installed_route(conflict_zone->dst_prefix,
+                                       conflict_zone->dst_plen, &next);
+        if(rt == NULL) break;
+        src_st = prefixes_cmp(rt->src->src_prefix, rt->src->src_plen,
+                              conflict_zone->src_prefix,
+                              conflict_zone->src_plen);
+        if (!(src_st == PST_LESS_SPECIFIC || src_st == PST_EQUALS))
+            continue;
+        if (result != NULL) {
+            src_st = prefixes_cmp(rt->src->src_prefix, rt->src->src_plen,
+                                  result->src->src_prefix,
+                                  result->src->src_plen);
+            if (src_st != PST_MORE_SPECIFIC)
+                continue;
+        }
+        /* we got a more specific route for solving the conflict */
+        result = rt;
+    }
+    return result;
+}
+
+static int
+add_non_conflicting_route(struct babel_route *route, struct zone *zone)
+{
+    int rc;
+    if (!has_conflict(zone)) {
+        rc = kernel_route(ROUTE_ADD, zone->dst_prefix, zone->dst_plen,
+                          zone->src_prefix, zone->src_plen,
+                          route->nexthop,
+                          route->neigh->ifp->ifindex,
+                          metric_to_kernel(route_metric(route)), NULL, 0, 0);
+    } else {
+        struct babel_route *old = search_conflict_solution(zone);
+        assert(old != NULL);
+        rc = kernel_route(ROUTE_MODIFY, zone->dst_prefix, zone->dst_plen,
+                          zone->src_prefix, zone->src_plen,
+                          old->nexthop, old->neigh->ifp->ifindex,
+                          metric_to_kernel(route_metric(old)),
+                          route->nexthop, route->neigh->ifp->ifindex,
+                          metric_to_kernel(route_metric(route)));
+    }
+    return rc;
+}
+
+static void
+install_conflicting_routes(struct babel_route *installed_route, void *closure)
+{
+    struct route_closure *ic = closure;
+    struct zone cz;
+    struct source *rt = ic->rt->src, *rt1 = installed_route->src;
+    struct babel_route *solution = NULL;
+    enum prefixes_status dst_st, src_st;
+    int rc;
+
+    if (ic->rc < 0)
+        return;
+
+    assert(ic->rt_new == NULL && ic->rt_newmetric == 0 && ic->rc == 0);
+    dst_st = prefixes_cmp(rt->prefix, rt->plen, rt1->prefix, rt1->plen);
+    if (dst_st == PST_DISJOINT || dst_st == PST_EQUALS)
+        return;
+    src_st = prefixes_cmp(rt->src_prefix, rt->src_plen,
+                          rt1->src_prefix, rt1->src_plen);
+    if (!((dst_st == PST_LESS_SPECIFIC && src_st == PST_MORE_SPECIFIC) ||
+          (dst_st == PST_MORE_SPECIFIC && src_st == PST_LESS_SPECIFIC)))
+        return;
+
+    /* routes are in conflict */
+    debugf("    conflicts with %s from %s\n",
+           format_prefix(rt1->prefix, rt1->plen),
+           format_prefix(rt1->src_prefix, rt1->src_plen));
+
+    if (src_st == PST_MORE_SPECIFIC) {
+        cz.dst_prefix = rt1->prefix;
+        cz.dst_plen = rt1->plen;
+        cz.src_prefix = rt->src_prefix;
+        cz.src_plen = rt->src_plen;
+        if (has_conflict(&cz))
+            return; /* conflict should be already solved */
+        debugf("    the conflit is not already solved\n");
+        solution = search_conflict_solution(&cz);
+        assert(solution != NULL);
+        if (solution != installed_route)
+            return;
+        debugf("    solution come from %s from %s\n",
+               format_prefix(solution->src->prefix, solution->src->plen),
+               format_prefix(solution->src->src_prefix,
+                             solution->src->src_plen));
+    } else {
+        assert(src_st == PST_LESS_SPECIFIC);
+        cz.dst_prefix = rt->prefix;
+        cz.dst_plen = rt->plen;
+        cz.src_prefix = rt1->src_prefix;
+        cz.src_plen = rt1->src_plen;
+        solution = search_conflict_solution(&cz);
+        if (solution != NULL) {
+            debugf("    an existing solution is %s from %s\n",
+                   format_prefix(solution->src->prefix, solution->src->plen),
+                   format_prefix(solution->src->src_prefix,
+                                 solution->src->src_plen));
+            src_st = prefixes_cmp(rt->src_prefix, rt->src_plen,
+                                  solution->src->src_prefix,
+                                  solution->src->src_plen);
+            if (src_st != PST_MORE_SPECIFIC)
+                return;
+        }
+        solution = ic->rt;
+        debugf("    solution is our route\n");
+    }
+    rc = add_non_conflicting_route(solution, &cz);
+    if(rc < 0) {
+        int save = errno;
+        perror("kernel_route(ADD sub)");
+        if(save != EEXIST)
+            ic->rc = rc;
+    }
+}
+
 void
 install_route(struct babel_route *route)
 {
     int i, rc;
+    struct route_closure closure;
+    struct zone zone;
 
     if(route->installed)
         return;
@@ -456,11 +689,24 @@ install_route(struct babel_route *route)
         return;
     }
 
-    rc = kernel_route(ROUTE_ADD, route->src->prefix, route->src->plen,
-                      route->src->src_prefix, route->src->src_plen,
-                      route->nexthop,
-                      route->neigh->ifp->ifindex,
-                      metric_to_kernel(route_metric(route)), NULL, 0, 0);
+    debugf("install_route(%s from %s)\n",
+           format_prefix(route->src->prefix, route->src->plen),
+           format_prefix(route->src->src_prefix, route->src->src_plen));
+    /* Install source-specific conflicting routes */
+    closure.rt = route;
+    closure.rt_new = NULL;
+    closure.rt_newmetric = 0;
+    closure.rc = 0;
+    for_all_installed_routes(install_conflicting_routes, &closure);
+    if (closure.rc < 0)
+        return;
+
+    /* Non conflicting case */
+    zone.dst_prefix = route->src->prefix;
+    zone.dst_plen   = route->src->plen;
+    zone.src_prefix = route->src->src_prefix;
+    zone.src_plen   = route->src->src_plen;
+    rc = add_non_conflicting_route(route, &zone);
     if(rc < 0) {
         int save = errno;
         perror("kernel_route(ADD)");
@@ -473,24 +719,220 @@ install_route(struct babel_route *route)
     local_notify_route(route, LOCAL_CHANGE);
 }
 
+static int
+del_non_conflicting_route(struct babel_route *route, struct zone *zone)
+{
+    int rc;
+    if (!has_conflict(zone)) {
+        rc = kernel_route(ROUTE_FLUSH, zone->dst_prefix, zone->dst_plen,
+                          zone->src_prefix, zone->src_plen,
+                          route->nexthop,
+                          route->neigh->ifp->ifindex,
+                          metric_to_kernel(route_metric(route)), NULL, 0, 0);
+    } else {
+        struct babel_route *new = search_conflict_solution(zone);
+        assert(new != NULL);
+        rc = kernel_route(ROUTE_MODIFY, zone->dst_prefix, zone->dst_plen,
+                          zone->src_prefix, zone->src_plen,
+                          route->nexthop, route->neigh->ifp->ifindex,
+                          metric_to_kernel(route_metric(route)),
+                          new->nexthop, new->neigh->ifp->ifindex,
+                          metric_to_kernel(route_metric(new)));
+    }
+    return rc;
+}
+
+static void
+uninstall_conflicting_routes(struct babel_route *installed_route, void *closure)
+{
+    struct route_closure *ic = closure;
+    struct source *rt = ic->rt->src, *rt1 = installed_route->src;
+    struct babel_route *solution = NULL;
+    struct zone cz;
+    enum prefixes_status dst_st, src_st;
+    int rc = 0;
+
+    assert(ic->rt_new == NULL && ic->rt_newmetric == 0);
+    dst_st = prefixes_cmp(rt->prefix, rt->plen, rt1->prefix, rt1->plen);
+    if (dst_st == PST_DISJOINT || dst_st == PST_EQUALS)
+        return;
+    src_st = prefixes_cmp(rt->src_prefix, rt->src_plen,
+                          rt1->src_prefix, rt1->src_plen);
+    if (dst_st == PST_LESS_SPECIFIC && src_st == PST_MORE_SPECIFIC) {
+        cz.dst_prefix = rt1->prefix;
+        cz.dst_plen = rt1->plen;
+        cz.src_prefix = rt->src_prefix;
+        cz.src_plen = rt->src_plen;
+        cz.rc = 0;
+    } else if (dst_st == PST_MORE_SPECIFIC && src_st == PST_LESS_SPECIFIC) {
+        cz.dst_prefix = rt->prefix;
+        cz.dst_plen = rt->plen;
+        cz.src_prefix = rt1->src_prefix;
+        cz.src_plen = rt1->src_plen;
+        cz.rc = 0;
+    } else {
+        return;
+    }
+
+    /* routes are in conflict */
+    debugf("    conflicts with %s from %s\n",
+           format_prefix(rt1->prefix, rt1->plen),
+           format_prefix(rt1->src_prefix, rt1->src_plen));
+
+    if (src_st == PST_MORE_SPECIFIC) {
+        if (has_conflict(&cz))
+            return;
+        /* remove the old solution */
+        solution = search_conflict_solution(&cz);
+        assert(solution != NULL);
+        src_st = prefixes_cmp(cz.src_prefix, cz.src_plen,
+                              solution->src->src_prefix,
+                              solution->src->src_plen);
+        if (src_st == PST_EQUALS)
+            return; /* don't flush an installed RIB route */
+        src_st = prefixes_cmp(rt1->src_prefix, rt1->src_plen,
+                              solution->src->src_prefix,
+                              solution->src->src_plen);
+        if (src_st != PST_EQUALS)
+            return; /* avoid flushing this entry multiple times */
+        debugf("    flush the now useless solution coming from %s from %s\n",
+               format_prefix(solution->src->prefix, solution->src->plen),
+               format_prefix(solution->src->src_prefix,
+                             solution->src->src_plen));
+        rc = kernel_route(ROUTE_FLUSH, cz.dst_prefix, cz.dst_plen,
+                          cz.src_prefix, cz.src_plen,
+                          solution->nexthop,
+                          solution->neigh->ifp->ifindex,
+                          metric_to_kernel(route_metric(solution)),
+                          NULL, 0, 0);
+        if(rc < 0)
+            debugf("    the flush has failed.\n");
+    } else {
+        /* avoid flushing this entry multiple times : */
+        struct babel_route *lowest_dst = get_lowest_dst(&cz);
+        assert(lowest_dst != NULL);
+        if (installed_route != lowest_dst)
+            return;
+        solution = search_conflict_solution(&cz);
+        if (!solution) { /* => no more conflict */
+            debugf("    no more conflict: solution come from the flushed route"
+                   " (flush the entry)\n");
+            rc = kernel_route(ROUTE_FLUSH, cz.dst_prefix, cz.dst_plen,
+                              cz.src_prefix, cz.src_plen,
+                              ic->rt->nexthop,
+                              ic->rt->neigh->ifp->ifindex,
+                              metric_to_kernel(route_metric(ic->rt)),
+                              NULL, 0, 0);
+            if(rc < 0)
+                debugf("    the flush has failed.\n");
+        } else {
+            src_st = prefixes_cmp(rt->src_prefix, rt->src_plen,
+                                  solution->src->src_prefix,
+                                  solution->src->src_plen);
+            if (src_st != PST_MORE_SPECIFIC)
+                return; /* solution is already installed */
+            debugf("    switch to solution coming from %s from %s\n",
+                   format_prefix(rt1->prefix, rt1->plen),
+                   format_prefix(rt1->src_prefix, rt1->src_plen));
+            rc = kernel_route(ROUTE_MODIFY, cz.dst_prefix, cz.dst_plen,
+                              cz.src_prefix, cz.src_plen,
+                              installed_route->nexthop,
+                              installed_route->neigh->ifp->ifindex,
+                              metric_to_kernel(route_metric(installed_route)),
+                              solution->nexthop, solution->neigh->ifp->ifindex,
+                              metric_to_kernel(route_metric(solution)));
+            if(rc < 0)
+                debugf("    the switch has failed.\n");
+        }
+    }
+    if(rc < 0) {
+        perror("kernel_route(FLUSH sub)");
+        ic->rc = rc;
+    }
+}
+
 void
 uninstall_route(struct babel_route *route)
 {
     int rc;
+    struct route_closure closure;
+    struct zone zone;
 
     if(!route->installed)
         return;
+    route->installed = 0;
 
-    rc = kernel_route(ROUTE_FLUSH, route->src->prefix, route->src->plen,
-                      route->src->src_prefix, route->src->src_plen,
-                      route->nexthop,
-                      route->neigh->ifp->ifindex,
-                      metric_to_kernel(route_metric(route)), NULL, 0, 0);
-    if(rc < 0)
+    debugf("uninstall_route(%s from %s)\n",
+           format_prefix(route->src->prefix, route->src->plen),
+           format_prefix(route->src->src_prefix, route->src->src_plen));
+    /* Remove the route, or change if the route was solving a conflict. */
+    zone.dst_prefix = route->src->prefix;
+    zone.dst_plen   = route->src->plen;
+    zone.src_prefix = route->src->src_prefix;
+    zone.src_plen   = route->src->src_plen;
+    rc = del_non_conflicting_route(route, &zone);
+    if (rc < 0)
         perror("kernel_route(FLUSH)");
 
-    route->installed = 0;
+    /* Remove source-specific conflicting routes */
+    closure.rt = route;
+    closure.rt_new = NULL;
+    closure.rt_newmetric = 0;
+    closure.rc = 0;
+    for_all_installed_routes(uninstall_conflicting_routes, &closure);
+
     local_notify_route(route, LOCAL_CHANGE);
+}
+
+static void
+switch_conflicting_routes(struct babel_route *installed_route, void *closure)
+{
+    struct route_closure *ic = closure;
+    struct source *rt = ic->rt->src, *rt1 = installed_route->src;
+    enum prefixes_status dst_st, src_st;
+    int rc = 0;
+
+    if (ic->rc < 0)
+        return;
+
+    assert(ic->rc == 0);
+    dst_st = prefixes_cmp(rt->prefix, rt->plen, rt1->prefix, rt1->plen);
+    if (dst_st == PST_DISJOINT || dst_st == PST_EQUALS)
+        return;
+    src_st = prefixes_cmp(rt->src_prefix, rt->src_plen,
+                          rt1->src_prefix, rt1->src_plen);
+    if (!((dst_st == PST_LESS_SPECIFIC && src_st == PST_MORE_SPECIFIC) ||
+          (dst_st == PST_MORE_SPECIFIC && src_st == PST_LESS_SPECIFIC)))
+        return;
+
+    /* routes are in conflict */
+    debugf("    conflicts with %s from %s\n",
+           format_prefix(rt1->prefix, rt1->plen),
+           format_prefix(rt1->src_prefix, rt1->src_plen));
+
+    if (src_st == PST_LESS_SPECIFIC) {
+        struct zone cz = {
+            .dst_prefix = rt->prefix,
+            .dst_plen = rt->plen,
+            .src_prefix = rt1->src_prefix,
+            .src_plen = rt1->src_plen,
+            .rc = 0
+        };
+        struct babel_route *solution = search_conflict_solution(&cz);
+        assert(solution);
+        if (solution != ic->rt)
+            return;
+        debugf("    switch.\n");
+        rc = kernel_route(ROUTE_MODIFY, rt->prefix, rt->plen,
+                          rt1->src_prefix, rt1->src_plen,
+                          ic->rt->nexthop, ic->rt->neigh->ifp->ifindex,
+                          metric_to_kernel(route_metric(ic->rt)),
+                          ic->rt_new->nexthop,
+                          ic->rt_new->neigh->ifp->ifindex,
+                          ic->rt_newmetric);
+    }
+    if(rc < 0)
+        perror("kernel_route(ADD sub)");
 }
 
 /* This is equivalent to uninstall_route followed with install_route,
@@ -501,6 +943,7 @@ static void
 switch_routes(struct babel_route *old, struct babel_route *new)
 {
     int rc;
+    struct route_closure closure;
 
     if(!old) {
         install_route(new);
@@ -514,15 +957,24 @@ switch_routes(struct babel_route *old, struct babel_route *new)
         fprintf(stderr, "WARNING: switching to unfeasible route "
                 "(this shouldn't happen).");
 
+    debugf("switch_routes(%s from %s)\n",
+           format_prefix(old->src->prefix, old->src->plen),
+           format_prefix(old->src->src_prefix, old->src->src_plen));
     rc = kernel_route(ROUTE_MODIFY, old->src->prefix, old->src->plen,
                       old->src->src_prefix, old->src->src_plen,
                       old->nexthop, old->neigh->ifp->ifindex,
                       metric_to_kernel(route_metric(old)),
                       new->nexthop, new->neigh->ifp->ifindex,
                       metric_to_kernel(route_metric(new)));
-    /* XXX : should the source-ip be subject to changes ? */
     assert(memcmp(old->src->src_prefix, new->src->src_prefix, 16) == 0
            && old->src->src_plen == new->src->src_plen);
+
+    closure.rt = old;
+    closure.rt_new = new;
+    closure.rt_newmetric = metric_to_kernel(route_metric(new));
+    closure.rc = 0;
+    for_all_installed_routes(switch_conflicting_routes, &closure);
+
     if(rc < 0) {
         perror("kernel_route(MODIFY)");
         return;
@@ -550,12 +1002,22 @@ change_route_metric(struct babel_route *route,
 
     if(route->installed && old != new) {
         int rc;
+        struct route_closure closure;
+        debugf("change_route_metric(%s from %s, %d -> %d)\n",
+               format_prefix(route->src->prefix, route->src->plen),
+               format_prefix(route->src->src_prefix, route->src->src_plen),
+               old, new);
         rc = kernel_route(ROUTE_MODIFY, route->src->prefix, route->src->plen,
                           route->src->src_prefix, route->src->src_plen,
                           route->nexthop, route->neigh->ifp->ifindex,
                           old,
                           route->nexthop, route->neigh->ifp->ifindex,
                           new);
+        closure.rt = route;
+        closure.rt_new = route;
+        closure.rt_newmetric = new;
+        closure.rc = 0;
+        for_all_installed_routes(switch_conflicting_routes, &closure);
         if(rc < 0) {
             perror("kernel_route(MODIFY metric)");
             return;
