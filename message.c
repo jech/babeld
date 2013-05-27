@@ -957,6 +957,8 @@ really_send_update(struct interface *ifp,
     if(!if_up(ifp))
         return;
 
+    v4 = plen >= 96 && v4mapped(prefix);
+
     add_metric = output_filter(id, prefix, plen, src_prefix,
                                src_plen, ifp->ifindex);
     if(add_metric >= INFINITY)
@@ -965,8 +967,6 @@ really_send_update(struct interface *ifp,
     metric = MIN(metric + add_metric, INFINITY);
     /* Worst case */
     ensure_space(ifp, 20 + 12 + 28 + 18);
-
-    v4 = plen >= 96 && v4mapped(prefix);
 
     if(v4) {
         if(!ifp->ipv4)

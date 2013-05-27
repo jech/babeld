@@ -81,6 +81,8 @@ int protocol_port;
 unsigned char protocol_group[16];
 unsigned char source_specific_addr[16];
 unsigned char source_specific_plen;
+unsigned char source_specific_addr6[16];
+unsigned char source_specific_plen6;
 int protocol_socket = -1;
 int kernel_socket = -1;
 static int kernel_routes_changed = 0;
@@ -123,7 +125,8 @@ main(int argc, char **argv)
     change_smoothing_half_life(4);
 
     while(1) {
-        opt = getopt(argc, argv, "a:m:p:h:H:i:k:A:sruS:d:g:lwz:M:t:T:c:C:DL:I:");
+        opt = getopt(argc, argv,
+                     "a:b:m:p:h:H:i:k:A:sruS:d:g:lwz:M:t:T:c:C:DL:I:");
         if(opt < 0)
             break;
 
@@ -131,8 +134,16 @@ main(int argc, char **argv)
         case 'a':
             rc = parse_net(optarg, source_specific_addr,
                            &source_specific_plen, NULL);
-            if (rc < 0) {
-                fprintf(stderr, "invalid source-specific prefix\n");
+            if (rc < 0 || !v4mapped(source_specific_addr)) {
+                fprintf(stderr, "invalid v4 source-specific prefix\n");
+                goto usage;
+            }
+            break;
+        case 'b':
+            rc = parse_net(optarg, source_specific_addr6,
+                           &source_specific_plen6, NULL);
+            if(rc < 0 || v4mapped(source_specific_addr6)) {
+                fprintf(stderr, "invalid v6 source-specific prefix\n");
                 goto usage;
             }
             break;
@@ -1034,8 +1045,9 @@ dump_tables(FILE *out)
 
     fprintf(out, "My id %s seqno %d\n", format_eui64(myid), myseqno);
 
-    fprintf(out, "My source prefix: %s\n",
-            format_prefix(source_specific_addr, source_specific_plen));
+    fprintf(out, "My source prefixes: %s and %s\n",
+            format_prefix(source_specific_addr, source_specific_plen),
+            format_prefix(source_specific_addr6, source_specific_plen6));
 
     FOR_ALL_NEIGHBOURS(neigh) {
         fprintf(out, "Neighbour %s dev %s reach %04x rxcost %d txcost %d chan %d%s.\n",

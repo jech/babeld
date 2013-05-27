@@ -18,7 +18,10 @@ efficiently on wired networks.
 .SH OPTIONS
 .TP
 .BI \-a " source-specific-address"
-Specify the source specific prefix of the host. For example 192.168.7.0/24.
+Specify the v4 source specific prefix of the host. For example 192.168.7.0/24.
+.TP
+.BI \-b " source-specific-address6"
+Specify the v6 source specific prefix of the host.
 .TP
 .BI \-m " multicast-address"
 Specify the link-local multicast address to be used by the protocol.

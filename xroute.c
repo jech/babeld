@@ -197,8 +197,17 @@ check_xroutes(int send_updates)
     /* Cast kernel routes to our prefix. */
 
     for (i = 0; i < numroutes;) {
+        const unsigned char *ss_prefix;
+        unsigned char ss_plen;
+        if (v4mapped(routes[i].prefix)) {
+            ss_prefix = source_specific_addr;
+            ss_plen   = source_specific_plen;
+        } else {
+            ss_prefix = source_specific_addr6;
+            ss_plen   = source_specific_plen6;
+        }
         switch (prefixes_cmp(routes[i].src_prefix, routes[i].src_plen,
-                             source_specific_addr, source_specific_plen)) {
+                             ss_prefix, ss_plen)) {
             case PST_DISJOINT:
                 if (i < numroutes - 1)
                     memcpy(&routes[i], &routes[numroutes-1],
@@ -206,8 +215,8 @@ check_xroutes(int send_updates)
                 numroutes--; /* no i ++ */
                 break;
             case PST_LESS_SPECIFIC:
-                memcpy(routes[i].src_prefix, source_specific_addr, 16);
-                routes[i].src_plen = source_specific_plen;
+                memcpy(routes[i].src_prefix, ss_prefix, 16);
+                routes[i].src_plen = ss_plen;
                 /* fall through */;
             case PST_EQUALS:
             case PST_MORE_SPECIFIC:

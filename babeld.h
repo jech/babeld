@@ -94,6 +94,8 @@ extern int all_wireless;
 extern unsigned char myid[8];
 extern unsigned char source_specific_addr[16];
 extern unsigned char source_specific_plen;
+extern unsigned char source_specific_addr6[16];
+extern unsigned char source_specific_plen6;
 
 extern const unsigned char zeroes[16], ones[16];
 
