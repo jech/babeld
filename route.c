@@ -262,7 +262,7 @@ flush_all_routes()
         while(i < route_slots) {
         /* Uninstall first, to avoid calling route_lost. */
             if(routes[i]->installed)
-                uninstall_route(routes[0]);
+                uninstall_route(routes[i]);
             flush_route(routes[i]);
         }
         i--;
