@@ -126,7 +126,7 @@ main(int argc, char **argv)
 
     while(1) {
         opt = getopt(argc, argv,
-                     "a:b:m:p:h:H:i:k:A:sruS:d:g:lwz:M:t:T:c:C:DL:I:");
+                     "a:b:m:p:h:H:i:k:A:sruS:d:g:lwz:M:t:T:c:C:DL:I:x:y:");
         if(opt < 0)
             break;
 
@@ -144,6 +144,20 @@ main(int argc, char **argv)
                            &source_specific_plen6, NULL);
             if(rc < 0 || v4mapped(source_specific_addr6)) {
                 fprintf(stderr, "invalid v6 source-specific prefix\n");
+                goto usage;
+            }
+            break;
+        case 'x':
+            src_table_idx = parse_nat(optarg);
+            if (src_table_idx <= 0 || src_table_idx + SRC_TABLE_NUM >= 254) {
+                fprintf(stderr, "Invalid first routing table index.\n");
+                goto usage;
+            }
+            break;
+        case 'y':
+            src_table_prio = parse_nat(optarg);
+            if(src_table_prio <= 0 || src_table_prio + SRC_TABLE_NUM >= 32765) {
+                fprintf(stderr, "Invalid first table priority.\n");
                 goto usage;
             }
             break;

@@ -1634,10 +1634,6 @@ delRule(int prio, int family)
 
 /* Source specific functions and data structures */
 
-#define SRC_TABLE_IDX 10 /* number of the first table */
-#define SRC_TABLE_NUM 10
-#define SRC_TABLE_PRIO 110 /* first prio range */
-
 struct kernel_table {
     unsigned char src[16];
     unsigned char plen;
@@ -1677,7 +1673,7 @@ get_new_table(const unsigned char *src, unsigned short src_plen, int idx)
     for (table_no = 0; table_no < SRC_TABLE_NUM; table_no ++)
         if (!used_tables[table_no])
             break;
-    table_no += SRC_TABLE_IDX;
+    table_no += src_table_idx;
 
     /* Create the table's rule at the right place. Shift rules if necessary. */
     if (kernel_tables[idx].plen != 0) {
@@ -1686,9 +1682,9 @@ get_new_table(const unsigned char *src, unsigned short src_plen, int idx)
             assert(i < SRC_TABLE_NUM - 1);
         while (i > idx) {
             i--;
-            rc = swap_tables(i + SRC_TABLE_PRIO, kernel_tables[i].src,
+            rc = swap_tables(i + src_table_prio, kernel_tables[i].src,
                              kernel_tables[i].plen, kernel_tables[i].table_no,
-                             i + 1 + SRC_TABLE_PRIO);
+                             i + 1 + src_table_prio);
             if (rc < 0) {
                 perror("swap tables");
                 return NULL;
@@ -1699,12 +1695,12 @@ get_new_table(const unsigned char *src, unsigned short src_plen, int idx)
         }
     }
 
-    rc = addRule(idx + SRC_TABLE_PRIO, src, src_plen, table_no);
+    rc = addRule(idx + src_table_prio, src, src_plen, table_no);
     if (rc < 0) {
         perror("add rule");
         return NULL;
     }
-    used_tables[table_no - SRC_TABLE_IDX] = 1;
+    used_tables[table_no - src_table_idx] = 1;
     memcpy(kernel_tables[idx].src, src, 16);
     kernel_tables[idx].plen = src_plen;
     kernel_tables[idx].table_no = table_no;
@@ -1765,6 +1761,6 @@ release_tables(void)
     int i;
     for (i = 0; i < SRC_TABLE_NUM; i++)
         if (kernel_tables[i].plen != 0)
-            delRule(i + SRC_TABLE_PRIO,
+            delRule(i + src_table_prio,
                     v4mapped(kernel_tables[i].src) ? AF_INET : AF_INET6);
 }

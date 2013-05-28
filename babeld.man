@@ -19,9 +19,21 @@ efficiently on wired networks.
 .TP
 .BI \-a " source-specific-address"
 Specify the v4 source specific prefix of the host. For example 192.168.7.0/24.
+See -x and -y options if using multiple tables.
 .TP
 .BI \-b " source-specific-address6"
 Specify the v6 source specific prefix of the host.
+See -x and -y options if using multiple tables.
+.TP
+.BI \-x " source-specific-table-idx"
+Useful if the kernel use multiple routing tables for implementing
+source-specific rules. Set the index of the first table to use. It must be small
+einough to handle all tables.
+.TP
+.BI \-b " source-specific-table-prio"
+Useful if the kernel use multiple routing tables for implementing
+source-specific rules. Set the first table's rule priority to use. It must be
+small einough to handle all priorities.
 .TP
 .BI \-m " multicast-address"
 Specify the link-local multicast address to be used by the protocol.

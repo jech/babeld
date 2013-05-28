@@ -51,6 +51,9 @@ struct kernel_route {
 extern int export_table, import_tables[MAX_IMPORT_TABLES], import_table_count;
 
 int add_import_table(int table);
+#define SRC_TABLE_NUM 10
+extern int src_table_idx; /* number of the first table */
+extern int src_table_prio; /* first prio range */
 
 int kernel_setup(int setup);
 int kernel_setup_socket(int setup);
