@@ -1651,10 +1651,6 @@ flush_rule(int prio, int family)
 
 /* Source specific functions and data structures */
 
-#define SRC_TABLE_IDX 10 /* number of the first table */
-#define SRC_TABLE_NUM 10
-#define SRC_TABLE_PRIO 110 /* first prio range */
-
 /* The table used for non-specific routes is "export_table", therefore, we can
    take the convention of plen == 0 <=> empty table. */
 struct kernel_table {
@@ -1708,7 +1704,7 @@ insert_table(const unsigned char *src, unsigned short src_plen, int idx)
     for(table = 0; table < SRC_TABLE_NUM; table++)
         if(!used_tables[table])
             break;
-    table += SRC_TABLE_IDX;
+    table += src_table_idx;
 
     /* Create the table's rule at the right place. Shift rules if necessary. */
     if(kernel_tables[idx].plen != 0) {
@@ -1719,8 +1715,8 @@ insert_table(const unsigned char *src, unsigned short src_plen, int idx)
             rc = change_table_priority(kernel_tables[i].src,
                                        kernel_tables[i].plen,
                                        kernel_tables[i].table,
-                                       i + SRC_TABLE_PRIO,
-                                       i + 1 + SRC_TABLE_PRIO);
+                                       i + src_table_prio,
+                                       i + 1 + src_table_prio);
             if(rc < 0) {
                 perror("change_table_priority");
                 return NULL;
@@ -1730,12 +1726,12 @@ insert_table(const unsigned char *src, unsigned short src_plen, int idx)
         }
     }
 
-    rc = add_rule(idx + SRC_TABLE_PRIO, src, src_plen, table);
+    rc = add_rule(idx + src_table_prio, src, src_plen, table);
     if(rc < 0) {
         perror("add rule");
         return NULL;
     }
-    used_tables[table - SRC_TABLE_IDX] = 1;
+    used_tables[table - src_table_idx] = 1;
     memcpy(kernel_tables[idx].src, src, 16);
     kernel_tables[idx].plen = src_plen;
     kernel_tables[idx].table = table;
@@ -1802,7 +1798,7 @@ release_tables(void)
     int i;
     for(i = 0; i < SRC_TABLE_NUM; i++) {
         if(kernel_tables[i].plen != 0) {
-            flush_rule(i + SRC_TABLE_PRIO,
+            flush_rule(i + src_table_prio,
                        v4mapped(kernel_tables[i].src) ? AF_INET : AF_INET6);
             kernel_tables[i].plen = 0;
         }

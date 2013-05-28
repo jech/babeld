@@ -713,6 +713,18 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
         if(c < -1 || h < 0)
             goto error;
         change_smoothing_half_life(h);
+    } else if(strcmp(token, "first-table-number") == 0) {
+        int n;
+        c = getint(c, &n, gnc, closure);
+        if(c < -1 || n <= 0 || n + SRC_TABLE_NUM >= 254)
+            goto error;
+        src_table_idx = n;
+    } else if(strcmp(token, "first-rule-priority") == 0) {
+        int n;
+        c = getint(c, &n, gnc, closure);
+        if(c < -1 || n <= 0 || n + SRC_TABLE_NUM >= 32765)
+            goto error;
+        src_table_prio = n;
     } else {
         goto error;
     }
