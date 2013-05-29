@@ -57,7 +57,7 @@ static int get_sdl(struct sockaddr_dl *sdl, char *ifname);
 static const unsigned char v4prefix[16] =
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0 };
 
-int export_table = -1, import_table = -1;
+int export_table = -1, import_table_count = 0, import_tables[MAX_IMPORT_TABLES];
 
 int
 if_eui64(char *ifname, int ifindex, unsigned char *eui)
@@ -834,6 +834,8 @@ kernel_callback(int (*fn)(int, void*), void *closure)
     return 0;
 
 }
+
+int add_import_table(int table) { return 0; } // not used
 
 /* Local Variables:      */
 /* c-basic-offset: 4     */

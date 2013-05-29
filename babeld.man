@@ -115,7 +115,8 @@ Use the given kernel routing table for routes inserted by
 .BR babeld .
 .TP
 .BI \-T " table"
-Export routes from the given kernel routing table.
+Export routes from the given kernel routing table. Can be specified
+multiple (up to 10) times to export routes from more than one table.
 .TP
 .BI \-c " filename"
 Specify the name of the configuration file.  The default is
