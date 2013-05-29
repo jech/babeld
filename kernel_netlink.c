@@ -41,6 +41,7 @@ THE SOFTWARE.
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <linux/if_bridge.h>
+#include <linux/fib_rules.h>
 #include <netinet/ether.h>
 
 #if (__GLIBC__ < 2) || (__GLIBC__ == 2 && __GLIBC_MINOR__ <= 5)
@@ -1517,6 +1518,120 @@ kernel_callback(int (*fn)(int, void*), void *closure)
 }
 
 
+/* Routing table's rules */
+
+static int
+addRule(int prio, const unsigned char *src_prefix, int src_plen, int table)
+{
+    char buffer[64] = {0}; /* 56 needed */
+    struct nlmsghdr *message_header = (void*)buffer;
+    struct rtmsg *message = NULL;
+    struct rtattr *current_attribute = NULL;
+    int is_v4 = v4mapped(src_prefix);
+    int addr_size = is_v4 ? sizeof(struct in_addr) : sizeof(struct in6_addr);
+
+    if (is_v4) {
+        src_prefix += 12;
+        src_plen -= 96;
+        assert(src_plen >= 0);
+    }
+
+#if RTA_ALIGNTO != NLMSG_ALIGNTO
+#error "RTA_ALIGNTO != NLMSG_ALIGNTO"
+#endif
+
+    /* Set the header */
+    message_header->nlmsg_flags = NLM_F_REQUEST | NLM_F_CREATE | NLM_F_EXCL;
+    message_header->nlmsg_type  = RTM_NEWRULE;
+    message_header->nlmsg_len   = NLMSG_ALIGN(sizeof(struct nlmsghdr));
+
+    /* Append the message */
+    message = NLMSG_DATA(message_header);
+    message->rtm_family = is_v4 ? AF_INET : AF_INET6;
+    message->rtm_dst_len = 0;
+    message->rtm_src_len = src_plen;
+    message->rtm_tos = 0;
+    message->rtm_table = table;
+    message->rtm_protocol = RTPROT_BABEL;
+    message->rtm_scope = RT_SCOPE_UNIVERSE;
+    message->rtm_type = RTN_UNICAST;
+    message->rtm_flags = 0;
+    message_header->nlmsg_len += NLMSG_ALIGN(sizeof(struct rtmsg));
+
+    /* Append each attribute */
+    current_attribute = RTM_RTA(message);
+    /* prio */
+    current_attribute->rta_len = RTA_LENGTH(sizeof(int));
+    current_attribute->rta_type = FRA_PRIORITY;
+    *(int*)RTA_DATA(current_attribute) = prio;
+
+    message_header->nlmsg_len += current_attribute->rta_len;
+    current_attribute = (void*)
+        ((char*)current_attribute) + current_attribute->rta_len;
+
+    /* src */
+    current_attribute->rta_len = RTA_LENGTH(addr_size);
+    current_attribute->rta_type = FRA_SRC;
+    memcpy(RTA_DATA(current_attribute), src_prefix, addr_size);
+
+    message_header->nlmsg_len += current_attribute->rta_len;
+    current_attribute = (void*)
+        ((char*)current_attribute) + current_attribute->rta_len;
+
+    /* send message */
+    assert(message_header->nlmsg_len <= 64);
+    return netlink_talk(message_header);
+}
+
+static int
+delRule(int prio, int family)
+{
+    char buffer[64] = {0}; /* 36 needed */
+    struct nlmsghdr *message_header = (void*)buffer;
+    struct rtmsg *message = NULL;
+    struct rtattr *current_attribute = NULL;
+
+    memset(buffer, 0, sizeof(buffer));
+
+#if RTA_ALIGNTO != NLMSG_ALIGNTO
+#error "RTA_ALIGNTO != NLMSG_ALIGNTO"
+#endif
+
+    /* Set the header */
+    message_header->nlmsg_flags = NLM_F_REQUEST;
+    message_header->nlmsg_type  = RTM_DELRULE;
+    message_header->nlmsg_len   = NLMSG_ALIGN(sizeof(struct nlmsghdr));
+
+    /* Append the message */
+    message = NLMSG_DATA(message_header);
+    message->rtm_family = family;
+    message->rtm_dst_len = 0;
+    message->rtm_src_len = 0;
+    message->rtm_tos = 0;
+    message->rtm_table = 0;
+    message->rtm_protocol = RTPROT_BABEL;
+    message->rtm_scope = RT_SCOPE_UNIVERSE;
+    message->rtm_type = RTN_UNSPEC;
+    message->rtm_flags = 0;
+    message_header->nlmsg_len += NLMSG_ALIGN(sizeof(struct rtmsg));
+
+    /* Append each attribute */
+    current_attribute = RTM_RTA(message);
+    /* prio */
+    current_attribute->rta_len = RTA_LENGTH(sizeof(int));
+    current_attribute->rta_type = FRA_PRIORITY;
+    *(int*)RTA_DATA(current_attribute) = prio;
+
+    message_header->nlmsg_len += current_attribute->rta_len;
+    current_attribute = (void*)
+        ((char*)current_attribute) + current_attribute->rta_len;
+
+    /* send message */
+    assert(message_header->nlmsg_len <= 64);
+    return netlink_talk(message_header);
+}
+
+
 /* Source specific functions and data structures */
 
 #define SRC_TABLE_IDX 10 /* number of the first table */
@@ -1540,27 +1655,16 @@ static inline int
 swap_tables(int old_prio, const unsigned char *src, int plen, int table_no,
             int new_prio)
 {
-    char buf[100];
-    sprintf(buf, "ip rule add prio %d from %s table %d",
-            new_prio, format_prefix(src, plen), table_no);
-    system(buf);
-    sprintf(buf, "ip rule del prio %d", old_prio);
-    system(buf);
-    return 0;
-}
-
-static void
-del_table(int prio)
-{
-    char buf[100];
-    sprintf(buf, "ip rule del prio %d", prio);
-    system(buf);
+    int rc;
+    rc = addRule(new_prio, src, plen, table_no);
+    if (rc < 0)
+        return rc;
+    return delRule(old_prio, v4mapped(src) ? AF_INET : AF_INET6);
 }
 
 static struct kernel_table *
 get_new_table(const unsigned char *src, unsigned short src_plen, int idx)
 {
-    char buf[100];
     int table_no;
     int rc;
     int i;
@@ -1585,15 +1689,21 @@ get_new_table(const unsigned char *src, unsigned short src_plen, int idx)
             rc = swap_tables(i + SRC_TABLE_PRIO, kernel_tables[i].src,
                              kernel_tables[i].plen, kernel_tables[i].table_no,
                              i + 1 + SRC_TABLE_PRIO);
+            if (rc < 0) {
+                perror("swap tables");
+                return NULL;
+            }
             assert(rc >= 0);
             kernel_tables[i+1] = kernel_tables[i];
             kernel_tables[i].plen = 0;
         }
     }
 
-    sprintf(buf, "ip rule add prio %d from %s table %d",
-            idx + SRC_TABLE_PRIO, format_prefix(src, src_plen),table_no);
-    system(buf);
+    rc = addRule(idx + SRC_TABLE_PRIO, src, src_plen, table_no);
+    if (rc < 0) {
+        perror("add rule");
+        return NULL;
+    }
     used_tables[table_no - SRC_TABLE_IDX] = 1;
     memcpy(kernel_tables[idx].src, src, 16);
     kernel_tables[idx].plen = src_plen;
@@ -1655,5 +1765,6 @@ release_tables(void)
     int i;
     for (i = 0; i < SRC_TABLE_NUM; i++)
         if (kernel_tables[i].plen != 0)
-            del_table(i + SRC_TABLE_PRIO);
+            delRule(i + SRC_TABLE_PRIO,
+                    v4mapped(kernel_tables[i].src) ? AF_INET : AF_INET6);
 }
