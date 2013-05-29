@@ -40,6 +40,7 @@ THE SOFTWARE.
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <linux/if_bridge.h>
+#include <linux/fib_rules.h>
 #include <netinet/ether.h>
 
 #if(__GLIBC__ < 2) || (__GLIBC__ == 2 && __GLIBC_MINOR__ <= 5)
@@ -1503,4 +1504,132 @@ kernel_callback(int (*fn)(int, void*), void *closure)
         return fn(changed, closure);
 
     return 0;
+}
+
+
+/* Routing table's rules */
+
+static int
+add_rule(int prio, const unsigned char *src_prefix, int src_plen, int table)
+{
+    char buffer[64] = {0}; /* 56 needed */
+    struct nlmsghdr *message_header = (void*)buffer;
+    struct rtmsg *message = NULL;
+    struct rtattr *current_attribute = NULL;
+    int is_v4 = v4mapped(src_prefix);
+    int addr_size = is_v4 ? sizeof(struct in_addr) : sizeof(struct in6_addr);
+
+    kdebugf("Add rule v%c prio %d from %s\n", is_v4 ? '4' : '6', prio,
+            format_prefix(src_prefix, src_plen));
+
+    if(is_v4) {
+        src_prefix += 12;
+        src_plen -= 96;
+        if(src_plen < 0) {
+            errno = EINVAL;
+            return -1;
+        }
+    }
+
+#if RTA_ALIGNTO != NLMSG_ALIGNTO
+#error "RTA_ALIGNTO != NLMSG_ALIGNTO"
+#endif
+
+    /* Set the header */
+    message_header->nlmsg_flags = NLM_F_REQUEST | NLM_F_CREATE | NLM_F_EXCL;
+    message_header->nlmsg_type  = RTM_NEWRULE;
+    message_header->nlmsg_len   = NLMSG_ALIGN(sizeof(struct nlmsghdr));
+
+    /* Append the message */
+    message = NLMSG_DATA(message_header);
+    message->rtm_family = is_v4 ? AF_INET : AF_INET6;
+    message->rtm_dst_len = 0;
+    message->rtm_src_len = src_plen;
+    message->rtm_tos = 0;
+    message->rtm_table = table;
+    message->rtm_protocol = RTPROT_BABEL;
+    message->rtm_scope = RT_SCOPE_UNIVERSE;
+    message->rtm_type = RTN_UNICAST;
+    message->rtm_flags = 0;
+    message_header->nlmsg_len += NLMSG_ALIGN(sizeof(struct rtmsg));
+
+    /* Append each attribute */
+    current_attribute = RTM_RTA(message);
+    /* prio */
+    current_attribute->rta_len = RTA_LENGTH(sizeof(int));
+    current_attribute->rta_type = FRA_PRIORITY;
+    *(int*)RTA_DATA(current_attribute) = prio;
+
+    message_header->nlmsg_len += current_attribute->rta_len;
+    current_attribute = (void*)
+        ((char*)current_attribute) + current_attribute->rta_len;
+
+    /* src */
+    current_attribute->rta_len = RTA_LENGTH(addr_size);
+    current_attribute->rta_type = FRA_SRC;
+    memcpy(RTA_DATA(current_attribute), src_prefix, addr_size);
+
+    message_header->nlmsg_len += current_attribute->rta_len;
+    current_attribute = (void*)
+        ((char*)current_attribute) + current_attribute->rta_len;
+
+    /* send message */
+    if(message_header->nlmsg_len > 64) {
+        errno = EINVAL;
+        return -1;
+    }
+    return netlink_talk(message_header);
+}
+
+static int
+flush_rule(int prio, int family)
+{
+    char buffer[64] = {0}; /* 36 needed */
+    struct nlmsghdr *message_header = (void*)buffer;
+    struct rtmsg *message = NULL;
+    struct rtattr *current_attribute = NULL;
+
+    memset(buffer, 0, sizeof(buffer));
+
+    kdebugf("Flush rule v%c prio %d\n", family == AF_INET ? '4' : '6', prio);
+
+#if RTA_ALIGNTO != NLMSG_ALIGNTO
+#error "RTA_ALIGNTO != NLMSG_ALIGNTO"
+#endif
+
+    /* Set the header */
+    message_header->nlmsg_flags = NLM_F_REQUEST;
+    message_header->nlmsg_type  = RTM_DELRULE;
+    message_header->nlmsg_len   = NLMSG_ALIGN(sizeof(struct nlmsghdr));
+
+    /* Append the message */
+    message = NLMSG_DATA(message_header);
+    message->rtm_family = family;
+    message->rtm_dst_len = 0;
+    message->rtm_src_len = 0;
+    message->rtm_tos = 0;
+    message->rtm_table = 0;
+    message->rtm_protocol = RTPROT_BABEL;
+    message->rtm_scope = RT_SCOPE_UNIVERSE;
+    message->rtm_type = RTN_UNSPEC;
+    message->rtm_flags = 0;
+    message_header->nlmsg_len += NLMSG_ALIGN(sizeof(struct rtmsg));
+
+    /* Append each attribute */
+    current_attribute = RTM_RTA(message);
+    /* prio */
+    current_attribute->rta_len = RTA_LENGTH(sizeof(int));
+    current_attribute->rta_type = FRA_PRIORITY;
+    *(int*)RTA_DATA(current_attribute) = prio;
+
+    message_header->nlmsg_len += current_attribute->rta_len;
+    current_attribute = (void*)
+        ((char*)current_attribute) + current_attribute->rta_len;
+
+    /* send message */
+    if(message_header->nlmsg_len > 64) {
+        errno = EINVAL;
+        return -1;
+    }
+    return netlink_talk(message_header);
 }
