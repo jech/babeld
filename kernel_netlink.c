@@ -51,7 +51,7 @@ THE SOFTWARE.
 #include "util.h"
 #include "interface.h"
 
-int export_table = -1, import_table = -1;
+int export_table = -1, import_tables[MAX_IMPORT_TABLES], import_table_count = 0;
 
 static int old_forwarding = -1;
 static int old_ipv4_forwarding = -1;
@@ -468,8 +468,8 @@ kernel_setup(int setup)
         if(export_table < 0)
             export_table = RT_TABLE_MAIN;
 
-        if(import_table < 0)
-            import_table = RT_TABLE_MAIN;
+        if(import_table_count < 1)
+            import_tables[import_table_count++] = RT_TABLE_MAIN;
 
         dgram_socket = socket(PF_INET, SOCK_DGRAM, 0);
         if(dgram_socket < 0)
@@ -1037,10 +1037,11 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
     }
 #undef COPY_ADDR
 
-    if(table != import_table)
-        return -1;
-
-    return 0;
+    int i;
+    for(i = 0; i < import_table_count; i++)
+        if(table == import_tables[i])
+            return 0;
+    return -1;
 }
 
 static void
