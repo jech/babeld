@@ -199,6 +199,7 @@ check_xroutes(int send_updates)
     for (i = 0; i < numroutes;) {
         const unsigned char *ss_prefix;
         unsigned char ss_plen;
+        enum prefixes_status dst_st;
         if (v4mapped(routes[i].prefix)) {
             ss_prefix = source_specific_addr;
             ss_plen   = source_specific_plen;
@@ -215,8 +216,12 @@ check_xroutes(int send_updates)
                 numroutes--; /* no i ++ */
                 break;
             case PST_LESS_SPECIFIC:
-                memcpy(routes[i].src_prefix, ss_prefix, 16);
-                routes[i].src_plen = ss_plen;
+                dst_st = prefixes_cmp(routes[i].prefix, routes[i].plen,
+                                      ss_prefix, ss_plen);
+                if (!(dst_st == PST_MORE_SPECIFIC || dst_st == PST_EQUALS)) {
+                    memcpy(routes[i].src_prefix, ss_prefix, 16);
+                    routes[i].src_plen = ss_plen;
+                }
                 /* fall through */;
             case PST_EQUALS:
             case PST_MORE_SPECIFIC:
