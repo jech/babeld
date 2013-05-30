@@ -17,13 +17,18 @@ While it is optimised for wireless mesh networks, Babel will also work
 efficiently on wired networks.
 .SH OPTIONS
 .TP
-.BI \-a " source-specific-address"
-Specify the v4 source specific prefix of the host. For example 192.168.7.0/24.
-See -x and -y options if using multiple tables.
+.BI \-a " source-specific-prefix"
+Specify the v4 source specific prefix of the host.  If a kernel route is not in
+that prefix, it will be redistributed in babeld with this source prefix.  See
+.B -x
+and
+.B -y
+options when using multiple tables.
 .TP
-.BI \-b " source-specific-address6"
-Specify the v6 source specific prefix of the host.
-See -x and -y options if using multiple tables.
+.BI \-b " source-specific-prefix6"
+Same as
+.BR -a ,
+but for ipv6.
 .TP
 .BI \-x " source-specific-table-idx"
 Useful if the kernel use multiple routing tables for implementing

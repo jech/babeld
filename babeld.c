@@ -856,7 +856,9 @@ main(int argc, char **argv)
             "                "
             "[-d level] [-D] [-L logfile] [-I pidfile]\n"
             "                "
-            "[-a source-specific-prefix]\n"
+            "[-a v4-source-specific-prefix] [-b v6-source-specific-prefix]\n"
+            "                "
+            "[-x] first-routing-table-index [-y] first-table-priority\n"
             "                "
             "[id] interface...\n",
             argv[0]);
