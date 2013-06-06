@@ -103,10 +103,10 @@ int daemonise(void);
 int set_src_prefix(unsigned char *src_addr, unsigned char *src_plen);
 
 enum prefixes_status {
-    PST_DISJOINT,
-    PST_EQUALS,
-    PST_MORE_SPECIFIC,
-    PST_LESS_SPECIFIC,
+    PST_DISJOINT      = 1 << 0,
+    PST_EQUALS        = 1 << 1,
+    PST_MORE_SPECIFIC = 1 << 2,
+    PST_LESS_SPECIFIC = 1 << 3,
 };
 enum prefixes_status
 prefixes_cmp(const unsigned char *p1, unsigned char plen1,

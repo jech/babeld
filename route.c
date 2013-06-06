@@ -553,7 +553,7 @@ search_conflict_solution(struct zone *conflict_zone)
         src_st = prefixes_cmp(rt->src->src_prefix, rt->src->src_plen,
                               conflict_zone->src_prefix,
                               conflict_zone->src_plen);
-        if (!(src_st == PST_LESS_SPECIFIC || src_st == PST_EQUALS))
+        if (!(src_st & (PST_LESS_SPECIFIC | PST_EQUALS)))
             continue;
         if (result != NULL) {
             src_st = prefixes_cmp(rt->src->src_prefix, rt->src->src_plen,
@@ -606,7 +606,7 @@ install_conflicting_routes(struct babel_route *installed_route, void *closure)
 
     assert(ic->rt_new == NULL && ic->rt_newmetric == 0 && ic->rc == 0);
     dst_st = prefixes_cmp(rt->prefix, rt->plen, rt1->prefix, rt1->plen);
-    if (dst_st == PST_DISJOINT || dst_st == PST_EQUALS)
+    if (dst_st & (PST_DISJOINT | PST_EQUALS))
         return;
     src_st = prefixes_cmp(rt->src_prefix, rt->src_plen,
                           rt1->src_prefix, rt1->src_plen);
@@ -754,7 +754,7 @@ uninstall_conflicting_routes(struct babel_route *installed_route, void *closure)
 
     assert(ic->rt_new == NULL && ic->rt_newmetric == 0);
     dst_st = prefixes_cmp(rt->prefix, rt->plen, rt1->prefix, rt1->plen);
-    if (dst_st == PST_DISJOINT || dst_st == PST_EQUALS)
+    if (dst_st & (PST_DISJOINT | PST_EQUALS))
         return;
     src_st = prefixes_cmp(rt->src_prefix, rt->src_plen,
                           rt1->src_prefix, rt1->src_plen);
@@ -897,7 +897,7 @@ switch_conflicting_routes(struct babel_route *installed_route, void *closure)
 
     assert(ic->rc == 0);
     dst_st = prefixes_cmp(rt->prefix, rt->plen, rt1->prefix, rt1->plen);
-    if (dst_st == PST_DISJOINT || dst_st == PST_EQUALS)
+    if (dst_st & (PST_DISJOINT | PST_EQUALS))
         return;
     src_st = prefixes_cmp(rt->src_prefix, rt->src_plen,
                           rt1->src_prefix, rt1->src_plen);

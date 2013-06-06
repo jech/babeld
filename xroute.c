@@ -218,7 +218,7 @@ check_xroutes(int send_updates)
             case PST_LESS_SPECIFIC:
                 dst_st = prefixes_cmp(routes[i].prefix, routes[i].plen,
                                       ss_prefix, ss_plen);
-                if (!(dst_st == PST_MORE_SPECIFIC || dst_st == PST_EQUALS)) {
+                if (!(dst_st & (PST_MORE_SPECIFIC | PST_EQUALS))) {
                     memcpy(routes[i].src_prefix, ss_prefix, 16);
                     routes[i].src_plen = ss_plen;
                 }
