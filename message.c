@@ -959,6 +959,35 @@ really_send_update(struct interface *ifp,
 
     v4 = plen >= 96 && v4mapped(prefix);
 
+    if(src_plen != 0) {
+        if(allow_generic_redistribution) {
+            struct babel_route *rt;
+            int next = -1;
+            int has_lowest_metric = 1;
+            enum prefixes_status st;
+            while(1) {
+                rt = find_next_installed_route(prefix, plen, &next);
+                if(rt == NULL) break;
+                st = prefixes_cmp(rt->src->src_prefix, rt->src->src_plen,
+                                  src_prefix, src_plen);
+                if(st != PST_EQUALS &&
+                   route_metric(rt) < INFINITY &&
+                   (route_metric(rt) > metric
+                    || (route_metric(rt) == metric &&
+                        memcmp(src_prefix, rt->src->src_prefix, 16) < 0)) &&
+                   output_filter(rt->src->id, rt->src->prefix, rt->src->plen,
+                                 rt->src->src_prefix, rt->src->src_plen,
+                                 rt->neigh->ifp->ifindex) < INFINITY) {
+                    has_lowest_metric = 0;
+                    break;
+                }
+            }
+            if(has_lowest_metric)
+                really_send_update(ifp, id, prefix, plen, zeroes, 0, seqno,
+                                   metric, channels, channels_len);
+        }
+    }
+
     add_metric = output_filter(id, prefix, plen, src_prefix,
                                src_plen, ifp->ifindex);
     if(add_metric >= INFINITY)

@@ -1331,6 +1331,33 @@ update_route(const unsigned char *id,
     if(src_plen != 0 && is_v4 != v4mapped(src_prefix))
         return NULL;
 
+    if(allow_generic_redistribution) {
+        int next = -1;
+        struct babel_route *rt = NULL;
+        if(src_plen == 0) {
+            /* reject route if a specific one exists for that destination */
+            while(1) {
+                rt = find_next_installed_route(prefix, plen, &next);
+                if(rt == NULL) break;
+                if(rt->src->src_plen != 0)
+                    return NULL;
+            }
+        } else {
+            /* reject/uninstall non-specific routes installed for that dest. */
+            struct babel_route *rt = NULL;
+            int slot = -1;
+            while(1) {
+                slot = find_next_route_slot(prefix, plen, &next);
+                if (slot < 0) break;
+                rt = routes[slot];
+                if(rt->src->src_plen == 0) {
+                    if(rt->installed)
+                        uninstall_route(rt);
+                    flush_route(rt);
+                }
+            }
+        }
+    }
 
     add_metric = input_filter(id, prefix, plen,
                               src_prefix, src_plen,

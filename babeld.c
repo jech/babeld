@@ -83,6 +83,7 @@ unsigned char source_specific_addr[16];
 unsigned char source_specific_plen;
 unsigned char source_specific_addr6[16];
 unsigned char source_specific_plen6;
+char allow_generic_redistribution = 0;
 int protocol_socket = -1;
 int kernel_socket = -1;
 static int kernel_routes_changed = 0;
@@ -126,7 +127,7 @@ main(int argc, char **argv)
 
     while(1) {
         opt = getopt(argc, argv,
-                     "a:b:m:p:h:H:i:k:A:sruS:d:g:lwz:M:t:T:c:C:DL:I:x:y:");
+                     "a:b:m:p:h:H:i:k:A:sruS:d:g:lRwz:M:t:T:c:C:DL:I:x:y:");
         if(opt < 0)
             break;
 
@@ -146,6 +147,9 @@ main(int argc, char **argv)
                 fprintf(stderr, "invalid v6 source-specific prefix\n");
                 goto usage;
             }
+            break;
+        case 'R':
+            allow_generic_redistribution = 1;
             break;
         case 'x':
             src_table_idx = parse_nat(optarg);
