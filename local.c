@@ -133,13 +133,14 @@ local_kind(int kind)
 static void
 local_notify_neighbour_1(int s, struct neighbour *neigh, int kind)
 {
-    char buf[512], rttbuf[30];
+    char buf[512], rttbuf[64];
     int rc;
 
     rttbuf[0] = '\0';
     if(valid_rtt(neigh)) {
-        rc = snprintf(rttbuf, 30, " rtt %d", neigh->rtt);
-        if(rc < 0 || rc >= 30)
+        rc = snprintf(rttbuf, 64, " rtt %d rttcost %d", neigh->rtt,
+                      neighbour_rttcost(neigh));
+        if(rc < 0 || rc >= 64)
             rttbuf[0] = '\0';
     }
 
