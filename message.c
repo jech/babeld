@@ -519,6 +519,21 @@ check_bucket(struct interface *ifp)
     }
 }
 
+static int
+fill_rtt_message(struct interface *ifp)
+{
+    if(ifp->buffered_hello >= 0) {
+        unsigned short time;
+        /* Change the type of sub-TLV. */
+        ifp->sendbuf[ifp->buffered_hello + 8] = SUBTLV_RTT;
+        gettime(&now);
+        time = time_cs(now);
+        DO_HTONS(ifp->sendbuf + ifp->buffered_hello + 10, time);
+        return 1;
+    }
+    return 0;
+}
+
 void
 flushbuf(struct interface *ifp)
 {
@@ -539,6 +554,7 @@ flushbuf(struct interface *ifp)
             sin6.sin6_port = htons(protocol_port);
             sin6.sin6_scope_id = ifp->ifindex;
             DO_HTONS(packet_header + 2, ifp->buffered);
+            fill_rtt_message(ifp);
             rc = babel_send(protocol_socket,
                             packet_header, sizeof(packet_header),
                             ifp->sendbuf, ifp->buffered,
@@ -723,12 +739,17 @@ send_hello_noupdate(struct interface *ifp, unsigned interval)
     debugf("Sending hello %d (%d) to %s.\n",
            ifp->hello_seqno, interval, ifp->name);
 
-    start_message(ifp, MESSAGE_HELLO, 6);
+    start_message(ifp, MESSAGE_HELLO, 10);
     ifp->buffered_hello = ifp->buffered - 2;
     accumulate_short(ifp, 0);
     accumulate_short(ifp, ifp->hello_seqno);
     accumulate_short(ifp, interval > 0xFFFF ? 0xFFFF : interval);
-    end_message(ifp, MESSAGE_HELLO, 6);
+    /* Sub-TLV containing the local time of emission. We use a Pad2
+       sub-TLV, which we'll fill just before sending. */
+    accumulate_byte(ifp, SUBTLV_PADN);
+    accumulate_byte(ifp, 2);
+    accumulate_short(ifp, 0);
+    end_message(ifp, MESSAGE_HELLO, 10);
 }
 
 void

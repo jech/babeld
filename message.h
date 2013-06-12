@@ -41,6 +41,7 @@ THE SOFTWARE.
 #define SUBTLV_PAD1 0
 #define SUBTLV_PADN 1
 #define SUBTLV_DIVERSITY 2 /* Also known as babelz. */
+#define SUBTLV_RTT 3
 
 extern unsigned short myseqno;
 extern struct timeval seqno_time;

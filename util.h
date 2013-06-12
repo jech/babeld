@@ -66,6 +66,13 @@ seqno_plus(unsigned short s, int plus)
     return ((s + plus) & 0xFFFF);
 }
 
+/* Returns a time in centiseconds on 16 bits (thus modulo 2^16). */
+static inline unsigned short
+time_cs(const struct timeval t)
+{
+    return (unsigned short) (t.tv_sec * 100) + (t.tv_usec / 10000);
+}
+
 int roughly(int value);
 void timeval_minus(struct timeval *d,
                    const struct timeval *s1, const struct timeval *s2);
