@@ -28,6 +28,7 @@ THE SOFTWARE.
 #include <stdio.h>
 #include <unistd.h>
 #include <limits.h>
+#include <assert.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -487,4 +488,31 @@ daemonise()
         return -1;
 
     return 1;
+}
+
+enum prefix_status
+prefix_cmp(const unsigned char *p1, unsigned char plen1,
+           const unsigned char *p2, unsigned char plen2)
+{
+    int min = MIN(plen1, plen2);
+    unsigned char mask = 0xFF;
+    int i = 0;
+
+    while(i < min / 8) {
+        if(p1[i] != p2[i])
+            return PST_DISJOINT;
+        i++;
+    }
+    min -= i * 8;
+    if(min != 0) {
+        mask <<= 8 - min;
+        if((p1[i] & mask) != (p2[i] & mask))
+            return PST_DISJOINT;
+    }
+
+    if(plen1 < plen2)
+        return PST_LESS_SPECIFIC;
+    if(plen1 > plen2)
+        return PST_MORE_SPECIFIC;
+    return PST_EQUALS;
 }
