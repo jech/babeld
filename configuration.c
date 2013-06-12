@@ -567,6 +567,45 @@ add_ifconf(struct interface_conf *if_conf, struct interface_conf **if_confs)
 }
 
 static int
+parse_option(int c, gnc_t gnc, void *closure)
+{
+    char *token;
+
+    while(c >= 0 && c != '\n') {
+        c = skip_whitespace(c, gnc, closure);
+        if(c == '\n' || c == '#') {
+            c = skip_to_eol(c, gnc, closure);
+            break;
+        }
+        c = getword(c, &token, gnc, closure);
+        if(c < -1)
+            goto error;
+
+        if(strcmp(token, "protocol-port") == 0) {
+            int p;
+            c = getint(c, &p, gnc, closure);
+            if(c < -1 || p <= 0 || p >= 0xFFFF)
+                goto error;
+            protocol_port = p;
+        } else if(strcmp(token, "protocol-group") == 0) {
+            unsigned char *group = NULL;
+            c = getip(c, &group, NULL, gnc, closure);
+            if(c < -1)
+                goto error;
+            memcpy(protocol_group, group, 16);
+            free(group);
+        } else {
+            goto error;
+        }
+        free(token);
+    }
+    return 1;
+
+ error:
+    return -1;
+}
+
+static int
 parse_config(gnc_t gnc, void *closure)
 {
     int c;
@@ -624,6 +663,11 @@ parse_config(gnc_t gnc, void *closure)
                              if_conf, default_interface_conf);
                 free(if_conf);
             }
+        } else if(strcmp(token, "option") == 0) {
+            int rc;
+            rc = parse_option(c, gnc, closure);
+            if(rc < 0)
+                return -1;
         } else {
             return -1;
         }

@@ -145,8 +145,26 @@ either an interface or a filtering rule.  Blank lines are ignored.  Comments
 are introduced with an octothorp
 .RB `` # ''
 and terminate at the end of the line.
+.SS Global options
+Global options are set by a line with the following format:
+.IP
+.B option
+.IR value ...
+.PP
+where each
+.I value
+can be one of the following:
+.TP
+.BI protocol-group " group"
+This specifies the link-local multicast address to be used by the
+protocol, and is equivalent to the command-line option
+.BR \-m .
+.TP
+.BI protocol-port " port"
+This specifies the UDP port number to be used by the protocol, and is equivalent to the command-line option
+.BR \-p .
 .SS Interface configuration
-An interface is configured by a single line with the following format:
+An interface is configured by a line with the following format:
 .IP
 .B interface
 .I name
