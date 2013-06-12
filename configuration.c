@@ -903,6 +903,7 @@ do_filter(struct filter *f, const unsigned char *id,
 int
 input_filter(const unsigned char *id,
              const unsigned char *prefix, unsigned short plen,
+             const unsigned char *src_prefix, unsigned short src_plen,
              const unsigned char *neigh, unsigned int ifindex)
 {
     int res;
@@ -913,8 +914,10 @@ input_filter(const unsigned char *id,
 }
 
 int
-output_filter(const unsigned char *id, const unsigned char *prefix,
-              unsigned short plen, unsigned int ifindex)
+output_filter(const unsigned char *id,
+              const unsigned char *prefix, unsigned short plen,
+              const unsigned char *src_prefix, unsigned short src_plen,
+              unsigned int ifindex)
 {
     int res;
     res = do_filter(output_filters, id, prefix, plen, NULL, ifindex, 0);
@@ -925,6 +928,7 @@ output_filter(const unsigned char *id, const unsigned char *prefix,
 
 int
 redistribute_filter(const unsigned char *prefix, unsigned short plen,
+                    const unsigned char *src_prefix, unsigned short src_plen,
                     unsigned int ifindex, int proto)
 {
     int res;

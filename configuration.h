@@ -42,9 +42,13 @@ void renumber_filters(void);
 
 int input_filter(const unsigned char *id,
                  const unsigned char *prefix, unsigned short plen,
+                 const unsigned char *src_prefix, unsigned short src_plen,
                  const unsigned char *neigh, unsigned int ifindex);
-int output_filter(const unsigned char *id, const unsigned char *prefix,
-                  unsigned short plen, unsigned int ifindex);
+int output_filter(const unsigned char *id,
+                  const unsigned char *prefix, unsigned short plen,
+                  const unsigned char *src_prefix, unsigned short src_plen,
+                  unsigned int ifindex);
 int redistribute_filter(const unsigned char *prefix, unsigned short plen,
-                        unsigned int ifindex, int proto);
+                    const unsigned char *src_prefix, unsigned short src_plen,
+                    unsigned int ifindex, int proto);
 int finalise_config(void);
