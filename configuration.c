@@ -273,9 +273,8 @@ getnet(int c, unsigned char **p_r, unsigned char *plen_r, int *af_r,
 }
 
 static struct filter *
-parse_filter(gnc_t gnc, void *closure)
+parse_filter(int c, gnc_t gnc, void *closure)
 {
-    int c;
     char *token;
     struct filter *filter;
 
@@ -283,10 +282,6 @@ parse_filter(gnc_t gnc, void *closure)
     if(filter == NULL)
         goto error;
     filter->plen_le = 128;
-
-    c = gnc(closure);
-    if(c < -1)
-        goto error;
 
     while(c >= 0 && c != '\n') {
         c = skip_whitespace(c, gnc, closure);
@@ -380,18 +375,13 @@ parse_filter(gnc_t gnc, void *closure)
 }
 
 static struct interface_conf *
-parse_ifconf(gnc_t gnc, void *closure)
+parse_ifconf(int c, gnc_t gnc, void *closure)
 {
-    int c;
     char *token;
     struct interface_conf *if_conf;
 
     if_conf = calloc(1, sizeof(struct interface_conf));
     if(if_conf == NULL)
-        goto error;
-
-    c = gnc(closure);
-    if(c < -1)
         goto error;
 
     c = skip_whitespace(c, gnc, closure);
@@ -574,25 +564,25 @@ parse_config(gnc_t gnc, void *closure)
 
         if(strcmp(token, "in") == 0) {
             struct filter *filter;
-            filter = parse_filter(gnc, closure);
+            filter = parse_filter(c, gnc, closure);
             if(filter == NULL)
                 return -1;
             add_filter(filter, &input_filters);
         } else if(strcmp(token, "out") == 0) {
             struct filter *filter;
-            filter = parse_filter(gnc, closure);
+            filter = parse_filter(c, gnc, closure);
             if(filter == NULL)
                 return -1;
             add_filter(filter, &output_filters);
         } else if(strcmp(token, "redistribute") == 0) {
             struct filter *filter;
-            filter = parse_filter(gnc, closure);
+            filter = parse_filter(c, gnc, closure);
             if(filter == NULL)
                 return -1;
             add_filter(filter, &redistribute_filters);
         } else if(strcmp(token, "interface") == 0) {
             struct interface_conf *if_conf;
-            if_conf = parse_ifconf(gnc, closure);
+            if_conf = parse_ifconf(c, gnc, closure);
             if(if_conf == NULL)
                 return -1;
             add_ifconf(if_conf, &interface_confs);
