@@ -209,6 +209,51 @@ parse_hello_subtlv(const unsigned char *a, int alen, struct neighbour *neigh)
 }
 
 static int
+parse_ihu_subtlv(const unsigned char *a, int alen,
+                 unsigned short *hello_send_cs,
+                 unsigned short *hello_rtt_receive_time)
+{
+    int type, len, i = 0, ret = 0;
+
+    while(i < alen) {
+        type = a[0];
+        if(type == SUBTLV_PAD1) {
+            i++;
+            continue;
+        }
+
+        if(i + 1 > alen) {
+            fprintf(stderr, "Received truncated sub-TLV on IHU message.\n");
+            return -1;
+        }
+        len = a[i + 1];
+        if(i + len > alen) {
+            fprintf(stderr, "Received truncated sub-TLV on IHU message.\n");
+            return -1;
+        }
+
+        if(type == SUBTLV_PADN) {
+            /* Nothing to do. */
+        } else if(type == SUBTLV_RTT) {
+            if(len >= 4) {
+                DO_NTOHS(*hello_send_cs, a + i + 2);
+                DO_NTOHS(*hello_rtt_receive_time, a + i + 4);
+                ret = 1;
+            }
+            else {
+                fprintf(stderr,
+                        "Received incorrect RTT sub-TLV on IHU message.\n");
+            }
+        } else {
+            fprintf(stderr, "Received unknown IHU sub-TLV type %d.\n", type);
+        }
+
+        i += len + 2;
+    }
+    return ret;
+}
+
+static int
 network_address(int ae, const unsigned char *a, unsigned int len,
                 unsigned char *a_r)
 {
@@ -235,6 +280,8 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         have_v4_nh = 0, have_v6_nh = 0;
     unsigned char router_id[8], v4_prefix[16], v6_prefix[16],
         v4_nh[16], v6_nh[16];
+    /* Content of the RTT sub-TLV on IHU messages. */
+    unsigned short hello_send_cs = 0, hello_rtt_receive_time = 0;
 
     /* We want to track exactly when we received this packet. */
     gettime(&now);
@@ -346,6 +393,10 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 if(interval > 0)
                     /* Multiply by 3/2 to allow neighbours to expire. */
                     schedule_neighbours_check(interval * 45, 0);
+                /* RTT sub-TLV. */
+                if(len > 6 + rc)
+                    parse_ihu_subtlv(message + 8 + rc, len - 6 - rc,
+                                     &hello_send_cs, &hello_rtt_receive_time);
             }
         } else if(type == MESSAGE_ROUTER_ID) {
             if(len < 10) {
