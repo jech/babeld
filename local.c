@@ -133,12 +133,19 @@ local_kind(int kind)
 static void
 local_notify_neighbour_1(int s, struct neighbour *neigh, int kind)
 {
-    char buf[512];
+    char buf[512], rttbuf[30];
     int rc;
+
+    rttbuf[0] = '\0';
+    if(valid_rtt(neigh)) {
+        rc = snprintf(rttbuf, 30, " rtt %d", neigh->rtt);
+        if(rc < 0 || rc >= 30)
+            rttbuf[0] = '\0';
+    }
 
     rc = snprintf(buf, 512,
                   "%s neighbour %lx address %s "
-                  "if %s reach %04x rxcost %d txcost %d cost %d\n",
+                  "if %s reach %04x rxcost %d txcost %d%s cost %d\n",
                   local_kind(kind),
                   /* Neighbours never move around in memory , so we can use the
                      address as a unique identifier. */
@@ -148,6 +155,7 @@ local_notify_neighbour_1(int s, struct neighbour *neigh, int kind)
                   neigh->reach,
                   neighbour_rxcost(neigh),
                   neighbour_txcost(neigh),
+                  rttbuf,
                   neighbour_cost(neigh));
 
     if(rc < 0 || rc >= 512)
