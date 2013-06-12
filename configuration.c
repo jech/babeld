@@ -36,6 +36,7 @@ THE SOFTWARE.
 #include "util.h"
 #include "interface.h"
 #include "route.h"
+#include "kernel.h"
 #include "configuration.h"
 
 struct filter *input_filters = NULL;
@@ -582,12 +583,46 @@ parse_option(int c, gnc_t gnc, void *closure)
         if(c < -1)
             goto error;
 
-        if(strcmp(token, "protocol-port") == 0) {
-            int p;
-            c = getint(c, &p, gnc, closure);
-            if(c < -1 || p <= 0 || p >= 0xFFFF)
+        if(strcmp(token, "protocol-port") == 0 ||
+           strcmp(token, "kernel-priority") == 0 ||
+           strcmp(token, "allow-duplicates") == 0 ||
+           strcmp(token, "local-port") == 0 ||
+           strcmp(token, "export-table") == 0 ||
+           strcmp(token, "import-table") == 0) {
+            int v;
+            c = getint(c, &v, gnc, closure);
+            if(c < -1 || v <= 0 || v >= 0xFFFF)
                 goto error;
-            protocol_port = p;
+
+            if(strcmp(token, "protocol-port") == 0)
+                protocol_port = v;
+            else if(strcmp(token, "kernel-priority") == 0)
+                kernel_metric = v;
+            else if(strcmp(token, "allow_duplicates") == 0)
+                allow_duplicates = v;
+#ifndef NO_LOCAL_INTERFACE
+            else if(strcmp(token, "local-port") == 0)
+                local_server_port = v;
+#endif
+            else if(strcmp(token, "export-table") == 0)
+                export_table = v;
+            else if(strcmp(token, "import-table") == 0)
+                import_table = v;
+            else
+                abort();
+        } else if(strcmp(token, "keep-unfeasible") == 0 ||
+                  strcmp(token, "link-detect") == 0) {
+            int b;
+            c = getbool(c, &b, gnc, closure);
+            if(c < -1)
+                goto error;
+            b = (b == CONFIG_YES);
+            if(strcmp(token, "keep-unfeasible") == 0)
+                keep_unfeasible = b;
+            else if(strcmp(token, "link-detect") == 0)
+                link_detect = b;
+            else
+                abort();
         } else if(strcmp(token, "protocol-group") == 0) {
             unsigned char *group = NULL;
             c = getip(c, &group, NULL, gnc, closure);
@@ -595,24 +630,6 @@ parse_option(int c, gnc_t gnc, void *closure)
                 goto error;
             memcpy(protocol_group, group, 16);
             free(group);
-        } else if(strcmp(token, "kernel-priority") == 0) {
-            int m;
-            c = getint(c, &m, gnc, closure);
-            if(c < -1 || m < 0 || m > 0xFFFF)
-                goto error;
-            kernel_metric = m;
-        } else if(strcmp(token, "allow-duplicates") == 0) {
-            int a;
-            c = getint(c, &a, gnc, closure);
-            if(c < -1 || a < 0 || a > 0xFFFF)
-                goto error;
-            allow_duplicates = c;
-        } else if(strcmp(token, "keep-unfeasible") == 0) {
-            int u;
-            c = getbool(c, &u, gnc, closure);
-            if(c < -1)
-                goto error;
-            keep_unfeasible = (u == CONFIG_YES);
         } else if(strcmp(token, "state-file") == 0) {
             char *file;
             c = getstring(c, &file, gnc, closure);
@@ -625,16 +642,33 @@ parse_option(int c, gnc_t gnc, void *closure)
             if(d < 0)
                 goto error;
             debug = d;
-        } else if(strcmp(token, "local-port") == 0) {
-            int p;
-            c = getint(c, &p, gnc, closure);
-            if(c < -1 || p < 0 || p > 0xFFFF)
+        } else if(strcmp(token, "diversity") == 0) {
+            int d;
+            c = skip_whitespace(c, gnc, closure);
+            if(c >= '0' && c <= '9') {
+                c = getint(c, &d, gnc, closure);
+                if(c < -1)
+                    goto error;
+            } else {
+                int b;
+                c = getbool(c, &b, gnc, closure);
+                if(c < -1)
+                    goto error;
+                d = (b == CONFIG_YES) ? 3 : 0;
+            }
+            diversity_kind = d;
+        } else if(strcmp(token, "diversity-factor") == 0) {
+            int f;
+            c = getint(c, &f, gnc, closure);
+            if(c < -1 || f < 0 || f > 256)
                 goto error;
-#ifdef NO_LOCAL_INTERFACE
-            fprintf(stderr, "Warning: no local interface in this version.\n");
-#else
-            local_server_port = p;
-#endif
+            diversity_factor = f;
+        } else if(strcmp(token, "smoothing-half-life") == 0) {
+            int h;
+            c = getint(c, &h, gnc, closure);
+            if(c < -1 || h < 0)
+                goto error;
+            change_smoothing_half_life(h);
         } else {
             goto error;
         }

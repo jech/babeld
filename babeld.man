@@ -199,6 +199,43 @@ This specifies the TCP port on which
 will listen for connections from a front-end, and is equivalent to the
 command-line option
 .BR \-g .
+.TP
+.BI export-table " table"
+This specifies the kernel routing table to use for routes inserted by
+.BR babeld ,
+and is equivalent to the command-line option
+.BR \-t .
+.TP
+.BI import-table " table"
+This specifies the kernel routing table from which routes are
+redistributed by
+.BR babeld ,
+and is equivalent to the command-line option
+.BR \-T .
+.TP
+.BR link-detect " {" true | false }
+This specifies whether to use carrier sense for determining interface
+availability, and is equivalent to the command-line option
+.BR \-l .
+.TP
+.BR diversity " {" true | false | "\fIkind\fB" }
+This specifies the diversity algorithm to use;
+.B true
+is equivalent to
+.I kind
+3.  The default is
+.B false
+(do not use any diversity algorithm).
+.TP
+.BI diversity-factor " factor"
+This specifies by how much the cost of non-interfering routes should
+be multiplied, in units of 1/256.  The default is 128 (division by 2).
+.TP
+.BI smoothing-half-life " seconds"
+This specifies the half-life in seconds of the exponential decay used
+for smoothing metrics for performing route selection, and is
+equivalent to the command-line option
+.BR \-M .
 .SS Interface configuration
 An interface is configured by a line with the following format:
 .IP
