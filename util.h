@@ -101,6 +101,16 @@ int v4mapped(const unsigned char *address) ATTRIBUTE ((pure));
 void v4tov6(unsigned char *dst, const unsigned char *src);
 int daemonise(void);
 
+enum prefixes_status {
+    PST_DISJOINT,
+    PST_EQUALS,
+    PST_MORE_SPECIFIC,
+    PST_LESS_SPECIFIC,
+};
+enum prefixes_status
+prefixes_cmp(const unsigned char *p1, unsigned char plen1,
+             const unsigned char *p2, unsigned char plen2);
+
 /* If debugging is disabled, we want to avoid calling format_address
    for every omitted debugging message.  So debug is a macro.  But
    vararg macros are not portable. */
