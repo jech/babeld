@@ -280,6 +280,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         have_v4_nh = 0, have_v6_nh = 0;
     unsigned char router_id[8], v4_prefix[16], v6_prefix[16],
         v4_nh[16], v6_nh[16];
+    int have_hello_rtt = 0;
     /* Content of the RTT sub-TLV on IHU messages. */
     unsigned short hello_send_cs = 0, hello_rtt_receive_time = 0;
 
@@ -369,8 +370,10 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 /* Multiply by 3/2 to allow hellos to expire. */
                 schedule_neighbours_check(interval * 15, 0);
             /* Sub-TLV handling. */
-            if(len > 6)
-                parse_hello_subtlv(message + 8, len - 6, neigh);
+            if(len > 6) {
+                if(parse_hello_subtlv(message + 8, len - 6, neigh) > 0)
+                    have_hello_rtt = 1;
+            }
         } else if(type == MESSAGE_IHU) {
             unsigned short txcost, interval;
             unsigned char address[16];
@@ -589,6 +592,25 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         fprintf(stderr, "Couldn't parse packet (%d, %d) from %s on %s.\n",
                 message[0], message[1], format_address(from), ifp->name);
         goto done;
+    }
+
+    /* We can calculate the RTT to this neighbour. */
+    if(have_hello_rtt && hello_send_cs && hello_rtt_receive_time) {
+        short remote_waiting_cs, local_waiting_cs;
+        int rtt;
+        remote_waiting_cs = seqno_minus(neigh->hello_send_cs,
+                                        hello_rtt_receive_time);
+        local_waiting_cs = seqno_minus(time_cs(neigh->hello_rtt_receive_time),
+                                       hello_send_cs);
+
+        /* Sanity checks (validity window of about 4 minutes). */
+        if(remote_waiting_cs < 0 || local_waiting_cs < 0 ||
+           remote_waiting_cs > 25000 || local_waiting_cs > 25000)
+            return;
+
+        rtt = 10 * (local_waiting_cs - remote_waiting_cs);
+        debugf("RTT to %s on %s sample result: %d ms.\n",
+               format_address(from), ifp->name, rtt);
     }
     return;
 }
