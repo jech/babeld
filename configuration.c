@@ -498,14 +498,17 @@ add_filter(struct filter *filter, struct filter **filters)
 }
 
 static void
-merge_ifconf(struct interface_conf *dest, struct interface_conf *src)
+merge_ifconf(struct interface_conf *dest,
+             const struct interface_conf *src1,
+             const struct interface_conf *src2)
 {
-    assert(strcmp(dest->ifname, src->ifname) == 0);
 
 #define MERGE(field)                            \
     do {                                        \
-        if(src->field)                          \
-            dest->field = src->field;           \
+        if(src1->field)                         \
+            dest->field = src1->field;          \
+        else                                    \
+            dest->field = src2->field;          \
     } while(0)
 
     MERGE(hello_interval);
@@ -531,7 +534,7 @@ add_ifconf(struct interface_conf *if_conf, struct interface_conf **if_confs)
         if_c = *if_confs;
         while(if_c->next) {
             if(strcmp(if_c->ifname, if_conf->ifname) == 0) {
-                merge_ifconf(if_c, if_conf);
+                merge_ifconf(if_c, if_conf, if_c);
                 free(if_conf);
                 return;
             }
