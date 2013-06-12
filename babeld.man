@@ -152,9 +152,16 @@ An interface is configured by a single line with the following format:
 .I name
 .RI [ parameter ...]
 .PP
-.I Name
+where
+.I name
 is the name of the interface (something like
 .BR eth0 ).
+The default values for all interfaces can be changed by
+a line of the form
+.IP
+.B default
+.RI [ parameter ...]
+.PP
 
 Each
 .I parameter

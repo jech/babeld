@@ -40,6 +40,7 @@ THE SOFTWARE.
 struct filter *input_filters = NULL;
 struct filter *output_filters = NULL;
 struct filter *redistribute_filters = NULL;
+struct interface_conf *default_interface_conf = NULL;
 struct interface_conf *interface_confs = NULL;
 
 /* This file implements a recursive descent parser with one character
@@ -375,24 +376,17 @@ parse_filter(int c, gnc_t gnc, void *closure)
 }
 
 static struct interface_conf *
-parse_ifconf(int c, gnc_t gnc, void *closure)
+parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
+                       struct interface_conf *if_conf)
 {
+
     char *token;
-    struct interface_conf *if_conf;
 
-    if_conf = calloc(1, sizeof(struct interface_conf));
-    if(if_conf == NULL)
-        goto error;
-
-    c = skip_whitespace(c, gnc, closure);
-    if(c < -1 || c == '\n' || c == '#')
-        goto error;
-
-    c = getstring(c, &token, gnc, closure);
-    if(c < -1 || token == NULL)
-        goto error;
-
-    if_conf->ifname = token;
+    if(if_conf == NULL) {
+        if_conf = calloc(1, sizeof(struct interface_conf));
+        if(if_conf == NULL)
+            goto error;
+    }
 
     while(c >= 0 && c != '\n') {
         c = skip_whitespace(c, gnc, closure);
@@ -475,6 +469,33 @@ parse_ifconf(int c, gnc_t gnc, void *closure)
     }
 
     return if_conf;
+
+ error:
+    free(if_conf);
+    return NULL;
+}
+
+static struct interface_conf *
+parse_ifconf(int c, gnc_t gnc, void *closure)
+{
+    char *token;
+    struct interface_conf *if_conf;
+
+    if_conf = calloc(1, sizeof(struct interface_conf));
+    if(if_conf == NULL)
+        goto error;
+
+    c = skip_whitespace(c, gnc, closure);
+    if(c < -1 || c == '\n' || c == '#')
+        goto error;
+
+    c = getstring(c, &token, gnc, closure);
+    if(c < -1 || token == NULL)
+        goto error;
+
+    if_conf->ifname = token;
+
+    return parse_anonymous_ifconf(c, gnc, closure, if_conf);
 
  error:
     free(if_conf);
@@ -591,6 +612,18 @@ parse_config(gnc_t gnc, void *closure)
             if(if_conf == NULL)
                 return -1;
             add_ifconf(if_conf, &interface_confs);
+        } else if(strcmp(token, "default") == 0) {
+            struct interface_conf *if_conf;
+            if_conf = parse_anonymous_ifconf(c, gnc, closure, NULL);
+            if(if_conf == NULL)
+                return -1;
+            if(default_interface_conf == NULL)
+                default_interface_conf = if_conf;
+            else {
+                merge_ifconf(default_interface_conf,
+                             if_conf, default_interface_conf);
+                free(if_conf);
+            }
         } else {
             return -1;
         }
@@ -789,6 +822,8 @@ finalise_config()
         if_conf = interface_confs;
         interface_confs = interface_confs->next;
         if_conf->next = NULL;
+        if(default_interface_conf)
+            merge_ifconf(if_conf, if_conf, default_interface_conf);
         vrc = add_interface(if_conf->ifname, if_conf);
         if(vrc == NULL) {
             fprintf(stderr, "Couldn't add interface %s.\n", if_conf->ifname);
