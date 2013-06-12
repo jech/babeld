@@ -260,11 +260,13 @@ main(int argc, char **argv)
             config_file = "/etc/babeld.conf";
     }
     if(config_file) {
-        rc = parse_config_from_file(config_file);
+        int line;
+        rc = parse_config_from_file(config_file, &line);
         if(rc < 0) {
             fprintf(stderr,
-                    "Couldn't parse configuration from file %s.\n",
-                    config_file);
+                    "Couldn't parse configuration from file %s "
+                    "(error at line %d).\n",
+                    config_file, line);
             exit(1);
         }
     } else {

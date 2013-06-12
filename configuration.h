@@ -34,7 +34,7 @@ struct filter {
     struct filter *next;
 };
 
-int parse_config_from_file(char *filename);
+int parse_config_from_file(const char *filename, int *line_return);
 int parse_config_from_string(char *string);
 void renumber_filters(void);
 

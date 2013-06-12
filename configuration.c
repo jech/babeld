@@ -594,17 +594,37 @@ parse_config(gnc_t gnc, void *closure)
     return 1;
 }
 
-int
-parse_config_from_file(char *filename)
-{
+struct file_state {
     FILE *f;
+    int line;
+};
+
+static int
+gnc_file(struct file_state *s)
+{
+    int c;
+    c = fgetc(s->f);
+    if(c == '\n')
+       s->line++;
+    return c;
+}
+
+int
+parse_config_from_file(const char *filename, int *line_return)
+{
+    struct file_state s = { NULL, 1 };
     int rc;
 
-    f = fopen(filename, "r");
-    if(f == NULL)
+    s.f = fopen(filename, "r");
+    if(s.f == NULL) {
+        *line_return = 0;
         return -1;
-    rc = parse_config((gnc_t)fgetc, f);
-    fclose(f);
+    }
+
+    rc = parse_config((gnc_t)gnc_file, &s);
+    fclose(s.f);
+
+    *line_return = s.line;
     return rc;
 }
 
