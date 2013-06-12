@@ -35,6 +35,7 @@ THE SOFTWARE.
 #include "babeld.h"
 #include "util.h"
 #include "interface.h"
+#include "route.h"
 #include "configuration.h"
 
 struct filter *input_filters = NULL;
@@ -594,6 +595,46 @@ parse_option(int c, gnc_t gnc, void *closure)
                 goto error;
             memcpy(protocol_group, group, 16);
             free(group);
+        } else if(strcmp(token, "kernel-priority") == 0) {
+            int m;
+            c = getint(c, &m, gnc, closure);
+            if(c < -1 || m < 0 || m > 0xFFFF)
+                goto error;
+            kernel_metric = m;
+        } else if(strcmp(token, "allow-duplicates") == 0) {
+            int a;
+            c = getint(c, &a, gnc, closure);
+            if(c < -1 || a < 0 || a > 0xFFFF)
+                goto error;
+            allow_duplicates = c;
+        } else if(strcmp(token, "keep-unfeasible") == 0) {
+            int u;
+            c = getbool(c, &u, gnc, closure);
+            if(c < -1)
+                goto error;
+            keep_unfeasible = (u == CONFIG_YES);
+        } else if(strcmp(token, "state-file") == 0) {
+            char *file;
+            c = getstring(c, &file, gnc, closure);
+            if(c < -1)
+                goto error;
+            state_file = file;
+        } else if(strcmp(token, "debug") == 0) {
+            int d;
+            c = getint(c, &d, gnc, closure);
+            if(d < 0)
+                goto error;
+            debug = d;
+        } else if(strcmp(token, "local-port") == 0) {
+            int p;
+            c = getint(c, &p, gnc, closure);
+            if(c < -1 || p < 0 || p > 0xFFFF)
+                goto error;
+#ifdef NO_LOCAL_INTERFACE
+            fprintf(stderr, "Warning: no local interface in this version.\n");
+#else
+            local_server_port = p;
+#endif
         } else {
             goto error;
         }

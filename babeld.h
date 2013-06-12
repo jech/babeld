@@ -92,7 +92,8 @@ extern unsigned char myid[8];
 
 extern const unsigned char zeroes[16], ones[16];
 
-extern int protocol_port;
+extern char *state_file;
+extern int protocol_port, local_server_port;
 extern unsigned char protocol_group[16];
 extern int protocol_socket;
 extern int kernel_socket;

@@ -163,6 +163,42 @@ protocol, and is equivalent to the command-line option
 .BI protocol-port " port"
 This specifies the UDP port number to be used by the protocol, and is equivalent to the command-line option
 .BR \-p .
+.TP
+.BI kernel-priority " priority"
+This specifies the priority value used when installing routes into the
+kernel, and is equivalent to the command-line option
+.BR \-k .
+.TP
+.BI allow-duplicates " priority"
+This allows duplicating external routes when their kernel priority is
+at least
+.IR priority .
+Do not use this option unless you know what you are doing, as it can
+cause persistent route flapping.
+.TP
+.BR keep-unfeasible " {" true | false }
+This specifies whether to keep unfeasible (useless) routes, and is
+equivalent to the command-line option
+.BR \-u .
+.TP
+.BI state-file " filename"
+This specifies the name of the file used for preserving long-term
+information between invocations of the
+.B babeld
+daemon, and is equivalent to the command-line option
+.BR \-S .
+.TP
+.BI debug " level"
+This specifies the debugging level, and is equivalent to the command-line
+option
+.BR \-d .
+.TP
+.BI local-port " port"
+This specifies the TCP port on which
+.B babeld
+will listen for connections from a front-end, and is equivalent to the
+command-line option
+.BR \-g .
 .SS Interface configuration
 An interface is configured by a line with the following format:
 .IP
