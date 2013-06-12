@@ -31,6 +31,11 @@ struct neighbour {
     struct timeval ihu_time;
     unsigned short hello_interval; /* in centiseconds */
     unsigned short ihu_interval;   /* in centiseconds */
+    /* Used for RTT estimation. */
+    /* Absolute time (modulo 2^16) at which the Hello was sent,
+       according to remote clock. */
+    unsigned short hello_send_cs;
+    struct timeval hello_rtt_receive_time;
     struct interface *ifp;
 };
 

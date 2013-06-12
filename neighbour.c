@@ -97,6 +97,8 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
     neigh->hello_time = zero;
     neigh->hello_interval = 0;
     neigh->ihu_interval = 0;
+    neigh->hello_send_cs = 0;
+    neigh->hello_rtt_receive_time = zero;
     neigh->ifp = ifp;
     neigh->next = neighs;
     neighs = neigh;
