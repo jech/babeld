@@ -37,6 +37,10 @@ THE SOFTWARE.
 #define MESSAGE_REQUEST 9
 #define MESSAGE_MH_REQUEST 10
 
+/* Protocol extension through sub-TLVs. */
+#define SUBTLV_PAD1 0
+#define SUBTLV_PADN 1
+#define SUBTLV_DIVERSITY 2 /* Also known as babelz. */
 
 extern unsigned short myseqno;
 extern struct timeval seqno_time;
