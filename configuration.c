@@ -524,6 +524,8 @@ merge_ifconf(struct interface_conf *dest, struct interface_conf *src)
     MERGE(wired);
     MERGE(split_horizon);
     MERGE(lq);
+    MERGE(faraway);
+    MERGE(channel);
 
 #undef MERGE
 }
