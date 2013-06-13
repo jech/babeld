@@ -370,6 +370,8 @@ void
 install_route(struct babel_route *route)
 {
     int i, rc;
+    const unsigned char *src_prefix = NULL;
+    unsigned char src_plen = 0;
 
     if(route->installed)
         return;
@@ -387,8 +389,13 @@ install_route(struct babel_route *route)
         return;
     }
 
+    if (v4mapped(route->src->prefix)) {
+        src_prefix = source_specific_addr;
+        src_plen = source_specific_plen;
+    }
+
     rc = kernel_route(ROUTE_ADD, route->src->prefix, route->src->plen,
-                      zeroes, 0,
+                      src_prefix, src_plen,
                       route->nexthop,
                       route->neigh->ifp->ifindex,
                       metric_to_kernel(route_metric(route)), NULL, 0, 0);
@@ -407,13 +414,20 @@ install_route(struct babel_route *route)
 void
 uninstall_route(struct babel_route *route)
 {
+    const unsigned char *src_prefix = NULL;
+    unsigned char src_plen = 0;
     int rc;
 
     if(!route->installed)
         return;
 
+    if (v4mapped(route->src->prefix)) {
+        src_prefix = source_specific_addr;
+        src_plen = source_specific_plen;
+    }
+
     rc = kernel_route(ROUTE_FLUSH, route->src->prefix, route->src->plen,
-                      zeroes, 0,
+                      src_prefix, src_plen,
                       route->nexthop,
                       route->neigh->ifp->ifindex,
                       metric_to_kernel(route_metric(route)), NULL, 0, 0);
@@ -431,6 +445,8 @@ uninstall_route(struct babel_route *route)
 static void
 switch_routes(struct babel_route *old, struct babel_route *new)
 {
+    const unsigned char *src_prefix = NULL;
+    unsigned char src_plen = 0;
     int rc;
 
     if(!old) {
@@ -445,8 +461,13 @@ switch_routes(struct babel_route *old, struct babel_route *new)
         fprintf(stderr, "WARNING: switching to unfeasible route "
                 "(this shouldn't happen).");
 
+    if (v4mapped(old->src->prefix)) {
+        src_prefix = source_specific_addr;
+        src_plen = source_specific_plen;
+    }
+
     rc = kernel_route(ROUTE_MODIFY, old->src->prefix, old->src->plen,
-                      zeroes, 0,
+                      src_prefix, src_plen,
                       old->nexthop, old->neigh->ifp->ifindex,
                       metric_to_kernel(route_metric(old)),
                       new->nexthop, new->neigh->ifp->ifindex,
@@ -468,16 +489,23 @@ static void
 change_route_metric(struct babel_route *route,
                     unsigned refmetric, unsigned cost, unsigned add)
 {
+    const unsigned char *src_prefix = NULL;
+    unsigned char src_plen = 0;
     int old, new;
     int newmetric = MIN(refmetric + cost + add, INFINITY);
 
     old = metric_to_kernel(route_metric(route));
     new = metric_to_kernel(newmetric);
 
+    if (v4mapped(route->src->prefix)) {
+        src_prefix = source_specific_addr;
+        src_plen = source_specific_plen;
+    }
+
     if(route->installed && old != new) {
         int rc;
         rc = kernel_route(ROUTE_MODIFY, route->src->prefix, route->src->plen,
-                          zeroes, 0,
+                          src_prefix, src_plen,
                           route->nexthop, route->neigh->ifp->ifindex,
                           old,
                           route->nexthop, route->neigh->ifp->ifindex,
