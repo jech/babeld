@@ -576,7 +576,9 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
     if(strcmp(token, "protocol-port") == 0 ||
        strcmp(token, "kernel-priority") == 0 ||
        strcmp(token, "allow-duplicates") == 0 ||
+#ifndef NO_LOCAL_INTERFACE
        strcmp(token, "local-port") == 0 ||
+#endif
        strcmp(token, "export-table") == 0 ||
        strcmp(token, "import-table") == 0) {
         int v;
