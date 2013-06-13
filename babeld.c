@@ -64,7 +64,9 @@ int default_wireless_hello_interval = -1;
 int default_wired_hello_interval = -1;
 int resend_delay = -1;
 int do_daemonise = 0;
-char *logfile = NULL, *pidfile = "/var/run/babeld.pid";
+char *logfile = NULL,
+    *pidfile = "/var/run/babeld.pid",
+    *state_file = "/var/lib/babel-state";
 
 unsigned char *receive_buffer = NULL;
 int receive_buffer_size = 0;
@@ -73,8 +75,6 @@ const unsigned char zeroes[16] = {0};
 const unsigned char ones[16] =
     {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
      0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-
-char *state_file = "/var/lib/babel-state";
 
 int protocol_port;
 unsigned char protocol_group[16];

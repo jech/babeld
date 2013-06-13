@@ -611,7 +611,8 @@ parse_option(int c, gnc_t gnc, void *closure)
             else
                 abort();
         } else if(strcmp(token, "keep-unfeasible") == 0 ||
-                  strcmp(token, "link-detect") == 0) {
+                  strcmp(token, "link-detect") == 0 ||
+                  strcmp(token, "daemonise") == 0) {
             int b;
             c = getbool(c, &b, gnc, closure);
             if(c < -1)
@@ -621,6 +622,8 @@ parse_option(int c, gnc_t gnc, void *closure)
                 keep_unfeasible = b;
             else if(strcmp(token, "link-detect") == 0)
                 link_detect = b;
+            else if(strcmp(token, "daemonise") == 0)
+                do_daemonise = b;
             else
                 abort();
         } else if(strcmp(token, "protocol-group") == 0) {
@@ -630,12 +633,21 @@ parse_option(int c, gnc_t gnc, void *closure)
                 goto error;
             memcpy(protocol_group, group, 16);
             free(group);
-        } else if(strcmp(token, "state-file") == 0) {
+        } else if(strcmp(token, "state-file") == 0 ||
+                  strcmp(token, "log-file") == 0 ||
+                  strcmp(token, "pid-file") == 0) {
             char *file;
             c = getstring(c, &file, gnc, closure);
             if(c < -1)
                 goto error;
-            state_file = file;
+            if(strcmp(token, "state-file") == 0)
+                state_file = file;
+            else if(strcmp(token, "log-file") == 0)
+                logfile = file;
+            else if(strcmp(token, "pid-file") == 0)
+                pidfile = file;
+            else
+                abort();
         } else if(strcmp(token, "debug") == 0) {
             int d;
             c = getint(c, &d, gnc, closure);
