@@ -28,6 +28,8 @@ THE SOFTWARE.
 struct kernel_route {
     unsigned char prefix[16];
     int plen;
+    unsigned char src_prefix[16];
+    int src_plen;
     int metric;
     unsigned int ifindex;
     int proto;
@@ -60,6 +62,7 @@ int kernel_interface_mtu(const char *ifname, int ifindex);
 int kernel_interface_wireless(const char *ifname, int ifindex);
 int kernel_interface_channel(const char *ifname, int ifindex);
 int kernel_route(int operation, const unsigned char *dest, unsigned short plen,
+                 const unsigned char *src, unsigned short src_plen,
                  const unsigned char *gate, int ifindex, unsigned int metric,
                  const unsigned char *newgate, int newifindex,
                  unsigned int newmetric);

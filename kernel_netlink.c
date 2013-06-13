@@ -27,6 +27,7 @@ THE SOFTWARE.
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
+#include <assert.h>
 
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -76,6 +77,12 @@ static int dgram_socket = -1;
 #define ARPHRD_ETHER 1
 #define NO_ARPHRD
 #endif
+
+
+static int get_table_no(const unsigned char *src, unsigned short src_plen);
+static void get_src_from_table(struct kernel_route *route, int table_no);
+static void release_tables(void);
+
 
 /* Determine an interface's hardware address, in modified EUI-64 format */
 int
@@ -548,6 +555,7 @@ kernel_setup(int setup)
 
         return 1;
     } else {
+        release_tables();
         close(dgram_socket);
         dgram_socket = -1;
 
@@ -897,16 +905,16 @@ kernel_interface_channel(const char *ifname, int ifindex)
 
 int
 kernel_route(int operation, const unsigned char *dest, unsigned short plen,
+             const unsigned char *src, unsigned short src_plen,
              const unsigned char *gate, int ifindex, unsigned int metric,
              const unsigned char *newgate, int newifindex,
              unsigned int newmetric)
 {
-
     union { char raw[1024]; struct nlmsghdr nh; } buf;
     struct rtmsg *rtm;
     struct rtattr *rta;
     int len = sizeof(buf.raw);
-    int rc, ipv4;
+    int rc, ipv4, table_no;
 
     if(!nl_setup) {
         fprintf(stderr,"kernel_route: netlink not initialized.\n");
@@ -926,14 +934,23 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         }
     }
 
+    if(src_plen == 0)
+        assert(memcmp(src, zeroes, 16) == 0);
+
+    table_no = get_table_no(src, src_plen);
+    if (table_no < 0)
+        return -1;
+
     /* Check that the protocol family is consistent. */
     if(plen >= 96 && v4mapped(dest)) {
-        if(!v4mapped(gate)) {
+        if(!v4mapped(gate) ||
+           (src_plen > 0 && (!v4mapped(src) || src_plen < 96))) {
             errno = EINVAL;
             return -1;
         }
     } else {
-        if(v4mapped(gate)) {
+        if(v4mapped(gate)||
+           (src_plen > 0 && v4mapped(src))) {
             errno = EINVAL;
             return -1;
         }
@@ -952,9 +969,11 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
            stick with the naive approach, and hope that the window is
            small enough to be negligible. */
         kernel_route(ROUTE_FLUSH, dest, plen,
+                     src, src_plen,
                      gate, ifindex, metric,
                      NULL, 0, 0);
         rc = kernel_route(ROUTE_ADD, dest, plen,
+                          src, src_plen,
                           newgate, newifindex, newmetric,
                           NULL, 0, 0);
         if(rc < 0) {
@@ -966,11 +985,11 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         return rc;
     }
 
-    kdebugf("kernel_route: %s %s/%d metric %d dev %d nexthop %s\n",
-           operation == ROUTE_ADD ? "add" :
-           operation == ROUTE_FLUSH ? "flush" : "???",
-           format_address(dest), plen, metric, ifindex,
-           format_address(gate));
+    kdebugf("kernel_route: %s %s table %d metric %d dev %d nexthop %s\n",
+            operation == ROUTE_ADD ? "add" :
+            operation == ROUTE_FLUSH ? "flush" : "???",
+            format_prefix(dest, plen), table_no,
+            metric, ifindex, format_address(gate));
 
     /* Unreachable default routes cause all sort of weird interactions;
        ignore them. */
@@ -989,7 +1008,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     rtm = NLMSG_DATA(&buf.nh);
     rtm->rtm_family = ipv4 ? AF_INET : AF_INET6;
     rtm->rtm_dst_len = ipv4 ? plen - 96 : plen;
-    rtm->rtm_table = export_table;
+    rtm->rtm_table = table_no;
     rtm->rtm_scope = RT_SCOPE_UNIVERSE;
     if(metric < KERNEL_INFINITY)
         rtm->rtm_type = RTN_UNICAST;
@@ -1100,8 +1119,10 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
 
     int i;
     for(i = 0; i < import_table_count; i++)
-        if(table == import_tables[i])
+        if(table == import_tables[i]) {
+            get_src_from_table(route, table);
             return 0;
+        }
     return -1;
 }
 
@@ -1493,4 +1514,146 @@ kernel_callback(int (*fn)(int, void*), void *closure)
         return fn(changed, closure);
 
     return 0;
+}
+
+
+/* Source specific functions and data structures */
+
+#define SRC_TABLE_IDX 10 /* number of the first table */
+#define SRC_TABLE_NUM 10
+#define SRC_TABLE_PRIO 110 /* first prio range */
+
+struct kernel_table {
+    unsigned char src[16];
+    unsigned char plen;
+    unsigned char table_no;
+};
+
+/* kernel_tables are sorted by priority: first entries are more specific.
+ This array has no empty cell between non-empty cells.
+ We can only add entries (cf. get_table_no and get_new_table). */
+static struct kernel_table kernel_tables[SRC_TABLE_NUM];
+static char used_tables[SRC_TABLE_NUM] = {0}; /* 1 <=> this table is used */
+static unsigned char src_table_used = 0;
+
+static inline int
+swap_tables(int old_prio, const unsigned char *src, int plen, int table_no,
+            int new_prio)
+{
+    char buf[100];
+    sprintf(buf, "ip rule add prio %d from %s table %d",
+            new_prio, format_prefix(src, plen), table_no);
+    system(buf);
+    sprintf(buf, "ip rule del prio %d", old_prio);
+    system(buf);
+    return 0;
+}
+
+static void
+del_table(int prio)
+{
+    char buf[100];
+    sprintf(buf, "ip rule del prio %d", prio);
+    system(buf);
+}
+
+static struct kernel_table *
+get_new_table(const unsigned char *src, unsigned short src_plen, int idx)
+{
+    char buf[100];
+    int table_no;
+    int rc;
+    int i;
+    assert(src_plen != 0 && idx >= 0 && idx < SRC_TABLE_NUM);
+
+    if (src_table_used >= SRC_TABLE_NUM)
+        return NULL;
+
+    /* find a free table number */
+    for (table_no = 0; table_no < SRC_TABLE_NUM; table_no ++)
+        if (!used_tables[table_no])
+            break;
+    table_no += SRC_TABLE_IDX;
+
+    /* Create the table's rule at the right place. Shift rules if necessary. */
+    if (kernel_tables[idx].plen != 0) {
+        /* shift right */
+        for (i = idx + 1; kernel_tables[i].plen != 0; i ++)
+            assert(i < SRC_TABLE_NUM - 1);
+        while (i > idx) {
+            i--;
+            rc = swap_tables(i + SRC_TABLE_PRIO, kernel_tables[i].src,
+                             kernel_tables[i].plen, kernel_tables[i].table_no,
+                             i + 1 + SRC_TABLE_PRIO);
+            assert(rc >= 0);
+            kernel_tables[i+1] = kernel_tables[i];
+            kernel_tables[i].plen = 0;
+        }
+    }
+
+    sprintf(buf, "ip rule add prio %d from %s table %d",
+            idx + SRC_TABLE_PRIO, format_prefix(src, src_plen),table_no);
+    system(buf);
+    used_tables[table_no - SRC_TABLE_IDX] = 1;
+    memcpy(kernel_tables[idx].src, src, 16);
+    kernel_tables[idx].plen = src_plen;
+    kernel_tables[idx].table_no = table_no;
+
+    src_table_used ++;
+    return &kernel_tables[idx];
+}
+
+static int
+get_table_no(const unsigned char *src, unsigned short src_plen)
+{
+    struct kernel_table *kt = NULL;
+    int i;
+
+    if (src_plen == 0)
+        return export_table;
+
+    for (i = 0; i < SRC_TABLE_NUM; i ++) {
+        kt = &kernel_tables[i];
+        if (kt->plen == 0)
+            goto get_table; /* empty table here */
+        switch (prefixes_cmp(src, src_plen, kt->src, kt->plen)) {
+            case PST_LESS_SPECIFIC:
+            case PST_DISJOINT:
+                continue;
+            case PST_MORE_SPECIFIC:
+                goto get_table;
+            case PST_EQUALS:
+                return kt->table_no;
+            default:
+                abort();
+        }
+    }
+
+get_table:
+    kt = get_new_table(src, src_plen, i);
+    return kt == NULL ? -1 : kt->table_no;
+}
+
+static void
+get_src_from_table(struct kernel_route *route, int table_no)
+{
+    int i;
+    for(i = 0; i < SRC_TABLE_NUM; i++) {
+        if (kernel_tables[i].plen != 0 &&
+            kernel_tables[i].table_no == table_no) {
+            memcpy(route->src_prefix, kernel_tables[i].src, 16);
+            route->src_plen = kernel_tables[i].plen;
+            return;
+        }
+    }
+    /* TODO: not one of our table. We should check if a rule is attached. */
+}
+
+static void
+release_tables(void)
+{
+    int i;
+    for (i = 0; i < SRC_TABLE_NUM; i++)
+        if (kernel_tables[i].plen != 0)
+            del_table(i + SRC_TABLE_PRIO);
 }

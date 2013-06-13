@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
+#include <assert.h>
 
 
 #include <strings.h>
@@ -52,7 +53,6 @@ THE SOFTWARE.
 
 
 static int get_sdl(struct sockaddr_dl *sdl, char *ifname);
-
 
 static const unsigned char v4prefix[16] =
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0 };
@@ -387,6 +387,7 @@ kernel_interface_channel(const char *ifname, int ifindex)
 
 int
 kernel_route(int operation, const unsigned char *dest, unsigned short plen,
+             const unsigned char *src, unsigned short src_plen,
              const unsigned char *gate, int ifindex, unsigned int metric,
              const unsigned char *newgate, int newifindex,
              unsigned int newmetric)
@@ -427,9 +428,11 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
            It is the only way to remove the "gateway" flag. */
         if(ipv4 && plen == 128 && memcmp(dest, newgate, 16) == 0) {
             kernel_route(ROUTE_FLUSH, dest, plen,
+                         src, src_plen,
                          gate, ifindex, metric,
                          NULL, 0, 0);
             return kernel_route(ROUTE_ADD, dest, plen,
+                                src, src_plen,
                                 newgate, newifindex, newmetric,
                                 NULL, 0, 0);
         } else {
@@ -668,7 +671,7 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
     size_t len;
     struct rt_msghdr *rtm;
     int rc, i;
-    
+
     mib[0] = CTL_NET;
     mib[1] = PF_ROUTE;
     mib[2] = 0;

@@ -150,6 +150,7 @@ check_xroutes(int send_updates)
     routes = malloc(maxroutes * sizeof(struct kernel_route));
     if(routes == NULL)
         return -1;
+    memset(routes, 0, maxroutes * sizeof(struct kernel_route)); /* calloc ? */
 
     rc = kernel_addresses(NULL, 0, 0, routes, maxroutes);
     if(rc < 0) {
