@@ -78,6 +78,11 @@ static int dgram_socket = -1;
 #define NO_ARPHRD
 #endif
 
+
+static int find_table(const unsigned char *src, unsigned short src_plen);
+static void release_tables(void);
+
+
 /* Determine an interface's hardware address, in modified EUI-64 format */
 int
 if_eui64(char *ifname, int ifindex, unsigned char *eui)
@@ -1632,4 +1637,167 @@ flush_rule(int prio, int family)
         return -1;
     }
     return netlink_talk(message_header);
+}
+
+
+/* Source specific functions and data structures */
+
+#define SRC_TABLE_IDX 10 /* number of the first table */
+#define SRC_TABLE_NUM 10
+#define SRC_TABLE_PRIO 110 /* first prio range */
+
+/* The table used for non-specific routes is "export_table", therefore, we can
+   take the convention of plen == 0 <=> empty table. */
+struct kernel_table {
+    unsigned char src[16];
+    unsigned char plen;
+    unsigned char table;
+};
+
+/* kernel_tables contains informations about the rules we installed. It is an
+   array indexed by: <table priority> - src_table_prio.
+   (First entries are the most specific, since they have priority.) */
+static struct kernel_table kernel_tables[SRC_TABLE_NUM];
+/* used tables is indexed by: <table number> - src_table_idx
+   used_tables[i] == 1 <=> the table number (i + src_table_idx) is used */
+static char used_tables[SRC_TABLE_NUM] = {0};
+static unsigned char src_table_used = 0; /* number of tables used */
+
+static inline int
+change_table_priority(const unsigned char *src, int plen, int table,
+                      int old_prio, int new_prio)
+{
+    int rc;
+    kdebugf("/Swap: ");
+    rc = add_rule(new_prio, src, plen, table);
+    if(rc < 0)
+        return rc;
+    kdebugf("\\Swap: ");
+    return flush_rule(old_prio, v4mapped(src) ? AF_INET : AF_INET6);
+}
+
+/* Return a new table at index [idx] of kernel_tables.  If cell at that index is
+   not free, we need to shift cells (and rules).  If it's full, return NULL. */
+static struct kernel_table *
+insert_table(const unsigned char *src, unsigned short src_plen, int idx)
+{
+    int table;
+    int rc;
+    int i;
+
+    if(idx < 0 || idx >= SRC_TABLE_NUM) {
+        fprintf(stderr, "Incorrect table number %d\n", idx);
+        return NULL;
+    }
+
+    if(src_table_used >= SRC_TABLE_NUM) {
+        kdebugf("All allowed routing tables are used!\n");
+        return NULL;
+    }
+
+    /* find a free table number */
+    for(table = 0; table < SRC_TABLE_NUM; table++)
+        if(!used_tables[table])
+            break;
+    table += SRC_TABLE_IDX;
+
+    /* Create the table's rule at the right place. Shift rules if necessary. */
+    if(kernel_tables[idx].plen != 0) {
+        /* shift right */
+        i = src_table_used;
+        while(i > idx) {
+            i--;
+            rc = change_table_priority(kernel_tables[i].src,
+                                       kernel_tables[i].plen,
+                                       kernel_tables[i].table,
+                                       i + SRC_TABLE_PRIO,
+                                       i + 1 + SRC_TABLE_PRIO);
+            if(rc < 0) {
+                perror("change_table_priority");
+                return NULL;
+            }
+            kernel_tables[i+1] = kernel_tables[i];
+            kernel_tables[i].plen = 0;
+        }
+    }
+
+    rc = add_rule(idx + SRC_TABLE_PRIO, src, src_plen, table);
+    if(rc < 0) {
+        perror("add rule");
+        return NULL;
+    }
+    used_tables[table - SRC_TABLE_IDX] = 1;
+    memcpy(kernel_tables[idx].src, src, 16);
+    kernel_tables[idx].plen = src_plen;
+    kernel_tables[idx].table = table;
+
+    src_table_used++;
+    return &kernel_tables[idx];
+}
+
+/* Sorting kernel_tables in a well ordered fashion will increase code complexity
+   and decrease performances, because more rule shifs will be required, so more
+   system calls invoked. */
+static int
+find_table_slot(const unsigned char *src, unsigned short src_plen,
+                 int *new_return)
+ {
+    struct kernel_table *kt = NULL;
+    int i;
+    *new_return = -1;
+
+    for(i = 0; i < SRC_TABLE_NUM; i++) {
+        kt = &kernel_tables[i];
+        if(kt->plen == 0)
+            goto new_table_here; /* empty table here */
+        switch(prefix_cmp(src, src_plen, kt->src, kt->plen)) {
+        case PST_LESS_SPECIFIC:
+        case PST_DISJOINT:
+            continue; /* try to find a comparable route entry. */
+        case PST_MORE_SPECIFIC:
+            goto new_table_here;
+        case PST_EQUALS:
+            return i;
+        }
+    }
+
+    return -1;
+ new_table_here:
+    *new_return = i;
+    return -1;
+ }
+
+static int
+find_table(const unsigned char *src, unsigned short src_plen)
+{
+    struct kernel_table *kt = NULL;
+    int i, new_i;
+
+    if(src_plen == 0)
+        return export_table;
+
+    i = find_table_slot(src, src_plen, &new_i);
+    if(i < 0) {
+        if(new_i < 0)
+            return -1;
+        kt = insert_table(src, src_plen, new_i);
+    } else {
+        kt = &kernel_tables[i];
+    }
+    return kt == NULL ? -1 : kt->table;
+}
+
+static void
+release_tables(void)
+{
+    int i;
+    for(i = 0; i < SRC_TABLE_NUM; i++) {
+        if(kernel_tables[i].plen != 0) {
+            flush_rule(i + SRC_TABLE_PRIO,
+                       v4mapped(kernel_tables[i].src) ? AF_INET : AF_INET6);
+            kernel_tables[i].plen = 0;
+        }
+        used_tables[i] = 0;
+    }
+    src_table_used = 0;
 }
