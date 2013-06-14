@@ -80,13 +80,13 @@ getword(int c, char **token_r, gnc_t gnc, void *closure)
     int i = 0;
 
     c = skip_whitespace(c, gnc, closure);
-    if(c < 0 || c == '"' || c == '\n')
+    if(c < 0 || c == '"' || c == '\n' || c == '#' || c < 0)
         return -2;
     do {
         if(i >= 255) return -2;
         buf[i++] = c;
         c = gnc(closure);
-    } while(c != ' ' && c != '\t' && c != '\n' && c >= 0);
+    } while(c != ' ' && c != '\t' && c != '\n' && c != '#' && c >= 0);
     buf[i] = '\0';
     *token_r = strdup(buf);
     return c;
@@ -99,9 +99,7 @@ getstring(int c, char **token_r, gnc_t gnc, void *closure)
     int i = 0;
 
     c = skip_whitespace(c, gnc, closure);
-    if(c < 0)
-        return c;
-    if(c == '\n')
+    if(c < 0 || c == '\n' || c == '#')
         return -2;
 
     /* Unquoted strings have the same syntax as words. */
@@ -286,9 +284,9 @@ parse_filter(int c, gnc_t gnc, void *closure)
         goto error;
     filter->plen_le = 128;
 
-    while(c >= 0 && c != '\n') {
+    while(1) {
         c = skip_whitespace(c, gnc, closure);
-        if(c == '\n' || c == '#') {
+        if(c < 0 || c == '\n' || c == '#') {
             c = skip_to_eol(c, gnc, closure);
             break;
         }
@@ -390,9 +388,9 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             goto error;
     }
 
-    while(c >= 0 && c != '\n') {
+    while(1) {
         c = skip_whitespace(c, gnc, closure);
-        if(c == '\n' || c == '#') {
+        if(c < 0 || c == '\n' || c == '#') {
             c = skip_to_eol(c, gnc, closure);
             break;
         }
@@ -573,9 +571,9 @@ parse_option(int c, gnc_t gnc, void *closure)
 {
     char *token;
 
-    while(c >= 0 && c != '\n') {
+    while(1) {
         c = skip_whitespace(c, gnc, closure);
-        if(c == '\n' || c == '#') {
+        if(c < 0 || c == '\n' || c == '#') {
             c = skip_to_eol(c, gnc, closure);
             break;
         }
@@ -702,7 +700,7 @@ parse_config(gnc_t gnc, void *closure)
     if(c < -1)
         return -1;
 
-    while(c >= 0) {
+    while(1) {
         c = skip_whitespace(c, gnc, closure);
         if(c == '\n' || c == '#') {
             c = skip_to_eol(c, gnc, closure);
