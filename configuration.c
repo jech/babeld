@@ -567,127 +567,120 @@ add_ifconf(struct interface_conf *if_conf, struct interface_conf **if_confs)
 }
 
 static int
-parse_option(int c, gnc_t gnc, void *closure)
+parse_option(int c, gnc_t gnc, void *closure, char *token)
 {
-    char *token;
-
-    while(1) {
-        c = skip_whitespace(c, gnc, closure);
-        if(c < 0 || c == '\n' || c == '#') {
-            c = skip_to_eol(c, gnc, closure);
-            break;
-        }
-        c = getword(c, &token, gnc, closure);
-        if(c < -1)
+    if(strcmp(token, "protocol-port") == 0 ||
+       strcmp(token, "kernel-priority") == 0 ||
+       strcmp(token, "allow-duplicates") == 0 ||
+       strcmp(token, "local-port") == 0 ||
+       strcmp(token, "export-table") == 0 ||
+       strcmp(token, "import-table") == 0) {
+        int v;
+        c = getint(c, &v, gnc, closure);
+        if(c < -1 || v <= 0 || v >= 0xFFFF)
             goto error;
 
-        if(strcmp(token, "protocol-port") == 0 ||
-           strcmp(token, "kernel-priority") == 0 ||
-           strcmp(token, "allow-duplicates") == 0 ||
-           strcmp(token, "local-port") == 0 ||
-           strcmp(token, "export-table") == 0 ||
-           strcmp(token, "import-table") == 0) {
-            int v;
-            c = getint(c, &v, gnc, closure);
-            if(c < -1 || v <= 0 || v >= 0xFFFF)
-                goto error;
-
-            if(strcmp(token, "protocol-port") == 0)
-                protocol_port = v;
-            else if(strcmp(token, "kernel-priority") == 0)
-                kernel_metric = v;
-            else if(strcmp(token, "allow_duplicates") == 0)
-                allow_duplicates = v;
+        if(strcmp(token, "protocol-port") == 0)
+            protocol_port = v;
+        else if(strcmp(token, "kernel-priority") == 0)
+            kernel_metric = v;
+        else if(strcmp(token, "allow_duplicates") == 0)
+            allow_duplicates = v;
 #ifndef NO_LOCAL_INTERFACE
-            else if(strcmp(token, "local-port") == 0)
-                local_server_port = v;
+        else if(strcmp(token, "local-port") == 0)
+            local_server_port = v;
 #endif
-            else if(strcmp(token, "export-table") == 0)
-                export_table = v;
-            else if(strcmp(token, "import-table") == 0)
-                import_table = v;
-            else
-                abort();
-        } else if(strcmp(token, "keep-unfeasible") == 0 ||
-                  strcmp(token, "link-detect") == 0 ||
-                  strcmp(token, "daemonise") == 0) {
+        else if(strcmp(token, "export-table") == 0)
+            export_table = v;
+        else if(strcmp(token, "import-table") == 0)
+            import_table = v;
+        else
+            abort();
+    } else if(strcmp(token, "keep-unfeasible") == 0 ||
+              strcmp(token, "link-detect") == 0 ||
+              strcmp(token, "daemonise") == 0) {
+        int b;
+        c = getbool(c, &b, gnc, closure);
+        if(c < -1)
+            goto error;
+        b = (b == CONFIG_YES);
+        if(strcmp(token, "keep-unfeasible") == 0)
+            keep_unfeasible = b;
+        else if(strcmp(token, "link-detect") == 0)
+            link_detect = b;
+        else if(strcmp(token, "daemonise") == 0)
+            do_daemonise = b;
+        else
+            abort();
+    } else if(strcmp(token, "protocol-group") == 0) {
+        unsigned char *group = NULL;
+        c = getip(c, &group, NULL, gnc, closure);
+        if(c < -1)
+            goto error;
+        memcpy(protocol_group, group, 16);
+        free(group);
+    } else if(strcmp(token, "state-file") == 0 ||
+              strcmp(token, "log-file") == 0 ||
+              strcmp(token, "pid-file") == 0) {
+        char *file;
+        c = getstring(c, &file, gnc, closure);
+        if(c < -1)
+            goto error;
+        if(strcmp(token, "state-file") == 0)
+            state_file = file;
+        else if(strcmp(token, "log-file") == 0)
+            logfile = file;
+        else if(strcmp(token, "pid-file") == 0)
+            pidfile = file;
+        else
+            abort();
+    } else if(strcmp(token, "debug") == 0) {
+        int d;
+        c = getint(c, &d, gnc, closure);
+        if(d < 0)
+            goto error;
+        debug = d;
+    } else if(strcmp(token, "diversity") == 0) {
+        int d;
+        c = skip_whitespace(c, gnc, closure);
+        if(c >= '0' && c <= '9') {
+            c = getint(c, &d, gnc, closure);
+            if(c < -1)
+                goto error;
+        } else {
             int b;
             c = getbool(c, &b, gnc, closure);
             if(c < -1)
                 goto error;
-            b = (b == CONFIG_YES);
-            if(strcmp(token, "keep-unfeasible") == 0)
-                keep_unfeasible = b;
-            else if(strcmp(token, "link-detect") == 0)
-                link_detect = b;
-            else if(strcmp(token, "daemonise") == 0)
-                do_daemonise = b;
-            else
-                abort();
-        } else if(strcmp(token, "protocol-group") == 0) {
-            unsigned char *group = NULL;
-            c = getip(c, &group, NULL, gnc, closure);
-            if(c < -1)
-                goto error;
-            memcpy(protocol_group, group, 16);
-            free(group);
-        } else if(strcmp(token, "state-file") == 0 ||
-                  strcmp(token, "log-file") == 0 ||
-                  strcmp(token, "pid-file") == 0) {
-            char *file;
-            c = getstring(c, &file, gnc, closure);
-            if(c < -1)
-                goto error;
-            if(strcmp(token, "state-file") == 0)
-                state_file = file;
-            else if(strcmp(token, "log-file") == 0)
-                logfile = file;
-            else if(strcmp(token, "pid-file") == 0)
-                pidfile = file;
-            else
-                abort();
-        } else if(strcmp(token, "debug") == 0) {
-            int d;
-            c = getint(c, &d, gnc, closure);
-            if(d < 0)
-                goto error;
-            debug = d;
-        } else if(strcmp(token, "diversity") == 0) {
-            int d;
-            c = skip_whitespace(c, gnc, closure);
-            if(c >= '0' && c <= '9') {
-                c = getint(c, &d, gnc, closure);
-                if(c < -1)
-                    goto error;
-            } else {
-                int b;
-                c = getbool(c, &b, gnc, closure);
-                if(c < -1)
-                    goto error;
-                d = (b == CONFIG_YES) ? 3 : 0;
-            }
-            diversity_kind = d;
-        } else if(strcmp(token, "diversity-factor") == 0) {
-            int f;
-            c = getint(c, &f, gnc, closure);
-            if(c < -1 || f < 0 || f > 256)
-                goto error;
-            diversity_factor = f;
-        } else if(strcmp(token, "smoothing-half-life") == 0) {
-            int h;
-            c = getint(c, &h, gnc, closure);
-            if(c < -1 || h < 0)
-                goto error;
-            change_smoothing_half_life(h);
-        } else {
-            goto error;
+            d = (b == CONFIG_YES) ? 3 : 0;
         }
-        free(token);
+        diversity_kind = d;
+    } else if(strcmp(token, "diversity-factor") == 0) {
+        int f;
+        c = getint(c, &f, gnc, closure);
+        if(c < -1 || f < 0 || f > 256)
+            goto error;
+        diversity_factor = f;
+    } else if(strcmp(token, "smoothing-half-life") == 0) {
+        int h;
+        c = getint(c, &h, gnc, closure);
+        if(c < -1 || h < 0)
+            goto error;
+        change_smoothing_half_life(h);
+    } else {
+        goto error;
     }
-    return 1;
 
+    c = skip_whitespace(c, gnc, closure);
+    if(c < 0 || c == '\n' || c == '#') {
+        c = skip_to_eol(c, gnc, closure);
+        return 1;
+    }
+
+    /* Fall through */
  error:
     return -1;
+
 }
 
 static int
@@ -748,13 +741,11 @@ parse_config(gnc_t gnc, void *closure)
                              if_conf, default_interface_conf);
                 free(if_conf);
             }
-        } else if(strcmp(token, "option") == 0) {
+        } else {
             int rc;
-            rc = parse_option(c, gnc, closure);
+            rc = parse_option(c, gnc, closure, token);
             if(rc < 0)
                 return -1;
-        } else {
-            return -1;
         }
         free(token);
     }

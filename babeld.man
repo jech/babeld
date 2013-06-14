@@ -141,19 +141,11 @@ Specify a file to write our process id to.  The default is
 The list of interfaces on which the protocol should operate.
 .SH CONFIGURATION FILE FORMAT
 The configuration file is a sequence of lines each of which specifies
-either an interface or a filtering rule.  Blank lines are ignored.  Comments
-are introduced with an octothorp
+a global option, an interface specification or a filtering
+rule.  Comments are introduced by an octothorp
 .RB `` # ''
 and terminate at the end of the line.
 .SS Global options
-Global options are set by a line with the following format:
-.IP
-.B option
-.IR value ...
-.PP
-where each
-.I value
-can be one of the following:
 .TP
 .BI protocol-group " group"
 This specifies the link-local multicast address to be used by the
@@ -264,8 +256,8 @@ where
 .I name
 is the name of the interface (something like
 .BR eth0 ).
-The default values for all interfaces can be changed by
-a line of the form
+The default value of an interface parameter can be specified changed
+by a line of the form
 .IP
 .B default
 .RI [ parameter ...]
@@ -273,7 +265,7 @@ a line of the form
 
 Each
 .I parameter
-specifies a parameter of the given interface.  It can be one of:
+can be one of:
 .TP
 .BR wired " {" true | false | auto }
 This specifies whether to enable optimisations specific to wired interfaces.
