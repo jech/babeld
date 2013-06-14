@@ -273,8 +273,8 @@ getnet(int c, unsigned char **p_r, unsigned char *plen_r, int *af_r,
     return c;
 }
 
-static struct filter *
-parse_filter(int c, gnc_t gnc, void *closure)
+static int
+parse_filter(int c, gnc_t gnc, void *closure, struct filter **filter_return)
 {
     char *token;
     struct filter *filter;
@@ -368,16 +368,18 @@ parse_filter(int c, gnc_t gnc, void *closure)
         filter->plen_le += 96;
         filter->plen_ge += 96;
     }
-    return filter;
+    *filter_return = filter;
+    return c;
 
  error:
     free(filter);
-    return NULL;
+    return -2;
 }
 
-static struct interface_conf *
+static int
 parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
-                       struct interface_conf *if_conf)
+                       struct interface_conf *if_conf,
+                       struct interface_conf **if_conf_return)
 {
 
     char *token;
@@ -468,15 +470,17 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
         free(token);
     }
 
-    return if_conf;
+    *if_conf_return = if_conf;
+    return c;
 
  error:
     free(if_conf);
-    return NULL;
+    return -2;
 }
 
-static struct interface_conf *
-parse_ifconf(int c, gnc_t gnc, void *closure)
+static int
+parse_ifconf(int c, gnc_t gnc, void *closure,
+             struct interface_conf **if_conf_return)
 {
     char *token;
     struct interface_conf *if_conf;
@@ -495,11 +499,11 @@ parse_ifconf(int c, gnc_t gnc, void *closure)
 
     if_conf->ifname = token;
 
-    return parse_anonymous_ifconf(c, gnc, closure, if_conf);
+    return parse_anonymous_ifconf(c, gnc, closure, if_conf, if_conf_return);
 
  error:
     free(if_conf);
-    return NULL;
+    return -2;
 }
 
 static void
@@ -707,31 +711,31 @@ parse_config(gnc_t gnc, void *closure)
 
         if(strcmp(token, "in") == 0) {
             struct filter *filter;
-            filter = parse_filter(c, gnc, closure);
+            c = parse_filter(c, gnc, closure, &filter);
             if(filter == NULL)
                 return -1;
             add_filter(filter, &input_filters);
         } else if(strcmp(token, "out") == 0) {
             struct filter *filter;
-            filter = parse_filter(c, gnc, closure);
+            c = parse_filter(c, gnc, closure, &filter);
             if(filter == NULL)
                 return -1;
             add_filter(filter, &output_filters);
         } else if(strcmp(token, "redistribute") == 0) {
             struct filter *filter;
-            filter = parse_filter(c, gnc, closure);
+            c = parse_filter(c, gnc, closure, &filter);
             if(filter == NULL)
                 return -1;
             add_filter(filter, &redistribute_filters);
         } else if(strcmp(token, "interface") == 0) {
             struct interface_conf *if_conf;
-            if_conf = parse_ifconf(c, gnc, closure);
+            c = parse_ifconf(c, gnc, closure, &if_conf);
             if(if_conf == NULL)
                 return -1;
             add_ifconf(if_conf, &interface_confs);
         } else if(strcmp(token, "default") == 0) {
             struct interface_conf *if_conf;
-            if_conf = parse_anonymous_ifconf(c, gnc, closure, NULL);
+            c = parse_anonymous_ifconf(c, gnc, closure, NULL, &if_conf);
             if(if_conf == NULL)
                 return -1;
             if(default_interface_conf == NULL)
@@ -742,9 +746,8 @@ parse_config(gnc_t gnc, void *closure)
                 free(if_conf);
             }
         } else {
-            int rc;
-            rc = parse_option(c, gnc, closure, token);
-            if(rc < 0)
+            c = parse_option(c, gnc, closure, token);
+            if(c < -2)
                 return -1;
         }
         free(token);
