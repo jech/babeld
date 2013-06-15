@@ -42,7 +42,10 @@ struct kernel_route {
 #define CHANGE_ROUTE (1 << 1)
 #define CHANGE_ADDR  (1 << 2)
 
-extern int export_table, import_table;
+#define MAX_IMPORT_TABLES 10
+extern int export_table, import_tables[MAX_IMPORT_TABLES], import_table_count;
+
+int add_import_table(int table);
 
 int kernel_setup(int setup);
 int kernel_setup_socket(int setup);

@@ -226,8 +226,7 @@ main(int argc, char **argv)
                 goto usage;
             break;
         case 'T':
-            import_table = parse_nat(optarg);
-            if(import_table < 0 || import_table > 0xFFFF)
+            if(add_import_table(parse_nat(optarg)))
                 goto usage;
             break;
         case 'c':
