@@ -62,8 +62,6 @@ add_interface(char *ifname, struct interface_conf *if_conf)
 {
     struct interface *ifp;
 
-    assert(!if_conf || strcmp(ifname, if_conf->ifname) == 0);
-
     FOR_ALL_INTERFACES(ifp) {
         if(strcmp(ifp->name, ifname) == 0) {
             assert(if_conf == NULL);

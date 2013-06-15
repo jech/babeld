@@ -1,3 +1,8 @@
+  * Allow all options to be set from the configuration file.
+  * Fix a bug that causes the wrong route to be uninstalled at
+    shutdown -- this avoids spurious updates being sent when shutting
+    down.  (Thanks to Matthieu Boutier.)
+
 26 May 2013: babeld-1.4.1
 
   * Fix a bug that would cause the channel list to remain stuck at its

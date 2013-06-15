@@ -64,7 +64,9 @@ int default_wireless_hello_interval = -1;
 int default_wired_hello_interval = -1;
 int resend_delay = -1;
 int do_daemonise = 0;
-char *logfile = NULL, *pidfile = "/var/run/babeld.pid";
+char *logfile = NULL,
+    *pidfile = "/var/run/babeld.pid",
+    *state_file = "/var/lib/babel-state";
 
 unsigned char *receive_buffer = NULL;
 int receive_buffer_size = 0;
@@ -73,8 +75,6 @@ const unsigned char zeroes[16] = {0};
 const unsigned char ones[16] =
     {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
      0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-
-char *state_file = "/var/lib/babel-state";
 
 int protocol_port;
 unsigned char protocol_group[16];
@@ -259,11 +259,13 @@ main(int argc, char **argv)
             config_file = "/etc/babeld.conf";
     }
     if(config_file) {
-        rc = parse_config_from_file(config_file);
+        int line;
+        rc = parse_config_from_file(config_file, &line);
         if(rc < 0) {
             fprintf(stderr,
-                    "Couldn't parse configuration from file %s.\n",
-                    config_file);
+                    "Couldn't parse configuration from file %s "
+                    "(error at line %d).\n",
+                    config_file, line);
             exit(1);
         }
     } else {
@@ -366,7 +368,7 @@ main(int argc, char **argv)
     }
 
     for(i = optind; i < argc; i++) {
-        vrc = add_interface(argv[i], NULL);
+        vrc = add_interface(argv[i], default_interface_conf);
         if(vrc == NULL)
             goto fail;
     }

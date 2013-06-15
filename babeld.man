@@ -142,24 +142,131 @@ Specify a file to write our process id to.  The default is
 The list of interfaces on which the protocol should operate.
 .SH CONFIGURATION FILE FORMAT
 The configuration file is a sequence of lines each of which specifies
-either an interface or a filtering rule.  Blank lines are ignored.  Comments
-are introduced with an octothorp
+a global option, an interface specification or a filtering
+rule.  Comments are introduced by an octothorp
 .RB `` # ''
 and terminate at the end of the line.
+.SS Global options
+.TP
+.BI protocol-group " group"
+This specifies the link-local multicast address to be used by the
+protocol, and is equivalent to the command-line option
+.BR \-m .
+.TP
+.BI protocol-port " port"
+This specifies the UDP port number to be used by the protocol, and is equivalent to the command-line option
+.BR \-p .
+.TP
+.BI kernel-priority " priority"
+This specifies the priority value used when installing routes into the
+kernel, and is equivalent to the command-line option
+.BR \-k .
+.TP
+.BI allow-duplicates " priority"
+This allows duplicating external routes when their kernel priority is
+at least
+.IR priority .
+Do not use this option unless you know what you are doing, as it can
+cause persistent route flapping.
+.TP
+.BR keep-unfeasible " {" true | false }
+This specifies whether to keep unfeasible (useless) routes, and is
+equivalent to the command-line option
+.BR \-u .
+.TP
+.BI debug " level"
+This specifies the debugging level, and is equivalent to the command-line
+option
+.BR \-d .
+.TP
+.BI local-port " port"
+This specifies the TCP port on which
+.B babeld
+will listen for connections from a front-end, and is equivalent to the
+command-line option
+.BR \-g .
+.TP
+.BI export-table " table"
+This specifies the kernel routing table to use for routes inserted by
+.BR babeld ,
+and is equivalent to the command-line option
+.BR \-t .
+.TP
+.BI import-table " table"
+This specifies the kernel routing table from which routes are
+redistributed by
+.BR babeld ,
+and is equivalent to the command-line option
+.BR \-T .
+.TP
+.BR link-detect " {" true | false }
+This specifies whether to use carrier sense for determining interface
+availability, and is equivalent to the command-line option
+.BR \-l .
+.TP
+.BR diversity " {" true | false | "\fIkind\fB" }
+This specifies the diversity algorithm to use;
+.B true
+is equivalent to
+.I kind
+3.  The default is
+.B false
+(do not use any diversity algorithm).
+.TP
+.BI diversity-factor " factor"
+This specifies by how much the cost of non-interfering routes should
+be multiplied, in units of 1/256.  The default is 128 (division by 2).
+.TP
+.BI smoothing-half-life " seconds"
+This specifies the half-life in seconds of the exponential decay used
+for smoothing metrics for performing route selection, and is
+equivalent to the command-line option
+.BR \-M .
+.TP
+.BR deamonise " {" true | false }
+This specifies whether to daemonize at startup, and is equivalent to
+the command-line option
+.BR \-D .
+.TP
+.TP
+.BI state-file " filename"
+This specifies the name of the file used for preserving long-term
+information between invocations of the
+.B babeld
+daemon, and is equivalent to the command-line option
+.BR \-S .
+.TP
+.BI log-file " filename"
+This specifies the name of the file used to log random messages to,
+and is equivalent to the command-line option
+.BR \-L .
+.TP
+.BI pid-file " filename"
+This specifies the name of the file to which
+.B babeld
+writes out its process id, and is equivalent to the command-line option
+.BR \-I .
 .SS Interface configuration
-An interface is configured by a single line with the following format:
+An interface is configured by a line with the following format:
 .IP
 .B interface
 .I name
 .RI [ parameter ...]
 .PP
-.I Name
+where
+.I name
 is the name of the interface (something like
 .BR eth0 ).
+The default value of an interface parameter can be specified changed
+by a line of the form
+.IP
+.B default
+.RI [ parameter ...]
+.PP
 
 Each
 .I parameter
-specifies a parameter of the given interface.  It can be one of:
+can be one of:
 .TP
 .BR wired " {" true | false | auto }
 This specifies whether to enable optimisations specific to wired interfaces.
