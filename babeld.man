@@ -194,10 +194,11 @@ and is equivalent to the command-line option
 .BR \-t .
 .TP
 .BI import-table " table"
-This specifies the kernel routing table from which routes are
+This specifies a kernel routing table from which routes are
 redistributed by
 .BR babeld ,
-and is equivalent to the command-line option
+and can be specified multiple times with a cumulative effect.  This is
+equivalent to the command-line option
 .BR \-T .
 .TP
 .BR link-detect " {" true | false }
