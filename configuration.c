@@ -597,7 +597,7 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
         else if(strcmp(token, "export-table") == 0)
             export_table = v;
         else if(strcmp(token, "import-table") == 0)
-            import_table = v;
+            add_import_table(v);
         else
             abort();
     } else if(strcmp(token, "keep-unfeasible") == 0 ||
