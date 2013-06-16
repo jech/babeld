@@ -17,29 +17,6 @@ While it is optimised for wireless mesh networks, Babel will also work
 efficiently on wired networks.
 .SH OPTIONS
 .TP
-.BI \-a " source-specific-prefix"
-Specify the v4 source specific prefix of the host.  If a kernel route is not in
-that prefix, it will be redistributed in babeld with this source prefix.  See
-.B -x
-and
-.B -y
-options when using multiple tables.
-.TP
-.BI \-b " source-specific-prefix6"
-Same as
-.BR -a ,
-but for ipv6.
-.TP
-.BI \-x " source-specific-table-idx"
-Useful if the kernel use multiple routing tables for implementing
-source-specific rules. Set the index of the first table to use. It must be small
-einough to handle all tables.
-.TP
-.BI \-b " source-specific-table-prio"
-Useful if the kernel use multiple routing tables for implementing
-source-specific rules. Set the first table's rule priority to use. It must be
-small einough to handle all priorities.
-.TP
 .BI \-m " multicast-address"
 Specify the link-local multicast address to be used by the protocol.
 The default is
@@ -275,6 +252,29 @@ This specifies the name of the file to which
 .B babeld
 writes out its process id, and is equivalent to the command-line option
 .BR \-I .
+.TP
+.BI source-prefix " prefix"
+Specify the v4 or v6 source prefix of the host.  If a kernel route is not in
+that prefix, it will be redistributed in babeld with this source prefix.
+.TP
+.BI first-table-number " table"
+Set the index of the first table to use.  It is useful if the kernel uses
+multiple routing tables for source-specific rules implementation.  It must be
+small einough to handle all tables. By default,
+.B babeld
+uses 10 tables.
+.TP
+.BI first-rule-priority " priority"
+Set the first table's rule priority to use. It must be small einough to handle
+all priorities. See
+.BR first-table-number .
+.TP
+.BR announce-with-default-source-prefix " {" true | false }
+With that option, babeld will re-announce all routes as not source-specific. In
+order to avoid rooting loops, all non-source-specific routes will be
+discarded. For example, if a route (d,s) is installed, (d,0) will be announced,
+and (d,0) will be discarded. The default is
+.BR false .
 .SS Interface configuration
 An interface is configured by a line with the following format:
 .IP

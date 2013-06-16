@@ -126,45 +126,11 @@ main(int argc, char **argv)
     change_smoothing_half_life(4);
 
     while(1) {
-        opt = getopt(argc, argv,
-                     "a:b:m:p:h:H:i:k:A:sruS:d:g:lRwz:M:t:T:c:C:DL:I:x:y:");
+        opt = getopt(argc, argv, "m:p:h:H:i:k:A:sruS:d:g:lwz:M:t:T:c:C:DL:I:");
         if(opt < 0)
             break;
 
         switch(opt) {
-        case 'a':
-            rc = parse_net(optarg, source_specific_addr,
-                           &source_specific_plen, NULL);
-            if (rc < 0 || !v4mapped(source_specific_addr)) {
-                fprintf(stderr, "invalid v4 source-specific prefix\n");
-                goto usage;
-            }
-            break;
-        case 'b':
-            rc = parse_net(optarg, source_specific_addr6,
-                           &source_specific_plen6, NULL);
-            if(rc < 0 || v4mapped(source_specific_addr6)) {
-                fprintf(stderr, "invalid v6 source-specific prefix\n");
-                goto usage;
-            }
-            break;
-        case 'R':
-            allow_generic_redistribution = 1;
-            break;
-        case 'x':
-            src_table_idx = parse_nat(optarg);
-            if (src_table_idx <= 0 || src_table_idx + SRC_TABLE_NUM >= 254) {
-                fprintf(stderr, "Invalid first routing table index.\n");
-                goto usage;
-            }
-            break;
-        case 'y':
-            src_table_prio = parse_nat(optarg);
-            if(src_table_prio <= 0 || src_table_prio + SRC_TABLE_NUM >= 32765) {
-                fprintf(stderr, "Invalid first table priority.\n");
-                goto usage;
-            }
-            break;
         case 'm':
             rc = parse_address(optarg, protocol_group, NULL);
             if(rc < 0)
@@ -859,10 +825,6 @@ main(int argc, char **argv)
             "[-t table] [-T table] [-c file] [-C statement]\n"
             "                "
             "[-d level] [-D] [-L logfile] [-I pidfile]\n"
-            "                "
-            "[-a v4-source-specific-prefix] [-b v6-source-specific-prefix]\n"
-            "                "
-            "[-x] first-routing-table-index [-y] first-table-priority\n"
             "                "
             "[id] interface...\n",
             argv[0]);

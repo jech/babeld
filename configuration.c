@@ -678,6 +678,39 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
         if(c < -1 || h < 0)
             goto error;
         change_smoothing_half_life(h);
+    } else if(strcmp(token, "source-prefix") == 0) {
+        unsigned char *prefix;
+        unsigned char plen;
+        int af;
+        c = getnet(c, &prefix, &plen, &af, gnc, closure);
+        if(c < -1)
+            goto error;
+        if(af == AF_INET) {
+            memcpy(source_specific_addr, prefix, 16);
+            source_specific_plen = plen;
+        } else {
+            memcpy(source_specific_addr6, prefix, 16);
+            source_specific_plen6 = plen;
+        }
+        free(prefix);
+    } else if(strcmp(token, "first-table-number") == 0) {
+        int n;
+        c = getint(c, &n, gnc, closure);
+        if(c < -1 || n <= 0 || n + SRC_TABLE_NUM >= 254)
+            goto error;
+        src_table_idx = n;
+    } else if(strcmp(token, "first-rule-priority") == 0) {
+        int n;
+        c = getint(c, &n, gnc, closure);
+        if(c < -1 || n <= 0 || n + SRC_TABLE_NUM >= 32765)
+            goto error;
+        src_table_prio = n;
+    } else if (strcmp(token, "announce-with-default-source-prefix") == 0) {
+        int b;
+        c = getbool(c, &b, gnc, closure);
+        if(c < -1)
+            goto error;
+        allow_generic_redistribution = (b == CONFIG_YES);
     } else {
         goto error;
     }
