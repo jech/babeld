@@ -835,8 +835,6 @@ kernel_callback(int (*fn)(int, void*), void *closure)
 
 }
 
-int add_import_table(int table) { return 0; } // not used
-
 /* Local Variables:      */
 /* c-basic-offset: 4     */
 /* indent-tabs-mode: nil */
