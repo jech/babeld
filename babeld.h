@@ -89,7 +89,6 @@ extern int do_daemonise;
 extern char *logfile, *pidfile, *state_file;
 extern int link_detect;
 extern int all_wireless;
-extern unsigned int rtt_exponential_decay;
 
 extern unsigned char myid[8];
 

@@ -58,10 +58,6 @@ struct timeval now;
 unsigned char myid[8];
 int debug = 0;
 
-/* A higher value means we forget old RTT samples faster. Must be
-   between 1 and 256, inclusive. */
-unsigned int rtt_exponential_decay = 42;
-
 int link_detect = 0;
 int all_wireless = 0;
 int default_wireless_hello_interval = -1;

@@ -91,6 +91,9 @@ struct interface {
     unsigned short hello_seqno;
     unsigned hello_interval;
     unsigned update_interval;
+    /* A higher value means we forget old RTT samples faster. Must be
+       between 1 and 256, inclusive. */
+    unsigned int rtt_exponential_decay;
     /* Parameters for computing the cost associated to RTT. */
     unsigned int rtt_min;
     unsigned int rtt_max;
