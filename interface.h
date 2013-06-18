@@ -37,6 +37,10 @@ struct interface_conf {
     char lq;
     char faraway;
     int channel;
+    unsigned int rtt_exponential_decay;
+    unsigned int rtt_min;
+    unsigned int rtt_max;
+    unsigned int max_rtt_penalty;
     struct interface_conf *next;
 };
 

@@ -464,6 +464,30 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if((if_conf->channel < 1 || if_conf->channel > 255) &&
                if_conf->channel != IF_CHANNEL_NONINTERFERING)
                 goto error;
+        } else if(strcmp(token, "rtt-exponential-decay") == 0) {
+            int decay;
+            c = getint(c, &decay, gnc, closure);
+            if(c < -1 || decay <= 0 || decay > 256)
+                goto error;
+            if_conf->rtt_exponential_decay = decay;
+        } else if(strcmp(token, "rtt-min") == 0) {
+            int rtt;
+            c = getint(c, &rtt, gnc, closure);
+            if(c < -1 || rtt <= 0)
+                goto error;
+            if_conf->rtt_min = rtt;
+        } else if(strcmp(token, "rtt-max") == 0) {
+            int rtt;
+            c = getint(c, &rtt, gnc, closure);
+            if(c < -1 || rtt <= 0)
+                goto error;
+            if_conf->rtt_max = rtt;
+        } else if(strcmp(token, "max-rtt-penalty") == 0) {
+            int cost;
+            c = getint(c, &cost, gnc, closure);
+            if(c < -1 || cost <= 0 || cost > 0xFFFF)
+                goto error;
+            if_conf->max_rtt_penalty = cost;
         } else {
             goto error;
         }
@@ -544,6 +568,10 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(lq);
     MERGE(faraway);
     MERGE(channel);
+    MERGE(rtt_exponential_decay);
+    MERGE(rtt_min);
+    MERGE(rtt_max);
+    MERGE(max_rtt_penalty);
 
 #undef MERGE
 }

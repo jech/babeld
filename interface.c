@@ -79,10 +79,6 @@ add_interface(char *ifname, struct interface_conf *if_conf)
     ifp->bucket_time = now.tv_sec;
     ifp->bucket = BUCKET_TOKENS_MAX;
     ifp->hello_seqno = (random() & 0xFFFF);
-    ifp->rtt_exponential_decay = 42;
-    ifp->rtt_min = 10;
-    ifp->rtt_max = 120;
-    ifp->max_rtt_penalty = 150;
 
     if(interfaces == NULL)
         interfaces = ifp;
@@ -308,6 +304,25 @@ interface_up(struct interface *ifp, int up)
             IF_CONF(ifp, update_interval) > 0 ?
             IF_CONF(ifp, update_interval) :
            ifp->hello_interval * 4;
+
+        ifp->rtt_exponential_decay =
+            IF_CONF(ifp, rtt_exponential_decay) > 0 ?
+            IF_CONF(ifp, rtt_exponential_decay) : 42;
+
+        ifp->rtt_min =
+            IF_CONF(ifp, rtt_min) > 0 ?
+            IF_CONF(ifp, rtt_min) : 10;
+        ifp->rtt_max =
+            IF_CONF(ifp, rtt_max) > 0 ?
+            IF_CONF(ifp, rtt_max) : 120;
+        if(ifp->rtt_max <= ifp->rtt_min) {
+            fprintf(stderr,
+                    "Uh, rtt-max is less than or equal to rtt-min (%d <= %d). "
+                    "Setting it to %d.\n", ifp->rtt_max, ifp->rtt_min,
+                    ifp->rtt_min + 10);
+            ifp->rtt_max = ifp->rtt_min + 10;
+        }
+        ifp->max_rtt_penalty = IF_CONF(ifp, max_rtt_penalty);
 
         memset(&mreq, 0, sizeof(mreq));
         memcpy(&mreq.ipv6mr_multiaddr, protocol_group, 16);
