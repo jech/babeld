@@ -79,6 +79,9 @@ add_interface(char *ifname, struct interface_conf *if_conf)
     ifp->bucket_time = now.tv_sec;
     ifp->bucket = BUCKET_TOKENS_MAX;
     ifp->hello_seqno = (random() & 0xFFFF);
+    ifp->rtt_min = 10;
+    ifp->rtt_max = 120;
+    ifp->max_rtt_penalty = 150;
 
     if(interfaces == NULL)
         interfaces = ifp;

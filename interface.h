@@ -91,6 +91,10 @@ struct interface {
     unsigned short hello_seqno;
     unsigned hello_interval;
     unsigned update_interval;
+    /* Parameters for computing the cost associated to RTT. */
+    unsigned int rtt_min;
+    unsigned int rtt_max;
+    unsigned int max_rtt_penalty;
 };
 
 #define IF_CONF(_ifp, _field) \
