@@ -680,12 +680,12 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
     c = skip_whitespace(c, gnc, closure);
     if(c < 0 || c == '\n' || c == '#') {
         c = skip_to_eol(c, gnc, closure);
-        return 1;
+        return c;
     }
 
     /* Fall through */
  error:
-    return -1;
+    return -2;
 
 }
 
