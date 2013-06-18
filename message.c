@@ -611,6 +611,16 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         rtt = 10 * (local_waiting_cs - remote_waiting_cs);
         debugf("RTT to %s on %s sample result: %d ms.\n",
                format_address(from), ifp->name, rtt);
+
+        if (valid_rtt(neigh))
+            /* Running exponential average. */
+            neigh->rtt = (rtt_exponential_decay * MAX(rtt, 0)
+                          + (256 - rtt_exponential_decay) * neigh->rtt) / 256;
+        else
+            /* We prefer to be conservative with new neighbours
+               (higher RTT) */
+            neigh->rtt = MAX(2*rtt, 0);
+        neigh->rtt_time = now;
     }
     return;
 }

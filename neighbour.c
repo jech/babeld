@@ -99,6 +99,8 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
     neigh->ihu_interval = 0;
     neigh->hello_send_cs = 0;
     neigh->hello_rtt_receive_time = zero;
+    neigh->rtt = 0;
+    neigh->rtt_time = zero;
     neigh->ifp = ifp;
     neigh->next = neighs;
     neighs = neigh;
@@ -324,4 +326,10 @@ neighbour_cost(struct neighbour *neigh)
         /* Since a and b are capped to 16 bits, overflow is impossible. */
         return (a * b + 128) >> 8;
     }
+}
+
+int
+valid_rtt(struct neighbour *neigh)
+{
+    return (timeval_minus_msec(&now, &neigh->rtt_time) < 180000) ? 1 : 0;
 }
