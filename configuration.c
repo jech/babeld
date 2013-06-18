@@ -714,31 +714,31 @@ parse_config(gnc_t gnc, void *closure)
         if(strcmp(token, "in") == 0) {
             struct filter *filter;
             c = parse_filter(c, gnc, closure, &filter);
-            if(filter == NULL)
+            if(c < -1)
                 return -1;
             add_filter(filter, &input_filters);
         } else if(strcmp(token, "out") == 0) {
             struct filter *filter;
             c = parse_filter(c, gnc, closure, &filter);
-            if(filter == NULL)
+            if(c < -1)
                 return -1;
             add_filter(filter, &output_filters);
         } else if(strcmp(token, "redistribute") == 0) {
             struct filter *filter;
             c = parse_filter(c, gnc, closure, &filter);
-            if(filter == NULL)
+            if(c < -1)
                 return -1;
             add_filter(filter, &redistribute_filters);
         } else if(strcmp(token, "interface") == 0) {
             struct interface_conf *if_conf;
             c = parse_ifconf(c, gnc, closure, &if_conf);
-            if(if_conf == NULL)
+            if(c < -1)
                 return -1;
             add_ifconf(if_conf, &interface_confs);
         } else if(strcmp(token, "default") == 0) {
             struct interface_conf *if_conf;
             c = parse_anonymous_ifconf(c, gnc, closure, NULL, &if_conf);
-            if(if_conf == NULL)
+            if(c < -1)
                 return -1;
             if(default_interface_conf == NULL)
                 default_interface_conf = if_conf;
@@ -749,7 +749,7 @@ parse_config(gnc_t gnc, void *closure)
             }
         } else {
             c = parse_option(c, gnc, closure, token);
-            if(c < -2)
+            if(c < -1)
                 return -1;
         }
         free(token);
