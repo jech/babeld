@@ -51,12 +51,24 @@ THE SOFTWARE.
 #include "util.h"
 #include "interface.h"
 
+#ifndef MAX_INTERFACES
+#define MAX_INTERFACES 20
+#endif
+
 int export_table = -1, import_tables[MAX_IMPORT_TABLES], import_table_count = 0;
 
 static int old_forwarding = -1;
 static int old_ipv4_forwarding = -1;
 static int old_accept_redirects = -1;
 static int old_rp_filter = -1;
+
+struct old_if {
+    char *ifname;
+    int rp_filter;
+};
+
+struct old_if old_if[MAX_INTERFACES];
+int num_old_if = 0;
 
 static int dgram_socket = -1;
 
@@ -614,9 +626,58 @@ kernel_setup_socket(int setup)
     }
 }
 
+static int
+get_old_if(const char *ifname)
+{
+    int i;
+    for(i = 0; i < num_old_if; i++)
+        if(strcmp(old_if->ifname, ifname) == 0)
+            return i;
+    if(num_old_if >= MAX_INTERFACES)
+        return -1;
+    old_if[num_old_if].ifname = strdup(ifname);
+    if(old_if[num_old_if].ifname == NULL)
+        return -1;
+    old_if[num_old_if].rp_filter = -1;
+    return num_old_if++;
+}
+
 int
 kernel_setup_interface(int setup, const char *ifname, int ifindex)
 {
+    char buf[100];
+    int i, rc;
+
+    /* rp_filter has weird semantics: both all/rp_filter and ifname/rp_filter
+       must be set to 0 for the rp_filter to be disabled.  Deal with it. */
+
+    rc = snprintf(buf, 100, "/proc/sys/net/ipv4/conf/%s/rp_filter", ifname);
+    if(rc < 0 || rc >= 100)
+        return -1;
+
+    i = get_old_if(ifname);
+    if(setup) {
+        if(i >= 0)
+            old_if[i].rp_filter = read_proc(buf);
+        else
+            fprintf(stderr,
+                    "Warning: cannot save old configuration for %s.\n",
+                    ifname);
+        rc = write_proc(buf, 0);
+        if(rc < 0)
+            return -1;
+    } else {
+        if(i >= 0 && old_if[i].rp_filter >= 0)
+            rc = write_proc(buf, old_if[i].rp_filter);
+        else
+            rc = -1;
+
+        if(rc < 0)
+            fprintf(stderr,
+                    "Warning: cannot restore old configuration for %s.\n",
+                    ifname);
+    }
+
     return 1;
 }
 
