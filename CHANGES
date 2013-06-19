@@ -1,9 +1,18 @@
-  * Allow all options to be set from the configuration file.
-  * Fix a bug that causes the wrong route to be uninstalled at
-    shutdown -- this avoids spurious updates being sent when shutting
-    down.  (Thanks to Matthieu Boutier.
+19 June 2013: babeld-1.4.2
+
+  * Extensive changes to the configuration parser.  It is now possible
+    to set all command-line options from the configuration file, and
+    to specify default values for interface parameters.
   * Allow redistributing routes from multiple kernel tables.  Thanks
     to Toke Høiland-Jørgensen.
+  * Fix some whitespace issues in the configuration parser.
+  * Fix a bug in the configuration parser that could give wrong values
+    to some exotic interface parameters (channel and faraway).
+  * Fix a bug that could cause some extra traffic at shutdown.  Thanks
+    to Matthieu Boutier.
+  * Under Linux, set rp_filter explicitly for all interfaces.  This
+    avoids mysterious routing failures on distributions that set
+    rp_filter by default.  Reported by Baptiste Jonglez.
 
 19 June 2013: babeld-1.3.8
 
