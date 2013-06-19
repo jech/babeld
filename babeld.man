@@ -230,7 +230,6 @@ This specifies whether to daemonize at startup, and is equivalent to
 the command-line option
 .BR \-D .
 .TP
-.TP
 .BI state-file " filename"
 This specifies the name of the file used for preserving long-term
 information between invocations of the
