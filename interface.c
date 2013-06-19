@@ -305,10 +305,6 @@ interface_up(struct interface *ifp, int up)
             IF_CONF(ifp, update_interval) :
            ifp->hello_interval * 4;
 
-        memset(&mreq, 0, sizeof(mreq));
-        memcpy(&mreq.ipv6mr_multiaddr, protocol_group, 16);
-        mreq.ipv6mr_interface = ifp->ifindex;
-
         if(ifp->ll)
             free(ifp->ll);
         ifp->numll = 0;
@@ -335,6 +331,9 @@ interface_up(struct interface *ifp, int up)
             }
         }
 
+        memset(&mreq, 0, sizeof(mreq));
+        memcpy(&mreq.ipv6mr_multiaddr, protocol_group, 16);
+        mreq.ipv6mr_interface = ifp->ifindex;
         rc = setsockopt(protocol_socket, IPPROTO_IPV6, IPV6_JOIN_GROUP,
                         (char*)&mreq, sizeof(mreq));
         if(rc < 0) {
