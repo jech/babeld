@@ -5,6 +5,16 @@
   * Allow redistributing routes from multiple kernel tables.  Thanks
     to Toke Høiland-Jørgensen.
 
+19 June 2013: babeld-1.3.8
+
+  * Fix a bug in the configuration parser that could give wrong values
+    to some exotic interface parameters (channel and faraway).
+  * Fix a bug that could cause some extra traffic at shutdown.  Thanks
+    to Matthieu Boutier.
+  * Under Linux, set rp_filter explicitly for all interfaces.  This
+    avoids mysterious routing failures on distributions that set
+    rp_filter by default.  Reported by Baptiste Jonglez.
+
 26 May 2013: babeld-1.4.1
 
   * Fix a bug that would cause the channel list to remain stuck at its
