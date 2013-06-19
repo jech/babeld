@@ -368,7 +368,7 @@ main(int argc, char **argv)
     }
 
     for(i = optind; i < argc; i++) {
-        vrc = add_interface(argv[i], default_interface_conf);
+        vrc = add_interface(argv[i], NULL);
         if(vrc == NULL)
             goto fail;
     }
