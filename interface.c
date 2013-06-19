@@ -305,6 +305,8 @@ interface_up(struct interface *ifp, int up)
             IF_CONF(ifp, update_interval) :
            ifp->hello_interval * 4;
 
+        ifp->enable_rtt = (IF_CONF(ifp, enable_rtt) == CONFIG_NO) ? 0 : 1;
+
         ifp->rtt_exponential_decay =
             IF_CONF(ifp, rtt_exponential_decay) > 0 ?
             IF_CONF(ifp, rtt_exponential_decay) : 42;
