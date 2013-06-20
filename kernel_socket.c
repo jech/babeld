@@ -639,7 +639,7 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
         struct sockaddr_in *sin = (struct sockaddr_in *)sa;
         v4tov6(route->gw, (unsigned char *)&sin->sin_addr);
     }
-    if(route->ifindex == ifindex_lo)
+    if((int)route->ifindex == ifindex_lo)
         return -1;
 
     /* Netmask */
