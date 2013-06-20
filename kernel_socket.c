@@ -577,7 +577,7 @@ static int
 parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
 {
     struct sockaddr *sa;
-    void *rta = (void*)rtm + sizeof(struct rt_msghdr);
+    char *rta = (char*)rtm + sizeof(struct rt_msghdr);
     uint32_t excluded_flags = 0;
 
     if(ifindex_lo < 0) {
