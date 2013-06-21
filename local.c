@@ -91,7 +91,7 @@ write_timeout(int fd, const void *buf, int len)
     }
 }
 
-void
+static void
 local_notify_self_1(int s)
 {
     char buf[512];
