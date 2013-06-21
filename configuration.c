@@ -604,6 +604,7 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
             abort();
     } else if(strcmp(token, "keep-unfeasible") == 0 ||
               strcmp(token, "link-detect") == 0 ||
+              strcmp(token, "random-id") == 0 ||
               strcmp(token, "daemonise") == 0) {
         int b;
         c = getbool(c, &b, gnc, closure);
@@ -614,6 +615,8 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
             keep_unfeasible = b;
         else if(strcmp(token, "link-detect") == 0)
             link_detect = b;
+        else if(strcmp(token, "random-id") == 0)
+            random_id = b;
         else if(strcmp(token, "daemonise") == 0)
             do_daemonise = b;
         else
