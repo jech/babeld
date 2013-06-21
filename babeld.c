@@ -65,7 +65,7 @@ int default_wired_hello_interval = -1;
 int resend_delay = -1;
 int random_id = 0;
 int do_daemonise = 0;
-char *logfile = NULL,
+const char *logfile = NULL,
     *pidfile = "/var/run/babeld.pid",
     *state_file = "/var/lib/babel-state";
 
@@ -100,7 +100,7 @@ main(int argc, char **argv)
     struct sockaddr_in6 sin6;
     int rc, fd, i, opt;
     time_t expiry_time, source_expiry_time, kernel_dump_time;
-    char *config_file = NULL;
+    const char *config_file = NULL;
     void *vrc;
     unsigned int seed;
     struct interface *ifp;
