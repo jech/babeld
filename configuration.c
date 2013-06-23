@@ -555,18 +555,20 @@ add_ifconf(struct interface_conf *if_conf, struct interface_conf **if_confs)
         if_conf->next = NULL;
         *if_confs = if_conf;
     } else {
-        struct interface_conf *if_c;
-        if_c = *if_confs;
-        while(if_c->next) {
-            if(strcmp(if_c->ifname, if_conf->ifname) == 0) {
-                merge_ifconf(if_c, if_conf, if_c);
+        struct interface_conf *prev, *next;
+        next = *if_confs;
+        prev = NULL;
+        while(next) {
+            if(strcmp(next->ifname, if_conf->ifname) == 0) {
+                merge_ifconf(next, if_conf, next);
                 free(if_conf);
                 return;
             }
-            if_c = if_c->next;
+            prev = next;
+            next = next->next;
         }
         if_conf->next = NULL;
-        if_c->next = if_conf;
+        prev->next = if_conf;
     }
 }
 
