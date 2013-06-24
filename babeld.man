@@ -275,6 +275,14 @@ order to avoid rooting loops, all non-source-specific routes will be
 discarded. For example, if a route (d,s) is installed, (d,0) will be announced,
 and (d,0) will be discarded. The default is
 .BR false .
+.TP
+.BR install-specific " {" true | false }
+Make babeld received routes as source-specific in his RIB.  Do not use this
+option unless you know what you are doing, as it can cause persistent routing
+loops.  Especially, this option should be use with
+.BR announce-with-default-source-prefix .
+The default is
+.BR false .
 .SS Interface configuration
 An interface is configured by a line with the following format:
 .IP

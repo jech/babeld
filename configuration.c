@@ -711,6 +711,12 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
         if(c < -1)
             goto error;
         allow_generic_redistribution = (b == CONFIG_YES);
+    } else if (strcmp(token, "install-specific") == 0) {
+        int b;
+        c = getbool(c, &b, gnc, closure);
+        if(c < -1)
+            goto error;
+        install_specific = (b == CONFIG_YES);
     } else {
         goto error;
     }

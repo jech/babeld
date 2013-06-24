@@ -1331,7 +1331,28 @@ update_route(const unsigned char *id,
     if(src_plen != 0 && is_v4 != v4mapped(src_prefix))
         return NULL;
 
-    if(allow_generic_redistribution) {
+    if(install_specific) {
+        enum prefixes_status src_st, dst_st;
+        const unsigned char *ss_prefix;
+        unsigned char ss_plen;
+        if (is_v4) {
+            ss_prefix = source_specific_addr;
+            ss_plen = source_specific_plen;
+        } else {
+            ss_prefix = source_specific_addr6;
+            ss_plen = source_specific_plen6;
+        }
+        src_st = prefixes_cmp(src_prefix, src_plen, ss_prefix, ss_plen);
+        if (src_st == PST_DISJOINT) {
+            return NULL;
+        } else if (src_st == PST_LESS_SPECIFIC) {
+            dst_st = prefixes_cmp(prefix, plen, ss_prefix, ss_plen);
+            if (!(dst_st & (PST_MORE_SPECIFIC | PST_EQUALS))) {
+                src_prefix = ss_prefix;
+                src_plen = ss_plen;
+            }
+        }
+    } else if(allow_generic_redistribution) {
         int next = -1;
         struct babel_route *rt = NULL;
         if(src_plen == 0) {
