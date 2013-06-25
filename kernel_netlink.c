@@ -631,7 +631,7 @@ get_old_if(const char *ifname)
 {
     int i;
     for(i = 0; i < num_old_if; i++)
-        if(strcmp(old_if->ifname, ifname) == 0)
+        if(strcmp(old_if[i].ifname, ifname) == 0)
             return i;
     if(num_old_if >= MAX_INTERFACES)
         return -1;
