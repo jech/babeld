@@ -659,7 +659,7 @@ kernel_setup_interface(int setup, const char *ifname, int ifindex)
     if(setup) {
         if(i >= 0)
             old_if[i].rp_filter = read_proc(buf);
-        else
+        if(i < 0 || old_if[i].rp_filter < 0)
             fprintf(stderr,
                     "Warning: cannot save old configuration for %s.\n",
                     ifname);
