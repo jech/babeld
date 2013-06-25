@@ -411,6 +411,23 @@ This entry only applies to routes with a prefix length less or equal to
 This entry only applies to routes with a prefix length greater or equal to
 .BR plen .
 .TP
+.BI src-ip " prefix"
+This entry only applies to routes with a source prefix in the given prefix.
+.TP
+.BI src-eq " plen"
+This entry only applies to routes with a source prefix length equal to
+.BR plen .
+.TP
+.BI src-le " plen"
+This entry only applies to routes with a source prefix length less or
+equal to
+.BR plen .
+.TP
+.BI src-ge " plen"
+This entry only applies to routes with a source prefix length greater
+or equal to
+.BR plen .
+.TP
 .BI neigh " address"
 This entry only applies to routes learned from a neighbour with
 link-local address

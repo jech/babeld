@@ -283,6 +283,7 @@ parse_filter(int c, gnc_t gnc, void *closure, struct filter **filter_return)
     if(filter == NULL)
         goto error;
     filter->plen_le = 128;
+    filter->src_plen_le = 128;
 
     while(1) {
         c = skip_whitespace(c, gnc, closure);
@@ -295,9 +296,24 @@ parse_filter(int c, gnc_t gnc, void *closure, struct filter **filter_return)
             goto error;
 
         if(strcmp(token, "ip") == 0) {
-            c = getnet(c, &filter->prefix, &filter->plen, &filter->af,
+            int af;
+            c = getnet(c, &filter->prefix, &filter->plen, &af,
                        gnc, closure);
             if(c < -1)
+                goto error;
+            if(filter->af == AF_UNSPEC)
+                filter->af = af;
+            else if(filter->af != af)
+                goto error;
+        } else if(strcmp(token, "src-ip") == 0) {
+            int af;
+            c = getnet(c, &filter->src_prefix, &filter->src_plen, &af,
+                       gnc, closure);
+            if(c < -1)
+                goto error;
+            if(filter->af == AF_UNSPEC)
+                filter->af = af;
+            else if(filter->af != af)
                 goto error;
         } else if(strcmp(token, "eq") == 0) {
             int p;
@@ -318,6 +334,25 @@ parse_filter(int c, gnc_t gnc, void *closure, struct filter **filter_return)
             if(c < -1)
                 goto error;
             filter->plen_ge = MAX(filter->plen_ge, p);
+        } else if(strcmp(token, "src-eq") == 0) {
+            int p;
+            c = getint(c, &p, gnc, closure);
+            if(c < -1)
+                goto error;
+            filter->src_plen_ge = MAX(filter->src_plen_ge, p);
+            filter->src_plen_le = MIN(filter->src_plen_le, p);
+        } else if(strcmp(token, "src-le") == 0) {
+            int p;
+            c = getint(c, &p, gnc, closure);
+            if(c < -1)
+                goto error;
+            filter->src_plen_le = MIN(filter->src_plen_le, p);
+        } else if(strcmp(token, "src-ge") == 0) {
+            int p;
+            c = getint(c, &p, gnc, closure);
+            if(c < -1)
+                goto error;
+            filter->src_plen_ge = MAX(filter->src_plen_ge, p);
         } else if(strcmp(token, "neigh") == 0) {
             unsigned char *neigh = NULL;
             c = getip(c, &neigh, NULL, gnc, closure);
@@ -362,7 +397,8 @@ parse_filter(int c, gnc_t gnc, void *closure, struct filter **filter_return)
         free(token);
     }
     if(filter->af == 0) {
-        if(filter->plen_le < 128 || filter->plen_ge > 0)
+        if(filter->plen_le < 128 || filter->plen_ge > 0 ||
+           filter->src_plen_le < 128 || filter->src_plen_ge > 0)
             filter->af = AF_INET6;
     } else if(filter->af == AF_INET) {
         filter->plen_le += 96;
@@ -885,6 +921,7 @@ renumber_filters()
 static int
 filter_match(struct filter *f, const unsigned char *id,
              const unsigned char *prefix, unsigned short plen,
+             const unsigned char *src_prefix, unsigned short src_plen,
              const unsigned char *neigh, unsigned int ifindex, int proto)
 {
     if(f->af) {
@@ -902,12 +939,25 @@ filter_match(struct filter *f, const unsigned char *id,
         if(!prefix || plen < f->plen || !in_prefix(prefix, f->prefix, f->plen))
             return 0;
     }
+    if(f->src_prefix) {
+        if(!src_prefix || src_plen < f->src_plen ||
+           !in_prefix(src_prefix, f->src_prefix, f->src_plen))
+            return 0;
+    }
     if(f->plen_ge > 0 || f->plen_le < 128) {
         if(!prefix)
             return 0;
         if(plen > f->plen_le)
             return 0;
         if(plen < f->plen_ge)
+            return 0;
+    }
+    if(f->src_plen_ge > 0 || f->src_plen_le < 128) {
+        if(!src_prefix)
+            return 0;
+        if(src_plen > f->src_plen_le)
+            return 0;
+        if(src_plen < f->src_plen_ge)
             return 0;
     }
     if(f->neigh) {
@@ -937,10 +987,12 @@ filter_match(struct filter *f, const unsigned char *id,
 static int
 do_filter(struct filter *f, const unsigned char *id,
           const unsigned char *prefix, unsigned short plen,
+          const unsigned char *src_prefix, unsigned short src_plen,
           const unsigned char *neigh, unsigned int ifindex, int proto)
 {
     while(f) {
-        if(filter_match(f, id, prefix, plen, neigh, ifindex, proto))
+        if(filter_match(f, id, prefix, plen, src_prefix, src_plen,
+                        neigh, ifindex, proto))
             return f->add_metric;
         f = f->next;
     }
@@ -954,7 +1006,8 @@ input_filter(const unsigned char *id,
              const unsigned char *neigh, unsigned int ifindex)
 {
     int res;
-    res = do_filter(input_filters, id, prefix, plen, neigh, ifindex, 0);
+    res = do_filter(input_filters, id, prefix, plen,
+                    src_prefix, src_plen, neigh, ifindex, 0);
     if(res < 0)
         res = 0;
     return res;
@@ -967,7 +1020,8 @@ output_filter(const unsigned char *id,
               unsigned int ifindex)
 {
     int res;
-    res = do_filter(output_filters, id, prefix, plen, NULL, ifindex, 0);
+    res = do_filter(output_filters, id, prefix, plen,
+                    src_prefix, src_plen, NULL, ifindex, 0);
     if(res < 0)
         res = 0;
     return res;
@@ -979,8 +1033,8 @@ redistribute_filter(const unsigned char *prefix, unsigned short plen,
                     unsigned int ifindex, int proto)
 {
     int res;
-    res = do_filter(redistribute_filters, NULL, prefix, plen, NULL,
-                    ifindex, proto);
+    res = do_filter(redistribute_filters, NULL, prefix, plen,
+                    src_prefix, src_plen, NULL, ifindex, proto);
     if(res < 0)
         res = INFINITY;
     return res;
@@ -995,6 +1049,7 @@ finalise_config()
 
     filter->proto = RTPROT_BABEL_LOCAL;
     filter->plen_le = 128;
+    filter->src_plen_le = 128;
     add_filter(filter, &redistribute_filters);
 
     while(interface_confs) {
