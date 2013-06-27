@@ -279,7 +279,7 @@ and (d,0) will be discarded. The default is
 .BR install-specific " {" true | false }
 Make babeld received routes as source-specific in his RIB.  Do not use this
 option unless you know what you are doing, as it can cause persistent routing
-loops.  Especially, this option should be use with
+loops.  Especially, this option should be used with
 .BR announce-with-default-source-prefix .
 The default is
 .BR false .
