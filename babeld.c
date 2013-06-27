@@ -827,6 +827,8 @@ main(int argc, char **argv)
 static int
 accept_local_connections(fd_set *readfds)
 {
+    int rc;
+
     if(local_server_socket < 0 || !FD_ISSET(local_server_socket, readfds))
         return 0;
 
@@ -845,6 +847,20 @@ accept_local_connections(fd_set *readfds)
         /* This should never happen, since we don't select for
            the server socket in this case.  But I'm paranoid. */
         fprintf(stderr, "Internal error: too many local sockets.\n");
+        close(s);
+        return -1;
+    }
+
+    rc = fcntl(s, F_GETFL, 0);
+    if(rc < 0) {
+        fprintf(stderr, "Unable to get flags of local socket.\n");
+        close(s);
+        return -1;
+    }
+
+    rc = fcntl(s, F_SETFL, (rc | O_NONBLOCK));
+    if(rc < 0) {
+        fprintf(stderr, "Unable to set flags of local socket.\n");
         close(s);
         return -1;
     }
