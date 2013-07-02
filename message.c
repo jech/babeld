@@ -598,6 +598,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
     if(have_hello_rtt && hello_send_us && hello_rtt_receive_time) {
         int remote_waiting_us, local_waiting_us;
         int rtt;
+        int old_rttcost, changed = 0;
         remote_waiting_us = neigh->hello_send_us - hello_rtt_receive_time;
         local_waiting_us = time_us(neigh->hello_rtt_receive_time) -
             hello_send_us;
@@ -611,6 +612,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         debugf("RTT to %s on %s sample result: %d us.\n",
                format_address(from), ifp->name, rtt);
 
+        old_rttcost = neighbour_rttcost(neigh);
         if (valid_rtt(neigh)) {
             /* Running exponential average. */
             neigh->rtt = (ifp->rtt_exponential_decay * MAX(rtt, 0)
@@ -621,6 +623,8 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                (higher RTT) */
             neigh->rtt = MAX(2*rtt, 0);
         }
+        changed = (neighbour_rttcost(neigh) == old_rttcost ? 0 : 1);
+        update_neighbour_metric(neigh, changed);
         neigh->rtt_time = now;
     }
     return;
