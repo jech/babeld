@@ -537,7 +537,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                                     src_prefix_beginning,
                                     message[2] == 1 ? v4_src_prefix :
                                     v6_src_prefix,
-                                    len - parsed_len - 2, src_prefix);
+                                    len - parsed_len, src_prefix);
             else
                 rc = -1;
             if(rc < 0) {
