@@ -458,6 +458,8 @@ get_lowest_dst_1(struct babel_route *installed_route, void *closure)
     struct babel_route *result = (struct babel_route *)data[1];
     enum prefixes_status dst_st, src_st;
 
+    if(v4mapped(cz->dst_prefix) != v4mapped(rt->prefix))
+        return;
     src_st = prefixes_cmp(cz->src_prefix, cz->src_plen,
                           rt->src_prefix, rt->src_plen);
     if (src_st != PST_EQUALS)
@@ -495,6 +497,8 @@ has_conflict_1(struct babel_route *installed_route, void *closure)
     if (cz->rc)
         return;
 
+    if(v4mapped(cz->dst_prefix) != v4mapped(rt->prefix))
+        return;
     src_st = prefixes_cmp(cz->src_prefix, cz->src_plen,
                           rt->src_prefix, rt->src_plen);
     if (src_st != PST_EQUALS)
@@ -521,6 +525,8 @@ has_conflict(struct zone *conflict_zone)
         rt = find_next_installed_route(conflict_zone->dst_prefix,
                                        conflict_zone->dst_plen, &next);
         if (rt == NULL) break;
+        if (v4mapped(rt->src->prefix) != v4mapped(conflict_zone->dst_prefix))
+            continue;
         src_st = prefixes_cmp(conflict_zone->src_prefix,
                               conflict_zone->src_plen,
                               rt->src->src_prefix, rt->src->src_plen);
@@ -550,6 +556,8 @@ search_conflict_solution(struct zone *conflict_zone)
         rt = find_next_installed_route(conflict_zone->dst_prefix,
                                        conflict_zone->dst_plen, &next);
         if(rt == NULL) break;
+        if(v4mapped(rt->src->prefix) != v4mapped(conflict_zone->dst_prefix))
+            continue;
         src_st = prefixes_cmp(rt->src->src_prefix, rt->src->src_plen,
                               conflict_zone->src_prefix,
                               conflict_zone->src_plen);
@@ -605,6 +613,8 @@ install_conflicting_routes(struct babel_route *installed_route, void *closure)
         return;
 
     assert(ic->rt_new == NULL && ic->rt_newmetric == 0 && ic->rc == 0);
+    if(v4mapped(rt->prefix) != v4mapped(rt1->prefix))
+        return;
     dst_st = prefixes_cmp(rt->prefix, rt->plen, rt1->prefix, rt1->plen);
     if (dst_st & (PST_DISJOINT | PST_EQUALS))
         return;
@@ -753,6 +763,8 @@ uninstall_conflicting_routes(struct babel_route *installed_route, void *closure)
     int rc = 0;
 
     assert(ic->rt_new == NULL && ic->rt_newmetric == 0);
+    if(v4mapped(rt->prefix) != v4mapped(rt1->prefix))
+        return;
     dst_st = prefixes_cmp(rt->prefix, rt->plen, rt1->prefix, rt1->plen);
     if (dst_st & (PST_DISJOINT | PST_EQUALS))
         return;
@@ -896,6 +908,8 @@ switch_conflicting_routes(struct babel_route *installed_route, void *closure)
         return;
 
     assert(ic->rc == 0);
+    if(v4mapped(rt->prefix) != v4mapped(rt1->prefix))
+        return;
     dst_st = prefixes_cmp(rt->prefix, rt->plen, rt1->prefix, rt1->plen);
     if (dst_st & (PST_DISJOINT | PST_EQUALS))
         return;

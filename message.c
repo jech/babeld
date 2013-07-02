@@ -969,6 +969,7 @@ really_send_update(struct interface *ifp,
             while(1) {
                 rt = find_next_installed_route(prefix, plen, &next);
                 if(rt == NULL) break;
+                if(v4mapped(rt->src->prefix) != v4) continue;
                 st = prefixes_cmp(rt->src->src_prefix, rt->src->src_plen,
                                   src_prefix, src_plen);
                 if(st != PST_EQUALS &&
