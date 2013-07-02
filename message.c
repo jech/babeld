@@ -597,7 +597,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
     /* We can calculate the RTT to this neighbour. */
     if(have_hello_rtt && hello_send_us && hello_rtt_receive_time) {
         int remote_waiting_us, local_waiting_us;
-        int rtt;
+        int rtt, smoothed_rtt;
         int old_rttcost, changed = 0;
         remote_waiting_us = neigh->hello_send_us - hello_rtt_receive_time;
         local_waiting_us = time_us(neigh->hello_rtt_receive_time) -
@@ -615,9 +615,11 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         old_rttcost = neighbour_rttcost(neigh);
         if (valid_rtt(neigh)) {
             /* Running exponential average. */
-            neigh->rtt = (ifp->rtt_exponential_decay * MAX(rtt, 0)
-                          + (256 - ifp->rtt_exponential_decay) * neigh->rtt);
-            neigh->rtt /= 256;
+            smoothed_rtt = (ifp->rtt_exponential_decay * MAX(rtt, 0)
+                            + (256 - ifp->rtt_exponential_decay) * neigh->rtt);
+            /* Rounding (up or down) to get closer to the sample. */
+            neigh->rtt = (neigh->rtt >= rtt) ? smoothed_rtt / 256 :
+                (smoothed_rtt + 255) / 256;
         } else {
             /* We prefer to be conservative with new neighbours
                (higher RTT) */
