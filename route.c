@@ -651,6 +651,11 @@ install_conflicting_routes(struct babel_route *installed_route, void *closure)
         cz.dst_plen = rt->plen;
         cz.src_prefix = rt1->src_prefix;
         cz.src_plen = rt1->src_plen;
+        /* avoid adding this entry multiple times : */
+        struct babel_route *lowest_dst = get_lowest_dst(&cz);
+        assert(lowest_dst != NULL);
+        if (installed_route != lowest_dst)
+            return;
         solution = search_conflict_solution(&cz);
         if (solution != NULL) {
             debugf("    an existing solution is %s from %s\n",
