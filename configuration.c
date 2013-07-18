@@ -464,6 +464,12 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if((if_conf->channel < 1 || if_conf->channel > 255) &&
                if_conf->channel != IF_CHANNEL_NONINTERFERING)
                 goto error;
+        } else if(strcmp(token, "enable-timestamps") == 0) {
+            int v;
+            c = getbool(c, &v, gnc, closure);
+            if(c < -1)
+                goto error;
+            if_conf->enable_timestamps = v;
         } else if(strcmp(token, "rtt-exponential-decay") == 0) {
             int decay;
             c = getint(c, &decay, gnc, closure);

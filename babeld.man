@@ -330,6 +330,17 @@ interface; since Babel uses triggered updates and doesn't count to
 infinity, this can be set to a fairly large value, unless significant
 packet loss is expected.  The default is four times the hello interval.
 .TP
+.BR enable\-timestamps " {" true | false }
+This specifies whether we should send timestamps with each Hello and
+IHU message, in order to compute RTTs.  The overhead is about 8 bytes
+per message.  When set to
+.BR false ,
+the behaviour on this interface is identical to a non-RTT-aware
+babeld.  Namely, we are unable to compute RTTs, and our neighbours on
+this interface are also unable to compute RTTs to us.  The default is
+.B true
+for all interfaces.
+.TP
 .BI rtt\-exponential\-decay " decay"
 This specifies the decay factor for the exponential moving average of
 RTT samples, in units of 1/256.  Must be between 1 and 256, inclusive.
