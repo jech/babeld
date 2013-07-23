@@ -320,6 +320,6 @@ neighbour_cost(struct neighbour *neigh)
         b = MAX(b, 256);
         /* 1/(alpha * beta), which is just plain ETX. */
         /* Since a and b are capped to 16 bits, overflow is impossible. */
-        return (a * b + 128) >> 8;
+        return MIN((a * b + 128) >> 8, INFINITY);
     }
 }
