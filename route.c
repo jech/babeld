@@ -1371,7 +1371,9 @@ update_route(const unsigned char *id,
                 src_plen = ss_plen;
             }
         }
-    } else if(allow_generic_redistribution) {
+    }
+
+    if(allow_generic_redistribution) {
         int next = -1;
         struct babel_route *rt = NULL;
         if(src_plen == 0) {
