@@ -280,6 +280,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         have_v4_nh = 0, have_v6_nh = 0;
     unsigned char router_id[8], v4_prefix[16], v6_prefix[16],
         v4_nh[16], v6_nh[16];
+    int have_hello_rtt = 0;
     /* Content of the RTT sub-TLV on IHU messages. */
     unsigned int hello_send_us = 0, hello_rtt_receive_time = 0;
 
@@ -369,8 +370,10 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 /* Multiply by 3/2 to allow hellos to expire. */
                 schedule_neighbours_check(interval * 15, 0);
             /* Sub-TLV handling. */
-            if(len > 8)
-                parse_hello_subtlv(message + 8, len - 6, neigh);
+            if(len > 8) {
+                if(parse_hello_subtlv(message + 8, len - 6, neigh) > 0)
+                    have_hello_rtt = 1;
+            }
         } else if(type == MESSAGE_IHU) {
             unsigned short txcost, interval;
             unsigned char address[16];
@@ -589,6 +592,24 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         fprintf(stderr, "Couldn't parse packet (%d, %d) from %s on %s.\n",
                 message[0], message[1], format_address(from), ifp->name);
         goto done;
+    }
+
+    /* We can calculate the RTT to this neighbour. */
+    if(have_hello_rtt && hello_send_us && hello_rtt_receive_time) {
+        int remote_waiting_us, local_waiting_us;
+        int rtt;
+        remote_waiting_us = neigh->hello_send_us - hello_rtt_receive_time;
+        local_waiting_us = time_us(neigh->hello_rtt_receive_time) -
+            hello_send_us;
+
+        /* Sanity checks (validity window of 10 minutes). */
+        if(remote_waiting_us < 0 || local_waiting_us < 0 ||
+           remote_waiting_us > 600000000 || local_waiting_us > 600000000)
+            return;
+
+        rtt = local_waiting_us - remote_waiting_us;
+        debugf("RTT to %s on %s sample result: %d us.\n",
+               format_address(from), ifp->name, rtt);
     }
     return;
 }
