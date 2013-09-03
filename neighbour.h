@@ -54,5 +54,6 @@ int update_neighbour(struct neighbour *neigh, int hello, int hello_interval);
 unsigned check_neighbours(void);
 unsigned neighbour_txcost(struct neighbour *neigh);
 unsigned neighbour_rxcost(struct neighbour *neigh);
+unsigned neighbour_rttcost(struct neighbour *neigh);
 unsigned neighbour_cost(struct neighbour *neigh);
 int valid_rtt(struct neighbour *neigh);
