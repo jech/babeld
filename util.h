@@ -66,6 +66,14 @@ seqno_plus(unsigned short s, int plus)
     return ((s + plus) & 0xFFFF);
 }
 
+/* Returns a time in microseconds on 32 bits (thus modulo 2^32,
+   i.e. about 4295 seconds). */
+static inline unsigned int
+time_us(const struct timeval t)
+{
+    return (unsigned int) (t.tv_sec * 1000000 + t.tv_usec);
+}
+
 int roughly(int value);
 void timeval_minus(struct timeval *d,
                    const struct timeval *s1, const struct timeval *s2);
