@@ -167,6 +167,48 @@ parse_route_attributes(const unsigned char *a, int alen,
 }
 
 static int
+parse_hello_subtlv(const unsigned char *a, int alen, struct neighbour *neigh)
+{
+    int type, len, i = 0, ret = 0;
+
+    while(i < alen) {
+        type = a[0];
+        if(type == SUBTLV_PAD1) {
+            i++;
+            continue;
+        }
+
+        if(i + 1 > alen) {
+            fprintf(stderr, "Received truncated sub-TLV on Hello message.\n");
+            return -1;
+        }
+        len = a[i + 1];
+        if(i + len > alen) {
+            fprintf(stderr, "Received truncated sub-TLV on Hello message.\n");
+            return -1;
+        }
+
+        if(type == SUBTLV_PADN) {
+            /* Nothing to do. */
+        } else if(type == SUBTLV_TIMESTAMP) {
+            if(len >= 4) {
+                DO_NTOHL(neigh->hello_send_us, a + i + 2);
+                neigh->hello_rtt_receive_time = now;
+                ret = 1;
+            } else {
+                fprintf(stderr,
+                        "Received incorrect RTT sub-TLV on Hello message.\n");
+            }
+        } else {
+            fprintf(stderr, "Received unknown Hello sub-TLV type %d.\n", type);
+        }
+
+        i += len + 2;
+    }
+    return ret;
+}
+
+static int
 network_address(int ae, const unsigned char *a, unsigned int len,
                 unsigned char *a_r)
 {
@@ -193,6 +235,9 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         have_v4_nh = 0, have_v6_nh = 0;
     unsigned char router_id[8], v4_prefix[16], v6_prefix[16],
         v4_nh[16], v6_nh[16];
+
+    /* We want to track exactly when we received this packet. */
+    gettime(&now);
 
     if(!linklocal(from)) {
         fprintf(stderr, "Received packet from non-local address %s.\n",
@@ -276,6 +321,9 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             if(interval > 0)
                 /* Multiply by 3/2 to allow hellos to expire. */
                 schedule_neighbours_check(interval * 15, 0);
+            /* Sub-TLV handling. */
+            if(len > 8)
+                parse_hello_subtlv(message + 8, len - 6, neigh);
         } else if(type == MESSAGE_IHU) {
             unsigned short txcost, interval;
             unsigned char address[16];
