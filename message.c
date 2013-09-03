@@ -1289,6 +1289,8 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
 {
     int rxcost, interval;
     int ll;
+    int send_rtt_data;
+    int msglen;
 
     if(neigh == NULL && ifp == NULL) {
         struct interface *ifp_aux;
@@ -1332,8 +1334,21 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
 
     ll = linklocal(neigh->address);
 
+    /* Checks whether the RTT data is not too old to be sent. */
+    if(neigh->hello_send_us
+       && timeval_minus_msec(&now, &neigh->hello_rtt_receive_time) < 1000000) {
+        send_rtt_data = 1;
+    } else {
+        neigh->hello_send_us = 0;
+        send_rtt_data = 0;
+    }
+
+    /* The length depends on the format of the address, and then an
+       optional 10-bytes sub-TLV for timestamps (used to compute a RTT). */
+    msglen = (ll ? 14 : 22) + (send_rtt_data ? 10 : 0);
+
     if(unicast_neighbour != neigh) {
-        start_message(ifp, MESSAGE_IHU, ll ? 14 : 22);
+        start_message(ifp, MESSAGE_IHU, msglen);
         accumulate_byte(ifp, ll ? 3 : 2);
         accumulate_byte(ifp, 0);
         accumulate_short(ifp, rxcost);
@@ -1342,10 +1357,16 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
             accumulate_bytes(ifp, neigh->address + 8, 8);
         else
             accumulate_bytes(ifp, neigh->address, 16);
-        end_message(ifp, MESSAGE_IHU, ll ? 14 : 22);
+        if (send_rtt_data) {
+            accumulate_byte(ifp, SUBTLV_TIMESTAMP);
+            accumulate_byte(ifp, 8);
+            accumulate_int(ifp, neigh->hello_send_us);
+            accumulate_int(ifp, time_us(neigh->hello_rtt_receive_time));
+        }
+        end_message(ifp, MESSAGE_IHU, msglen);
     } else {
         int rc;
-        rc = start_unicast_message(neigh, MESSAGE_IHU, ll ? 14 : 22);
+        rc = start_unicast_message(neigh, MESSAGE_IHU, msglen);
         if(rc < 0) return;
         accumulate_unicast_byte(neigh, ll ? 3 : 2);
         accumulate_unicast_byte(neigh, 0);
@@ -1355,7 +1376,14 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
             accumulate_unicast_bytes(neigh, neigh->address + 8, 8);
         else
             accumulate_unicast_bytes(neigh, neigh->address, 16);
-        end_unicast_message(neigh, MESSAGE_IHU, ll ? 14 : 22);
+        if (send_rtt_data) {
+            accumulate_unicast_byte(neigh, SUBTLV_TIMESTAMP);
+            accumulate_unicast_byte(neigh, 8);
+            accumulate_unicast_int(neigh, neigh->hello_send_us);
+            accumulate_unicast_int(neigh,
+                                   time_us(neigh->hello_rtt_receive_time));
+        }
+        end_unicast_message(neigh, MESSAGE_IHU, msglen);
     }
 }
 
