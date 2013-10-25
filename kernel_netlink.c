@@ -938,10 +938,6 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     if(src_plen == 0)
         assert(memcmp(src, zeroes, 16) == 0);
 
-    table_no = get_table_no(src, src_plen);
-    if (table_no < 0)
-        return -1;
-
     /* Check that the protocol family is consistent. */
     if(plen >= 96 && v4mapped(dest)) {
         if(!v4mapped(gate) ||
@@ -958,6 +954,15 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     }
 
     ipv4 = v4mapped(gate);
+
+#ifdef IPV6_SUBTREES
+    if(!ipv4)
+        table_no = export_table;
+    else
+#endif
+    table_no = get_table_no(src, src_plen);
+    if (table_no < 0)
+        return -1;
 
     if(operation == ROUTE_MODIFY) {
         if(newmetric == metric && memcmp(newgate, gate, 16) == 0 &&
@@ -1009,6 +1014,10 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     rtm = NLMSG_DATA(&buf.nh);
     rtm->rtm_family = ipv4 ? AF_INET : AF_INET6;
     rtm->rtm_dst_len = ipv4 ? plen - 96 : plen;
+#ifdef IPV6_SUBTREES
+    if(src_prefix && !ipv4)
+        rtm->rtm_src_len = src_plen;
+#endif
     rtm->rtm_table = table_no;
     rtm->rtm_scope = RT_SCOPE_UNIVERSE;
     if(metric < KERNEL_INFINITY)
@@ -1030,6 +1039,14 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr));
         rta->rta_type = RTA_DST;
         memcpy(RTA_DATA(rta), dest, sizeof(struct in6_addr));
+#ifdef IPV6_SUBTREES
+        if(src_prefix) {
+            rta = RTA_NEXT(rta, len);
+            rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr));
+            rta->rta_type = RTA_SRC;
+            memcpy(RTA_DATA(rta), src_prefix, sizeof(struct in6_addr));
+        }
+#endif
     }
 
     rta = RTA_NEXT(rta, len);
@@ -1069,19 +1086,10 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
     struct rtattr *rta= RTM_RTA(rtm);;
     len -= NLMSG_ALIGN(sizeof(*rtm));
 
-    memset(&route->prefix, 0, sizeof(struct in6_addr));
-    memset(&route->gw, 0, sizeof(struct in6_addr));
-    route->plen = rtm->rtm_dst_len;
-    if(rtm->rtm_family == AF_INET) {
-        const unsigned char zeroes[4] = {0, 0, 0, 0};
-        v4tov6(route->prefix, zeroes);
-        route->plen += 96;
-    }
-
-    route->metric = 0;
-    route->ifindex = 0;
+    memset(route, 0, sizeof(struct kernel_route));
     route->proto = rtm->rtm_protocol;
 
+#define GET_PLEN(p) (rtm->rtm_family == AF_INET) ? p + 96 : p
 #define COPY_ADDR(d, s) \
     do { \
         if(rtm->rtm_family == AF_INET6) \
@@ -1095,7 +1103,12 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
     while(RTA_OK(rta, len)) {
         switch (rta->rta_type) {
         case RTA_DST:
+            route->plen = GET_PLEN(rtm->rtm_dst_len);
             COPY_ADDR(route->prefix, RTA_DATA(rta));
+            break;
+        case RTA_SRC:
+            route->src_plen = GET_PLEN(rtm->rtm_src_len);
+            COPY_ADDR(route->src_prefix, RTA_DATA(rta));
             break;
         case RTA_GATEWAY:
             COPY_ADDR(route->gw, RTA_DATA(rta));
@@ -1117,6 +1130,7 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
         rta = RTA_NEXT(rta, len);
     }
 #undef COPY_ADDR
+#undef GET_PLEN
 
     int i;
     for(i = 0; i < import_table_count; i++)
@@ -1133,6 +1147,7 @@ print_kernel_route(int add, int protocol, int type,
 {
     char ifname[IFNAMSIZ];
     char addr_prefix[INET6_ADDRSTRLEN];
+    char src_addr_prefix[INET6_ADDRSTRLEN];
     char addr_gw[INET6_ADDRSTRLEN];
 
     if(!inet_ntop(AF_INET6, route->prefix,
@@ -1140,6 +1155,21 @@ print_kernel_route(int add, int protocol, int type,
        !inet_ntop(AF_INET6,route->gw, addr_gw, sizeof(addr_gw)) ||
        !if_indextoname(route->ifindex, ifname)) {
         kdebugf("Couldn't format kernel route for printing.");
+        return;
+    }
+
+    if(route->src_plen >= 0) {
+        if(!inet_ntop(AF_INET6, route->src_prefix,
+                      src_addr_prefix, sizeof(src_addr_prefix))) {
+            kdebugf("Couldn't format kernel route for printing.");
+            return;
+        }
+
+        kdebugf("%s kernel route: dest: %s/%d gw: %s metric: %d if: %s "
+                "(proto: %d, type: %d, from: %s/%d)",
+                add == RTM_NEWROUTE ? "Add" : "Delete",
+                addr_prefix, route->plen, addr_gw, route->metric, ifname,
+                protocol, type, src_addr_prefix, route->src_plen);
         return;
     }
 
@@ -1203,7 +1233,8 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
     if(rc < 0)
         return 0;
 
-    if(martian_prefix(current_route->prefix, current_route->plen))
+    if(martian_prefix(current_route->prefix, current_route->plen) ||
+       martian_prefix(current_route->src_prefix, current_route->src_plen))
         return 0;
 
     /* Ignore default unreachable routes; no idea where they come from. */
@@ -1744,6 +1775,8 @@ static void
 get_src_from_table(struct kernel_route *route, int table_no)
 {
     int i;
+    if (table_no == export_table)
+        return;
     for(i = 0; i < SRC_TABLE_NUM; i++) {
         if (kernel_tables[i].plen != 0 &&
             kernel_tables[i].table_no == table_no) {
