@@ -210,10 +210,12 @@ check_xroutes(int send_updates)
         switch (prefixes_cmp(routes[i].src_prefix, routes[i].src_plen,
                              ss_prefix, ss_plen)) {
             case PST_DISJOINT:
+                i++;
+                /* If we don't want to redistribute route not in ss_prefix:
                 if (i < numroutes - 1)
                     memcpy(&routes[i], &routes[numroutes-1],
                            sizeof(struct kernel_route));
-                numroutes--; /* no i ++ */
+                numroutes--; / * no i ++ */
                 break;
             case PST_LESS_SPECIFIC:
                 dst_st = prefixes_cmp(routes[i].prefix, routes[i].plen,
