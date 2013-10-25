@@ -1015,7 +1015,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     rtm->rtm_family = ipv4 ? AF_INET : AF_INET6;
     rtm->rtm_dst_len = ipv4 ? plen - 96 : plen;
 #ifdef IPV6_SUBTREES
-    if(src_prefix && !ipv4)
+    if(src && !ipv4)
         rtm->rtm_src_len = src_plen;
 #endif
     rtm->rtm_table = table_no;
@@ -1040,11 +1040,11 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         rta->rta_type = RTA_DST;
         memcpy(RTA_DATA(rta), dest, sizeof(struct in6_addr));
 #ifdef IPV6_SUBTREES
-        if(src_prefix) {
+        if(src) {
             rta = RTA_NEXT(rta, len);
             rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr));
             rta->rta_type = RTA_SRC;
-            memcpy(RTA_DATA(rta), src_prefix, sizeof(struct in6_addr));
+            memcpy(RTA_DATA(rta), src, sizeof(struct in6_addr));
         }
 #endif
     }

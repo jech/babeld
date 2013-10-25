@@ -577,10 +577,14 @@ search_conflict_solution(struct zone *conflict_zone)
 }
 
 static int
-add_non_conflicting_route(struct babel_route *route, struct zone *zone)
+add_non_conflicting_route(struct babel_route *route, struct zone *zone, int v4)
 {
     int rc;
+#ifdef IPV6_SUBTREES
+    if (!v4 || !has_conflict(zone)) {
+#else
     if (!has_conflict(zone)) {
+#endif
         rc = kernel_route(ROUTE_ADD, zone->dst_prefix, zone->dst_plen,
                           zone->src_prefix, zone->src_plen,
                           route->nexthop,
@@ -671,7 +675,7 @@ install_conflicting_routes(struct babel_route *installed_route, void *closure)
         solution = ic->rt;
         debugf("    solution is our route\n");
     }
-    rc = add_non_conflicting_route(solution, &cz);
+    rc = add_non_conflicting_route(solution, &cz, v4mapped(rt->prefix));
     if(rc < 0) {
         int save = errno;
         perror("kernel_route(ADD sub)");
@@ -686,6 +690,7 @@ install_route(struct babel_route *route)
     int i, rc;
     struct route_closure closure;
     struct zone zone;
+    int v4 = v4mapped(route->nexthop);
 
     if(route->installed)
         return;
@@ -707,21 +712,27 @@ install_route(struct babel_route *route)
     debugf("install_route(%s from %s)\n",
            format_prefix(route->src->prefix, route->src->plen),
            format_prefix(route->src->src_prefix, route->src->src_plen));
-    /* Install source-specific conflicting routes */
-    closure.rt = route;
-    closure.rt_new = NULL;
-    closure.rt_newmetric = 0;
-    closure.rc = 0;
-    for_all_installed_routes(install_conflicting_routes, &closure);
-    if (closure.rc < 0)
-        return;
+#ifdef IPV6_SUBTREES
+    if (v4) {
+#endif
+        /* Install source-specific conflicting routes */
+        closure.rt = route;
+        closure.rt_new = NULL;
+        closure.rt_newmetric = 0;
+        closure.rc = 0;
+        for_all_installed_routes(install_conflicting_routes, &closure);
+        if (closure.rc < 0)
+            return;
+#ifdef IPV6_SUBTREES
+    }
+#endif
 
     /* Non conflicting case */
     zone.dst_prefix = route->src->prefix;
     zone.dst_plen   = route->src->plen;
     zone.src_prefix = route->src->src_prefix;
     zone.src_plen   = route->src->src_plen;
-    rc = add_non_conflicting_route(route, &zone);
+    rc = add_non_conflicting_route(route, &zone, v4);
     if(rc < 0) {
         int save = errno;
         perror("kernel_route(ADD)");
@@ -735,10 +746,14 @@ install_route(struct babel_route *route)
 }
 
 static int
-del_non_conflicting_route(struct babel_route *route, struct zone *zone)
+del_non_conflicting_route(struct babel_route *route, struct zone *zone, int v4)
 {
     int rc;
+#ifdef IPV6_SUBTREES
+    if (!v4 || !has_conflict(zone)) {
+#else
     if (!has_conflict(zone)) {
+#endif
         rc = kernel_route(ROUTE_FLUSH, zone->dst_prefix, zone->dst_plen,
                           zone->src_prefix, zone->src_plen,
                           route->nexthop,
@@ -874,6 +889,7 @@ uninstall_route(struct babel_route *route)
     int rc;
     struct route_closure closure;
     struct zone zone;
+    int v4 = v4mapped(route->nexthop);
 
     if(!route->installed)
         return;
@@ -887,16 +903,22 @@ uninstall_route(struct babel_route *route)
     zone.dst_plen   = route->src->plen;
     zone.src_prefix = route->src->src_prefix;
     zone.src_plen   = route->src->src_plen;
-    rc = del_non_conflicting_route(route, &zone);
+    rc = del_non_conflicting_route(route, &zone, v4);
     if (rc < 0)
         perror("kernel_route(FLUSH)");
 
-    /* Remove source-specific conflicting routes */
-    closure.rt = route;
-    closure.rt_new = NULL;
-    closure.rt_newmetric = 0;
-    closure.rc = 0;
-    for_all_installed_routes(uninstall_conflicting_routes, &closure);
+#ifdef IPV6_SUBTREES
+    if (v4) {
+#endif
+        /* Remove source-specific conflicting routes */
+        closure.rt = route;
+        closure.rt_new = NULL;
+        closure.rt_newmetric = 0;
+        closure.rc = 0;
+        for_all_installed_routes(uninstall_conflicting_routes, &closure);
+#ifdef IPV6_SUBTREES
+    }
+#endif
 
     local_notify_route(route, LOCAL_CHANGE);
 }
@@ -988,11 +1010,18 @@ switch_routes(struct babel_route *old, struct babel_route *new)
     assert(memcmp(old->src->src_prefix, new->src->src_prefix, 16) == 0
            && old->src->src_plen == new->src->src_plen);
 
-    closure.rt = old;
-    closure.rt_new = new;
-    closure.rt_newmetric = metric_to_kernel(route_metric(new));
-    closure.rc = 0;
-    for_all_installed_routes(switch_conflicting_routes, &closure);
+#ifdef IPV6_SUBTREES
+    if (v4mapped(old->nexthop)) {
+#endif
+        /* modify disambiguation routes */
+        closure.rt = old;
+        closure.rt_new = new;
+        closure.rt_newmetric = metric_to_kernel(route_metric(new));
+        closure.rc = 0;
+        for_all_installed_routes(switch_conflicting_routes, &closure);
+#ifdef IPV6_SUBTREES
+    }
+#endif
 
     if(rc < 0) {
         perror("kernel_route(MODIFY)");
@@ -1032,11 +1061,18 @@ change_route_metric(struct babel_route *route,
                           old,
                           route->nexthop, route->neigh->ifp->ifindex,
                           new);
-        closure.rt = route;
-        closure.rt_new = route;
-        closure.rt_newmetric = new;
-        closure.rc = 0;
-        for_all_installed_routes(switch_conflicting_routes, &closure);
+#ifdef IPV6_SUBTREES
+        if (v4mapped(route->nexthop)) {
+#endif
+            /* modify disambiguation routes */
+            closure.rt = route;
+            closure.rt_new = route;
+            closure.rt_newmetric = new;
+            closure.rc = 0;
+            for_all_installed_routes(switch_conflicting_routes, &closure);
+#ifdef IPV6_SUBTREES
+        }
+#endif
         if(rc < 0) {
             perror("kernel_route(MODIFY metric)");
             return;
