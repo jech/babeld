@@ -152,8 +152,10 @@ parse_nat(const char *string)
     return (int)l;
 }
 
+/* Given a fixed-point string such as "42.1337", returns 1000 times
+   the value of the string, here 42133. */
 int
-parse_msec(const char *string)
+parse_thousands(const char *string)
 {
     unsigned int in, fl;
     int i, j;

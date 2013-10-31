@@ -148,13 +148,13 @@ main(int argc, char **argv)
                 goto usage;
             break;
         case 'h':
-            default_wireless_hello_interval = parse_msec(optarg);
+            default_wireless_hello_interval = parse_thousands(optarg);
             if(default_wireless_hello_interval <= 0 ||
                default_wireless_hello_interval > 0xFFFF * 10)
                 goto usage;
             break;
         case 'H':
-            default_wired_hello_interval = parse_msec(optarg);
+            default_wired_hello_interval = parse_thousands(optarg);
             if(default_wired_hello_interval <= 0 ||
                default_wired_hello_interval > 0xFFFF * 10)
                 goto usage;

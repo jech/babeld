@@ -148,14 +148,14 @@ getint(int c, int *int_r, gnc_t gnc, void *closure)
 }
 
 static int
-getmsec(int c, int *int_r, gnc_t gnc, void *closure)
+getthousands(int c, int *int_r, gnc_t gnc, void *closure)
 {
     char *t;
     int i;
     c = getword(c, &t, gnc, closure);
     if(c < -1)
         return c;
-    i = parse_msec(t);
+    i = parse_thousands(t);
     if(i < 0) {
         free(t);
         return -2;
@@ -408,13 +408,13 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if_conf->cost = cost;
         } else if(strcmp(token, "hello-interval") == 0) {
             int interval;
-            c = getmsec(c, &interval, gnc, closure);
+            c = getthousands(c, &interval, gnc, closure);
             if(c < -1 || interval <= 0 || interval > 10 * 0xFFFF)
                 goto error;
             if_conf->hello_interval = interval;
         } else if(strcmp(token, "update-interval") == 0) {
             int interval;
-            c = getmsec(c, &interval, gnc, closure);
+            c = getthousands(c, &interval, gnc, closure);
             if(c < -1 || interval <= 0 || interval > 10 * 0xFFFF)
                 goto error;
             if_conf->update_interval = interval;
