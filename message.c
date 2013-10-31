@@ -939,6 +939,7 @@ flush_unicast(int dofree)
         sin6.sin6_port = htons(protocol_port);
         sin6.sin6_scope_id = unicast_neighbour->ifp->ifindex;
         DO_HTONS(packet_header + 2, unicast_buffered);
+        fill_rtt_message(unicast_neighbour->ifp);
         rc = babel_send(protocol_socket,
                         packet_header, sizeof(packet_header),
                         unicast_buffer, unicast_buffered,
