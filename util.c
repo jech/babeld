@@ -295,6 +295,16 @@ format_eui64(const unsigned char *eui)
     return buf[i];
 }
 
+const char *
+format_thousands(unsigned int value)
+{
+    static char buf[4][30];
+    static int i = 0;
+    i = (i + 1) % 4;
+    snprintf(buf[i], 30, "%d.%.3d", value / 1000, value % 1000);
+    return buf[i];
+}
+
 int
 parse_address(const char *address, unsigned char *addr_r, int *af_r)
 {

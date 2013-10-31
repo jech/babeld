@@ -1053,13 +1053,13 @@ dump_tables(FILE *out)
 
     FOR_ALL_NEIGHBOURS(neigh) {
         fprintf(out, "Neighbour %s dev %s reach %04x rxcost %d txcost %d "
-                "rtt %d rttcost %d chan %d%s.\n",
+                "rtt %s rttcost %d chan %d%s.\n",
                 format_address(neigh->address),
                 neigh->ifp->name,
                 neigh->reach,
                 neighbour_rxcost(neigh),
                 neigh->txcost,
-                neigh->rtt,
+                format_thousands(neigh->rtt),
                 neighbour_rttcost(neigh),
                 neigh->ifp->channel,
                 if_up(neigh->ifp) ? "" : " (down)");

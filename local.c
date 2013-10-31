@@ -138,8 +138,8 @@ local_notify_neighbour_1(int s, struct neighbour *neigh, int kind)
 
     rttbuf[0] = '\0';
     if(valid_rtt(neigh)) {
-        rc = snprintf(rttbuf, 64, " rtt %d rttcost %d", neigh->rtt,
-                      neighbour_rttcost(neigh));
+        rc = snprintf(rttbuf, 64, " rtt %s rttcost %d",
+                      format_thousands(neigh->rtt), neighbour_rttcost(neigh));
         if(rc < 0 || rc >= 64)
             rttbuf[0] = '\0';
     }
