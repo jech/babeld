@@ -1,14 +1,16 @@
 babeld-1.4.3 (unreleased)
 
   * Added random-id option to config file (equivalent to -r).
-  * Fixed parsing of compressed IPv4 updates (thanks to Matthieu Boutier).
-  * Fixed formatting of seqno requests with short prefixes (thanks to
-    Matthieu Boutier).
-  * Fixed possible DoS on the local interface (thanks to Baptiste Jonglez).
-  * Fixed advertising costs higher than INFINITY on the local interface
-    (thanks to Baptiste Jonglez).
+  * Fixed parsing of compressed IPv4 updates.  Thanks to Matthieu Boutier.
+  * Fixed formatting of seqno requests with short prefixes.  Thanks to
+    Matthieu Boutier.
+  * Fixed possible DoS on the local interface.  Thanks to Baptiste Jonglez.
+  * Fixed advertising costs higher than INFINITY on the local interface.
+    Thanks to Baptiste Jonglez.
   * Fixed an assertion failure when an interface configuration is
     split into multiple config file directives.
+  * Disable atomic route changes on BSD, which are buggy at least under
+    Mac OS X.  Thanks to Grégoire Henry.
 
 19 June 2013: babeld-1.4.2
 
