@@ -1087,6 +1087,12 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
     len -= NLMSG_ALIGN(sizeof(*rtm));
 
     memset(route, 0, sizeof(struct kernel_route));
+    if(rtm->rtm_family == AF_INET) {
+        /* if RTA_DST is not a TLV, that's a default destination */
+        const unsigned char zeroes[4] = {0, 0, 0, 0};
+        v4tov6(route->prefix, zeroes);
+        route->plen = 96;
+    }
     route->proto = rtm->rtm_protocol;
 
 #define GET_PLEN(p) (rtm->rtm_family == AF_INET) ? p + 96 : p
