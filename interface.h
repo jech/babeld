@@ -39,6 +39,10 @@ struct interface_conf {
     char lq;
     char faraway;
     int channel;
+    unsigned char src_prefix[16];
+    unsigned char src_plen;
+    unsigned char src_prefix6[16];
+    unsigned char src_plen6;
     struct interface_conf *next;
 };
 

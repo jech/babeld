@@ -97,7 +97,6 @@ extern unsigned char source_specific_plen;
 extern unsigned char source_specific_addr6[16];
 extern unsigned char source_specific_plen6;
 extern char allow_generic_redistribution;
-extern char install_specific;
 
 extern const unsigned char zeroes[16], ones[16];
 

@@ -500,6 +500,23 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if((if_conf->channel < 1 || if_conf->channel > 255) &&
                if_conf->channel != IF_CHANNEL_NONINTERFERING)
                 goto error;
+        } else if(strcmp(token, "source-prefix") == 0) {
+            unsigned char *prefix;
+            unsigned char plen;
+            int af;
+            c = getnet(c, &prefix, &plen, &af, gnc, closure);
+            if(c < -1)
+                goto error;
+            if(af == AF_INET) {
+                if(plen != 96) {
+                    memcpy(if_conf->src_prefix, prefix, 16);
+                    if_conf->src_plen = plen;
+                }
+            } else {
+                memcpy(if_conf->src_prefix6, prefix, 16);
+                if_conf->src_plen6 = plen;
+            }
+            free(prefix);
         } else {
             goto error;
         }
@@ -572,6 +589,14 @@ merge_ifconf(struct interface_conf *dest,
             dest->field = src2->field;          \
     } while(0)
 
+#define MERGE_MEM(merge1, field, size)                  \
+    do {                                                \
+        if(merge1)                                      \
+            memcpy(dest->field, src1->field, size);     \
+        else                                            \
+            memcpy(dest->field, src2->field, size);     \
+    } while(0)
+
     MERGE(hello_interval);
     MERGE(update_interval);
     MERGE(cost);
@@ -580,6 +605,10 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(lq);
     MERGE(faraway);
     MERGE(channel);
+    MERGE_MEM(src1->src_plen != 0, src_prefix, 16);
+    MERGE(src_plen);
+    MERGE_MEM(src1->src_plen6 != 0, src_prefix6, 16);
+    MERGE(src_plen6);
 
 #undef MERGE
 }
@@ -747,12 +776,6 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
         if(c < -1)
             goto error;
         allow_generic_redistribution = (b == CONFIG_YES);
-    } else if (strcmp(token, "install-specific") == 0) {
-        int b;
-        c = getbool(c, &b, gnc, closure);
-        if(c < -1)
-            goto error;
-        install_specific = (b == CONFIG_YES);
     } else {
         goto error;
     }

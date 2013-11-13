@@ -84,7 +84,6 @@ unsigned char source_specific_plen;
 unsigned char source_specific_addr6[16];
 unsigned char source_specific_plen6;
 char allow_generic_redistribution = 0;
-char install_specific = 0;
 int protocol_socket = -1;
 int kernel_socket = -1;
 static int kernel_routes_changed = 0;

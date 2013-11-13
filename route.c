@@ -1386,16 +1386,17 @@ update_route(const unsigned char *id,
     if(src_plen != 0 && is_v4 != v4mapped(src_prefix))
         return NULL;
 
-    if(install_specific) {
+    if((is_v4 && neigh->ifp->conf->src_plen != 0) ||
+       (!is_v4 && neigh->ifp->conf->src_plen6 != 0)) {
         enum prefixes_status src_st, dst_st;
         const unsigned char *ss_prefix;
         unsigned char ss_plen;
         if (is_v4) {
-            ss_prefix = source_specific_addr;
-            ss_plen = source_specific_plen;
+            ss_prefix = neigh->ifp->conf->src_prefix;
+            ss_plen = neigh->ifp->conf->src_plen;
         } else {
-            ss_prefix = source_specific_addr6;
-            ss_plen = source_specific_plen6;
+            ss_prefix = neigh->ifp->conf->src_prefix6;
+            ss_plen = neigh->ifp->conf->src_plen6;
         }
         src_st = prefixes_cmp(src_prefix, src_plen, ss_prefix, ss_plen);
         if (src_st == PST_LESS_SPECIFIC) {
