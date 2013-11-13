@@ -1398,9 +1398,7 @@ update_route(const unsigned char *id,
             ss_plen = source_specific_plen6;
         }
         src_st = prefixes_cmp(src_prefix, src_plen, ss_prefix, ss_plen);
-        if (src_st == PST_DISJOINT) {
-            return NULL;
-        } else if (src_st == PST_LESS_SPECIFIC) {
+        if (src_st == PST_LESS_SPECIFIC) {
             dst_st = prefixes_cmp(prefix, plen, ss_prefix, ss_plen);
             if (!(dst_st & (PST_MORE_SPECIFIC | PST_EQUALS))) {
                 src_prefix = ss_prefix;
