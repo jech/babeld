@@ -79,10 +79,6 @@ const unsigned char ones[16] =
 
 int protocol_port;
 unsigned char protocol_group[16];
-unsigned char source_specific_addr[16];
-unsigned char source_specific_plen;
-unsigned char source_specific_addr6[16];
-unsigned char source_specific_plen6;
 char allow_generic_redistribution = 0;
 int protocol_socket = -1;
 int kernel_socket = -1;
@@ -1026,10 +1022,6 @@ dump_tables(FILE *out)
     fprintf(out, "\n");
 
     fprintf(out, "My id %s seqno %d\n", format_eui64(myid), myseqno);
-
-    fprintf(out, "My source prefixes: %s and %s\n",
-            format_prefix(source_specific_addr, source_specific_plen),
-            format_prefix(source_specific_addr6, source_specific_plen6));
 
     FOR_ALL_NEIGHBOURS(neigh) {
         fprintf(out, "Neighbour %s dev %s reach %04x rxcost %d txcost %d chan %d%s.\n",
