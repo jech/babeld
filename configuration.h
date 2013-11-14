@@ -33,7 +33,7 @@ struct filter {
     unsigned char src_plen_ge, src_plen_le;
     unsigned char *neigh;
     int proto;                  /* May be negative */
-    unsigned int result;
+    unsigned int add_metric;
     struct filter *next;
 };
 

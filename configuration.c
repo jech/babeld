@@ -381,16 +381,16 @@ parse_filter(int c, gnc_t gnc, void *closure, struct filter **filter_return)
             filter->ifname = interface;
             filter->ifindex = if_nametoindex(interface);
         } else if(strcmp(token, "allow") == 0) {
-            filter->result = 0;
+            filter->add_metric = 0;
         } else if(strcmp(token, "deny") == 0) {
-            filter->result = INFINITY;
+            filter->add_metric = INFINITY;
         } else if(strcmp(token, "metric") == 0) {
             int metric;
             c = getint(c, &metric, gnc, closure);
             if(c < -1) goto error;
             if(metric <= 0 || metric > INFINITY)
                 goto error;
-            filter->result = metric;
+            filter->add_metric = metric;
         } else {
             goto error;
         }
@@ -1008,7 +1008,7 @@ do_filter(struct filter *f, const unsigned char *id,
     while(f) {
         if(filter_match(f, id, prefix, plen, src_prefix, src_plen,
                         neigh, ifindex, proto))
-            return f->result;
+            return f->add_metric;
         f = f->next;
     }
     return -1;
