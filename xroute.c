@@ -162,6 +162,7 @@ check_xroutes(int send_updates)
 {
     int i, j, metric, export, change = 0, rc;
     struct kernel_route *routes;
+    struct filter_result filter_result = {0};
     int numroutes, numaddresses;
     static int maxroutes = 8;
     const int maxmaxroutes = 16 * 1024;
@@ -198,40 +199,17 @@ check_xroutes(int send_updates)
 
     /* Cast kernel routes to our prefix. */
 
-    for (i = numaddresses; i < numroutes;) {
-        const unsigned char *ss_prefix;
-        unsigned char ss_plen;
-        enum prefixes_status dst_st;
-        if (v4mapped(routes[i].prefix)) {
-            ss_prefix = source_specific_addr;
-            ss_plen   = source_specific_plen;
-        } else {
-            ss_prefix = source_specific_addr6;
-            ss_plen   = source_specific_plen6;
+    for (i = numaddresses; i < numroutes; i++) {
+        filter_result.src_prefix = NULL;
+        redistribute_filter(routes[i].prefix, routes[i].plen,
+                            routes[i].src_prefix, routes[i].src_plen,
+                            routes[i].ifindex, routes[i].proto,
+                            &filter_result);
+        if(filter_result.src_prefix) {
+            memcpy(routes[i].src_prefix, filter_result.src_prefix, 16);
+            routes[i].src_plen = filter_result.src_plen;
         }
-        switch (prefixes_cmp(routes[i].src_prefix, routes[i].src_plen,
-                             ss_prefix, ss_plen)) {
-            case PST_DISJOINT:
-                i++;
-                /* If we don't want to redistribute route not in ss_prefix:
-                if (i < numroutes - 1)
-                    memcpy(&routes[i], &routes[numroutes-1],
-                           sizeof(struct kernel_route));
-                numroutes--; / * no i ++ */
-                break;
-            case PST_LESS_SPECIFIC:
-                dst_st = prefixes_cmp(routes[i].prefix, routes[i].plen,
-                                      ss_prefix, ss_plen);
-                if (!(dst_st & (PST_MORE_SPECIFIC | PST_EQUALS))) {
-                    memcpy(routes[i].src_prefix, ss_prefix, 16);
-                    routes[i].src_plen = ss_plen;
-                }
-                /* fall through */;
-            case PST_EQUALS:
-            case PST_MORE_SPECIFIC:
-                i ++;
-                break;
-        }
+
     }
 
     /* Check for any routes that need to be flushed */
@@ -241,7 +219,8 @@ check_xroutes(int send_updates)
         export = 0;
         metric = redistribute_filter(xroutes[i].prefix, xroutes[i].plen,
                                      xroutes[i].src_prefix, xroutes[i].src_plen,
-                                     xroutes[i].ifindex, xroutes[i].proto);
+                                     xroutes[i].ifindex, xroutes[i].proto,
+                                     NULL);
         if(metric < INFINITY && metric == xroutes[i].metric) {
             for(j = 0; j < numroutes; j++) {
                 if(xroutes[i].plen == routes[j].plen &&
@@ -284,7 +263,7 @@ check_xroutes(int send_updates)
             continue;
         metric = redistribute_filter(routes[i].prefix, routes[i].plen,
                                      routes[i].src_prefix, routes[i].src_plen,
-                                     routes[i].ifindex, routes[i].proto);
+                                     routes[i].ifindex, routes[i].proto, NULL);
         if(metric < INFINITY) {
             rc = add_xroute(routes[i].prefix, routes[i].plen,
                             routes[i].src_prefix, routes[i].src_plen,

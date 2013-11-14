@@ -381,16 +381,28 @@ parse_filter(int c, gnc_t gnc, void *closure, struct filter **filter_return)
             filter->ifname = interface;
             filter->ifindex = if_nametoindex(interface);
         } else if(strcmp(token, "allow") == 0) {
-            filter->add_metric = 0;
+            filter->action.add_metric = 0;
         } else if(strcmp(token, "deny") == 0) {
-            filter->add_metric = INFINITY;
+            filter->action.add_metric = INFINITY;
         } else if(strcmp(token, "metric") == 0) {
             int metric;
             c = getint(c, &metric, gnc, closure);
             if(c < -1) goto error;
             if(metric <= 0 || metric > INFINITY)
                 goto error;
-            filter->add_metric = metric;
+            filter->action.add_metric = metric;
+        } else if(strcmp(token, "src-prefix") == 0) {
+            int af;
+            c = getnet(c, &filter->action.src_prefix, &filter->action.src_plen,
+                       &af, gnc, closure);
+            if(c < -1)
+                goto error;
+            if(filter->af == AF_UNSPEC)
+                filter->af = af;
+            else if(filter->af != af)
+                goto error;
+            if(af == AF_INET && filter->action.src_plen == 96)
+                memset(&filter->action.src_prefix, 0, 16);
         } else {
             goto error;
         }
@@ -500,23 +512,6 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if((if_conf->channel < 1 || if_conf->channel > 255) &&
                if_conf->channel != IF_CHANNEL_NONINTERFERING)
                 goto error;
-        } else if(strcmp(token, "source-prefix") == 0) {
-            unsigned char *prefix;
-            unsigned char plen;
-            int af;
-            c = getnet(c, &prefix, &plen, &af, gnc, closure);
-            if(c < -1)
-                goto error;
-            if(af == AF_INET) {
-                if(plen != 96) {
-                    memcpy(if_conf->src_prefix, prefix, 16);
-                    if_conf->src_plen = plen;
-                }
-            } else {
-                memcpy(if_conf->src_prefix6, prefix, 16);
-                if_conf->src_plen6 = plen;
-            }
-            free(prefix);
         } else {
             goto error;
         }
@@ -589,14 +584,6 @@ merge_ifconf(struct interface_conf *dest,
             dest->field = src2->field;          \
     } while(0)
 
-#define MERGE_MEM(merge1, field, size)                  \
-    do {                                                \
-        if(merge1)                                      \
-            memcpy(dest->field, src1->field, size);     \
-        else                                            \
-            memcpy(dest->field, src2->field, size);     \
-    } while(0)
-
     MERGE(hello_interval);
     MERGE(update_interval);
     MERGE(cost);
@@ -605,10 +592,6 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(lq);
     MERGE(faraway);
     MERGE(channel);
-    MERGE_MEM(src1->src_plen != 0, src_prefix, 16);
-    MERGE(src_plen);
-    MERGE_MEM(src1->src_plen6 != 0, src_prefix6, 16);
-    MERGE(src_plen6);
 
 #undef MERGE
 }
@@ -1003,12 +986,18 @@ static int
 do_filter(struct filter *f, const unsigned char *id,
           const unsigned char *prefix, unsigned short plen,
           const unsigned char *src_prefix, unsigned short src_plen,
-          const unsigned char *neigh, unsigned int ifindex, int proto)
+          const unsigned char *neigh, unsigned int ifindex, int proto,
+          struct filter_result *result)
 {
+    if(result)
+        memset(result, 0, sizeof(struct filter_result));
     while(f) {
         if(filter_match(f, id, prefix, plen, src_prefix, src_plen,
-                        neigh, ifindex, proto))
-            return f->add_metric;
+                        neigh, ifindex, proto)) {
+            if(result)
+                memcpy(result, &f->action, sizeof(struct filter_result));
+            return f->action.add_metric;
+        }
         f = f->next;
     }
     return -1;
@@ -1018,11 +1007,12 @@ int
 input_filter(const unsigned char *id,
              const unsigned char *prefix, unsigned short plen,
              const unsigned char *src_prefix, unsigned short src_plen,
-             const unsigned char *neigh, unsigned int ifindex)
+             const unsigned char *neigh, unsigned int ifindex,
+             struct filter_result *result)
 {
     int res;
     res = do_filter(input_filters, id, prefix, plen,
-                    src_prefix, src_plen, neigh, ifindex, 0);
+                    src_prefix, src_plen, neigh, ifindex, 0, result);
     if(res < 0)
         res = 0;
     return res;
@@ -1032,11 +1022,12 @@ int
 output_filter(const unsigned char *id,
               const unsigned char *prefix, unsigned short plen,
               const unsigned char *src_prefix, unsigned short src_plen,
-              unsigned int ifindex)
+              unsigned int ifindex,
+              struct filter_result *result)
 {
     int res;
     res = do_filter(output_filters, id, prefix, plen,
-                    src_prefix, src_plen, NULL, ifindex, 0);
+                    src_prefix, src_plen, NULL, ifindex, 0, result);
     if(res < 0)
         res = 0;
     return res;
@@ -1045,11 +1036,12 @@ output_filter(const unsigned char *id,
 int
 redistribute_filter(const unsigned char *prefix, unsigned short plen,
                     const unsigned char *src_prefix, unsigned short src_plen,
-                    unsigned int ifindex, int proto)
+                    unsigned int ifindex, int proto,
+                    struct filter_result *result)
 {
     int res;
     res = do_filter(redistribute_filters, NULL, prefix, plen,
-                    src_prefix, src_plen, NULL, ifindex, proto);
+                    src_prefix, src_plen, NULL, ifindex, proto, result);
     if(res < 0)
         res = INFINITY;
     return res;

@@ -1305,7 +1305,7 @@ update_route_metric(struct babel_route *route)
                                       route->src->src_prefix,
                                       route->src->src_plen,
                                       neigh->address,
-                                      neigh->ifp->ifindex);
+                                      neigh->ifp->ifindex, NULL);
         change_route_metric(route, route->refmetric,
                             neighbour_cost(route->neigh), add_metric);
         if(route_metric(route) != oldmetric ||
@@ -1363,6 +1363,7 @@ update_route(const unsigned char *id,
 {
     struct babel_route *route;
     struct source *src;
+    struct filter_result filter_result = {0};
     int metric, feasible;
     int add_metric;
     int hold_time = MAX((4 * interval) / 100 + interval / 50, 15);
@@ -1386,27 +1387,15 @@ update_route(const unsigned char *id,
     if(src_plen != 0 && is_v4 != v4mapped(src_prefix))
         return NULL;
 
-    if(plen < 128 &&
-       ((is_v4 && neigh->ifp->conf->src_plen != 0) ||
-        (!is_v4 && neigh->ifp->conf->src_plen6 != 0))) {
-        enum prefixes_status src_st, dst_st;
-        const unsigned char *ss_prefix;
-        unsigned char ss_plen;
-        if (is_v4) {
-            ss_prefix = neigh->ifp->conf->src_prefix;
-            ss_plen = neigh->ifp->conf->src_plen;
-        } else {
-            ss_prefix = neigh->ifp->conf->src_prefix6;
-            ss_plen = neigh->ifp->conf->src_plen6;
-        }
-        src_st = prefixes_cmp(src_prefix, src_plen, ss_prefix, ss_plen);
-        if (src_st == PST_LESS_SPECIFIC) {
-            dst_st = prefixes_cmp(prefix, plen, ss_prefix, ss_plen);
-            if (!(dst_st & (PST_MORE_SPECIFIC | PST_EQUALS))) {
-                src_prefix = ss_prefix;
-                src_plen = ss_plen;
-            }
-        }
+    add_metric = input_filter(id, prefix, plen, src_prefix, src_plen,
+                              neigh->address, neigh->ifp->ifindex,
+                              &filter_result);
+    if(add_metric >= INFINITY)
+        return NULL;
+
+    if(filter_result.src_prefix) {
+        src_prefix = filter_result.src_prefix;
+        src_plen = filter_result.src_plen;
     }
 
     if(allow_generic_redistribution) {
@@ -1436,12 +1425,6 @@ update_route(const unsigned char *id,
             }
         }
     }
-
-    add_metric = input_filter(id, prefix, plen,
-                              src_prefix, src_plen,
-                              neigh->address, neigh->ifp->ifindex);
-    if(add_metric >= INFINITY)
-        return NULL;
 
     route = find_route(prefix, plen, src_prefix, src_plen, neigh, nexthop);
 

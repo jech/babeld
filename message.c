@@ -1050,7 +1050,7 @@ really_send_update(struct interface *ifp,
                         memcmp(src_prefix, rt->src->src_prefix, 16) < 0)) &&
                    output_filter(rt->src->id, rt->src->prefix, rt->src->plen,
                                  rt->src->src_prefix, rt->src->src_plen,
-                                 rt->neigh->ifp->ifindex) < INFINITY) {
+                                 rt->neigh->ifp->ifindex, NULL) < INFINITY) {
                     has_lowest_metric = 0;
                     break;
                 }
@@ -1059,16 +1059,10 @@ really_send_update(struct interface *ifp,
                 really_send_update(ifp, id, prefix, plen, zeroes, 0, seqno,
                                    metric, channels, channels_len);
         }
-        if((v4 && ifp->conf->src_plen != 0 &&
-            memcmp(ifp->conf->src_prefix, src_prefix, 16) == 0) ||
-           (!v4 && ifp->conf->src_plen6 != 0 &&
-            memcmp(ifp->conf->src_prefix6, src_prefix, 16) == 0)) {
-            return;
-        }
     }
 
     add_metric = output_filter(id, prefix, plen, src_prefix,
-                               src_plen, ifp->ifindex);
+                               src_plen, ifp->ifindex, NULL);
     if(add_metric >= INFINITY)
         return;
 
