@@ -275,14 +275,6 @@ order to avoid rooting loops, all non-source-specific routes will be
 discarded. For example, if a route (d,s) is installed, (d,0) will be announced,
 and (d,0) will be discarded. The default is
 .BR false .
-.TP
-.BR install-specific " {" true | false }
-Make babeld received routes as source-specific in his RIB.  Do not use this
-option unless you know what you are doing, as it can cause persistent routing
-loops.  Especially, this option should be used with
-.BR announce-with-default-source-prefix .
-The default is
-.BR false .
 .SS Interface configuration
 An interface is configured by a line with the following format:
 .IP
@@ -360,6 +352,16 @@ This defines the interval between full routing table dumps sent on this
 interface; since Babel uses triggered updates and doesn't count to
 infinity, this can be set to a fairly large value, unless significant
 packet loss is expected.  The default is four times the hello interval.
+.TP
+.BI source-prefix " prefix"
+Cast non-specific routes received through this interface to specific ones, with
+the given source prefix.  Do not use this option unless you know what you are
+doing, as it can cause persistent routing loops.  Especially, this option should
+be used with
+.BR announce-with-default-source-prefix .
+Routes with
+.I prefix
+as a source-prefix will not be announce through this interface.
 .SS Filtering rules
 A filtering rule is defined by a single line with the following format:
 .IP
