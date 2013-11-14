@@ -1386,8 +1386,9 @@ update_route(const unsigned char *id,
     if(src_plen != 0 && is_v4 != v4mapped(src_prefix))
         return NULL;
 
-    if((is_v4 && neigh->ifp->conf->src_plen != 0) ||
-       (!is_v4 && neigh->ifp->conf->src_plen6 != 0)) {
+    if(plen < 128 &&
+       ((is_v4 && neigh->ifp->conf->src_plen != 0) ||
+        (!is_v4 && neigh->ifp->conf->src_plen6 != 0))) {
         enum prefixes_status src_st, dst_st;
         const unsigned char *ss_prefix;
         unsigned char ss_plen;
