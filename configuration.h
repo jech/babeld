@@ -20,6 +20,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+struct filter_result {
+    unsigned int add_metric; /* allow = 0, deny = INF, metric = <0..INF> */
+    unsigned char *src_prefix;
+    unsigned char src_plen;
+};
+
 struct filter {
     int af;
     char *ifname;
@@ -33,7 +39,7 @@ struct filter {
     unsigned char src_plen_ge, src_plen_le;
     unsigned char *neigh;
     int proto;                  /* May be negative */
-    unsigned int add_metric;
+    struct filter_result action;
     struct filter *next;
 };
 
@@ -46,12 +52,15 @@ void renumber_filters(void);
 int input_filter(const unsigned char *id,
                  const unsigned char *prefix, unsigned short plen,
                  const unsigned char *src_prefix, unsigned short src_plen,
-                 const unsigned char *neigh, unsigned int ifindex);
+                 const unsigned char *neigh, unsigned int ifindex,
+                 struct filter_result *result);
 int output_filter(const unsigned char *id,
                   const unsigned char *prefix, unsigned short plen,
                   const unsigned char *src_prefix, unsigned short src_plen,
-                  unsigned int ifindex);
+                  unsigned int ifindex,
+                  struct filter_result *result);
 int redistribute_filter(const unsigned char *prefix, unsigned short plen,
                     const unsigned char *src_prefix, unsigned short src_plen,
-                    unsigned int ifindex, int proto);
+                    unsigned int ifindex, int proto,
+                    struct filter_result *result);
 int finalise_config(void);

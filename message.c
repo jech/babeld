@@ -1093,7 +1093,7 @@ really_send_update(struct interface *ifp,
         return;
 
     add_metric = output_filter(id, prefix, plen, src_prefix,
-                               src_plen, ifp->ifindex);
+                               src_plen, ifp->ifindex, NULL);
     if(add_metric >= INFINITY)
         return;
 

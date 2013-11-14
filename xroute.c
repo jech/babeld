@@ -169,7 +169,8 @@ check_xroutes(int send_updates)
 {
     int i, j, metric, export, change = 0, rc;
     struct kernel_route *routes;
-    int numroutes;
+    struct filter_result filter_result = {0};
+    int numroutes, numaddresses;
     static int maxroutes = 8;
     const int maxmaxroutes = 16 * 1024;
 
@@ -191,6 +192,8 @@ check_xroutes(int send_updates)
     if(numroutes >= maxroutes)
         goto resize;
 
+    numaddresses = numroutes;
+
     rc = kernel_routes(routes + numroutes, maxroutes - numroutes);
     if(rc < 0)
         fprintf(stderr, "Couldn't get kernel routes.\n");
@@ -200,6 +203,21 @@ check_xroutes(int send_updates)
     if(numroutes >= maxroutes)
         goto resize;
 
+    /* Apply filter to kernel routes (e.g. change the source prefix). */
+
+    for(i = numaddresses; i < numroutes; i++) {
+        filter_result.src_prefix = NULL;
+        redistribute_filter(routes[i].prefix, routes[i].plen,
+                            routes[i].src_prefix, routes[i].src_plen,
+                            routes[i].ifindex, routes[i].proto,
+                            &filter_result);
+        if(filter_result.src_prefix) {
+            memcpy(routes[i].src_prefix, filter_result.src_prefix, 16);
+            routes[i].src_plen = filter_result.src_plen;
+        }
+
+    }
+
     /* Check for any routes that need to be flushed */
 
     i = 0;
@@ -207,7 +225,8 @@ check_xroutes(int send_updates)
         export = 0;
         metric = redistribute_filter(xroutes[i].prefix, xroutes[i].plen,
                                      xroutes[i].src_prefix, xroutes[i].src_plen,
-                                     xroutes[i].ifindex, xroutes[i].proto);
+                                     xroutes[i].ifindex, xroutes[i].proto,
+                                     NULL);
         if(metric < INFINITY && metric == xroutes[i].metric) {
             for(j = 0; j < numroutes; j++) {
                 if(xroutes[i].plen == routes[j].plen &&
@@ -249,7 +268,7 @@ check_xroutes(int send_updates)
             continue;
         metric = redistribute_filter(routes[i].prefix, routes[i].plen,
                                      routes[i].src_prefix, routes[i].src_plen,
-                                     routes[i].ifindex, routes[i].proto);
+                                     routes[i].ifindex, routes[i].proto, NULL);
         if(metric < INFINITY) {
             rc = add_xroute(routes[i].prefix, routes[i].plen,
                             routes[i].src_prefix, routes[i].src_plen,

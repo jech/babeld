@@ -101,10 +101,11 @@ record_resend(int kind, const unsigned char *prefix, unsigned char plen,
         return 0;
 
     if((kind == RESEND_REQUEST &&
-        input_filter(NULL, prefix, plen, NULL, 0, NULL, ifindex) >=
+        input_filter(NULL, prefix, plen, NULL, 0, NULL, ifindex, NULL) >=
         INFINITY) ||
        (kind == RESEND_UPDATE &&
-        output_filter(NULL, prefix, plen, src_prefix, src_plen, ifindex) >=
+        output_filter(NULL, prefix, plen, src_prefix, src_plen,
+                      ifindex, NULL) >=
         INFINITY))
         return 0;
 
