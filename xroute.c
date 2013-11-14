@@ -162,7 +162,7 @@ check_xroutes(int send_updates)
 {
     int i, j, metric, export, change = 0, rc;
     struct kernel_route *routes;
-    int numroutes;
+    int numroutes, numaddresses;
     static int maxroutes = 8;
     const int maxmaxroutes = 16 * 1024;
 
@@ -185,6 +185,8 @@ check_xroutes(int send_updates)
     if(numroutes >= maxroutes)
         goto resize;
 
+    numaddresses = numroutes;
+
     rc = kernel_routes(routes + numroutes, maxroutes - numroutes);
     if(rc < 0)
         fprintf(stderr, "Couldn't get kernel routes.\n");
@@ -196,7 +198,7 @@ check_xroutes(int send_updates)
 
     /* Cast kernel routes to our prefix. */
 
-    for (i = 0; i < numroutes;) {
+    for (i = numaddresses; i < numroutes;) {
         const unsigned char *ss_prefix;
         unsigned char ss_plen;
         enum prefixes_status dst_st;
