@@ -1021,6 +1021,10 @@ really_send_update(struct interface *ifp,
     unsigned short flags = 0;
     int channels_size;
 
+    if(ifp->have_buffered_prefix &&
+       ifp->have_buffered_src_prefix && src_plen != 0) {
+        ifp->have_buffered_prefix = 0;
+    }
     if(diversity_kind != DIVERSITY_CHANNEL)
         channels_len = -1;
 
@@ -1092,6 +1096,8 @@ really_send_update(struct interface *ifp,
         }
     } else {
         if(ifp->have_buffered_prefix) {
+            /* the following assertion is currently false:
+             assert(!ifp->have_buffered_src_prefix || src_plen != 0); */
             while(omit < plen / 8 &&
                   ifp->buffered_prefix[omit] == prefix[omit])
                 omit++;
@@ -1177,6 +1183,11 @@ compare_buffered_updates(const void *av, const void *bv)
 {
     const struct buffered_update *a = av, *b = bv;
     int rc, v4a, v4b, ma, mb;
+
+    if (a->src_plen == 0 && b->src_plen != 0)
+        return -1;
+    if (a->src_plen != 0 && b->src_plen == 0)
+        return 1;
 
     rc = memcmp(a->id, b->id, 8);
     if(rc != 0)
