@@ -46,7 +46,7 @@ On every node, run something like:
 You will find the generate-ipv6-address utility, which can generate random
 IPv6 addresses according to RFC 4193, on
 
-      http://www.pps.jussieu.fr/~jch/software/files/
+      http://www.pps.univ-paris-diderot.fr/~jch/software/files/
 
 
 A note about tunnels and VPNs
@@ -112,6 +112,6 @@ interface addresses) you advertise:
 If you find all of this too complicated and error-prone (as I do), you
 may want to consider autoconfiguring your routing domain using AHCP:
 
-    http://www.pps.jussieu.fr/~jch/software/ahcp/
+    http://www.pps.univ-paris-diderot.fr/~jch/software/ahcp/
 
 -- Juliusz Chroboczek
