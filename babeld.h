@@ -92,6 +92,7 @@ extern int link_detect;
 extern int all_wireless;
 
 extern unsigned char myid[8];
+extern char allow_generic_redistribution;
 
 extern const unsigned char zeroes[16], ones[16];
 

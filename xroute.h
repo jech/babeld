@@ -23,14 +23,20 @@ THE SOFTWARE.
 struct xroute {
     unsigned char prefix[16];
     unsigned char plen;
+    unsigned char src_prefix[16];
+    unsigned char src_plen;
     unsigned short metric;
     unsigned int ifindex;
     int proto;
 };
 
-struct xroute *find_xroute(const unsigned char *prefix, unsigned char plen);
+struct xroute *find_xroute(const unsigned char *prefix, unsigned char plen,
+                const unsigned char *src_prefix, unsigned char src_plen);
+struct xroute *find_next_xroute(const unsigned char *prefix,
+                                unsigned char plen, int *next);
 void flush_xroute(struct xroute *xroute);
 int add_xroute(unsigned char prefix[16], unsigned char plen,
+               unsigned char src_prefix[16], unsigned char src_plen,
                unsigned short metric, unsigned int ifindex, int proto);
 int xroutes_estimate(void);
 void for_all_xroutes(void (*f)(struct xroute*, void*), void *closure);

@@ -176,12 +176,14 @@ local_notify_xroute_1(int s, struct xroute *xroute, int kind)
 {
     char buf[512];
     int rc;
+    const char *dst_prefix = format_prefix(xroute->prefix,
+                                           xroute->plen);
+    const char *src_prefix = format_prefix(xroute->src_prefix,
+                                           xroute->src_plen);
 
-    rc = snprintf(buf, 512, "%s xroute %s prefix %s metric %d\n",
-                  local_kind(kind),
-                  format_prefix(xroute->prefix, xroute->plen),
-                  format_prefix(xroute->prefix, xroute->plen),
-                  xroute->metric);
+    rc = snprintf(buf, 512, "%s xroute %s-%s prefix %s from %s metric %d\n",
+                  local_kind(kind), dst_prefix, src_prefix,
+                  dst_prefix, src_prefix, xroute->metric);
 
     if(rc < 0 || rc >= 512)
         goto fail;
@@ -209,14 +211,17 @@ local_notify_route_1(int s, struct babel_route *route, int kind)
 {
     char buf[512];
     int rc;
+    const char *dst_prefix = format_prefix(route->src->prefix,
+                                           route->src->plen);
+    const char *src_prefix = format_prefix(route->src->src_prefix,
+                                           route->src->src_plen);
 
     rc = snprintf(buf, 512,
-                  "%s route %s-%lx prefix %s installed %s "
+                  "%s route %s-%lx-%s prefix %s from %s installed %s "
                   "id %s metric %d refmetric %d via %s if %s\n",
                   local_kind(kind),
-                  format_prefix(route->src->prefix, route->src->plen),
-                  (unsigned long)route->neigh,
-                  format_prefix(route->src->prefix, route->src->plen),
+                  dst_prefix, (unsigned long)route->neigh, src_prefix,
+                  dst_prefix, src_prefix,
                   route->installed ? "yes" : "no",
                   format_eui64(route->src->id),
                   route_metric(route), route->refmetric,

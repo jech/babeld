@@ -79,6 +79,7 @@ const unsigned char ones[16] =
 
 int protocol_port;
 unsigned char protocol_group[16];
+char allow_generic_redistribution = 0;
 int protocol_socket = -1;
 int kernel_socket = -1;
 static int kernel_routes_changed = 0;
@@ -528,7 +529,7 @@ main(int argc, char **argv)
         send_hello(ifp);
         send_wildcard_retraction(ifp);
         send_self_update(ifp);
-        send_request(ifp, NULL, 0);
+        send_request(ifp, NULL, 0, NULL, 0);
         flushupdates(ifp);
         flushbuf(ifp);
     }
@@ -702,7 +703,7 @@ main(int argc, char **argv)
             if(timeval_compare(&now, &ifp->hello_timeout) >= 0)
                 send_hello(ifp);
             if(timeval_compare(&now, &ifp->update_timeout) >= 0)
-                send_update(ifp, 0, NULL, 0);
+                send_update(ifp, 0, NULL, 0, NULL, 0);
             if(timeval_compare(&now, &ifp->update_flush_timeout) >= 0)
                 flushupdates(ifp);
         }
@@ -1017,9 +1018,10 @@ dump_route_callback(struct babel_route *route, void *closure)
             channels[0] = '\0';
     }
 
-    fprintf(out, "%s metric %d (%d) refmetric %d id %s seqno %d%s age %d "
+    fprintf(out, "%s from %s metric %d (%d) refmetric %d id %s seqno %d%s age %d "
             "via %s neigh %s%s%s%s\n",
             format_prefix(route->src->prefix, route->src->plen),
+            format_prefix(route->src->src_prefix, route->src->src_plen),
             route_metric(route), route_smoothed_metric(route), route->refmetric,
             format_eui64(route->src->id),
             (int)route->seqno,
@@ -1037,8 +1039,9 @@ static void
 dump_xroute_callback(struct xroute *xroute, void *closure)
 {
     FILE *out = (FILE*)closure;
-    fprintf(out, "%s metric %d (exported)\n",
+    fprintf(out, "%s from %s metric %d (exported)\n",
             format_prefix(xroute->prefix, xroute->plen),
+            format_prefix(xroute->src_prefix, xroute->src_plen),
             xroute->metric);
 }
 

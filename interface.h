@@ -23,8 +23,10 @@ THE SOFTWARE.
 struct buffered_update {
     unsigned char id[8];
     unsigned char prefix[16];
+    unsigned char src_prefix[16];
     unsigned char plen;
-    unsigned char pad[3];
+    unsigned char src_plen; /* 0 <=> no src prefix */
+    unsigned char pad[2];
 };
 
 struct interface_conf {
@@ -76,9 +78,11 @@ struct interface {
     char have_buffered_id;
     char have_buffered_nh;
     char have_buffered_prefix;
+    char have_buffered_src_prefix;
     unsigned char buffered_id[16];
     unsigned char buffered_nh[4];
     unsigned char buffered_prefix[16];
+    unsigned char buffered_src_prefix[16];
     unsigned char *sendbuf;
     struct buffered_update *buffered_updates;
     int num_buffered_updates;

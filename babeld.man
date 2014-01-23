@@ -252,6 +252,29 @@ This specifies the name of the file to which
 .B babeld
 writes out its process id, and is equivalent to the command-line option
 .BR \-I .
+.TP
+.BI source-prefix " prefix"
+Specify the v4 or v6 source prefix of the host.  If a kernel route is not in
+that prefix, it will be redistributed in babeld with this source prefix.
+.TP
+.BI first-table-number " table"
+Set the index of the first table to use.  It is useful if the kernel uses
+multiple routing tables for source-specific rules implementation.  It must be
+small einough to handle all tables. By default,
+.B babeld
+uses 10 tables.
+.TP
+.BI first-rule-priority " priority"
+Set the first table's rule priority to use. It must be small einough to handle
+all priorities. See
+.BR first-table-number .
+.TP
+.BR announce-with-default-source-prefix " {" true | false }
+With that option, babeld will re-announce all routes as not source-specific. In
+order to avoid rooting loops, all non-source-specific routes will be
+discarded. For example, if a route (d,s) is installed, (d,0) will be announced,
+and (d,0) will be discarded. The default is
+.BR false .
 .SS Interface configuration
 An interface is configured by a line with the following format:
 .IP
@@ -363,6 +386,22 @@ This entry only applies to routes with a prefix length less or equal to
 This entry only applies to routes with a prefix length greater or equal to
 .BR plen .
 .TP
+.BI src-ip " prefix"
+This entry only applies to routes in the given source prefix.
+.TP
+.BI src-eq " plen"
+This entry only applies to routes with a source prefix length equal to
+.BR plen .
+.TP
+.BI src-le " plen"
+This entry only applies to routes with a source prefix length less or equal to
+.BR plen .
+.TP
+.BI src-ge " plen"
+This entry only applies to routes with a source prefix length greater or equal
+to
+.BR plen .
+.TP
 .BI neigh " address"
 This entry only applies to routes learned from a neighbour with
 link-local address
@@ -407,6 +446,17 @@ For an input or output filter, allow this route after increasing its metric by
 .IR value .
 For a redistribute filter, redistribute this route with metric
 .IR value .
+.TP
+.BI src-prefix " prefix"
+For an input or redistribute filter, allow this route changing his source prefix
+by
+.IR prefix .
+Do not use this option for input filter unless you know what you are doing, as
+it can cause persistent routing loops.  This option should be use to
+redistribute routes with a specified source prefix, and can be used to accept
+incomming routes from given interfaces with a specified source prefix.  In this
+later case, it's important to add an output filter through these interfaces in
+order to prevent the export of the specific route.
 .PP
 If
 .I action
@@ -449,6 +499,31 @@ or, if you want to constrain the routes that you redistribute,
     \-C 'redistribute proto 11 ip ::/0 le 64 metric 256' \\
     \-C 'redistribute proto 11 ip 0.0.0.0/0 le 24 metric 256' \\
     wlan0
+.SS Source-specific routing
+.PP
+If your want to redistribute kernel routes as source-specific to the network,
+with the 2001:DB8:0:1::/64 prefix:
+.IP
+redistribute src-prefix 2001:DB8:0:1::/64
+.PP
+For compatibility with non-source-specific babeld, you may want to redistribute
+all your routing table as non-source-specific (see the options details for
+explanation).  In that case, use:
+.IP
+announce-with-default-source-prefix true
+.PP
+If you receive non-specific routes from another babeld on interface eth0, and
+you want to have them as source-specific, you can use input filter (2).
+However, be worry to not send specific updates through that same interface: this
+could make persistant routing loops (3).  Also note that addresses (/128) should
+be accepted wihout source-prefix (1).  This option is not safe, so be worry when
+using it.
+.IP
+in if eth0 ip ::/0 ge 128 allow                            (1)
+.br
+in if eth0 src-prefix 2001:DB8:0:2::/64                    (2)
+.br
+out if eth0 src-ip 2001:DB8:0:2::/64 src-eq 64 deny        (3)
 .SH FILES
 .TP
 .B /etc/babeld.conf
