@@ -25,6 +25,7 @@ THE SOFTWARE.
 #include <stdio.h>
 #include <sys/time.h>
 #include <time.h>
+#include <assert.h>
 
 #include "babeld.h"
 #include "util.h"
@@ -309,8 +310,12 @@ neighbour_rttcost(struct neighbour *neigh)
     if(neigh->rtt <= ifp->rtt_min) {
         return 0;
     } else if(neigh->rtt <= ifp->rtt_max) {
-        return (ifp->max_rtt_penalty * (neigh->rtt - ifp->rtt_min) /
-                (ifp->rtt_max - ifp->rtt_min));
+        unsigned long long tmp =
+            (unsigned long long)ifp->max_rtt_penalty *
+            (neigh->rtt - ifp->rtt_min) /
+            (ifp->rtt_max - ifp->rtt_min);
+        assert((tmp & 0x7FFFFFFF) == tmp);
+        return tmp;
     } else {
         return ifp->max_rtt_penalty;
     }
