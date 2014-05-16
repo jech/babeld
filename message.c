@@ -663,13 +663,21 @@ static int
 fill_rtt_message(struct interface *ifp)
 {
     if(ifp->enable_timestamps && (ifp->buffered_hello >= 0)) {
-        unsigned int time;
-        /* Change the type of sub-TLV. */
-        ifp->sendbuf[ifp->buffered_hello + 8] = SUBTLV_TIMESTAMP;
-        gettime(&now);
-        time = time_us(now);
-        DO_HTONL(ifp->sendbuf + ifp->buffered_hello + 10, time);
-        return 1;
+        if(ifp->sendbuf[ifp->buffered_hello + 8] == SUBTLV_PADN &&
+           ifp->sendbuf[ifp->buffered_hello + 9] == 4) {
+            unsigned int time;
+            /* Change the type of sub-TLV. */
+            ifp->sendbuf[ifp->buffered_hello + 8] = SUBTLV_TIMESTAMP;
+            gettime(&now);
+            time = time_us(now);
+            DO_HTONL(ifp->sendbuf + ifp->buffered_hello + 10, time);
+            return 1;
+        } else {
+            fprintf(stderr,
+                    "No space left for timestamp sub-TLV "
+                    "(this shouldn't happen)\n");
+            return -1;
+        }
     }
     return 0;
 }
