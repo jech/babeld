@@ -293,6 +293,9 @@ interface_up(struct interface *ifp, int up)
         if(IF_CONF(ifp, faraway) == CONFIG_YES)
             ifp->flags |= IF_FARAWAY;
 
+        if(IF_CONF(ifp, enable_timestamps) == CONFIG_YES)
+            ifp->enable_timestamps = 1;
+
         if(IF_CONF(ifp, hello_interval) > 0)
             ifp->hello_interval = IF_CONF(ifp, hello_interval);
         else if((ifp->flags & IF_WIRED))
@@ -304,9 +307,6 @@ interface_up(struct interface *ifp, int up)
             IF_CONF(ifp, update_interval) > 0 ?
             IF_CONF(ifp, update_interval) :
            ifp->hello_interval * 4;
-
-        ifp->enable_timestamps =
-            (IF_CONF(ifp, enable_timestamps) == CONFIG_NO) ? 0 : 1;
 
         ifp->rtt_exponential_decay =
             IF_CONF(ifp, rtt_exponential_decay) > 0 ?
