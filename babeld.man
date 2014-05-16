@@ -329,6 +329,40 @@ This defines the interval between full routing table dumps sent on this
 interface; since Babel uses triggered updates and doesn't count to
 infinity, this can be set to a fairly large value, unless significant
 packet loss is expected.  The default is four times the hello interval.
+.TP
+.BR enable\-timestamps " {" true | false }
+Enable sending timestamps with each Hello and IHU message in order to
+compute RTT values.  The default is
+.BR false .
+.TP
+.BI rtt\-exponential\-decay " decay"
+This specifies the decay factor for the exponential moving average of
+RTT samples, in units of 1/256.  Must be between 1 and 256, inclusive.
+Higher values discard old samples faster.  The default is
+.BR 42 .
+.TP
+.BI rtt\-min " rtt"
+This specifies the minimum RTT, in milliseconds, starting from which
+we increase the cost to a neighbour. The additional cost is linear in
+(rtt -
+.BR rtt\-min ).
+The default is
+.B 10
+ms.
+.TP
+.BI rtt\-max " rtt"
+This specifies the maximum RTT, in milliseconds, above which we don't
+increase the cost to a neighbour. The default is
+.B 120
+ms.
+.TP
+.BI max\-rtt\-penalty " cost"
+This specifies the maximum cost added to a neighbour because of RTT,
+i.e. when the RTT is higher or equal than
+.BR rtt\-max .
+The default is
+.BR 0 ,
+which effectively disables the use of a RTT-based cost.
 .SS Filtering rules
 A filtering rule is defined by a single line with the following format:
 .IP

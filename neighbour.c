@@ -25,6 +25,7 @@ THE SOFTWARE.
 #include <stdio.h>
 #include <sys/time.h>
 #include <time.h>
+#include <assert.h>
 
 #include "babeld.h"
 #include "util.h"
@@ -97,6 +98,10 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
     neigh->hello_time = zero;
     neigh->hello_interval = 0;
     neigh->ihu_interval = 0;
+    neigh->hello_send_us = 0;
+    neigh->hello_rtt_receive_time = zero;
+    neigh->rtt = 0;
+    neigh->rtt_time = zero;
     neigh->ifp = ifp;
     neigh->next = neighs;
     neighs = neigh;
@@ -294,9 +299,32 @@ neighbour_rxcost(struct neighbour *neigh)
 }
 
 unsigned
+neighbour_rttcost(struct neighbour *neigh)
+{
+    struct interface *ifp = neigh->ifp;
+
+    if(!ifp->max_rtt_penalty || !valid_rtt(neigh))
+        return 0;
+
+    /* Function: linear behaviour between rtt_min and rtt_max. */
+    if(neigh->rtt <= ifp->rtt_min) {
+        return 0;
+    } else if(neigh->rtt <= ifp->rtt_max) {
+        unsigned long long tmp =
+            (unsigned long long)ifp->max_rtt_penalty *
+            (neigh->rtt - ifp->rtt_min) /
+            (ifp->rtt_max - ifp->rtt_min);
+        assert((tmp & 0x7FFFFFFF) == tmp);
+        return tmp;
+    } else {
+        return ifp->max_rtt_penalty;
+    }
+}
+
+unsigned
 neighbour_cost(struct neighbour *neigh)
 {
-    unsigned a, b;
+    unsigned a, b, cost;
 
     if(!if_up(neigh->ifp))
         return INFINITY;
@@ -311,7 +339,7 @@ neighbour_cost(struct neighbour *neigh)
         return INFINITY;
 
     if(!(neigh->ifp->flags & IF_LQ) || (a < 256 && b < 256)) {
-        return a;
+        cost = a;
     } else {
         /* a = 256/alpha, b = 256/beta, where alpha and beta are the expected
            probabilities of a packet getting through in the direct and reverse
@@ -320,6 +348,16 @@ neighbour_cost(struct neighbour *neigh)
         b = MAX(b, 256);
         /* 1/(alpha * beta), which is just plain ETX. */
         /* Since a and b are capped to 16 bits, overflow is impossible. */
-        return MIN((a * b + 128) >> 8, INFINITY);
+        cost = (a * b + 128) >> 8;
     }
+
+    cost += neighbour_rttcost(neigh);
+
+    return MIN(cost, INFINITY);
+}
+
+int
+valid_rtt(struct neighbour *neigh)
+{
+    return (timeval_minus_msec(&now, &neigh->rtt_time) < 180000) ? 1 : 0;
 }

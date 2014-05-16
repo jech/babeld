@@ -152,8 +152,10 @@ parse_nat(const char *string)
     return (int)l;
 }
 
+/* Given a fixed-point string such as "42.1337", returns 1000 times
+   the value of the string, here 42133. */
 int
-parse_msec(const char *string)
+parse_thousands(const char *string)
 {
     unsigned int in, fl;
     int i, j;
@@ -290,6 +292,16 @@ format_eui64(const unsigned char *eui)
     snprintf(buf[i], 28, "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
              eui[0], eui[1], eui[2], eui[3],
              eui[4], eui[5], eui[6], eui[7]);
+    return buf[i];
+}
+
+const char *
+format_thousands(unsigned int value)
+{
+    static char buf[4][15];
+    static int i = 0;
+    i = (i + 1) % 4;
+    snprintf(buf[i], 15, "%d.%.3d", value / 1000, value % 1000);
     return buf[i];
 }
 

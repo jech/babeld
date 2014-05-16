@@ -37,6 +37,11 @@ struct interface_conf {
     char lq;
     char faraway;
     int channel;
+    int enable_timestamps;
+    unsigned int rtt_exponential_decay;
+    unsigned int rtt_min;
+    unsigned int rtt_max;
+    unsigned int max_rtt_penalty;
     struct interface_conf *next;
 };
 
@@ -72,7 +77,9 @@ struct interface {
     unsigned char (*ll)[16];
     int buffered;
     int bufsize;
-    char have_buffered_hello;
+    /* Relative position of the Hello message in the send buffer, or
+       (-1) if there is none. */
+    int buffered_hello;
     char have_buffered_id;
     char have_buffered_nh;
     char have_buffered_prefix;
@@ -89,6 +96,14 @@ struct interface {
     unsigned short hello_seqno;
     unsigned hello_interval;
     unsigned update_interval;
+    int enable_timestamps;
+    /* A higher value means we forget old RTT samples faster. Must be
+       between 1 and 256, inclusive. */
+    unsigned int rtt_exponential_decay;
+    /* Parameters for computing the cost associated to RTT. */
+    unsigned int rtt_min;
+    unsigned int rtt_max;
+    unsigned int max_rtt_penalty;
 };
 
 #define IF_CONF(_ifp, _field) \

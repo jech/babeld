@@ -167,6 +167,93 @@ parse_route_attributes(const unsigned char *a, int alen,
 }
 
 static int
+parse_hello_subtlv(const unsigned char *a, int alen, struct neighbour *neigh)
+{
+    int type, len, i = 0, ret = 0;
+
+    while(i < alen) {
+        type = a[0];
+        if(type == SUBTLV_PAD1) {
+            i++;
+            continue;
+        }
+
+        if(i + 1 > alen) {
+            fprintf(stderr, "Received truncated sub-TLV on Hello message.\n");
+            return -1;
+        }
+        len = a[i + 1];
+        if(i + len > alen) {
+            fprintf(stderr, "Received truncated sub-TLV on Hello message.\n");
+            return -1;
+        }
+
+        if(type == SUBTLV_PADN) {
+            /* Nothing to do. */
+        } else if(type == SUBTLV_TIMESTAMP) {
+            if(len >= 4) {
+                DO_NTOHL(neigh->hello_send_us, a + i + 2);
+                neigh->hello_rtt_receive_time = now;
+                ret = 1;
+            } else {
+                fprintf(stderr,
+                        "Received incorrect RTT sub-TLV on Hello message.\n");
+            }
+        } else {
+            fprintf(stderr, "Received unknown Hello sub-TLV type %d.\n", type);
+        }
+
+        i += len + 2;
+    }
+    return ret;
+}
+
+static int
+parse_ihu_subtlv(const unsigned char *a, int alen,
+                 unsigned int *hello_send_us,
+                 unsigned int *hello_rtt_receive_time)
+{
+    int type, len, i = 0, ret = 0;
+
+    while(i < alen) {
+        type = a[0];
+        if(type == SUBTLV_PAD1) {
+            i++;
+            continue;
+        }
+
+        if(i + 1 > alen) {
+            fprintf(stderr, "Received truncated sub-TLV on IHU message.\n");
+            return -1;
+        }
+        len = a[i + 1];
+        if(i + len > alen) {
+            fprintf(stderr, "Received truncated sub-TLV on IHU message.\n");
+            return -1;
+        }
+
+        if(type == SUBTLV_PADN) {
+            /* Nothing to do. */
+        } else if(type == SUBTLV_TIMESTAMP) {
+            if(len >= 8) {
+                DO_NTOHL(*hello_send_us, a + i + 2);
+                DO_NTOHL(*hello_rtt_receive_time, a + i + 6);
+                ret = 1;
+            }
+            else {
+                fprintf(stderr,
+                        "Received incorrect RTT sub-TLV on IHU message.\n");
+            }
+        } else {
+            fprintf(stderr, "Received unknown IHU sub-TLV type %d.\n", type);
+        }
+
+        i += len + 2;
+    }
+    return ret;
+}
+
+static int
 network_address(int ae, const unsigned char *a, unsigned int len,
                 unsigned char *a_r)
 {
@@ -193,6 +280,14 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         have_v4_nh = 0, have_v6_nh = 0;
     unsigned char router_id[8], v4_prefix[16], v6_prefix[16],
         v4_nh[16], v6_nh[16];
+    int have_hello_rtt = 0;
+    /* Content of the RTT sub-TLV on IHU messages. */
+    unsigned int hello_send_us = 0, hello_rtt_receive_time = 0;
+
+    if(ifp->enable_timestamps) {
+        /* We want to track exactly when we received this packet. */
+        gettime(&now);
+    }
 
     if(!linklocal(from)) {
         fprintf(stderr, "Received packet from non-local address %s.\n",
@@ -276,6 +371,11 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             if(interval > 0)
                 /* Multiply by 3/2 to allow hellos to expire. */
                 schedule_neighbours_check(interval * 15, 0);
+            /* Sub-TLV handling. */
+            if(len > 8) {
+                if(parse_hello_subtlv(message + 8, len - 6, neigh) > 0)
+                    have_hello_rtt = 1;
+            }
         } else if(type == MESSAGE_IHU) {
             unsigned short txcost, interval;
             unsigned char address[16];
@@ -298,6 +398,10 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 if(interval > 0)
                     /* Multiply by 3/2 to allow neighbours to expire. */
                     schedule_neighbours_check(interval * 45, 0);
+                /* RTT sub-TLV. */
+                if(len > 10 + rc)
+                    parse_ihu_subtlv(message + 8 + rc, len - 6 - rc,
+                                     &hello_send_us, &hello_rtt_receive_time);
             }
         } else if(type == MESSAGE_ROUTER_ID) {
             if(len < 10) {
@@ -491,6 +595,44 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 message[0], message[1], format_address(from), ifp->name);
         goto done;
     }
+
+    /* We can calculate the RTT to this neighbour. */
+    if(have_hello_rtt && hello_send_us && hello_rtt_receive_time) {
+        int remote_waiting_us, local_waiting_us;
+        unsigned int rtt, smoothed_rtt;
+        unsigned int old_rttcost;
+        int changed = 0;
+        remote_waiting_us = neigh->hello_send_us - hello_rtt_receive_time;
+        local_waiting_us = time_us(neigh->hello_rtt_receive_time) -
+            hello_send_us;
+
+        /* Sanity checks (validity window of 10 minutes). */
+        if(remote_waiting_us < 0 || local_waiting_us < 0 ||
+           remote_waiting_us > 600000000 || local_waiting_us > 600000000)
+            return;
+
+        rtt = MAX(0, local_waiting_us - remote_waiting_us);
+        debugf("RTT to %s on %s sample result: %d us.\n",
+               format_address(from), ifp->name, rtt);
+
+        old_rttcost = neighbour_rttcost(neigh);
+        if (valid_rtt(neigh)) {
+            /* Running exponential average. */
+            smoothed_rtt = (ifp->rtt_exponential_decay * rtt
+                            + (256 - ifp->rtt_exponential_decay) * neigh->rtt);
+            /* Rounding (up or down) to get closer to the sample. */
+            neigh->rtt = (neigh->rtt >= rtt) ? smoothed_rtt / 256 :
+                (smoothed_rtt + 255) / 256;
+        } else {
+            /* We prefer to be conservative with new neighbours
+               (higher RTT) */
+            assert(rtt <= 0x7FFFFFFF);
+            neigh->rtt = 2*rtt;
+        }
+        changed = (neighbour_rttcost(neigh) == old_rttcost ? 0 : 1);
+        update_neighbour_metric(neigh, changed);
+        neigh->rtt_time = now;
+    }
     return;
 }
 
@@ -519,6 +661,29 @@ check_bucket(struct interface *ifp)
     }
 }
 
+static int
+fill_rtt_message(struct interface *ifp)
+{
+    if(ifp->enable_timestamps && (ifp->buffered_hello >= 0)) {
+        if(ifp->sendbuf[ifp->buffered_hello + 8] == SUBTLV_PADN &&
+           ifp->sendbuf[ifp->buffered_hello + 9] == 4) {
+            unsigned int time;
+            /* Change the type of sub-TLV. */
+            ifp->sendbuf[ifp->buffered_hello + 8] = SUBTLV_TIMESTAMP;
+            gettime(&now);
+            time = time_us(now);
+            DO_HTONL(ifp->sendbuf + ifp->buffered_hello + 10, time);
+            return 1;
+        } else {
+            fprintf(stderr,
+                    "No space left for timestamp sub-TLV "
+                    "(this shouldn't happen)\n");
+            return -1;
+        }
+    }
+    return 0;
+}
+
 void
 flushbuf(struct interface *ifp)
 {
@@ -539,6 +704,7 @@ flushbuf(struct interface *ifp)
             sin6.sin6_port = htons(protocol_port);
             sin6.sin6_scope_id = ifp->ifindex;
             DO_HTONS(packet_header + 2, ifp->buffered);
+            fill_rtt_message(ifp);
             rc = babel_send(protocol_socket,
                             packet_header, sizeof(packet_header),
                             ifp->sendbuf, ifp->buffered,
@@ -552,7 +718,7 @@ flushbuf(struct interface *ifp)
     }
     VALGRIND_MAKE_MEM_UNDEFINED(ifp->sendbuf, ifp->bufsize);
     ifp->buffered = 0;
-    ifp->have_buffered_hello = 0;
+    ifp->buffered_hello = -1;
     ifp->have_buffered_id = 0;
     ifp->have_buffered_nh = 0;
     ifp->have_buffered_prefix = 0;
@@ -633,6 +799,13 @@ accumulate_short(struct interface *ifp, unsigned short value)
 }
 
 static void
+accumulate_int(struct interface *ifp, unsigned int value)
+{
+    DO_HTONL(ifp->sendbuf + ifp->buffered, value);
+    ifp->buffered += 4;
+}
+
+static void
 accumulate_bytes(struct interface *ifp,
                  const unsigned char *value, unsigned len)
 {
@@ -686,6 +859,13 @@ accumulate_unicast_short(struct neighbour *neigh, unsigned short value)
 }
 
 static void
+accumulate_unicast_int(struct neighbour *neigh, unsigned int value)
+{
+    DO_HTONL(unicast_buffer + unicast_buffered, value);
+    unicast_buffered += 4;
+}
+
+static void
 accumulate_unicast_bytes(struct neighbour *neigh,
                          const unsigned char *value, unsigned len)
 {
@@ -711,7 +891,7 @@ send_hello_noupdate(struct interface *ifp, unsigned interval)
 {
     /* This avoids sending multiple hellos in a single packet, which breaks
        link quality estimation. */
-    if(ifp->have_buffered_hello)
+    if(ifp->buffered_hello >= 0)
         flushbuf(ifp);
 
     ifp->hello_seqno = seqno_plus(ifp->hello_seqno, 1);
@@ -723,12 +903,19 @@ send_hello_noupdate(struct interface *ifp, unsigned interval)
     debugf("Sending hello %d (%d) to %s.\n",
            ifp->hello_seqno, interval, ifp->name);
 
-    start_message(ifp, MESSAGE_HELLO, 6);
+    start_message(ifp, MESSAGE_HELLO, ifp->enable_timestamps ? 12 : 6);
+    ifp->buffered_hello = ifp->buffered - 2;
     accumulate_short(ifp, 0);
     accumulate_short(ifp, ifp->hello_seqno);
     accumulate_short(ifp, interval > 0xFFFF ? 0xFFFF : interval);
-    end_message(ifp, MESSAGE_HELLO, 6);
-    ifp->have_buffered_hello = 1;
+    if(ifp->enable_timestamps) {
+        /* Sub-TLV containing the local time of emission. We use a
+           Pad4 sub-TLV, which we'll fill just before sending. */
+        accumulate_byte(ifp, SUBTLV_PADN);
+        accumulate_byte(ifp, 4);
+        accumulate_int(ifp, 0);
+    }
+    end_message(ifp, MESSAGE_HELLO, ifp->enable_timestamps ? 12 : 6);
 }
 
 void
@@ -764,6 +951,7 @@ flush_unicast(int dofree)
         sin6.sin6_port = htons(protocol_port);
         sin6.sin6_scope_id = unicast_neighbour->ifp->ifindex;
         DO_HTONS(packet_header + 2, unicast_buffered);
+        fill_rtt_message(unicast_neighbour->ifp);
         rc = babel_send(protocol_socket,
                         packet_header, sizeof(packet_header),
                         unicast_buffer, unicast_buffered,
@@ -1206,6 +1394,8 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
 {
     int rxcost, interval;
     int ll;
+    int send_rtt_data;
+    int msglen;
 
     if(neigh == NULL && ifp == NULL) {
         struct interface *ifp_aux;
@@ -1249,8 +1439,21 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
 
     ll = linklocal(neigh->address);
 
+    if(ifp->enable_timestamps && neigh->hello_send_us
+       /* Checks whether the RTT data is not too old to be sent. */
+       && timeval_minus_msec(&now, &neigh->hello_rtt_receive_time) < 1000000) {
+        send_rtt_data = 1;
+    } else {
+        neigh->hello_send_us = 0;
+        send_rtt_data = 0;
+    }
+
+    /* The length depends on the format of the address, and then an
+       optional 10-bytes sub-TLV for timestamps (used to compute a RTT). */
+    msglen = (ll ? 14 : 22) + (send_rtt_data ? 10 : 0);
+
     if(unicast_neighbour != neigh) {
-        start_message(ifp, MESSAGE_IHU, ll ? 14 : 22);
+        start_message(ifp, MESSAGE_IHU, msglen);
         accumulate_byte(ifp, ll ? 3 : 2);
         accumulate_byte(ifp, 0);
         accumulate_short(ifp, rxcost);
@@ -1259,10 +1462,16 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
             accumulate_bytes(ifp, neigh->address + 8, 8);
         else
             accumulate_bytes(ifp, neigh->address, 16);
-        end_message(ifp, MESSAGE_IHU, ll ? 14 : 22);
+        if (send_rtt_data) {
+            accumulate_byte(ifp, SUBTLV_TIMESTAMP);
+            accumulate_byte(ifp, 8);
+            accumulate_int(ifp, neigh->hello_send_us);
+            accumulate_int(ifp, time_us(neigh->hello_rtt_receive_time));
+        }
+        end_message(ifp, MESSAGE_IHU, msglen);
     } else {
         int rc;
-        rc = start_unicast_message(neigh, MESSAGE_IHU, ll ? 14 : 22);
+        rc = start_unicast_message(neigh, MESSAGE_IHU, msglen);
         if(rc < 0) return;
         accumulate_unicast_byte(neigh, ll ? 3 : 2);
         accumulate_unicast_byte(neigh, 0);
@@ -1272,7 +1481,14 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
             accumulate_unicast_bytes(neigh, neigh->address + 8, 8);
         else
             accumulate_unicast_bytes(neigh, neigh->address, 16);
-        end_unicast_message(neigh, MESSAGE_IHU, ll ? 14 : 22);
+        if (send_rtt_data) {
+            accumulate_unicast_byte(neigh, SUBTLV_TIMESTAMP);
+            accumulate_unicast_byte(neigh, 8);
+            accumulate_unicast_int(neigh, neigh->hello_send_us);
+            accumulate_unicast_int(neigh,
+                                   time_us(neigh->hello_rtt_receive_time));
+        }
+        end_unicast_message(neigh, MESSAGE_IHU, msglen);
     }
 }
 
