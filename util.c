@@ -298,10 +298,10 @@ format_eui64(const unsigned char *eui)
 const char *
 format_thousands(unsigned int value)
 {
-    static char buf[4][30];
+    static char buf[4][15];
     static int i = 0;
     i = (i + 1) % 4;
-    snprintf(buf[i], 30, "%d.%.3d", value / 1000, value % 1000);
+    snprintf(buf[i], 15, "%d.%.3d", value / 1000, value % 1000);
     return buf[i];
 }
 
