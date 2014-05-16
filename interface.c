@@ -294,7 +294,7 @@ interface_up(struct interface *ifp, int up)
             ifp->flags |= IF_FARAWAY;
 
         if(IF_CONF(ifp, enable_timestamps) == CONFIG_YES)
-            ifp->enable_timestamps = 1;
+            ifp->flags |= IF_TIMESTAMPS;
 
         if(IF_CONF(ifp, hello_interval) > 0)
             ifp->hello_interval = IF_CONF(ifp, hello_interval);

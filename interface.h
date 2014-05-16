@@ -54,6 +54,7 @@ struct interface_conf {
 #define IF_SPLIT_HORIZON (1 << 2)
 #define IF_LQ (1 << 3)
 #define IF_FARAWAY (1 << 4)
+#define IF_TIMESTAMPS (1 << 5)
 
 /* Only INTERFERING can appear on the wire. */
 #define IF_CHANNEL_UNKNOWN 0
@@ -96,7 +97,6 @@ struct interface {
     unsigned short hello_seqno;
     unsigned hello_interval;
     unsigned update_interval;
-    int enable_timestamps;
     /* A higher value means we forget old RTT samples faster. Must be
        between 1 and 256, inclusive. */
     unsigned int rtt_exponential_decay;
