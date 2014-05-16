@@ -284,8 +284,10 @@ parse_packet(const unsigned char *from, struct interface *ifp,
     /* Content of the RTT sub-TLV on IHU messages. */
     unsigned int hello_send_us = 0, hello_rtt_receive_time = 0;
 
-    /* We want to track exactly when we received this packet. */
-    gettime(&now);
+    if(ifp->enable_timestamps) {
+        /* We want to track exactly when we received this packet. */
+        gettime(&now);
+    }
 
     if(!linklocal(from)) {
         fprintf(stderr, "Received packet from non-local address %s.\n",
