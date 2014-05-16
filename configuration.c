@@ -574,6 +574,7 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(lq);
     MERGE(faraway);
     MERGE(channel);
+    MERGE(enable_timestamps);
     MERGE(rtt_exponential_decay);
     MERGE(rtt_min);
     MERGE(rtt_max);
