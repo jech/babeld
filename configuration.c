@@ -683,7 +683,7 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
     } else if(strcmp(token, "debug") == 0) {
         int d;
         c = getint(c, &d, gnc, closure);
-        if(d < 0)
+        if(c < -1 || d < 0)
             goto error;
         debug = d;
     } else if(strcmp(token, "diversity") == 0) {
