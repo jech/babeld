@@ -293,9 +293,6 @@ interface_up(struct interface *ifp, int up)
         if(IF_CONF(ifp, faraway) == CONFIG_YES)
             ifp->flags |= IF_FARAWAY;
 
-        if(IF_CONF(ifp, enable_timestamps) == CONFIG_YES)
-            ifp->flags |= IF_TIMESTAMPS;
-
         if(IF_CONF(ifp, hello_interval) > 0)
             ifp->hello_interval = IF_CONF(ifp, hello_interval);
         else if((ifp->flags & IF_WIRED))
@@ -326,6 +323,11 @@ interface_up(struct interface *ifp, int up)
             ifp->rtt_max = ifp->rtt_min + 10000;
         }
         ifp->max_rtt_penalty = IF_CONF(ifp, max_rtt_penalty);
+
+        if(IF_CONF(ifp, enable_timestamps) == CONFIG_YES ||
+           (IF_CONF(ifp, enable_timestamps) == CONFIG_DEFAULT &&
+            ifp->max_rtt_penalty > 0))
+            ifp->flags |= IF_TIMESTAMPS;
 
         if(ifp->ll)
             free(ifp->ll);

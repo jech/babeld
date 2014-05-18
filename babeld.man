@@ -333,7 +333,12 @@ packet loss is expected.  The default is four times the hello interval.
 .BR enable\-timestamps " {" true | false }
 Enable sending timestamps with each Hello and IHU message in order to
 compute RTT values.  The default is
-.BR false .
+.B true
+if
+.B max\-rtt\-penalty
+is non-zero (see below), and
+.B false
+otherwise.
 .TP
 .BI rtt\-exponential\-decay " decay"
 This specifies the decay factor for the exponential moving average of
