@@ -342,9 +342,9 @@ otherwise.
 .TP
 .BI rtt\-exponential\-decay " decay"
 This specifies the decay factor for the exponential moving average of
-RTT samples, in units of 1/256.  Must be between 1 and 256, inclusive.
-Higher values discard old samples faster.  The default is
-.BR 42 .
+RTT samples, in units of 1/256.  Must be between 0 and 255, inclusive.
+Lower values discard old samples faster.  The default is
+.BR 214 .
 .TP
 .BI rtt\-min " rtt"
 This specifies the minimum RTT, in milliseconds, starting from which
