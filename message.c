@@ -120,8 +120,8 @@ network_prefix(int ae, int plen, unsigned int omitted,
 }
 
 static void
-parse_route_attributes(const unsigned char *a, int alen,
-                       unsigned char *channels)
+parse_update_subtlv(const unsigned char *a, int alen,
+                    unsigned char *channels)
 {
     int type, len, i = 0;
 
@@ -522,7 +522,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             if((ifp->flags & IF_FARAWAY)) {
                 channels[0] = 0;
             } else {
-                /* This will be overwritten by parse_route_attributes below. */
+                /* This will be overwritten by parse_update_subtlv below. */
                 if(metric < 256) {
                     /* Assume non-interfering (wired) link. */
                     channels[0] = 0;
@@ -533,8 +533,8 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 }
 
                 if(parsed_len < len)
-                    parse_route_attributes(message + 2 + parsed_len,
-                                           len - parsed_len, channels);
+                    parse_update_subtlv(message + 2 + parsed_len,
+                                        len - parsed_len, channels);
             }
 
             update_route(router_id, prefix, plen, seqno, metric, interval,
