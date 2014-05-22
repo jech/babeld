@@ -470,12 +470,12 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if(c < -1)
                 goto error;
             if_conf->enable_timestamps = v;
-        } else if(strcmp(token, "rtt-exponential-decay") == 0) {
+        } else if(strcmp(token, "rtt-decay") == 0) {
             int decay;
             c = getint(c, &decay, gnc, closure);
             if(c < -1 || decay <= 0 || decay > 256)
                 goto error;
-            if_conf->rtt_exponential_decay = decay;
+            if_conf->rtt_decay = decay;
         } else if(strcmp(token, "rtt-min") == 0) {
             int rtt;
             c = getthousands(c, &rtt, gnc, closure);
@@ -575,7 +575,7 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(faraway);
     MERGE(channel);
     MERGE(enable_timestamps);
-    MERGE(rtt_exponential_decay);
+    MERGE(rtt_decay);
     MERGE(rtt_min);
     MERGE(rtt_max);
     MERGE(max_rtt_penalty);

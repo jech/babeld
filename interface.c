@@ -305,9 +305,9 @@ interface_up(struct interface *ifp, int up)
             IF_CONF(ifp, update_interval) :
            ifp->hello_interval * 4;
 
-        ifp->rtt_exponential_decay =
-            IF_CONF(ifp, rtt_exponential_decay) > 0 ?
-            IF_CONF(ifp, rtt_exponential_decay) : 42;
+        ifp->rtt_decay =
+            IF_CONF(ifp, rtt_decay) > 0 ?
+            IF_CONF(ifp, rtt_decay) : 42;
 
         ifp->rtt_min =
             IF_CONF(ifp, rtt_min) > 0 ?
