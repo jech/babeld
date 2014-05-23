@@ -596,6 +596,12 @@ kernel_setup(int setup)
     }
 }
 
+static inline unsigned int
+rtnlgrp_to_mask(unsigned int grp)
+{
+    return grp ? 1 << (grp - 1) : 0;
+}
+
 int
 kernel_setup_socket(int setup)
 {
@@ -603,10 +609,13 @@ kernel_setup_socket(int setup)
 
     if(setup) {
         rc = netlink_socket(&nl_listen,
-                RTMGRP_IPV6_ROUTE | RTMGRP_IPV4_ROUTE
-              | RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR);
+                            rtnlgrp_to_mask(RTNLGRP_IPV6_ROUTE)
+                          | rtnlgrp_to_mask(RTNLGRP_IPV4_ROUTE)
+                          | rtnlgrp_to_mask(RTNLGRP_LINK)
+                          | rtnlgrp_to_mask(RTNLGRP_IPV4_IFADDR)
+                          | rtnlgrp_to_mask(RTNLGRP_IPV6_IFADDR));
         if(rc < 0) {
-            perror("netlink_socket(RTMGRP_ROUTE | RTMGRP_LINK | RTMGRP_IFADDR)");
+            perror("netlink_socket(_ROUTE | _LINK | _IFADDR)");
             kernel_socket = -1;
             return -1;
         }
