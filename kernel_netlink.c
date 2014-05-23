@@ -81,6 +81,8 @@ static int dgram_socket = -1;
 
 static int find_table(const unsigned char *src, unsigned short src_plen);
 static void release_tables(void);
+static int filter_kernel_rules(struct nlmsghdr *nh, void *data);
+static void install_missing_rules(char rule_exists[SRC_TABLE_NUM], int v4);
 
 
 /* Determine an interface's hardware address, in modified EUI-64 format */
@@ -620,9 +622,13 @@ kernel_setup_socket(int setup)
                           | rtnlgrp_to_mask(RTNLGRP_IPV4_ROUTE)
                           | rtnlgrp_to_mask(RTNLGRP_LINK)
                           | rtnlgrp_to_mask(RTNLGRP_IPV4_IFADDR)
-                          | rtnlgrp_to_mask(RTNLGRP_IPV6_IFADDR));
+                          | rtnlgrp_to_mask(RTNLGRP_IPV6_IFADDR)
+    /* We monitor rules, because it can be change by third parties.  For example
+       a /etc/init.d/network restart on OpenWRT flush the rules. */
+                          | rtnlgrp_to_mask(RTNLGRP_IPV4_RULE)
+                          | rtnlgrp_to_mask(RTNLGRP_IPV6_RULE));
         if(rc < 0) {
-            perror("netlink_socket(_ROUTE | _LINK | _IFADDR)");
+            perror("netlink_socket(_ROUTE | _LINK | _IFADDR | _RULE)");
             kernel_socket = -1;
             return -1;
         }
@@ -1259,6 +1265,7 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
     int found = 0;
     void *data[3] = { &maxr, routes, &found };
     int families[2] = { AF_INET6, AF_INET };
+    char rule_exists[SRC_TABLE_NUM] = {0};
     struct rtgenmsg g;
 
     if(!nl_setup) {
@@ -1284,9 +1291,19 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
 
         rc = netlink_read(&nl_command, NULL, 1,
                           filter_kernel_routes, (void *)data);
-
         if(rc < 0)
             return -1;
+
+        rc = netlink_send_dump(RTM_GETRULE, &g, sizeof(g));
+        if(rc < 0)
+            return -1;
+
+        rc = netlink_read(&nl_command, NULL, 1,
+                          filter_kernel_rules, rule_exists);
+        if(rc < 0)
+            return -1;
+
+        install_missing_rules(rule_exists, families[i] == AF_INET);
     }
 
     return found;
@@ -1468,6 +1485,12 @@ filter_netlink(struct nlmsghdr *nh, void *data)
         rc = filter_addresses(nh, NULL);
         if(changed && rc > 0)
             *changed |= CHANGE_ADDR;
+        return rc;
+    case RTM_NEWRULE:
+    case RTM_DELRULE:
+        rc = filter_kernel_rules(nh, NULL);
+        if(changed && rc > 0)
+            *changed |= CHANGE_RULE;
         return rc;
     default:
         kdebugf("filter_netlink: unexpected message type %d\n",
@@ -1833,4 +1856,140 @@ release_tables(void)
         used_tables[i] = 0;
     }
     src_table_used = 0;
+}
+
+static int
+filter_kernel_rules(struct nlmsghdr *nh, void *data)
+{
+    int i, len, has_priority = 0;
+    unsigned int rta_len;
+    struct rtmsg *rtm = NULL;
+    struct rtattr *rta = NULL;
+    int is_v4 = 0;
+    char *rule_exists = data;
+    unsigned char src[16];
+    unsigned char src_plen;
+    unsigned int table, priority = 0xFFFFFFFF;
+
+    len = nh->nlmsg_len;
+
+    rtm = (struct rtmsg*)NLMSG_DATA(nh);
+    len -= NLMSG_LENGTH(0);
+
+    src_plen = rtm->rtm_src_len;
+    table = rtm->rtm_table;
+
+    if(rtm->rtm_family != AF_INET && rtm->rtm_family != AF_INET6) {
+        kdebugf("filter_rules: Unknown family: %d\n", rtm->rtm_family);
+        return -1;
+    }
+    is_v4 = rtm->rtm_family == AF_INET;
+
+    rta = RTM_RTA(rtm);
+    len -= NLMSG_ALIGN(sizeof(*rtm));
+
+#define GET_PLEN(p) (rtm->rtm_family == AF_INET) ? p + 96 : p
+#define COPY_ADDR(d, s)                                                 \
+    do {                                                                \
+        if(!is_v4) {                                                    \
+            if(UNLIKELY(rta_len < 16)) {                                \
+                fprintf(stderr, "filter_rules: truncated message.");    \
+                return -1;                                              \
+            }                                                           \
+            memcpy(d, s, 16);                                           \
+        }else {                                                         \
+            if(UNLIKELY(rta_len < 4)) {                                 \
+                fprintf(stderr, "filter_rules: truncated message.");    \
+                return -1;                                              \
+            }                                                           \
+            v4tov6(d, s);                                               \
+        }                                                               \
+    } while(0)
+
+    for(; RTA_OK(rta, len); rta = RTA_NEXT(rta, len)) {
+        rta_len = RTA_PAYLOAD(rta);
+        switch(rta->rta_type) {
+        case FRA_UNSPEC: break;
+        case FRA_SRC:
+            src_plen = GET_PLEN(rtm->rtm_src_len);
+            COPY_ADDR(src, RTA_DATA(rta));
+            break;
+        case FRA_PRIORITY:
+            priority = *(unsigned int*)RTA_DATA(rta);
+            has_priority = 1;
+            break;
+        case FRA_TABLE:
+            table = *(int*)RTA_DATA(rta);
+            break;
+        default:
+            kdebugf("filter_rules: Unknown rule attribute: %d.\n",
+                    rta->rta_type);
+            break;
+        }
+    }
+#undef COPY_ADDR
+#undef GET_PLEN
+
+    kdebugf("filter_rules: from %s prio %d table %d\n",
+            format_prefix(src, src_plen), priority, table);
+
+    if(martian_prefix(src, src_plen) || !has_priority)
+        return 0;
+
+    i = priority - src_table_prio;
+
+    if(i < 0 || SRC_TABLE_NUM <= i)
+        return 0;
+
+    /* There is an unexpected change on one of our rules. */
+    if(!rule_exists)
+        return 1;
+
+    if(prefix_cmp(src, src_plen,
+                  kernel_tables[i].src, kernel_tables[i].plen)
+       == PST_EQUALS &&
+       table == kernel_tables[i].table &&
+       !rule_exists[i]) {
+        rule_exists[i] = 1;
+    } else {
+        int rc;
+        do {
+            rc = flush_rule(i + src_table_prio, is_v4 ? AF_INET : AF_INET6);
+        } while(rc >= 0);
+        /* flush unexpected rules, but keep information in kernel_tables[i].  It
+            will be used afterwards to reinstall the rule. */
+        if(errno != ENOENT && errno != EEXIST)
+            fprintf(stderr,
+                    "filter_rules: cannot remove from %s prio %d table %d"
+                    "(%s)\n",
+                    format_prefix(src, src_plen), priority, table,
+                    strerror(errno));
+        rule_exists[i] = 0;
+    }
+
+    return 1;
+}
+
+/* This functions should be executed wrt the code just bellow: [rule_exists]
+   contains is a boolean array telling whether the rules we should have
+   installed in the kernel are installed or not.  If they aren't, then reinstall
+   them (this can append when rules are modified by third parties). */
+
+static void
+install_missing_rules(char rule_exists[SRC_TABLE_NUM], int v4)
+{
+    int i, rc;
+    for(i = 0; i < SRC_TABLE_NUM; i++)
+        if(v4mapped(kernel_tables[i].src) == v4 &&
+           !rule_exists[i] && kernel_tables[i].plen != 0) {
+            rc = add_rule(i + src_table_prio, kernel_tables[i].src,
+                          kernel_tables[i].plen, kernel_tables[i].table);
+            if(rc < 0)
+                fprintf(stderr,
+                        "install_missing_rules: "
+                        "Cannot install rule: table %d prio %d from %s\n",
+                        kernel_tables[i].table, i + src_table_prio,
+                        format_prefix(kernel_tables[i].src,
+                                      kernel_tables[i].plen));
+        }
 }

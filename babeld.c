@@ -82,6 +82,7 @@ unsigned char protocol_group[16];
 int protocol_socket = -1;
 int kernel_socket = -1;
 static int kernel_routes_changed = 0;
+static int kernel_rules_changed = 0;
 static int kernel_link_changed = 0;
 static int kernel_addr_changed = 0;
 
@@ -512,6 +513,7 @@ main(int argc, char **argv)
         fprintf(stderr, "Warning: couldn't check exported routes.\n");
 
     kernel_routes_changed = 0;
+    kernel_rules_changed = 0;
     kernel_link_changed = 0;
     kernel_addr_changed = 0;
     kernel_dump_time = now.tv_sec + roughly(30);
@@ -673,11 +675,12 @@ main(int argc, char **argv)
         }
 
         if(kernel_routes_changed || kernel_addr_changed ||
-           now.tv_sec >= kernel_dump_time) {
+           kernel_rules_changed || now.tv_sec >= kernel_dump_time) {
             rc = check_xroutes(1);
             if(rc < 0)
                 fprintf(stderr, "Warning: couldn't check exported routes.\n");
-            kernel_routes_changed = kernel_addr_changed = 0;
+            kernel_routes_changed = kernel_rules_changed =
+                kernel_addr_changed = 0;
             if(kernel_socket >= 0)
                 kernel_dump_time = now.tv_sec + roughly(300);
             else
@@ -1140,5 +1143,7 @@ kernel_routes_callback(int changed, void *closure)
         kernel_addr_changed = 1;
     if(changed & CHANGE_ROUTE)
         kernel_routes_changed = 1;
+    if(changed & CHANGE_RULE)
+        kernel_rules_changed = 1;
     return 1;
 }

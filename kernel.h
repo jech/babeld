@@ -43,6 +43,7 @@ struct kernel_route {
 #define CHANGE_LINK  (1 << 0)
 #define CHANGE_ROUTE (1 << 1)
 #define CHANGE_ADDR  (1 << 2)
+#define CHANGE_RULE  (1 << 3)
 
 #ifndef MAX_IMPORT_TABLES
 #define MAX_IMPORT_TABLES 10
