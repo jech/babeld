@@ -103,10 +103,10 @@ search_conflict_solution(const struct zone *conflict_zone)
 
 static int
 add_non_conflicting_route(const struct babel_route *route,
-                          const struct zone *zone)
+                          const struct zone *zone, int v4)
 {
     int rc;
-    if(!has_conflict(zone)) {
+    if((has_ipv6_subtrees && !v4) || !has_conflict(zone)) {
         rc = kernel_route(ROUTE_ADD, zone->dst_prefix, zone->dst_plen,
                           zone->src_prefix, zone->src_plen,
                           route->nexthop,
@@ -192,7 +192,7 @@ install_conflicting_routes(const struct babel_route *route_to_add,
         solution = route_to_add;
         debugf("    solution is our route\n");
     }
-    return add_non_conflicting_route(solution, &cz);
+    return add_non_conflicting_route(solution, &cz, v4mapped(rt->prefix));
 }
 
 int
@@ -202,37 +202,41 @@ kinstall_route(const struct babel_route *route)
     struct zone zone;
     struct babel_route *rt1 = NULL;
     struct route_stream *stream = NULL;
+    int v4 = v4mapped(route->nexthop);
 
     debugf("install_route(%s from %s)\n",
            format_prefix(route->src->prefix, route->src->plen),
            format_prefix(route->src->src_prefix, route->src->src_plen));
     /* Install source-specific conflicting routes */
-    stream = route_stream(1);
-    if(!stream) {
-        fprintf(stderr, "Couldn't allocate route stream.\n");
-        return -1;
-    }
-    while(1) {
-        rt1 = route_stream_next(stream);
-        if(rt1 == NULL) break;
-        rc = install_conflicting_routes(route, rt1);
-        if(rc < 0) {
-            int save = errno;
-            perror("kernel_route(ADD sub)");
-            if(save != EEXIST) {
-                route_stream_done(stream);
-                return -1;
+    if(!has_ipv6_subtrees || v4) {
+        stream = route_stream(1);
+        if(!stream) {
+            fprintf(stderr, "Couldn't allocate route stream.\n");
+            return -1;
+        }
+        /* Install source-specific conflicting routes */
+        while(1) {
+            rt1 = route_stream_next(stream);
+            if(rt1 == NULL) break;
+            rc = install_conflicting_routes(route, rt1);
+            if(rc < 0) {
+                int save = errno;
+                perror("kernel_route(ADD sub)");
+                if(save != EEXIST) {
+                    route_stream_done(stream);
+                    return -1;
+                }
             }
         }
+        route_stream_done(stream);
     }
-    route_stream_done(stream);
 
     /* Non conflicting case */
     zone.dst_prefix = route->src->prefix;
     zone.dst_plen   = route->src->plen;
     zone.src_prefix = route->src->src_prefix;
     zone.src_plen   = route->src->src_plen;
-    rc = add_non_conflicting_route(route, &zone);
+    rc = add_non_conflicting_route(route, &zone, v4);
     if(rc < 0) {
         int save = errno;
         perror("kernel_route(ADD)");
@@ -244,10 +248,10 @@ kinstall_route(const struct babel_route *route)
 
 static int
 del_non_conflicting_route(const struct babel_route *route,
-                          const struct zone *zone)
+                          const struct zone *zone, int v4)
 {
     int rc;
-    if(!has_conflict(zone)) {
+    if((has_ipv6_subtrees && !v4) || !has_conflict(zone)) {
         rc = kernel_route(ROUTE_FLUSH, zone->dst_prefix, zone->dst_plen,
                           zone->src_prefix, zone->src_plen,
                           route->nexthop,
@@ -380,6 +384,7 @@ kuninstall_route(const struct babel_route *route)
     struct zone zone;
     struct babel_route *rt1;
     struct route_stream *stream = NULL;
+    int v4 = v4mapped(route->nexthop);
 
     debugf("uninstall_route(%s from %s)\n",
            format_prefix(route->src->prefix, route->src->plen),
@@ -389,24 +394,26 @@ kuninstall_route(const struct babel_route *route)
     zone.dst_plen   = route->src->plen;
     zone.src_prefix = route->src->src_prefix;
     zone.src_plen   = route->src->src_plen;
-    rc = del_non_conflicting_route(route, &zone);
+    rc = del_non_conflicting_route(route, &zone, v4);
     if(rc < 0)
         perror("kernel_route(FLUSH)");
 
     /* Remove source-specific conflicting routes */
-    stream = route_stream(1);
-    if(!stream) {
-        fprintf(stderr, "Couldn't allocate route stream.\n");
-        return -1;
+    if(!has_ipv6_subtrees || v4) {
+        stream = route_stream(1);
+        if(!stream) {
+            fprintf(stderr, "Couldn't allocate route stream.\n");
+            return -1;
+        }
+        while(1) {
+            rt1 = route_stream_next(stream);
+            if(rt1 == NULL) break;
+            rc = uninstall_conflicting_routes(route, rt1);
+            if(rc < 0)
+                perror("kernel_route(FLUSH sub)");
+        }
+        route_stream_done(stream);
     }
-    while(1) {
-        rt1 = route_stream_next(stream);
-        if(rt1 == NULL) break;
-        rc = uninstall_conflicting_routes(route, rt1);
-        if(rc < 0)
-            perror("kernel_route(FLUSH sub)");
-    }
-    route_stream_done(stream);
 
     return rc;
 }
@@ -488,20 +495,21 @@ kswitch_routes(const struct babel_route *old, const struct babel_route *new)
     new_metric = metric_to_kernel(route_metric(new));
 
     /* Remove source-specific conflicting routes */
-    stream = route_stream(1);
-    if(!stream) {
-        fprintf(stderr, "Couldn't allocate route stream.\n");
-        return -1;
+    if(!has_ipv6_subtrees || v4mapped(old->nexthop)) {
+        stream = route_stream(1);
+        if(!stream) {
+            fprintf(stderr, "Couldn't allocate route stream.\n");
+            return -1;
+        }
+        while(1) {
+            rt1 = route_stream_next(stream);
+            if(rt1 == NULL) break;
+            rc = switch_conflicting_routes(old, new, new_metric, rt1);
+            if(rc < 0)
+                perror("kernel_route(MODIFY sub)");
+        }
+        route_stream_done(stream);
     }
-
-    while(1) {
-        rt1 = route_stream_next(stream);
-        if(rt1 == NULL) break;
-        rc = switch_conflicting_routes(old, new, new_metric, rt1);
-        if(rc < 0)
-            perror("kernel_route(MODIFY sub)");
-    }
-    route_stream_done(stream);
 
     return rc;
 }
@@ -531,20 +539,22 @@ kchange_route_metric(const struct babel_route *route,
         return -1;
     }
 
-    stream = route_stream(1);
-    if(!stream) {
-        fprintf(stderr, "Couldn't allocate route stream.\n");
-        return -1;
-    }
+    if(!has_ipv6_subtrees || v4mapped(route->nexthop)) {
+        stream = route_stream(1);
+        if(!stream) {
+            fprintf(stderr, "Couldn't allocate route stream.\n");
+            return -1;
+        }
 
-    while(1) {
-        rt1 = route_stream_next(stream);
-        if(rt1 == NULL) break;
-        rc = switch_conflicting_routes(route, route, new_metric, rt1);
-        if(rc < 0)
-            perror("kernel_route(MODIFY metric sub)");
+        while(1) {
+            rt1 = route_stream_next(stream);
+            if(rt1 == NULL) break;
+            rc = switch_conflicting_routes(route, route, new_metric, rt1);
+            if(rc < 0)
+                perror("kernel_route(MODIFY metric sub)");
+        }
+        route_stream_done(stream);
     }
-    route_stream_done(stream);
 
     return rc;
 }
