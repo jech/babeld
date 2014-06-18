@@ -990,9 +990,8 @@ init_signals(void)
 }
 
 static void
-dump_route_callback(struct babel_route *route, void *closure)
+dump_route(FILE *out, struct babel_route *route)
 {
-    FILE *out = (FILE*)closure;
     const unsigned char *nexthop =
         memcmp(route->nexthop, route->neigh->address, 16) == 0 ?
         NULL : route->nexthop;
@@ -1046,6 +1045,7 @@ static void
 dump_tables(FILE *out)
 {
     struct neighbour *neigh;
+    struct route_stream *routes;
 
     fprintf(out, "\n");
 
@@ -1065,7 +1065,15 @@ dump_tables(FILE *out)
                 if_up(neigh->ifp) ? "" : " (down)");
     }
     for_all_xroutes(dump_xroute_callback, out);
-    for_all_routes(dump_route_callback, out);
+    routes = route_stream(0);
+    if(routes) {
+        while(1) {
+            struct babel_route *route = route_stream_next(routes);
+            if(route == NULL) break;
+            dump_route(out, route);
+        }
+        route_stream_done(routes);
+    }
     fflush(out);
 }
 

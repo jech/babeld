@@ -1278,13 +1278,6 @@ buffer_update(struct interface *ifp,
     ifp->num_buffered_updates++;
 }
 
-static void
-buffer_update_callback(struct babel_route *route, void *closure)
-{
-    buffer_update((struct interface*)closure,
-                  route->src->prefix, route->src->plen);
-}
-
 void
 send_update(struct interface *ifp, int urgent,
             const unsigned char *prefix, unsigned char plen)
@@ -1313,9 +1306,21 @@ send_update(struct interface *ifp, int urgent,
                ifp->name, format_prefix(prefix, plen));
         buffer_update(ifp, prefix, plen);
     } else {
+        struct route_stream *routes;
         send_self_update(ifp);
         debugf("Sending update to %s for any.\n", ifp->name);
-        for_all_installed_routes(buffer_update_callback, ifp);
+        routes = route_stream(1);
+        if(routes) {
+            while(1) {
+                struct babel_route *route = route_stream_next(routes);
+                if(route == NULL)
+                    break;
+                buffer_update(ifp, route->src->prefix, route->src->plen);
+            }
+            route_stream_done(routes);
+        } else {
+            fprintf(stderr, "Couldn't allocate route stream.\n");
+        }
         set_timeout(&ifp->update_timeout, ifp->update_interval);
         ifp->last_update_time = now.tv_sec;
     }

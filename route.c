@@ -316,30 +316,58 @@ flush_interface_routes(struct interface *ifp, int v4only)
     }
 }
 
-/* Iterate a function over all routes. */
-void
-for_all_routes(void (*f)(struct babel_route*, void*), void *closure)
-{
-    int i, n = route_slots;
+struct route_stream {
+    int installed;
+    int index;
+    struct babel_route *next;
+};
 
-    for(i = 0; i < n; i++) {
-        struct babel_route *r = routes[i];
-        while(r) {
-            (*f)(r, closure);
-            r = r->next;
+
+struct route_stream *
+route_stream(int installed)
+{
+    struct route_stream *stream;
+
+    stream = malloc(sizeof(struct route_stream));
+    if(stream == NULL)
+       return NULL;
+
+    stream->installed = installed;
+    stream->index = installed ? 0 : -1;
+    stream->next = NULL;
+
+    return stream;
+}
+
+struct babel_route *
+route_stream_next(struct route_stream *stream)
+{
+    if(stream->installed) {
+        while(stream->index < route_slots && !routes[stream->index]->installed)
+            stream->index++;
+
+        if(stream->index < route_slots)
+            return routes[stream->index++];
+        else
+            return NULL;
+    } else {
+        struct babel_route *next;
+        if(!stream->next) {
+            stream->index++;
+            if(stream->index >= route_slots)
+                return NULL;
+            stream->next = routes[stream->index];
         }
+        next = stream->next;
+        stream->next = next->next;
+        return next;
     }
 }
 
 void
-for_all_installed_routes(void (*f)(struct babel_route*, void*), void *closure)
+route_stream_done(struct route_stream *stream)
 {
-    int i, n = route_slots;
-
-    for(i = 0; i < n; i++) {
-        if(routes[i]->installed)
-            (*f)(routes[i], closure);
-    }
+    free(stream);
 }
 
 static int
