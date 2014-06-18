@@ -1033,9 +1033,8 @@ dump_route(FILE *out, struct babel_route *route)
 }
 
 static void
-dump_xroute_callback(struct xroute *xroute, void *closure)
+dump_xroute(FILE *out, struct xroute *xroute)
 {
-    FILE *out = (FILE*)closure;
     fprintf(out, "%s metric %d (exported)\n",
             format_prefix(xroute->prefix, xroute->plen),
             xroute->metric);
@@ -1045,6 +1044,7 @@ static void
 dump_tables(FILE *out)
 {
     struct neighbour *neigh;
+    struct xroute_stream *xroutes;
     struct route_stream *routes;
 
     fprintf(out, "\n");
@@ -1064,7 +1064,17 @@ dump_tables(FILE *out)
                 neigh->ifp->channel,
                 if_up(neigh->ifp) ? "" : " (down)");
     }
-    for_all_xroutes(dump_xroute_callback, out);
+
+    xroutes = xroute_stream();
+    if(xroutes) {
+        while(1) {
+            struct xroute *xroute = xroute_stream_next(xroutes);
+            if(xroute == NULL) break;
+            dump_xroute(out, xroute);
+        }
+        xroute_stream_done(xroutes);
+    }
+
     routes = route_stream(0);
     if(routes) {
         while(1) {
@@ -1074,6 +1084,7 @@ dump_tables(FILE *out)
         }
         route_stream_done(routes);
     }
+
     fflush(out);
 }
 

@@ -126,13 +126,36 @@ xroutes_estimate()
     return numxroutes;
 }
 
-void
-for_all_xroutes(void (*f)(struct xroute*, void*), void *closure)
-{
-    int i, n = numxroutes;
+struct xroute_stream {
+    int index;
+};
 
-    for(i = 0; i < n; i++)
-        (*f)(&xroutes[i], closure);
+struct
+xroute_stream *
+xroute_stream()
+{
+    struct xroute_stream *stream = malloc(sizeof(struct xroute_stream));
+    if(stream == NULL)
+       return NULL;
+
+    stream->index = 0;
+    return stream;
+}
+
+
+struct xroute *
+xroute_stream_next(struct xroute_stream *stream)
+{
+    if(stream->index < numxroutes)
+        return &xroutes[stream->index++];
+    else
+        return NULL;
+}
+
+void
+xroute_stream_done(struct xroute_stream *stream)
+{
+    free(stream);
 }
 
 int

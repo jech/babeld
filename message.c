@@ -1370,16 +1370,10 @@ update_myseqno()
     seqno_time = now;
 }
 
-static void
-send_xroute_update_callback(struct xroute *xroute, void *closure)
-{
-    struct interface *ifp = (struct interface*)closure;
-    send_update(ifp, 0, xroute->prefix, xroute->plen);
-}
-
 void
 send_self_update(struct interface *ifp)
 {
+    struct xroute_stream *xroutes;
     if(ifp == NULL) {
         struct interface *ifp_aux;
         FOR_ALL_INTERFACES(ifp_aux) {
@@ -1391,7 +1385,17 @@ send_self_update(struct interface *ifp)
     }
 
     debugf("Sending self update to %s.\n", ifp->name);
-    for_all_xroutes(send_xroute_update_callback, ifp);
+    xroutes = xroute_stream();
+    if(xroutes) {
+        while(1) {
+            struct xroute *xroute = xroute_stream_next(xroutes);
+            if(xroute == NULL) break;
+            send_update(ifp, 0, xroute->prefix, xroute->plen);
+        }
+        xroute_stream_done(xroutes);
+    } else {
+        fprintf(stderr, "Couldn't allocate xroute stream.\n");
+    }
 }
 
 void
