@@ -39,6 +39,7 @@ THE SOFTWARE.
 #include "resend.h"
 #include "configuration.h"
 #include "local.h"
+#include "disambiguation.h"
 
 struct babel_route **routes = NULL;
 static int route_slots = 0, max_route_slots = 0;
@@ -501,17 +502,10 @@ install_route(struct babel_route *route)
         return;
     }
 
-    rc = kernel_route(ROUTE_ADD, route->src->prefix, route->src->plen,
-                      route->src->src_prefix, route->src->src_plen,
-                      route->nexthop,
-                      route->neigh->ifp->ifindex,
-                      metric_to_kernel(route_metric(route)), NULL, 0, 0);
-    if(rc < 0) {
-        int save = errno;
-        perror("kernel_route(ADD)");
-        if(save != EEXIST)
-            return;
-    }
+    rc = kinstall_route(route);
+    if(rc < 0 && errno != EEXIST)
+        return;
+
     route->installed = 1;
     move_installed_route(route, i);
 
@@ -521,20 +515,13 @@ install_route(struct babel_route *route)
 void
 uninstall_route(struct babel_route *route)
 {
-    int rc;
-
     if(!route->installed)
         return;
 
-    rc = kernel_route(ROUTE_FLUSH, route->src->prefix, route->src->plen,
-                      route->src->src_prefix, route->src->src_plen,
-                      route->nexthop,
-                      route->neigh->ifp->ifindex,
-                      metric_to_kernel(route_metric(route)), NULL, 0, 0);
-    if(rc < 0)
-        perror("kernel_route(FLUSH)");
-
     route->installed = 0;
+
+    kuninstall_route(route);
+
     local_notify_route(route, LOCAL_CHANGE);
 }
 
@@ -559,19 +546,12 @@ switch_routes(struct babel_route *old, struct babel_route *new)
         fprintf(stderr, "WARNING: switching to unfeasible route "
                 "(this shouldn't happen).");
 
-    rc = kernel_route(ROUTE_MODIFY, old->src->prefix, old->src->plen,
-                      old->src->src_prefix, old->src->src_plen,
-                      old->nexthop, old->neigh->ifp->ifindex,
-                      metric_to_kernel(route_metric(old)),
-                      new->nexthop, new->neigh->ifp->ifindex,
-                      metric_to_kernel(route_metric(new)));
     /* XXX : should the source-ip be subject to changes ? */
     assert(memcmp(old->src->src_prefix, new->src->src_prefix, 16) == 0
            && old->src->src_plen == new->src->src_plen);
-    if(rc < 0) {
-        perror("kernel_route(MODIFY)");
+    rc = kswitch_routes(old, new);
+    if(rc < 0)
         return;
-    }
 
     old->installed = 0;
     new->installed = 1;
@@ -595,16 +575,9 @@ change_route_metric(struct babel_route *route,
 
     if(route->installed && old != new) {
         int rc;
-        rc = kernel_route(ROUTE_MODIFY, route->src->prefix, route->src->plen,
-                          route->src->src_prefix, route->src->src_plen,
-                          route->nexthop, route->neigh->ifp->ifindex,
-                          old,
-                          route->nexthop, route->neigh->ifp->ifindex,
-                          new);
-        if(rc < 0) {
-            perror("kernel_route(MODIFY metric)");
+        rc = kchange_route_metric(route, refmetric, cost, add);
+        if(rc < 0)
             return;
-        }
     }
 
     /* Update route->smoothed_metric using the old metric. */
