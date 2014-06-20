@@ -455,7 +455,7 @@ find_min_iroute(const unsigned char *dst_prefix, unsigned char dst_plen,
     return result;
 }
 
-static int
+int
 metric_to_kernel(int metric)
 {
     return metric < INFINITY ? kernel_metric : KERNEL_INFINITY;
