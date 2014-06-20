@@ -88,7 +88,7 @@ read_random_bytes(void *buf, size_t len)
 
     fd = open("/dev/urandom", O_RDONLY);
     if(fd < 0) {
-	rc = -1;
+        rc = -1;
     } else {
         rc = read(fd, buf, len);
         if(rc < 0 || (unsigned)rc < len)

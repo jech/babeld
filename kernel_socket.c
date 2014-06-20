@@ -138,7 +138,7 @@ fail:
 }
 
 /* KAME said : "Following two macros are highly depending on KAME Release" */
-#define	IN6_LINKLOCAL_IFINDEX(a)  ((a).s6_addr[2] << 8 | (a).s6_addr[3])
+#define IN6_LINKLOCAL_IFINDEX(a)  ((a).s6_addr[2] << 8 | (a).s6_addr[3])
 #define SET_IN6_LINKLOCAL_IFINDEX(a, i)         \
     do {                                        \
         (a).s6_addr[2] = ((i) >> 8) & 0xff;     \
@@ -171,7 +171,7 @@ mask2len(const unsigned char *p, const int size)
     }
     if(j < size) {
         switch(*p) {
-#define	MASKLEN(m, l)	case m: do { i += l; break; } while (0)
+#define MASKLEN(m, l) case m: do { i += l; break; } while (0)
             MASKLEN(0xfe, 7); break;
             MASKLEN(0xfc, 6); break;
             MASKLEN(0xf8, 5); break;
@@ -179,7 +179,7 @@ mask2len(const unsigned char *p, const int size)
             MASKLEN(0xe0, 3); break;
             MASKLEN(0xc0, 2); break;
             MASKLEN(0x80, 1); break;
-#undef	MASKLEN
+#undef MASKLEN
         }
     }
     return i;
@@ -674,7 +674,7 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
     mib[2] = 0;
     mib[3] = AF_UNSPEC;      /* Address family */
     mib[4] = NET_RT_DUMP; /* Dump the kernel routing table */
-    mib[5] = 0;		  /* No flags */
+    mib[5] = 0;           /* No flags */
 
     rc = sysctl(mib, 6, NULL, &len, NULL, 0);
     if (rc < 0) {
