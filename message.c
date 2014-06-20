@@ -167,7 +167,8 @@ parse_update_subtlv(const unsigned char *a, int alen,
 }
 
 static int
-parse_hello_subtlv(const unsigned char *a, int alen, struct neighbour *neigh)
+parse_hello_subtlv(const unsigned char *a, int alen,
+                   unsigned int *hello_send_us)
 {
     int type, len, i = 0, ret = 0;
 
@@ -192,8 +193,7 @@ parse_hello_subtlv(const unsigned char *a, int alen, struct neighbour *neigh)
             /* Nothing to do. */
         } else if(type == SUBTLV_TIMESTAMP) {
             if(len >= 4) {
-                DO_NTOHL(neigh->hello_send_us, a + i + 2);
-                neigh->hello_rtt_receive_time = now;
+                DO_NTOHL(*hello_send_us, a + i + 2);
                 ret = 1;
             } else {
                 fprintf(stderr,
@@ -360,6 +360,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         } else if(type == MESSAGE_HELLO) {
             unsigned short seqno, interval;
             int changed;
+            unsigned int timestamp;
             if(len < 6) goto fail;
             DO_NTOHS(seqno, message + 4);
             DO_NTOHS(interval, message + 6);
@@ -373,8 +374,11 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 schedule_neighbours_check(interval * 15, 0);
             /* Sub-TLV handling. */
             if(len > 8) {
-                if(parse_hello_subtlv(message + 8, len - 6, neigh) > 0)
+                if(parse_hello_subtlv(message + 8, len - 6, &timestamp) > 0) {
+                    neigh->hello_send_us = timestamp;
+                    neigh->hello_rtt_receive_time = now;
                     have_hello_rtt = 1;
+                }
             }
         } else if(type == MESSAGE_IHU) {
             unsigned short txcost, interval;
