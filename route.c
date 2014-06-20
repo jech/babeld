@@ -330,7 +330,7 @@ route_stream(int installed)
 
     stream = malloc(sizeof(struct route_stream));
     if(stream == NULL)
-       return NULL;
+        return NULL;
 
     stream->installed = installed;
     stream->index = installed ? 0 : -1;

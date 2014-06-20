@@ -136,7 +136,7 @@ xroute_stream()
 {
     struct xroute_stream *stream = malloc(sizeof(struct xroute_stream));
     if(stream == NULL)
-       return NULL;
+        return NULL;
 
     stream->index = 0;
     return stream;
