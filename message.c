@@ -159,7 +159,7 @@ parse_update_subtlv(const unsigned char *a, int alen,
             memset(channels, 0, DIVERSITY_HOPS);
             memcpy(channels, a + i + 2, len);
         } else {
-            fprintf(stderr, "Received unknown route attribute %d.\n", type);
+            debugf("Received unknown update sub-TLV %d.\n", type);
         }
 
         i += len + 2;
@@ -200,7 +200,7 @@ parse_hello_subtlv(const unsigned char *a, int alen,
                         "Received incorrect RTT sub-TLV on Hello message.\n");
             }
         } else {
-            fprintf(stderr, "Received unknown Hello sub-TLV type %d.\n", type);
+            debugf("Received unknown Hello sub-TLV type %d.\n", type);
         }
 
         i += len + 2;
@@ -245,7 +245,7 @@ parse_ihu_subtlv(const unsigned char *a, int alen,
                         "Received incorrect RTT sub-TLV on IHU message.\n");
             }
         } else {
-            fprintf(stderr, "Received unknown IHU sub-TLV type %d.\n", type);
+            debugf("Received unknown IHU sub-TLV type %d.\n", type);
         }
 
         i += len + 2;
