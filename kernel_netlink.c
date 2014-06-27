@@ -1294,7 +1294,8 @@ parse_addr_rta(struct ifaddrmsg *addr, int len, struct in6_addr *res)
                     memcpy(res->s6_addr, RTA_DATA(rta), 16);
                 break;
             default:
-                kdebugf("ifaddr: unexpected address family %d\n", addr->ifa_family);
+                kdebugf("ifaddr: unexpected address family %d\n",
+                        addr->ifa_family);
                 return -1;
                 break;
             }
