@@ -164,7 +164,7 @@ check_interface_channel(struct interface *ifp)
             if(channel < 0)
                 fprintf(stderr,
                         "Couldn't determine channel of interface %s: %s.\n",
-                       ifp->name, strerror(errno));
+                        ifp->name, strerror(errno));
             if(channel <= 0)
                 channel = IF_CHANNEL_INTERFERING;
         }
@@ -303,7 +303,7 @@ interface_up(struct interface *ifp, int up)
         ifp->update_interval =
             IF_CONF(ifp, update_interval) > 0 ?
             IF_CONF(ifp, update_interval) :
-           ifp->hello_interval * 4;
+            ifp->hello_interval * 4;
 
         ifp->rtt_decay =
             IF_CONF(ifp, rtt_decay) > 0 ?
@@ -429,7 +429,7 @@ interface_ll_address(struct interface *ifp, const unsigned char *address)
 
     for(i = 0; i < ifp->numll; i++)
         if(memcmp(ifp->ll[i], address, 16) == 0)
-           return 1;
+            return 1;
 
     return 0;
 }

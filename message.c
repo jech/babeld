@@ -89,7 +89,7 @@ network_prefix(int ae, int plen, unsigned int omitted,
             return -1;
         memcpy(prefix, v4prefix, 12);
         if(omitted) {
-            if (dp == NULL || !v4mapped(dp)) return -1;
+            if(dp == NULL || !v4mapped(dp)) return -1;
             memcpy(prefix, dp, 12 + omitted);
         }
         if(pb > omitted) memcpy(prefix + 12 + omitted, p, pb - omitted);
@@ -98,7 +98,7 @@ network_prefix(int ae, int plen, unsigned int omitted,
     case 2:
         if(omitted > 16 || (pb > omitted && len < pb - omitted)) return -1;
         if(omitted) {
-            if (dp == NULL || v4mapped(dp)) return -1;
+            if(dp == NULL || v4mapped(dp)) return -1;
             memcpy(prefix, dp, omitted);
         }
         if(pb > omitted) memcpy(prefix + omitted, p, pb - omitted);
@@ -620,7 +620,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                format_address(from), ifp->name, rtt);
 
         old_rttcost = neighbour_rttcost(neigh);
-        if (valid_rtt(neigh)) {
+        if(valid_rtt(neigh)) {
             /* Running exponential average. */
             smoothed_rtt = (ifp->rtt_decay * rtt +
                             (256 - ifp->rtt_decay) * neigh->rtt);
@@ -1475,7 +1475,7 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
             accumulate_bytes(ifp, neigh->address + 8, 8);
         else
             accumulate_bytes(ifp, neigh->address, 16);
-        if (send_rtt_data) {
+        if(send_rtt_data) {
             accumulate_byte(ifp, SUBTLV_TIMESTAMP);
             accumulate_byte(ifp, 8);
             accumulate_int(ifp, neigh->hello_send_us);
@@ -1494,7 +1494,7 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
             accumulate_unicast_bytes(neigh, neigh->address + 8, 8);
         else
             accumulate_unicast_bytes(neigh, neigh->address, 16);
-        if (send_rtt_data) {
+        if(send_rtt_data) {
             accumulate_unicast_byte(neigh, SUBTLV_TIMESTAMP);
             accumulate_unicast_byte(neigh, 8);
             accumulate_unicast_int(neigh, neigh->hello_send_us);

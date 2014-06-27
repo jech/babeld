@@ -64,14 +64,14 @@ if_eui64(char *ifname, int ifindex, unsigned char *eui)
 {
     struct sockaddr_dl sdl;
     char *tmp = NULL;
-    if (get_sdl(&sdl, ifname) < 0) {
+    if(get_sdl(&sdl, ifname) < 0) {
         return -1;
     }
     tmp = sdl.sdl_data + sdl.sdl_nlen;
-    if (sdl.sdl_alen == 8) {
+    if(sdl.sdl_alen == 8) {
         memcpy(eui, tmp, 8);
         eui[0] ^= 2;
-    } else if (sdl.sdl_alen == 6) {
+    } else if(sdl.sdl_alen == 6) {
         memcpy(eui,   tmp,   3);
         eui[3] = 0xFF;
         eui[4] = 0xFE;
@@ -116,18 +116,18 @@ get_sdl(struct sockaddr_dl *sdl, char *ifname)
         goto fail;
 
     offset = 0;
-    while (offset < (int) buf_len) {
+    while(offset < (int) buf_len) {
         ifm = (struct if_msghdr *) &buffer[offset];
-        switch (ifm->ifm_type) {
-            case RTM_IFINFO:
-                tmp_sdl = (struct sockaddr_dl *) (ifm + 1);
-                if (strncmp(ifname, tmp_sdl->sdl_data, tmp_sdl->sdl_nlen) == 0
-                    && strlen(ifname) == tmp_sdl->sdl_nlen) {
-                    memcpy(sdl, tmp_sdl, sizeof(struct sockaddr_dl));
-                    return 0;
-                }
-            default:
-                break;
+        switch(ifm->ifm_type) {
+        case RTM_IFINFO:
+            tmp_sdl = (struct sockaddr_dl *) (ifm + 1);
+            if(strncmp(ifname, tmp_sdl->sdl_data, tmp_sdl->sdl_nlen) == 0
+               && strlen(ifname) == tmp_sdl->sdl_nlen) {
+                memcpy(sdl, tmp_sdl, sizeof(struct sockaddr_dl));
+                return 0;
+            }
+        default:
+            break;
         }
         offset += ifm->ifm_msglen;
     }
@@ -143,7 +143,7 @@ fail:
     do {                                        \
         (a).s6_addr[2] = ((i) >> 8) & 0xff;     \
         (a).s6_addr[3] = (i) & 0xff;            \
-    } while (0)
+    } while(0)
 
 #if defined(__APPLE__)
 #define ROUNDUP(a) \
@@ -171,7 +171,7 @@ mask2len(const unsigned char *p, const int size)
     }
     if(j < size) {
         switch(*p) {
-#define MASKLEN(m, l) case m: do { i += l; break; } while (0)
+#define MASKLEN(m, l) case m: do { i += l; break; } while(0)
             MASKLEN(0xfe, 7); break;
             MASKLEN(0xfc, 6); break;
             MASKLEN(0xf8, 5); break;
@@ -197,8 +197,8 @@ plen2mask(int n, struct in6_addr *dest)
 
     memset(dest, 0, sizeof(struct in6_addr));
     p = (u_char *)dest;
-    for (i = 0; i < 16; i++, p++, n -= 8) {
-        if (n >= 8) {
+    for(i = 0; i < 16; i++, p++, n -= 8) {
+        if(n >= 8) {
             *p = 0xff;
             continue;
         }
@@ -224,13 +224,13 @@ kernel_setup(int setup)
     mib[2] = IPPROTO_IPV6;
     mib[3] = IPV6CTL_FORWARDING;
     datasize = sizeof(old_forwarding);
-    if (setup)
+    if(setup)
         rc = sysctl(mib, 4, &old_forwarding, &datasize,
                     &forwarding, datasize);
-    else if (old_forwarding >= 0)
+    else if(old_forwarding >= 0)
         rc = sysctl(mib, 4, NULL, NULL,
                     &old_forwarding, datasize);
-    if (rc == -1) {
+    if(rc == -1) {
         perror("Couldn't tweak forwarding knob.");
         return -1;
     }
@@ -243,13 +243,13 @@ kernel_setup(int setup)
     mib[3] = ICMPV6CTL_REDIRACCEPT;
 #endif
     datasize = sizeof(old_accept_redirects);
-    if (setup)
+    if(setup)
         rc = sysctl(mib, 4, &old_accept_redirects, &datasize,
                     &accept_redirects, datasize);
-    else if (old_accept_redirects >= 0)
+    else if(old_accept_redirects >= 0)
         rc = sysctl(mib, 4, NULL, NULL,
                     &old_accept_redirects, datasize);
-    if (rc == -1) {
+    if(rc == -1) {
         perror("Couldn't tweak accept_redirects knob.");
         return -1;
     }
@@ -267,9 +267,9 @@ kernel_setup_socket(int setup)
             if(kernel_socket < 0)
                 return -1;
         }
-        rc = setsockopt(kernel_socket, SOL_SOCKET, SO_USELOOPBACK, 
+        rc = setsockopt(kernel_socket, SOL_SOCKET, SO_USELOOPBACK,
                         &zero, sizeof(zero));
-        if(rc < 0) 
+        if(rc < 0)
             goto error;
         return 1;
     } else {
@@ -370,9 +370,9 @@ kernel_interface_wireless(const char *ifname, int ifindex)
     strncpy(ifmr.ifm_name, ifname, sizeof(ifmr.ifm_name));
     rc = ioctl(s, SIOCGIFMEDIA, (caddr_t)&ifmr);
     close(s);
-    if (rc < 0)
+    if(rc < 0)
         return rc;
-    if ((ifmr.ifm_active & IFM_NMASK) == IFM_IEEE80211)
+    if((ifmr.ifm_active & IFM_NMASK) == IFM_IEEE80211)
         return 1;
     else
         return 0;
@@ -392,8 +392,8 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
              unsigned int newmetric)
 {
     struct {
-      struct rt_msghdr m_rtm;
-      char m_space[512];
+        struct rt_msghdr m_rtm;
+        char m_space[512];
     } msg;
     char *data = msg.m_space;
     int rc, ipv4;
@@ -418,9 +418,9 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         ipv4 = 0;
     }
 
-    if(operation == ROUTE_MODIFY && newmetric == metric && 
+    if(operation == ROUTE_MODIFY && newmetric == metric &&
        memcmp(newgate, gate, 16) == 0 && newifindex == ifindex)
-      return 0;
+        return 0;
 
 
     if(operation == ROUTE_MODIFY) {
@@ -479,7 +479,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
          if(get_sdl(sdl, ifname) < 0)   \
              return -1; \
          data = data + ROUNDUP(sdl->sdl_len); \
-    } while (0)
+    } while(0)
 
 #define PUSHADDR(src) \
     do { struct sockaddr_in *sin = (struct sockaddr_in*) data; \
@@ -487,7 +487,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
          sin->sin_family = AF_INET; \
          memcpy(&sin->sin_addr, (src) + 12, 4); \
          data = data + ROUNDUP(sin->sin_len); \
-    } while (0)
+    } while(0)
 
 #define PUSHADDR6(src) \
     do { struct sockaddr_in6 *sin6 = (struct sockaddr_in6*) data; \
@@ -495,16 +495,16 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
          sin6->sin6_family = AF_INET6; \
          memcpy(&sin6->sin6_addr, (src), 16); \
          if(IN6_IS_ADDR_LINKLOCAL (&sin6->sin6_addr)) \
-            SET_IN6_LINKLOCAL_IFINDEX (sin6->sin6_addr, ifindex); \
+             SET_IN6_LINKLOCAL_IFINDEX (sin6->sin6_addr, ifindex); \
          data = data + ROUNDUP(sin6->sin6_len); \
-    } while (0)
+    } while(0)
 
     /* KAME ipv6 stack does not support IPv4 mapped IPv6, so we have to
      * duplicate the codepath */
     if(ipv4) {
 
         PUSHADDR(dest);
-        if (metric == KERNEL_INFINITY) {
+        if(metric == KERNEL_INFINITY) {
             PUSHADDR(**local4);
         } else if(plen == 128 && memcmp(dest+12, gate+12, 4) == 0) {
 #if defined(RTF_CLONING)
@@ -524,7 +524,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     } else {
 
         PUSHADDR6(dest);
-        if (metric == KERNEL_INFINITY) {
+        if(metric == KERNEL_INFINITY) {
             PUSHADDR6(**local6);
         } else {
             msg.m_rtm.rtm_flags |= RTF_GATEWAY;
@@ -544,7 +544,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
 
     msg.m_rtm.rtm_msglen = data - (char *)&msg;
     rc = write(kernel_socket, (char*)&msg, msg.m_rtm.rtm_msglen);
-    if (rc < msg.m_rtm.rtm_msglen)
+    if(rc < msg.m_rtm.rtm_msglen)
         return -1;
 
     return 1;
@@ -556,7 +556,7 @@ print_kernel_route(int add, struct kernel_route *route)
     char ifname[IFNAMSIZ];
 
     if(!if_indextoname(route->ifindex, ifname))
-      memcpy(ifname,"unk",4);
+        memcpy(ifname,"unk",4);
 
     fprintf(stderr,
             "%s kernel route: dest: %s gw: %s metric: %d if: %s(%d) \n",
@@ -605,11 +605,11 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
     sa = (struct sockaddr *)rta;
     rta += ROUNDUP(sa->sa_len);
     if(sa->sa_family == AF_INET6) {
-          struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
+        struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
         memcpy(route->prefix, &sin6->sin6_addr, 16);
         if(IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr)
-             || IN6_IS_ADDR_MC_LINKLOCAL(&sin6->sin6_addr))
-           return -1;
+           || IN6_IS_ADDR_MC_LINKLOCAL(&sin6->sin6_addr))
+            return -1;
     } else if(sa->sa_family == AF_INET) {
         struct sockaddr_in *sin = (struct sockaddr_in *)sa;
 #if defined(IN_LINKLOCAL)
@@ -629,7 +629,7 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
     sa = (struct sockaddr *)rta;
     rta += ROUNDUP(sa->sa_len);
     if(sa->sa_family == AF_INET6) {
-          struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
+        struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
         memcpy(route->gw, &sin6->sin6_addr, 16);
         if(IN6_IS_ADDR_LINKLOCAL (&sin6->sin6_addr)) {
             route->ifindex = IN6_LINKLOCAL_IFINDEX(sin6->sin6_addr);
@@ -677,7 +677,7 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
     mib[5] = 0;           /* No flags */
 
     rc = sysctl(mib, 6, NULL, &len, NULL, 0);
-    if (rc < 0) {
+    if(rc < 0) {
         perror("kernel_routes(len)");
         return -1;
     }
@@ -689,7 +689,7 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
     }
 
     rc = sysctl(mib, 6, buf, &len, NULL, 0);
-    if (rc < 0) {
+    if(rc < 0) {
         perror("kernel_routes(dump)");
         goto fail;
     }
@@ -721,7 +721,7 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
 }
 
 static int
-socket_read(int sock) 
+socket_read(int sock)
 {
     int rc;
     struct {
@@ -741,7 +741,7 @@ socket_read(int sock)
     }
 
     if(buf.rtm.rtm_type == RTM_ADD ||
-       buf.rtm.rtm_type == RTM_DELETE || 
+       buf.rtm.rtm_type == RTM_DELETE ||
        buf.rtm.rtm_type == RTM_CHANGE) {
         struct kernel_route route;
 

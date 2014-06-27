@@ -1120,11 +1120,11 @@ reopen_logfile()
 static int
 kernel_routes_callback(int changed, void *closure)
 {
-    if (changed & CHANGE_LINK)
+    if(changed & CHANGE_LINK)
         kernel_link_changed = 1;
-    if (changed & CHANGE_ADDR)
+    if(changed & CHANGE_ADDR)
         kernel_addr_changed = 1;
-    if (changed & CHANGE_ROUTE)
+    if(changed & CHANGE_ROUTE)
         kernel_routes_changed = 1;
     return 1;
 }

@@ -57,7 +57,7 @@ static int two_to_the_one_over_hl = 0; /* 2^(1/hl) * 0x10000 */
 
 static int
 route_compare(const unsigned char *prefix, unsigned char plen,
-               struct babel_route *route)
+              struct babel_route *route)
 {
     int i = memcmp(prefix, route->src->prefix, 16);
     if(i != 0)
@@ -260,7 +260,7 @@ flush_all_routes()
     i = route_slots - 1;
     while(i >= 0) {
         while(i < route_slots) {
-        /* Uninstall first, to avoid calling route_lost. */
+            /* Uninstall first, to avoid calling route_lost. */
             if(routes[i]->installed)
                 uninstall_route(routes[i]);
             flush_route(routes[i]);

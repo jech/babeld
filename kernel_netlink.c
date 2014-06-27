@@ -42,7 +42,7 @@ THE SOFTWARE.
 #include <linux/if_bridge.h>
 #include <netinet/ether.h>
 
-#if (__GLIBC__ < 2) || (__GLIBC__ == 2 && __GLIBC_MINOR__ <= 5)
+#if(__GLIBC__ < 2) || (__GLIBC__ == 2 && __GLIBC_MINOR__ <= 5)
 #define RTA_TABLE 15
 #endif
 
@@ -327,8 +327,8 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
             } else if(answer && (nh->nlmsg_pid != nl->sockaddr.nl_pid ||
                                  nh->nlmsg_seq != nl->seqno)) {
                 kdebugf("(wrong seqno %d %d /pid %d %d), ",
-                       nh->nlmsg_seq, nl->seqno,
-                       nh->nlmsg_pid, nl->sockaddr.nl_pid);
+                        nh->nlmsg_seq, nl->seqno,
+                        nh->nlmsg_pid, nl->sockaddr.nl_pid);
                 continue;
             } else if(nh->nlmsg_type == NLMSG_DONE) {
                 kdebugf("(done)\n");
@@ -359,7 +359,7 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
         if(msg.msg_flags & MSG_TRUNC)
             fprintf(stderr, "netlink_read: message truncated\n");
 
-    } while (!done);
+    } while(!done);
 
     return interesting;
 
@@ -1082,7 +1082,7 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
     } while(0)
 
     while(RTA_OK(rta, len)) {
-        switch (rta->rta_type) {
+        switch(rta->rta_type) {
         case RTA_DST:
             COPY_ADDR(route->prefix, RTA_DATA(rta));
             break;
@@ -1097,7 +1097,7 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
             if(route->metric < 0 || route->metric > KERNEL_INFINITY)
                 route->metric = KERNEL_INFINITY;
             break;
-       case RTA_TABLE:
+        case RTA_TABLE:
             table = *(int*)RTA_DATA(rta);
             break;
         default:
@@ -1204,7 +1204,7 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
         }
     }
 
-    if (data) *found = (*found)+1;
+    if(data) *found = (*found)+1;
 
     return 1;
 
@@ -1261,7 +1261,7 @@ parse_ifname_rta(struct ifinfomsg *info, int len)
     len -= NLMSG_ALIGN(sizeof(*info));
 
     while(RTA_OK(rta, len)) {
-        switch (rta->rta_type) {
+        switch(rta->rta_type) {
         case IFLA_IFNAME:
             ifname = RTA_DATA(rta);
             break;
@@ -1280,27 +1280,27 @@ parse_addr_rta(struct ifaddrmsg *addr, int len, struct in6_addr *res)
     len -= NLMSG_ALIGN(sizeof(*addr));
     rta = IFA_RTA(addr);
 
-    while (RTA_OK(rta, len)) {
+    while(RTA_OK(rta, len)) {
         switch(rta->rta_type) {
-            case IFA_LOCAL:
-            case IFA_ADDRESS:
-                switch (addr->ifa_family) {
-                    case AF_INET:
-                        if (res)
-                            v4tov6(res->s6_addr, RTA_DATA(rta));
-                        break;
-                    case AF_INET6:
-                        if (res)
-                            memcpy(res->s6_addr, RTA_DATA(rta), 16);
-                        break;
-                    default:
-                        kdebugf("ifaddr: unexpected address family %d\n", addr->ifa_family);
-                        return -1;
-                        break;
-                }
+        case IFA_LOCAL:
+        case IFA_ADDRESS:
+            switch(addr->ifa_family) {
+            case AF_INET:
+                if(res)
+                    v4tov6(res->s6_addr, RTA_DATA(rta));
+                break;
+            case AF_INET6:
+                if(res)
+                    memcpy(res->s6_addr, RTA_DATA(rta), 16);
                 break;
             default:
+                kdebugf("ifaddr: unexpected address family %d\n", addr->ifa_family);
+                return -1;
                 break;
+            }
+            break;
+        default:
+            break;
         }
         rta = RTA_NEXT(rta, len);
     }
@@ -1334,7 +1334,7 @@ filter_link(struct nlmsghdr *nh, void *data)
     kdebugf("filter_interfaces: link change on if %s(%d): 0x%x\n",
             ifname, ifindex, (unsigned)ifflags);
     FOR_ALL_INTERFACES(ifp) {
-        if (strcmp(ifp->name, ifname) == 0)
+        if(strcmp(ifp->name, ifname) == 0)
             return 1;
     }
     return 0;
@@ -1354,7 +1354,7 @@ filter_addresses(struct nlmsghdr *nh, void *data)
     int ifindex = 0;
     int ll = 0;
 
-    if (data) {
+    if(data) {
         void **args = (void **)data;
         maxroutes = *(int *)args[0];
         routes = (struct kernel_route*)args[1];
@@ -1365,31 +1365,31 @@ filter_addresses(struct nlmsghdr *nh, void *data)
 
     len = nh->nlmsg_len;
 
-    if (data && *found >= maxroutes)
+    if(data && *found >= maxroutes)
         return 0;
 
-    if (nh->nlmsg_type != RTM_NEWADDR &&
-            (data || nh->nlmsg_type != RTM_DELADDR))
+    if(nh->nlmsg_type != RTM_NEWADDR &&
+       (data || nh->nlmsg_type != RTM_DELADDR))
         return 0;
 
     ifa = (struct ifaddrmsg *)NLMSG_DATA(nh);
     len -= NLMSG_LENGTH(0);
 
     rc = parse_addr_rta(ifa, len, &addr);
-    if (rc < 0)
+    if(rc < 0)
         return 0;
 
-    if (ll == !IN6_IS_ADDR_LINKLOCAL(&addr))
+    if(ll == !IN6_IS_ADDR_LINKLOCAL(&addr))
         return 0;
 
-    if (ifindex && ifa->ifa_index != ifindex)
+    if(ifindex && ifa->ifa_index != ifindex)
         return 0;
 
     kdebugf("found address on interface %s(%d): %s\n",
             if_indextoname(ifa->ifa_index, ifname), ifa->ifa_index,
             format_address(addr.s6_addr));
 
-    if (data) {
+    if(data) {
         struct kernel_route *route = &routes[*found];
         memcpy(route->prefix, addr.s6_addr, 16);
         route->plen = 128;
@@ -1409,29 +1409,29 @@ filter_netlink(struct nlmsghdr *nh, void *data)
     int rc;
     int *changed = data;
 
-    switch (nh->nlmsg_type) {
-        case RTM_NEWROUTE:
-        case RTM_DELROUTE:
-            rc = filter_kernel_routes(nh, NULL);
-            if (changed && rc > 0)
-                *changed |= CHANGE_ROUTE;
-            return rc;
-        case RTM_NEWLINK:
-        case RTM_DELLINK:
-            rc = filter_link(nh, NULL);
-            if (changed && rc > 0)
-                *changed |= CHANGE_LINK;
-            return rc;
-        case RTM_NEWADDR:
-        case RTM_DELADDR:
-            rc = filter_addresses(nh, NULL);
-            if (changed && rc > 0)
-                *changed |= CHANGE_ADDR;
-            return rc;
-        default:
-            kdebugf("filter_netlink: unexpected message type %d\n",
-                    nh->nlmsg_type);
-            break;
+    switch(nh->nlmsg_type) {
+    case RTM_NEWROUTE:
+    case RTM_DELROUTE:
+        rc = filter_kernel_routes(nh, NULL);
+        if(changed && rc > 0)
+            *changed |= CHANGE_ROUTE;
+        return rc;
+    case RTM_NEWLINK:
+    case RTM_DELLINK:
+        rc = filter_link(nh, NULL);
+        if(changed && rc > 0)
+            *changed |= CHANGE_LINK;
+        return rc;
+    case RTM_NEWADDR:
+    case RTM_DELADDR:
+        rc = filter_addresses(nh, NULL);
+        if(changed && rc > 0)
+            *changed |= CHANGE_ADDR;
+        return rc;
+    default:
+        kdebugf("filter_netlink: unexpected message type %d\n",
+                nh->nlmsg_type);
+        break;
     }
     return 0;
 }
@@ -1446,15 +1446,15 @@ kernel_addresses(char *ifname, int ifindex, int ll,
     struct rtgenmsg g;
     int rc;
 
-    if (!nl_setup) {
+    if(!nl_setup) {
         fprintf(stderr, "kernel_addresses: netlink not initialized.\n");
         errno = ENOSYS;
         return -1;
     }
 
-    if (nl_command.sock < 0) {
+    if(nl_command.sock < 0) {
         rc = netlink_socket(&nl_command, 0);
-        if (rc < 0) {
+        if(rc < 0) {
             int save = errno;
             perror("kernel_addresses: netlink_socket()");
             errno = save;
@@ -1465,12 +1465,12 @@ kernel_addresses(char *ifname, int ifindex, int ll,
     memset(&g, 0, sizeof(g));
     g.rtgen_family = AF_UNSPEC;
     rc = netlink_send_dump(RTM_GETADDR, &g, sizeof(g));
-    if (rc < 0)
+    if(rc < 0)
         return -1;
 
     rc = netlink_read(&nl_command, NULL, 1, filter_addresses, (void*)data);
 
-    if (rc < 0)
+    if(rc < 0)
         return -1;
 
     return found;
@@ -1494,7 +1494,7 @@ kernel_callback(int (*fn)(int, void*), void *closure)
     rc = netlink_read(&nl_listen, &nl_command, 0, filter_netlink, &changed);
 
     if(rc < 0 && nl_listen.sock < 0)
-      kernel_setup_socket(1);
+        kernel_setup_socket(1);
 
     /* if netlink return 0 (found something interesting) */
     /* or -1 (i.e. IO error), we call... back ! */

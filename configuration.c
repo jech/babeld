@@ -246,7 +246,7 @@ getid(int c, unsigned char **id_r, gnc_t gnc, void *closure)
 
 static int
 getnet(int c, unsigned char **p_r, unsigned char *plen_r, int *af_r,
-          gnc_t gnc, void *closure)
+       gnc_t gnc, void *closure)
 {
     char *t;
     unsigned char *ip;
@@ -808,7 +808,7 @@ gnc_file(struct file_state *s)
     int c;
     c = fgetc(s->f);
     if(c == '\n')
-       s->line++;
+        s->line++;
     return c;
 }
 

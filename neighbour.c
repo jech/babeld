@@ -128,7 +128,7 @@ update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
         if(missed_hellos <= 0)
             return rc;
         timeval_add_msec(&neigh->hello_time, &neigh->hello_time,
-                          missed_hellos * neigh->hello_interval * 10);
+                         missed_hellos * neigh->hello_interval * 10);
     } else {
         if(neigh->hello_seqno >= 0 && neigh->reach > 0) {
             missed_hellos = seqno_minus(hello, neigh->hello_seqno) - 1;
