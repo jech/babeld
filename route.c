@@ -416,6 +416,7 @@ install_route(struct babel_route *route)
     }
 
     rc = kernel_route(ROUTE_ADD, route->src->prefix, route->src->plen,
+                      zeroes, 0,
                       route->nexthop,
                       route->neigh->ifp->ifindex,
                       metric_to_kernel(route_metric(route)), NULL, 0, 0);
@@ -440,6 +441,7 @@ uninstall_route(struct babel_route *route)
         return;
 
     rc = kernel_route(ROUTE_FLUSH, route->src->prefix, route->src->plen,
+                      zeroes, 0,
                       route->nexthop,
                       route->neigh->ifp->ifindex,
                       metric_to_kernel(route_metric(route)), NULL, 0, 0);
@@ -472,6 +474,7 @@ switch_routes(struct babel_route *old, struct babel_route *new)
                 "(this shouldn't happen).");
 
     rc = kernel_route(ROUTE_MODIFY, old->src->prefix, old->src->plen,
+                      zeroes, 0,
                       old->nexthop, old->neigh->ifp->ifindex,
                       metric_to_kernel(route_metric(old)),
                       new->nexthop, new->neigh->ifp->ifindex,
@@ -502,6 +505,7 @@ change_route_metric(struct babel_route *route,
     if(route->installed && old != new) {
         int rc;
         rc = kernel_route(ROUTE_MODIFY, route->src->prefix, route->src->plen,
+                          zeroes, 0,
                           route->nexthop, route->neigh->ifp->ifindex,
                           old,
                           route->nexthop, route->neigh->ifp->ifindex,
