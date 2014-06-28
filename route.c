@@ -801,7 +801,7 @@ update_route(const unsigned char *id,
 
     if(martian_prefix(prefix, plen)) {
         fprintf(stderr, "Rejecting martian route to %s through %s.\n",
-                format_prefix(prefix, plen), format_address(id));
+                format_prefix(prefix, plen), format_address(nexthop));
         return NULL;
     }
 
@@ -840,9 +840,9 @@ update_route(const unsigned char *id,
             debugf("Unfeasible update for installed route to %s "
                    "(%s %d %d -> %s %d %d).\n",
                    format_prefix(src->prefix, src->plen),
-                   format_address(route->src->id),
+                   format_eui64(route->src->id),
                    route->seqno, route->refmetric,
-                   format_address(src->id), seqno, refmetric);
+                   format_eui64(src->id), seqno, refmetric);
             if(src != route->src) {
                 uninstall_route(route);
                 lost = 1;
