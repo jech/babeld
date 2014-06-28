@@ -1085,6 +1085,7 @@ send_triggered_update(struct babel_route *route, struct source *oldsrc,
         /* Route getting significantly worse */
         urgent = 1;
     else if(unsatisfied_request(route->src->prefix, route->src->plen,
+                                route->src->src_prefix, route->src->src_plen,
                                 route->seqno, route->src->id))
         /* Make sure that requests are satisfied speedily */
         urgent = 1;

@@ -82,8 +82,6 @@ find_request(const unsigned char *prefix, unsigned char plen,
              const unsigned char *src_prefix, unsigned char src_plen,
              struct resend **previous_return)
 {
-    if(src_plen != 0)
-        return NULL;
     return find_resend(RESEND_REQUEST, prefix, plen, src_prefix, src_plen,
                        previous_return);
 }
@@ -97,11 +95,9 @@ record_resend(int kind, const unsigned char *prefix, unsigned char plen,
     struct resend *resend;
     unsigned int ifindex = ifp ? ifp->ifindex : 0;
 
-    if(src_plen != 0)
-        return 0;
-
     if((kind == RESEND_REQUEST &&
-        input_filter(NULL, prefix, plen, NULL, 0, NULL, ifindex, NULL) >=
+        input_filter(NULL, prefix, plen, src_prefix, src_plen, NULL,
+                     ifindex, NULL) >=
         INFINITY) ||
        (kind == RESEND_UPDATE &&
         output_filter(NULL, prefix, plen, src_prefix, src_plen,
@@ -174,11 +170,12 @@ resend_expired(struct resend *resend)
 
 int
 unsatisfied_request(const unsigned char *prefix, unsigned char plen,
+                    const unsigned char *src_prefix, unsigned char src_plen,
                     unsigned short seqno, const unsigned char *id)
 {
     struct resend *request;
 
-    request = find_request(prefix, plen, zeroes, 0, NULL);
+    request = find_request(prefix, plen, src_prefix, src_plen, NULL);
     if(request == NULL || resend_expired(request))
         return 0;
 
@@ -193,11 +190,12 @@ unsatisfied_request(const unsigned char *prefix, unsigned char plen,
 int
 request_redundant(struct interface *ifp,
                   const unsigned char *prefix, unsigned char plen,
+                  const unsigned char *src_prefix, unsigned char src_plen,
                   unsigned short seqno, const unsigned char *id)
 {
     struct resend *request;
 
-    request = find_request(prefix, plen, zeroes, 0, NULL);
+    request = find_request(prefix, plen, src_prefix, src_plen, NULL);
     if(request == NULL || resend_expired(request))
         return 0;
 
@@ -228,11 +226,7 @@ satisfy_request(const unsigned char *prefix, unsigned char plen,
 {
     struct resend *request, *previous;
 
-    /* TODO */
-    if(src_plen != 0)
-        return 0;
-
-    request = find_request(prefix, plen, zeroes, 0, &previous);
+    request = find_request(prefix, plen, src_prefix, src_plen, &previous);
     if(request == NULL)
         return 0;
 

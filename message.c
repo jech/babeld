@@ -2007,16 +2007,14 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
                 update_myseqno();
             }
         }
-        send_update(neigh->ifp, 1, prefix, plen,
-                    xroute->src_prefix, xroute->src_plen);
+        send_update(neigh->ifp, 1, prefix, plen, src_prefix, src_plen);
         return;
     }
 
     if(route &&
        (memcmp(id, route->src->id, 8) != 0 ||
         seqno_compare(seqno, route->seqno) <= 0)) {
-        send_update(neigh->ifp, 1, prefix, plen,
-                    route->src->src_prefix, route->src->src_plen);
+        send_update(neigh->ifp, 1, prefix, plen, src_prefix, src_plen);
         return;
     }
 
@@ -2029,7 +2027,8 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
         return;
     }
 
-    if(request_redundant(neigh->ifp, prefix, plen, seqno, id))
+    if(request_redundant(neigh->ifp, prefix, plen, src_prefix, src_plen,
+                         seqno, id))
         return;
 
     /* Let's try to forward this request. */
