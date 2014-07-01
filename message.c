@@ -693,18 +693,9 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 src_plen += 96;
             parsed += rc;
             if(ae == 0) {
-                debugf("Received request for any from %s on %s.\n",
+                debugf("Received source-specific wildcard request "
+                       "from %s on %s -- dropping.\n",
                        format_address(from), ifp->name);
-                /* If a neighbour is requesting a full route dump from us,
-                 we might as well send it an IHU. */
-                send_ihu(neigh, NULL);
-                /* Since nodes send wildcard requests on boot, booting
-                 a large number of nodes at the same time may cause an
-                 update storm.  Ignore a wildcard request that happens
-                 shortly after we sent a full update. */
-                if(neigh->ifp->last_update_time <
-                   now.tv_sec - MAX(neigh->ifp->hello_interval / 100, 1))
-                    send_update(neigh->ifp, 0, NULL, 0, NULL, 0);
             } else {
                 debugf("Received request for (%s from %s) from %s on %s.\n",
                        format_prefix(prefix, plen),
