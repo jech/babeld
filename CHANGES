@@ -1,3 +1,9 @@
+babeld-1.5.1 (unreleased):
+
+  * Added support for reading multiple configuration files by specifying
+    the -c command-line flag multiple times.
+  * Be less noisy about unknown TLV types.  Thanks to Baptiste Jonglez.
+
 22 May 2014: babeld-1.5.0
 
   * Added support for an RTT-based metric -- see the description of
