@@ -286,6 +286,8 @@ main(int argc, char **argv)
         }
     }
 
+    free(config_files);
+
     if(default_wireless_hello_interval <= 0)
         default_wireless_hello_interval = 4000;
     default_wireless_hello_interval = MAX(default_wireless_hello_interval, 5);
