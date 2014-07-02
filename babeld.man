@@ -120,7 +120,8 @@ specified multiple times in order to export routes from more than one
 table.
 .TP
 .BI \-c " filename"
-Specify the name of the configuration file.  The default is
+Specify the name of the configuration file.  This flag can be repeated
+multiple times.  The default is
 .BR /etc/babeld.conf .
 .TP
 .BI \-C " statement"

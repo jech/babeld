@@ -101,7 +101,8 @@ main(int argc, char **argv)
     struct sockaddr_in6 sin6;
     int rc, fd, i, opt;
     time_t expiry_time, source_expiry_time, kernel_dump_time;
-    const char *config_file = NULL;
+    const char **config_files = NULL;
+    int num_config_files = 0;
     void *vrc;
     unsigned int seed;
     struct interface *ifp;
@@ -232,7 +233,13 @@ main(int argc, char **argv)
                 goto usage;
             break;
         case 'c':
-            config_file = optarg;
+            config_files = realloc(config_files,
+                                   (num_config_files + 1) * sizeof(char*));
+            if(config_files == NULL) {
+                fprintf(stderr, "Couldn't allocate config file.\n");
+                exit(1);
+            }
+            config_files[num_config_files++] = optarg;
             break;
         case 'C':
             rc = parse_config_from_string(optarg);
@@ -256,24 +263,27 @@ main(int argc, char **argv)
         }
     }
 
-    if(!config_file) {
-        if(access("/etc/babeld.conf", F_OK) >= 0)
-            config_file = "/etc/babeld.conf";
+    if(num_config_files == 0) {
+        if(access("/etc/babeld.conf", F_OK) >= 0) {
+            config_files = malloc(sizeof(char*));
+            if(config_files == NULL) {
+                fprintf(stderr, "Couldn't allocate config file.\n");
+                exit(1);
+            }
+            config_files[num_config_files++] = "/etc/babeld.conf";
+        }
     }
-    if(config_file) {
+
+    for(i = 0; i < num_config_files; i++) {
         int line;
-        rc = parse_config_from_file(config_file, &line);
+        rc = parse_config_from_file(config_files[i], &line);
         if(rc < 0) {
             fprintf(stderr,
                     "Couldn't parse configuration from file %s "
                     "(error at line %d).\n",
-                    config_file, line);
+                    config_files[i], line);
             exit(1);
         }
-    } else {
-        if(access("/etc/babel.conf", F_OK) >= 0)
-            fprintf(stderr,
-                    "Warning: /etc/babel.conf exists, it will be ignored.\n");
     }
 
     if(default_wireless_hello_interval <= 0)
