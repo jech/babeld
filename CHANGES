@@ -1,4 +1,4 @@
-babeld-1.5.1 (unreleased):
+4 July 2014: babeld-1.5.1:
 
   * Added support for reading multiple configuration files by specifying
     the -c command-line flag multiple times.
