@@ -86,11 +86,9 @@ struct interface {
     char have_buffered_id;
     char have_buffered_nh;
     char have_buffered_prefix;
-    char have_buffered_src_prefix;
     unsigned char buffered_id[16];
     unsigned char buffered_nh[4];
     unsigned char buffered_prefix[16];
-    unsigned char buffered_src_prefix[16];
     unsigned char *sendbuf;
     struct buffered_update *buffered_updates;
     int num_buffered_updates;
