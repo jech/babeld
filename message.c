@@ -1113,7 +1113,7 @@ flush_unicast(int dofree)
             perror("send(unicast)");
     } else {
         fprintf(stderr,
-                "Warning: bucket full, dropping unicast packet"
+                "Warning: bucket full, dropping unicast packet "
                 "to %s if %s.\n",
                 format_address(unicast_neighbour->address),
                 unicast_neighbour->ifp->name);
