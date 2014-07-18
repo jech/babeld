@@ -401,6 +401,12 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         {{{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x7f, 0x00, 0x00, 0x01 }}};
 
+    /* Source-specific routes are not implemented yet for BSD. */
+    if(src_plen > 0) {
+        errno = ENOSYS;
+        return -1;
+    }
+
     /* Check that the protocol family is consistent. */
     if(plen >= 96 && v4mapped(dest)) {
         if(!v4mapped(gate)) {
