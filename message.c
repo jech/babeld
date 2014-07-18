@@ -1338,7 +1338,7 @@ send_update_resend(struct interface *ifp,
     assert(prefix != NULL);
 
     send_update(ifp, 1, prefix, plen);
-    record_resend(RESEND_UPDATE, prefix, plen, 0, 0, NULL, resend_delay);
+    record_resend(RESEND_UPDATE, prefix, plen, 0, NULL, NULL, resend_delay);
 }
 
 void
