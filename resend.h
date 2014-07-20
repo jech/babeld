@@ -33,6 +33,8 @@ struct resend {
     struct timeval time;
     unsigned char prefix[16];
     unsigned char plen;
+    unsigned char src_prefix[16];
+    unsigned char src_plen;
     unsigned short seqno;
     unsigned char id[8];
     struct interface *ifp;
