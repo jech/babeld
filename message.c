@@ -1074,11 +1074,14 @@ static void
 really_send_update(struct interface *ifp,
                    const unsigned char *id,
                    const unsigned char *prefix, unsigned char plen,
+                   const unsigned char *src_prefix, unsigned char src_plen,
                    unsigned short seqno, unsigned short metric,
                    unsigned char *channels, int channels_len)
 {
     int add_metric, v4, real_plen, omit = 0;
     const unsigned char *real_prefix;
+    const unsigned char *real_src_prefix = NULL;
+    int real_src_plen = 0;
     unsigned short flags = 0;
     int channels_size;
 
@@ -1090,14 +1093,14 @@ really_send_update(struct interface *ifp,
     if(!if_up(ifp))
         return;
 
-    add_metric = output_filter(id, prefix, plen, zeroes,
-                               0, ifp->ifindex);
+    add_metric = output_filter(id, prefix, plen, src_prefix,
+                               src_plen, ifp->ifindex);
     if(add_metric >= INFINITY)
         return;
 
     metric = MIN(metric + add_metric, INFINITY);
     /* Worst case */
-    ensure_space(ifp, 20 + 12 + 28);
+    ensure_space(ifp, 20 + 12 + 28 + 18);
 
     v4 = plen >= 96 && v4mapped(prefix);
 
@@ -1117,20 +1120,27 @@ really_send_update(struct interface *ifp,
 
         real_prefix = prefix + 12;
         real_plen = plen - 96;
+        if(src_plen != 0 /* it should never be 96 */) {
+            real_src_prefix = src_prefix + 12;
+            real_src_plen = src_plen - 96;
+        }
     } else {
         if(ifp->have_buffered_prefix) {
             while(omit < plen / 8 &&
                   ifp->buffered_prefix[omit] == prefix[omit])
                 omit++;
         }
-        if(!ifp->have_buffered_prefix || plen >= 48)
+        if(src_plen == 0 && (!ifp->have_buffered_prefix || plen >= 48))
             flags |= 0x80;
         real_prefix = prefix;
         real_plen = plen;
+        real_src_prefix = src_prefix;
+        real_src_plen = src_plen;
     }
 
     if(!ifp->have_buffered_id || memcmp(id, ifp->buffered_id, 8) != 0) {
-        if(real_plen == 128 && memcmp(real_prefix + 8, id, 8) == 0) {
+        if(src_plen == 0 && real_plen == 128 &&
+           memcmp(real_prefix + 8, id, 8) == 0) {
             flags |= 0x40;
         } else {
             start_message(ifp, MESSAGE_ROUTER_ID, 10);
@@ -1142,24 +1152,39 @@ really_send_update(struct interface *ifp,
         ifp->have_buffered_id = 1;
     }
 
-    start_message(ifp, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
-                  channels_size);
+    if(src_plen == 0)
+        start_message(ifp, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
+                      channels_size);
+    else
+        start_message(ifp, MESSAGE_UPDATE_SRC_SPECIFIC,
+                      10 + (real_plen + 7) / 8 - omit +
+                      (real_src_plen + 7) / 8 + channels_size);
     accumulate_byte(ifp, v4 ? 1 : 2);
-    accumulate_byte(ifp, flags);
+    if(src_plen != 0)
+        accumulate_byte(ifp, real_src_plen);
+    else
+        accumulate_byte(ifp, flags);
     accumulate_byte(ifp, real_plen);
     accumulate_byte(ifp, omit);
     accumulate_short(ifp, (ifp->update_interval + 5) / 10);
     accumulate_short(ifp, seqno);
     accumulate_short(ifp, metric);
     accumulate_bytes(ifp, real_prefix + omit, (real_plen + 7) / 8 - omit);
+    if(src_plen != 0)
+        accumulate_bytes(ifp, real_src_prefix, (real_src_plen + 7) / 8);
     /* Note that an empty channels TLV is different from no such TLV. */
     if(channels_len >= 0) {
         accumulate_byte(ifp, 2);
         accumulate_byte(ifp, channels_len);
         accumulate_bytes(ifp, channels, channels_len);
     }
-    end_message(ifp, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
-                channels_size);
+    if(src_plen == 0)
+        end_message(ifp, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
+                    channels_size);
+    else
+        end_message(ifp, MESSAGE_UPDATE_SRC_SPECIFIC,
+                    10 + (real_plen + 7) / 8 - omit +
+                    (real_src_plen + 7) / 8 + channels_size);
 
     if(flags & 0x80) {
         memcpy(ifp->buffered_prefix, prefix, 16);
@@ -1198,7 +1223,16 @@ compare_buffered_updates(const void *av, const void *bv)
     else if(a->plen > b->plen)
         return -1;
 
-    return memcmp(a->prefix, b->prefix, 16);
+    rc = memcmp(a->prefix, b->prefix, 16);
+    if(rc != 0)
+        return rc;
+
+    if(a->src_plen < b->src_plen)
+        return -1;
+    else if(a->src_plen > b->src_plen)
+        return 1;
+
+    return memcmp(a->src_prefix, b->src_prefix, 16);
 }
 
 void
@@ -1207,7 +1241,9 @@ flushupdates(struct interface *ifp)
     struct xroute *xroute;
     struct babel_route *route;
     const unsigned char *last_prefix = NULL;
+    const unsigned char *last_src_prefix = NULL;
     unsigned char last_plen = 0xFF;
+    unsigned char last_src_plen = 0xFF;
     int i;
 
     if(ifp == NULL) {
@@ -1235,7 +1271,8 @@ flushupdates(struct interface *ifp)
            with the same router-id together, with IPv6 going out before IPv4. */
 
         for(i = 0; i < n; i++) {
-            route = find_installed_route(b[i].prefix, b[i].plen, zeroes, 0);
+            route = find_installed_route(b[i].prefix, b[i].plen,
+                                         b[i].src_prefix, b[i].src_plen);
             if(route)
                 memcpy(b[i].id, route->src->id, 8);
             else
@@ -1249,24 +1286,30 @@ flushupdates(struct interface *ifp)
                sent out.  Since our buffer is now sorted, it is enough to
                compare with the previous update. */
 
-            if(last_prefix) {
-                if(b[i].plen == last_plen &&
-                   memcmp(b[i].prefix, last_prefix, 16) == 0)
-                    continue;
-            }
+            if(last_prefix &&
+               b[i].plen == last_plen &&
+               b[i].src_plen == last_src_plen &&
+               memcmp(b[i].prefix, last_prefix, 16) == 0 &&
+               memcmp(b[i].src_prefix, last_src_prefix, 16) == 0)
+                continue;
 
             xroute = find_xroute(b[i].prefix, b[i].plen,
-                                 zeroes, 0);
+                                 b[i].src_prefix, b[i].src_plen);
             route = find_installed_route(b[i].prefix, b[i].plen,
-                                         zeroes, 0);
+                                         b[i].src_prefix, b[i].src_plen);
 
             if(xroute && (!route || xroute->metric <= kernel_metric)) {
                 really_send_update(ifp, myid,
                                    xroute->prefix, xroute->plen,
+                                   xroute->src_prefix, xroute->src_plen,
                                    myseqno, xroute->metric,
                                    NULL, 0);
                 last_prefix = xroute->prefix;
                 last_plen = xroute->plen;
+                if(xroute->src_plen != 0) {
+                    last_src_prefix = xroute->src_prefix;
+                    last_src_plen = xroute->src_plen;
+                }
             } else if(route) {
                 unsigned char channels[DIVERSITY_HOPS];
                 int chlen;
@@ -1305,17 +1348,22 @@ flushupdates(struct interface *ifp)
 
                 chlen = channels_len(channels);
                 really_send_update(ifp, route->src->id,
-                                   route->src->prefix,
-                                   route->src->plen,
+                                   route->src->prefix, route->src->plen,
+                                   route->src->src_prefix, route->src->src_plen,
                                    seqno, metric,
                                    channels, chlen);
                 update_source(route->src, seqno, metric);
                 last_prefix = route->src->prefix;
                 last_plen = route->src->plen;
+                if(route->src->src_plen != 0) {
+                    last_src_prefix = route->src->src_prefix;
+                    last_src_plen = route->src->src_plen;
+                }
             } else {
             /* There's no route for this prefix.  This can happen shortly
                after an xroute has been retracted, so send a retraction. */
                 really_send_update(ifp, myid, b[i].prefix, b[i].plen,
+                                   b[i].src_prefix, b[i].src_plen,
                                    myseqno, INFINITY, NULL, -1);
             }
         }
@@ -1340,7 +1388,8 @@ schedule_update_flush(struct interface *ifp, int urgent)
 
 static void
 buffer_update(struct interface *ifp,
-              const unsigned char *prefix, unsigned char plen)
+              const unsigned char *prefix, unsigned char plen,
+              const unsigned char *src_prefix, unsigned char src_plen)
 {
     if(ifp->num_buffered_updates > 0 &&
        ifp->num_buffered_updates >= ifp->update_bufsize)
@@ -1372,6 +1421,9 @@ buffer_update(struct interface *ifp,
     memcpy(ifp->buffered_updates[ifp->num_buffered_updates].prefix,
            prefix, 16);
     ifp->buffered_updates[ifp->num_buffered_updates].plen = plen;
+    memcpy(ifp->buffered_updates[ifp->num_buffered_updates].src_prefix,
+           src_prefix, 16);
+    ifp->buffered_updates[ifp->num_buffered_updates].src_plen = src_plen;
     ifp->num_buffered_updates++;
 }
 
@@ -1400,9 +1452,10 @@ send_update(struct interface *ifp, int urgent,
         return;
 
     if(prefix) {
-        debugf("Sending update to %s for %s.\n",
-               ifp->name, format_prefix(prefix, plen));
-        buffer_update(ifp, prefix, plen);
+        debugf("Sending update to %s for %s from %s.\n",
+               ifp->name, format_prefix(prefix, plen),
+               format_prefix(src_prefix, src_plen));
+        buffer_update(ifp, prefix, plen, src_prefix, src_plen);
     } else {
         struct route_stream *routes;
         send_self_update(ifp);
@@ -1413,7 +1466,8 @@ send_update(struct interface *ifp, int urgent,
                 struct babel_route *route = route_stream_next(routes);
                 if(route == NULL)
                     break;
-                buffer_update(ifp, route->src->prefix, route->src->plen);
+                buffer_update(ifp, route->src->prefix, route->src->plen,
+                              route->src->src_prefix, route->src->src_plen);
             }
             route_stream_done(routes);
         } else {
