@@ -726,6 +726,7 @@ flushbuf(struct interface *ifp)
     ifp->have_buffered_id = 0;
     ifp->have_buffered_nh = 0;
     ifp->have_buffered_prefix = 0;
+    ifp->have_buffered_src_prefix = 0;
     ifp->flush_timeout.tv_sec = 0;
     ifp->flush_timeout.tv_usec = 0;
 }
