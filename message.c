@@ -584,7 +584,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    format_prefix(prefix, plen),
                    format_address(from), ifp->name,
                    format_eui64(message + 8), seqno);
-            handle_request(neigh, prefix, plen, message[6],
+            handle_request(neigh, prefix, plen, zeroes, 0, message[6],
                            seqno, message + 8);
         } else if(type == MESSAGE_UPDATE_SRC_SPECIFIC) {
             unsigned char prefix[16], src_prefix[16], *nh;
@@ -1914,15 +1914,17 @@ send_request_resend(struct neighbour *neigh,
 
 void
 handle_request(struct neighbour *neigh, const unsigned char *prefix,
-               unsigned char plen, unsigned char hop_count,
+               unsigned char plen,
+               const unsigned char *src_prefix, unsigned char src_plen,
+               unsigned char hop_count,
                unsigned short seqno, const unsigned char *id)
 {
     struct xroute *xroute;
     struct babel_route *route;
     struct neighbour *successor = NULL;
 
-    xroute = find_xroute(prefix, plen, zeroes, 0);
-    route = find_installed_route(prefix, plen, zeroes, 0);
+    xroute = find_xroute(prefix, plen, src_prefix, src_plen);
+    route = find_installed_route(prefix, plen, src_prefix, src_plen);
 
     if(xroute && (!route || xroute->metric <= kernel_metric)) {
         if(hop_count > 0 && memcmp(id, myid, 8) == 0) {
@@ -1968,7 +1970,7 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
            find a different neighbour to forward the request to. */
         struct babel_route *other_route;
 
-        other_route = find_best_route(prefix, plen, zeroes, 0,
+        other_route = find_best_route(prefix, plen, src_prefix, src_plen,
                                       0, neigh);
         if(other_route && route_metric(other_route) < INFINITY)
             successor = other_route->neigh;
@@ -1978,8 +1980,8 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
         /* Give up */
         return;
 
-    send_unicast_multihop_request(successor, prefix, plen, zeroes, 0,
+    send_unicast_multihop_request(successor, prefix, plen, src_prefix, src_plen,
                                   seqno, id, hop_count - 1);
-    record_resend(RESEND_REQUEST, prefix, plen, zeroes, 0, seqno, id,
+    record_resend(RESEND_REQUEST, prefix, plen, src_prefix, src_plen, seqno, id,
                   neigh->ifp, 0);
 }

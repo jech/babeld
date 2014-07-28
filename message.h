@@ -108,5 +108,7 @@ void send_request_resend(struct neighbour *neigh,
                          unsigned char src_plen,
                          unsigned short seqno, unsigned char *id);
 void handle_request(struct neighbour *neigh, const unsigned char *prefix,
-                    unsigned char plen, unsigned char hop_count,
+                    unsigned char plen,
+                    const unsigned char *src_prefix, unsigned char src_plen,
+                    unsigned char hop_count,
                     unsigned short seqno, const unsigned char *id);
