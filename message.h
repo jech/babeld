@@ -104,6 +104,8 @@ send_unicast_multihop_request(struct neighbour *neigh,
                               unsigned short hop_count);
 void send_request_resend(struct neighbour *neigh,
                          const unsigned char *prefix, unsigned char plen,
+                         const unsigned char *src_prefix,
+                         unsigned char src_plen,
                          unsigned short seqno, unsigned char *id);
 void handle_request(struct neighbour *neigh, const unsigned char *prefix,
                     unsigned char plen, unsigned char hop_count,

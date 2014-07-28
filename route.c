@@ -1111,6 +1111,7 @@ send_triggered_update(struct babel_route *route, struct source *oldsrc,
     if(oldmetric < INFINITY) {
         if(newmetric >= oldmetric + 512) {
             send_request_resend(NULL, route->src->prefix, route->src->plen,
+                                route->src->src_prefix, route->src->src_plen,
                                 route->src->metric >= INFINITY ?
                                 route->src->seqno :
                                 seqno_plus(route->src->seqno, 1),
@@ -1167,6 +1168,7 @@ route_lost(struct source *src, unsigned oldmetric)
            the value of INFINITY. */
         if(oldmetric <= INFINITY / 2)
             send_request_resend(NULL, src->prefix, src->plen,
+                                src->src_prefix, src->src_plen,
                                 src->metric >= INFINITY ?
                                 src->seqno : seqno_plus(src->seqno, 1),
                                 src->id);
