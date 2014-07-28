@@ -1731,29 +1731,51 @@ send_request(struct interface *ifp,
 
 void
 send_unicast_request(struct neighbour *neigh,
-                     const unsigned char *prefix, unsigned char plen)
+                     const unsigned char *prefix, unsigned char plen,
+                     const unsigned char *src_prefix, unsigned char src_plen)
 {
-    int rc, v4, pb, len;
+    int rc, v4, pb, spb, len;
 
     /* make sure any buffered updates go out before this request. */
     flushupdates(neigh->ifp);
 
-    debugf("sending unicast request to %s for %s.\n",
-           format_address(neigh->address),
-           prefix ? format_prefix(prefix, plen) : "any");
+    if(!prefix)
+        debugf("sending unicast request to %s for any.\n",
+               format_address(neigh->address));
+    else
+        debugf("sending unicast request to %s for %s from %s.\n",
+               format_address(neigh->address),
+               format_prefix(prefix, plen),
+               format_prefix(src_prefix, src_plen));
     v4 = plen >= 96 && v4mapped(prefix);
     pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
     len = !prefix ? 2 : 2 + pb;
 
-    rc = start_unicast_message(neigh, MESSAGE_REQUEST, len);
+    if(src_plen != 0) {
+        spb = v4 ? ((src_plen - 96) + 7) / 8 : (src_plen + 7) / 8;
+        len += spb + 1;
+        rc = start_unicast_message(neigh, MESSAGE_REQUEST_SRC_SPECIFIC, len);
+    } else {
+        rc = start_unicast_message(neigh, MESSAGE_REQUEST, len);
+    }
     if(rc < 0) return;
     accumulate_unicast_byte(neigh, !prefix ? 0 : v4 ? 1 : 2);
     accumulate_unicast_byte(neigh, !prefix ? 0 : v4 ? plen - 96 : plen);
+    if(src_plen != 0)
+        accumulate_unicast_byte(neigh, v4 ? src_plen - 96 : src_plen);
     if(prefix) {
         if(v4)
             accumulate_unicast_bytes(neigh, prefix + 12, pb);
         else
             accumulate_unicast_bytes(neigh, prefix, pb);
+    }
+    if(src_plen != 0) {
+        if(v4)
+            accumulate_unicast_bytes(neigh, src_prefix + 12, spb);
+        else
+            accumulate_unicast_bytes(neigh, src_prefix, spb);
+        end_unicast_message(neigh, MESSAGE_REQUEST_SRC_SPECIFIC, len);
+        return;
     }
     end_unicast_message(neigh, MESSAGE_REQUEST, len);
 }
