@@ -1670,16 +1670,17 @@ send_marginal_ihu(struct interface *ifp)
 
 void
 send_request(struct interface *ifp,
-             const unsigned char *prefix, unsigned char plen)
+             const unsigned char *prefix, unsigned char plen,
+             const unsigned char *src_prefix, unsigned char src_plen)
 {
-    int v4, pb, len;
+    int v4, pb, spb, len;
 
     if(ifp == NULL) {
         struct interface *ifp_auxn;
         FOR_ALL_INTERFACES(ifp_auxn) {
             if(if_up(ifp_auxn))
                 continue;
-            send_request(ifp_auxn, prefix, plen);
+            send_request(ifp_auxn, prefix, plen, src_prefix, src_plen);
         }
         return;
     }
@@ -1690,20 +1691,40 @@ send_request(struct interface *ifp,
     if(!if_up(ifp))
         return;
 
-    debugf("sending request to %s for %s.\n",
-           ifp->name, prefix ? format_prefix(prefix, plen) : "any");
+    if(!prefix)
+        debugf("sending request to %s for any.\n", ifp->name);
+    else
+        debugf("sending request to %s for %s from %s.\n", ifp->name,
+               format_prefix(prefix, plen),
+               format_prefix(src_prefix, src_plen));
     v4 = plen >= 96 && v4mapped(prefix);
     pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
     len = !prefix ? 2 : 2 + pb;
 
-    start_message(ifp, MESSAGE_REQUEST, len);
+    if(src_plen != 0) {
+        spb = v4 ? ((src_plen - 96) + 7) / 8 : (src_plen + 7) / 8;
+        len += spb + 1;
+        start_message(ifp, MESSAGE_REQUEST_SRC_SPECIFIC, len);
+    } else {
+        start_message(ifp, MESSAGE_REQUEST, len);
+    }
     accumulate_byte(ifp, !prefix ? 0 : v4 ? 1 : 2);
     accumulate_byte(ifp, !prefix ? 0 : v4 ? plen - 96 : plen);
+    if(src_plen != 0)
+        accumulate_byte(ifp, v4 ? src_plen - 96 : src_plen);
     if(prefix) {
         if(v4)
             accumulate_bytes(ifp, prefix + 12, pb);
         else
             accumulate_bytes(ifp, prefix, pb);
+    }
+    if(src_plen != 0) {
+        if(v4)
+            accumulate_bytes(ifp, src_prefix + 12, spb);
+        else
+            accumulate_bytes(ifp, src_prefix, spb);
+        end_message(ifp, MESSAGE_REQUEST_SRC_SPECIFIC, len);
+        return;
     }
     end_message(ifp, MESSAGE_REQUEST, len);
 }
