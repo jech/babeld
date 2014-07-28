@@ -712,6 +712,38 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                        format_address(from), ifp->name);
                 send_update(neigh->ifp, 0, prefix, plen, src_prefix, src_plen);
             }
+        } else if(type == MESSAGE_MH_REQUEST_SRC_SPECIFIC) {
+            unsigned char prefix[16], plen, ae, src_prefix[16], src_plen, hopc;
+            const unsigned char *router_id;
+            unsigned short seqno;
+            int rc, parsed = 16;
+            if(len < 14) goto fail;
+            ae = message[2];
+            plen = message[3];
+            DO_NTOHS(seqno, message + 4);
+            hopc = message[6];
+            src_plen = message[7];
+            router_id = message + 8;
+            rc = network_prefix(ae, plen, 0, message + parsed,
+                                NULL, len + 2 - parsed, prefix);
+            if(rc < 0) goto fail;
+            if(ae == 1)
+                plen += 96;
+            parsed += rc;
+            rc = network_prefix(ae, src_plen, 0, message + parsed,
+                                NULL, len + 2 - parsed, src_prefix);
+            if(rc < 0) goto fail;
+            if(ae == 1)
+                src_plen += 96;
+            debugf("Received request (%d) for (%s, %s)"
+                   " from %s on %s (%s, %d).\n",
+                   message[6],
+                   format_prefix(prefix, plen),
+                   format_prefix(src_prefix, src_plen),
+                   format_address(from), ifp->name,
+                   format_eui64(router_id), seqno);
+            handle_request(neigh, prefix, plen, src_prefix, src_plen,
+                           hopc, seqno, router_id);
         } else {
             debugf("Received unknown packet type %d from %s on %s.\n",
                    type, format_address(from), ifp->name);
