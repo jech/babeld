@@ -1846,34 +1846,51 @@ send_multihop_request(struct interface *ifp,
 void
 send_unicast_multihop_request(struct neighbour *neigh,
                               const unsigned char *prefix, unsigned char plen,
+                              const unsigned char *src_prefix,
+                              unsigned char src_plen,
                               unsigned short seqno, const unsigned char *id,
                               unsigned short hop_count)
 {
-    int rc, v4, pb, len;
+    int rc, v4, pb, spb, len;
 
     /* Make sure any buffered updates go out before this request. */
     flushupdates(neigh->ifp);
 
-    debugf("Sending multi-hop request to %s for %s (%d hops).\n",
+    debugf("Sending multi-hop request to %s for %s from %s (%d hops).\n",
            format_address(neigh->address),
-           format_prefix(prefix, plen), hop_count);
+           format_prefix(prefix, plen),
+           format_prefix(src_prefix, src_plen), hop_count);
     v4 = plen >= 96 && v4mapped(prefix);
     pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
     len = 6 + 8 + pb;
 
-    rc = start_unicast_message(neigh, MESSAGE_MH_REQUEST, len);
+    if(src_plen != 0) {
+        spb = v4 ? ((src_plen - 96) + 7) / 8 : (src_plen + 7) / 8;
+        len += spb;
+        rc = start_unicast_message(neigh, MESSAGE_MH_REQUEST_SRC_SPECIFIC, len);
+    } else {
+        rc = start_unicast_message(neigh, MESSAGE_MH_REQUEST, len);
+    }
     if(rc < 0) return;
     accumulate_unicast_byte(neigh, v4 ? 1 : 2);
     accumulate_unicast_byte(neigh, v4 ? plen - 96 : plen);
     accumulate_unicast_short(neigh, seqno);
     accumulate_unicast_byte(neigh, hop_count);
-    accumulate_unicast_byte(neigh, 0);
+    accumulate_unicast_byte(neigh, v4 ? src_plen - 96 : src_plen);
     accumulate_unicast_bytes(neigh, id, 8);
     if(prefix) {
         if(v4)
             accumulate_unicast_bytes(neigh, prefix + 12, pb);
         else
             accumulate_unicast_bytes(neigh, prefix, pb);
+    }
+    if(src_plen != 0) {
+        if(v4)
+            accumulate_unicast_bytes(neigh, src_prefix + 12, spb);
+        else
+            accumulate_unicast_bytes(neigh, src_prefix, spb);
+        end_unicast_message(neigh, MESSAGE_MH_REQUEST_SRC_SPECIFIC, len);
+        return;
     }
     end_unicast_message(neigh, MESSAGE_MH_REQUEST, len);
 }
@@ -1884,7 +1901,8 @@ send_request_resend(struct neighbour *neigh,
                     unsigned short seqno, unsigned char *id)
 {
     if(neigh)
-        send_unicast_multihop_request(neigh, prefix, plen, seqno, id, 127);
+        send_unicast_multihop_request(neigh, prefix, plen, zeroes, 0,
+                                      seqno, id, 127);
     else
         send_multihop_request(NULL, prefix, plen, zeroes, 0, seqno, id, 127);
 
@@ -1958,8 +1976,8 @@ handle_request(struct neighbour *neigh, const unsigned char *prefix,
         /* Give up */
         return;
 
-    send_unicast_multihop_request(successor, prefix, plen, seqno, id,
-                                  hop_count - 1);
+    send_unicast_multihop_request(successor, prefix, plen, zeroes, 0,
+                                  seqno, id, hop_count - 1);
     record_resend(RESEND_REQUEST, prefix, plen, zeroes, 0, seqno, id,
                   neigh->ifp, 0);
 }
