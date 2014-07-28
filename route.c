@@ -389,27 +389,19 @@ route_stream_done(struct route_stream *stream)
     free(stream);
 }
 
-/* Search for a route having dst_prefix/dst_len as destination prefix and
-   src_prefix/src_plen as source prefix.  However, if is_min_dst is specified,
-   the route returns has just as constraint to contains the given destination
-   prefix.  As multiple routes can matched this one, the minimum among the
-   possibles routes is returned.  If exclusive_min is specified, it will be
-   requier for the destination to be different than the one in argument.  The
-   same behaviour holds for the source prefix with is_min_src. */
+/* Search the minimum route covering (dst, src), such that either the exact
+   destination or source is given.  If exclusive_min is true, (dst, src) is
+   excluded from the search. */
 struct babel_route *
 find_min_iroute(const unsigned char *dst_prefix, unsigned char dst_plen,
                 const unsigned char *src_prefix, unsigned char src_plen,
-                int is_min_dst, int is_min_src, int exclusive_min)
+                int is_fixed_dst, int exclusive_min)
 {
     enum prefix_status st;
     struct babel_route *result = NULL;
     int i;
 
-    if(!is_min_dst && !is_min_src) {
-        i = find_route_slot(dst_prefix, dst_plen, src_prefix, src_plen, NULL);
-        result = (i < 0 || !routes[i]->installed) ? NULL : routes[i];
-
-    } else if(is_min_src) { /* only dst is exactly specified */
+    if(is_fixed_dst) {
         for(i = 0; i < route_slots; i++) {
             if(!routes[i]->installed)
                 continue;
@@ -434,7 +426,7 @@ find_min_iroute(const unsigned char *dst_prefix, unsigned char dst_plen,
             result = routes[i];
         }
 
-    } else if(is_min_dst) { /* only src is exactly specified */
+    } else {
         for(i = 0; i < route_slots; i++) {
             if(!routes[i]->installed)
                 continue;
@@ -458,33 +450,8 @@ find_min_iroute(const unsigned char *dst_prefix, unsigned char dst_plen,
 
             result = routes[i];
         }
-
-    } else {
-        for(i = 0; i < route_slots; i++) {
-            if(!routes[i]->installed)
-                continue;
-            st = prefix_cmp(dst_prefix, dst_plen,
-                            routes[i]->src->prefix, routes[i]->src->plen);
-            if(!(st & (exclusive_min ? PST_MORE_SPECIFIC :
-                       PST_MORE_SPECIFIC | PST_EQUALS)))
-                continue;
-            st = prefix_cmp(src_prefix, src_plen,
-                            routes[i]->src->src_prefix,
-                            routes[i]->src->src_plen);
-            if(!(st & (exclusive_min ? PST_MORE_SPECIFIC :
-                       PST_MORE_SPECIFIC | PST_EQUALS)))
-                continue;
-            if(result &&
-               (prefix_cmp(result->src->src_prefix,
-                           result->src->src_plen,
-                           routes[i]->src->src_prefix,
-                           routes[i]->src->src_plen)
-                == PST_MORE_SPECIFIC))
-                continue;
-
-            result = routes[i];
-        }
     }
+
     if(result)
         assert(v4mapped(dst_prefix) == v4mapped(result->src->prefix));
     return result;
