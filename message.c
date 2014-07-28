@@ -1783,10 +1783,11 @@ send_unicast_request(struct neighbour *neigh,
 void
 send_multihop_request(struct interface *ifp,
                       const unsigned char *prefix, unsigned char plen,
+                      const unsigned char *src_prefix, unsigned char src_plen,
                       unsigned short seqno, const unsigned char *id,
                       unsigned short hop_count)
 {
-    int v4, pb, len;
+    int v4, pb, spb, len;
 
     /* Make sure any buffered updates go out before this request. */
     flushupdates(ifp);
@@ -1796,7 +1797,8 @@ send_multihop_request(struct interface *ifp,
         FOR_ALL_INTERFACES(ifp_aux) {
             if(!if_up(ifp_aux))
                 continue;
-            send_multihop_request(ifp_aux, prefix, plen, seqno, id, hop_count);
+            send_multihop_request(ifp_aux, prefix, plen, src_prefix, src_plen,
+                                  seqno, id, hop_count);
         }
         return;
     }
@@ -1804,24 +1806,39 @@ send_multihop_request(struct interface *ifp,
     if(!if_up(ifp))
         return;
 
-    debugf("Sending request (%d) on %s for %s.\n",
-           hop_count, ifp->name, format_prefix(prefix, plen));
+    debugf("Sending request (%d) on %s for %s from %s.\n",
+           hop_count, ifp->name, format_prefix(prefix, plen),
+           format_prefix(src_prefix, src_plen));
     v4 = plen >= 96 && v4mapped(prefix);
     pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
     len = 6 + 8 + pb;
 
-    start_message(ifp, MESSAGE_MH_REQUEST, len);
+    if(src_plen != 0) {
+        spb = v4 ? ((src_plen - 96) + 7) / 8 : (src_plen + 7) / 8;
+        len += spb;
+        start_message(ifp, MESSAGE_MH_REQUEST_SRC_SPECIFIC, len);
+    } else {
+        start_message(ifp, MESSAGE_MH_REQUEST, len);
+    }
     accumulate_byte(ifp, v4 ? 1 : 2);
     accumulate_byte(ifp, v4 ? plen - 96 : plen);
     accumulate_short(ifp, seqno);
     accumulate_byte(ifp, hop_count);
-    accumulate_byte(ifp, 0);
+    accumulate_byte(ifp, v4 ? src_plen - 96 : src_plen);
     accumulate_bytes(ifp, id, 8);
     if(prefix) {
         if(v4)
             accumulate_bytes(ifp, prefix + 12, pb);
         else
             accumulate_bytes(ifp, prefix, pb);
+    }
+    if(src_plen != 0) {
+        if(v4)
+            accumulate_bytes(ifp, src_prefix + 12, spb);
+        else
+            accumulate_bytes(ifp, src_prefix, spb);
+        end_message(ifp, MESSAGE_MH_REQUEST_SRC_SPECIFIC, len);
+        return;
     }
     end_message(ifp, MESSAGE_MH_REQUEST, len);
 }
@@ -1869,7 +1886,7 @@ send_request_resend(struct neighbour *neigh,
     if(neigh)
         send_unicast_multihop_request(neigh, prefix, plen, seqno, id, 127);
     else
-        send_multihop_request(NULL, prefix, plen, seqno, id, 127);
+        send_multihop_request(NULL, prefix, plen, zeroes, 0, seqno, id, 127);
 
     record_resend(RESEND_REQUEST, prefix, plen, zeroes, 0, seqno, id,
                   neigh ? neigh->ifp : NULL, resend_delay);
