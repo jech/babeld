@@ -1398,6 +1398,10 @@ filter_link(struct nlmsghdr *nh, void *data)
     return 0;
 }
 
+/* If data is null, takes all addresses.  If data is not null, takes
+   either link-local or global addresses depending of the value of
+   data[4]. */
+
 static int
 filter_addresses(struct nlmsghdr *nh, void *data)
 {
@@ -1437,7 +1441,7 @@ filter_addresses(struct nlmsghdr *nh, void *data)
     if(rc < 0)
         return 0;
 
-    if(ll == !IN6_IS_ADDR_LINKLOCAL(&addr))
+    if(data && ll == !IN6_IS_ADDR_LINKLOCAL(&addr))
         return 0;
 
     if(ifindex && ifa->ifa_index != ifindex)
