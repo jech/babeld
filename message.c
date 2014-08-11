@@ -1835,17 +1835,39 @@ send_unicast_request(struct neighbour *neigh,
     /* make sure any buffered updates go out before this request. */
     flushupdates(neigh->ifp);
 
-    if(!prefix)
-        debugf("sending unicast request to %s for any.\n",
-               format_address(neigh->address));
-    else
+    if(prefix && src_prefix) {
         debugf("sending unicast request to %s for %s from %s.\n",
                format_address(neigh->address),
                format_prefix(prefix, plen),
                format_prefix(src_prefix, src_plen));
+    } else if (prefix) {
+        debugf("sending unicast request to %s for any specific.\n",
+               format_address(neigh->address));
+        rc = start_unicast_message(neigh, MESSAGE_REQUEST_SRC_SPECIFIC, 3);
+        if(rc < 0) return;
+        accumulate_unicast_byte(neigh, 0);
+        accumulate_unicast_byte(neigh, 0);
+        accumulate_unicast_byte(neigh, 0);
+        end_unicast_message(neigh, MESSAGE_REQUEST_SRC_SPECIFIC, 3);
+        return;
+    } else if (src_prefix) {
+        debugf("sending unicast request to %s for any.\n",
+               format_address(neigh->address));
+        rc = start_unicast_message(neigh, MESSAGE_REQUEST, 2);
+        if(rc < 0) return;
+        accumulate_unicast_byte(neigh, 0);
+        accumulate_unicast_byte(neigh, 0);
+        end_unicast_message(neigh, MESSAGE_REQUEST, 2);
+        return;
+    } else {
+        send_unicast_request(neigh, NULL, 0, zeroes, 0);
+        send_unicast_request(neigh, zeroes, 0, NULL, 0);
+        return;
+    }
+
     v4 = plen >= 96 && v4mapped(prefix);
     pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
-    len = !prefix ? 2 : 2 + pb;
+    len = 2 + pb;
 
     if(src_plen != 0) {
         spb = v4 ? ((src_plen - 96) + 7) / 8 : (src_plen + 7) / 8;
@@ -1855,16 +1877,14 @@ send_unicast_request(struct neighbour *neigh,
         rc = start_unicast_message(neigh, MESSAGE_REQUEST, len);
     }
     if(rc < 0) return;
-    accumulate_unicast_byte(neigh, !prefix ? 0 : v4 ? 1 : 2);
-    accumulate_unicast_byte(neigh, !prefix ? 0 : v4 ? plen - 96 : plen);
+    accumulate_unicast_byte(neigh, v4 ? 1 : 2);
+    accumulate_unicast_byte(neigh, v4 ? plen - 96 : plen);
     if(src_plen != 0)
         accumulate_unicast_byte(neigh, v4 ? src_plen - 96 : src_plen);
-    if(prefix) {
-        if(v4)
-            accumulate_unicast_bytes(neigh, prefix + 12, pb);
-        else
-            accumulate_unicast_bytes(neigh, prefix, pb);
-    }
+    if(v4)
+        accumulate_unicast_bytes(neigh, prefix + 12, pb);
+    else
+        accumulate_unicast_bytes(neigh, prefix, pb);
     if(src_plen != 0) {
         if(v4)
             accumulate_unicast_bytes(neigh, src_prefix + 12, spb);
