@@ -1745,6 +1745,8 @@ send_marginal_ihu(struct interface *ifp)
     }
 }
 
+/* Standard wildcard request with prefix == NULL && src_prefix == zeroes,
+   Specific wildcard request with prefix == zeroes && src_prefix == NULL. */
 void
 send_request(struct interface *ifp,
              const unsigned char *prefix, unsigned char plen,
@@ -1768,33 +1770,50 @@ send_request(struct interface *ifp,
     if(!if_up(ifp))
         return;
 
-    if(!prefix)
-        debugf("sending request to %s for any.\n", ifp->name);
-    else
+    if(prefix && src_prefix) {
         debugf("sending request to %s for %s from %s.\n", ifp->name,
                format_prefix(prefix, plen),
                format_prefix(src_prefix, src_plen));
+    } else if (prefix) {
+        debugf("sending request to %s for any specific.\n", ifp->name);
+        start_message(ifp, MESSAGE_REQUEST_SRC_SPECIFIC, 3);
+        accumulate_byte(ifp, 0);
+        accumulate_byte(ifp, 0);
+        accumulate_byte(ifp, 0);
+        end_message(ifp, MESSAGE_REQUEST_SRC_SPECIFIC, 3);
+        return;
+    } else if (src_prefix) {
+        debugf("sending request to %s for any.\n", ifp->name);
+        start_message(ifp, MESSAGE_REQUEST, 2);
+        accumulate_byte(ifp, 0);
+        accumulate_byte(ifp, 0);
+        end_message(ifp, MESSAGE_REQUEST, 2);
+        return;
+    } else {
+        send_request(ifp, NULL, 0, zeroes, 0);
+        send_request(ifp, zeroes, 0, NULL, 0);
+        return;
+    }
+
     v4 = plen >= 96 && v4mapped(prefix);
     pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
-    len = !prefix ? 2 : 2 + pb;
+    len = 2 + pb;
 
-    if(src_plen != 0) {
+    if (src_plen != 0) {
         spb = v4 ? ((src_plen - 96) + 7) / 8 : (src_plen + 7) / 8;
         len += spb + 1;
         start_message(ifp, MESSAGE_REQUEST_SRC_SPECIFIC, len);
     } else {
         start_message(ifp, MESSAGE_REQUEST, len);
     }
-    accumulate_byte(ifp, !prefix ? 0 : v4 ? 1 : 2);
-    accumulate_byte(ifp, !prefix ? 0 : v4 ? plen - 96 : plen);
+    accumulate_byte(ifp, v4 ? 1 : 2);
+    accumulate_byte(ifp, v4 ? plen - 96 : plen);
     if(src_plen != 0)
         accumulate_byte(ifp, v4 ? src_plen - 96 : src_plen);
-    if(prefix) {
-        if(v4)
-            accumulate_bytes(ifp, prefix + 12, pb);
-        else
-            accumulate_bytes(ifp, prefix, pb);
-    }
+    if(v4)
+        accumulate_bytes(ifp, prefix + 12, pb);
+    else
+        accumulate_bytes(ifp, prefix, pb);
     if(src_plen != 0) {
         if(v4)
             accumulate_bytes(ifp, src_prefix + 12, spb);
