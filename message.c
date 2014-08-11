@@ -693,9 +693,14 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 src_plen += 96;
             parsed += rc;
             if(ae == 0) {
-                debugf("Received source-specific wildcard request "
-                       "from %s on %s -- dropping.\n",
+                debugf("Received request for any source-specific "
+                       "from %s on %s.\n",
                        format_address(from), ifp->name);
+                /* See comments for std requests. */
+                send_ihu(neigh, NULL);
+                if(neigh->ifp->last_specific_update_time <
+                   now.tv_sec - MAX(neigh->ifp->hello_interval / 100, 1))
+                    send_update(neigh->ifp, 0, zeroes, 0, NULL, 0);
             } else {
                 debugf("Received request for (%s from %s) from %s on %s.\n",
                        format_prefix(prefix, plen),
