@@ -96,6 +96,7 @@ struct interface {
     time_t bucket_time;
     unsigned int bucket;
     time_t last_update_time;
+    time_t last_specific_update_time;
     unsigned short hello_seqno;
     unsigned hello_interval;
     unsigned update_interval;
