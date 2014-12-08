@@ -467,10 +467,6 @@ switch_conflicting_routes(const struct babel_route *old,
     return rc;
 }
 
-/* This is equivalent to uninstall_route followed with install_route,
-   but without the race condition.  The destination of both routes
-   must be the same. */
-
 int
 kswitch_routes(const struct babel_route *old, const struct babel_route *new)
 {
