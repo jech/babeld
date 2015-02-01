@@ -1,4 +1,5 @@
 PREFIX = /usr/local
+MANDIR = $(PREFIX)/share/man
 
 CDEBUGFLAGS = -Os -g -Wall
 
@@ -38,12 +39,12 @@ install.minimal: babeld
 	cp -f babeld $(TARGET)$(PREFIX)/bin
 
 install: install.minimal all
-	mkdir -p $(TARGET)$(PREFIX)/man/man8
-	cp -f babeld.man $(TARGET)$(PREFIX)/man/man8/babeld.8
+	mkdir -p $(TARGET)$(MANDIR)/man8
+	cp -f babeld.man $(TARGET)$(MANDIR)/man8/babeld.8
 
 uninstall:
 	-rm -f $(TARGET)$(PREFIX)/bin/babeld
-	-rm -f $(TARGET)$(PREFIX)/man/man8/babeld.8
+	-rm -f $(TARGET)$(MANDIR)/man8/babeld.8
 
 clean:
 	-rm -f babeld babeld.html *.o *~ core TAGS gmon.out
