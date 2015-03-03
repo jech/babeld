@@ -42,7 +42,7 @@ THE SOFTWARE.
 
 struct babel_route **routes = NULL;
 static int route_slots = 0, max_route_slots = 0;
-int kernel_metric = 0;
+int kernel_metric = 0, reflect_kernel_metric = 0;
 int allow_duplicates = -1;
 int diversity_kind = DIVERSITY_NONE;
 int diversity_factor = 256;     /* in units of 1/256 */
@@ -373,7 +373,14 @@ route_stream_done(struct route_stream *stream)
 static int
 metric_to_kernel(int metric)
 {
-    return metric < INFINITY ? kernel_metric : KERNEL_INFINITY;
+	if(metric >= INFINITY) {
+		return KERNEL_INFINITY;
+	} else if(reflect_kernel_metric) {
+		int r = kernel_metric + metric;
+		return r >= KERNEL_INFINITY ? KERNEL_INFINITY : r;
+	} else {
+		return kernel_metric;
+	}
 }
 
 /* This is used to maintain the invariant that the installed route is at

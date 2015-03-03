@@ -656,6 +656,8 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
             random_id = b;
         else if(strcmp(token, "daemonise") == 0)
             do_daemonise = b;
+        else if(strcmp(token, "reflect-kernel-metric") == 0)
+            reflect_kernel_metric = b;
         else
             abort();
     } else if(strcmp(token, "protocol-group") == 0) {

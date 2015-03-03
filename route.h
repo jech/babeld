@@ -47,7 +47,7 @@ struct babel_route {
 struct route_stream;
 
 extern struct babel_route **routes;
-extern int kernel_metric, allow_duplicates;
+extern int kernel_metric, allow_duplicates, reflect_kernel_metric;
 extern int diversity_kind, diversity_factor;
 extern int keep_unfeasible;
 

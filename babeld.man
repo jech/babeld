@@ -164,6 +164,13 @@ This specifies the priority value used when installing routes into the
 kernel, and is equivalent to the command-line option
 .BR \-k .
 .TP
+.BR reflect-kernel-metric " {" true | false }
+Reflect route metrics as kernel priorities.  The priority effectively used
+is
+.B kernel-priority
++
+.BR metric .
+.TP
 .BI allow-duplicates " priority"
 This allows duplicating external routes when their kernel priority is
 at least

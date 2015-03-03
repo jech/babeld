@@ -1,3 +1,8 @@
+babeld-1.5.2 (unreleased):
+
+  * Added support for reflecting metrics as kernel priorities.  Thanks to
+    Pierre Pfister.
+
 4 July 2014: babeld-1.5.1:
 
   * Added support for reading multiple configuration files by specifying
