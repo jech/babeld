@@ -642,7 +642,8 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
     } else if(strcmp(token, "keep-unfeasible") == 0 ||
               strcmp(token, "link-detect") == 0 ||
               strcmp(token, "random-id") == 0 ||
-              strcmp(token, "daemonise") == 0) {
+              strcmp(token, "daemonise") == 0 ||
+              strcmp(token, "reflect-kernel-metric") == 0) {
         int b;
         c = getbool(c, &b, gnc, closure);
         if(c < -1)
