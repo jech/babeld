@@ -928,7 +928,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     struct rtmsg *rtm;
     struct rtattr *rta;
     int len = sizeof(buf.raw);
-    int rc, ipv4, table;
+    int rc, ipv4, table, use_src = 0;
 
     if(!nl_setup) {
         fprintf(stderr,"kernel_route: netlink not initialized.\n");
@@ -948,10 +948,6 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         }
     }
 
-    table = find_table(src, src_plen);
-    if(table < 0)
-        return -1;
-
     /* Check that the protocol family is consistent. */
     if(plen >= 96 && v4mapped(dest)) {
         if(!v4mapped(gate) ||
@@ -965,8 +961,6 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
             return -1;
         }
     }
-
-    ipv4 = v4mapped(gate);
 
     if(operation == ROUTE_MODIFY) {
         if(newmetric == metric && memcmp(newgate, gate, 16) == 0 &&
@@ -995,6 +989,20 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         return rc;
     }
 
+
+    ipv4 = v4mapped(gate);
+
+    if(src_plen == 0) {
+        table = export_table;
+    } else if(has_ipv6_subtrees && !ipv4) {
+        table = export_table;
+        use_src = 1;
+    } else {
+        table = find_table(src, src_plen);
+        if(table < 0)
+            return -1;
+    }
+
     kdebugf("kernel_route: %s %s from %s "
             "table %d metric %d dev %d nexthop %s\n",
             operation == ROUTE_ADD ? "add" :
@@ -1019,7 +1027,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     rtm = NLMSG_DATA(&buf.nh);
     rtm->rtm_family = ipv4 ? AF_INET : AF_INET6;
     rtm->rtm_dst_len = ipv4 ? plen - 96 : plen;
-    if(has_ipv6_subtrees && src && !ipv4)
+    if(use_src)
         rtm->rtm_src_len = src_plen;
     rtm->rtm_table = table;
     rtm->rtm_scope = RT_SCOPE_UNIVERSE;
@@ -1042,7 +1050,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
         rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr));
         rta->rta_type = RTA_DST;
         memcpy(RTA_DATA(rta), dest, sizeof(struct in6_addr));
-        if(has_ipv6_subtrees && src) {
+        if(use_src) {
             rta = RTA_NEXT(rta, len);
             rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr));
             rta->rta_type = RTA_SRC;
@@ -1830,11 +1838,12 @@ find_table(const unsigned char *src, unsigned short src_plen)
     struct kernel_table *kt = NULL;
     int i, new_i;
 
-    if(has_ipv6_subtrees && (src_plen < 96 || !v4mapped(src)))
-        return export_table;
-
-    if(src_plen == 0)
-        return export_table;
+    if(src_plen == 0 ||
+       (has_ipv6_subtrees && (src_plen < 96 || !v4mapped(src)))) {
+        fprintf(stderr, "Find_table called for route handled by kernel "
+                "(this shouldn't happen).");
+        return -1;
+    }
 
     i = find_table_slot(src, src_plen, &new_i);
     if(i < 0) {
