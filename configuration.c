@@ -1005,6 +1005,7 @@ do_filter(struct filter *f, const unsigned char *id,
 {
     if(result)
         memset(result, 0, sizeof(struct filter_result));
+
     while(f) {
         if(filter_match(f, id, prefix, plen, src_prefix, src_plen,
                         neigh, ifindex, proto)) {
@@ -1014,6 +1015,7 @@ do_filter(struct filter *f, const unsigned char *id,
         }
         f = f->next;
     }
+
     return -1;
 }
 
@@ -1021,12 +1023,11 @@ int
 input_filter(const unsigned char *id,
              const unsigned char *prefix, unsigned short plen,
              const unsigned char *src_prefix, unsigned short src_plen,
-             const unsigned char *neigh, unsigned int ifindex,
-             struct filter_result *result)
+             const unsigned char *neigh, unsigned int ifindex)
 {
     int res;
     res = do_filter(input_filters, id, prefix, plen,
-                    src_prefix, src_plen, neigh, ifindex, 0, result);
+                    src_prefix, src_plen, neigh, ifindex, 0, NULL);
     if(res < 0)
         res = 0;
     return res;
@@ -1036,12 +1037,11 @@ int
 output_filter(const unsigned char *id,
               const unsigned char *prefix, unsigned short plen,
               const unsigned char *src_prefix, unsigned short src_plen,
-              unsigned int ifindex,
-              struct filter_result *result)
+              unsigned int ifindex)
 {
     int res;
     res = do_filter(output_filters, id, prefix, plen,
-                    src_prefix, src_plen, NULL, ifindex, 0, result);
+                    src_prefix, src_plen, NULL, ifindex, 0, NULL);
     if(res < 0)
         res = 0;
     return res;

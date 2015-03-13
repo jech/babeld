@@ -52,13 +52,11 @@ void renumber_filters(void);
 int input_filter(const unsigned char *id,
                  const unsigned char *prefix, unsigned short plen,
                  const unsigned char *src_prefix, unsigned short src_plen,
-                 const unsigned char *neigh, unsigned int ifindex,
-                 struct filter_result *result);
+                 const unsigned char *neigh, unsigned int ifindex);
 int output_filter(const unsigned char *id,
                   const unsigned char *prefix, unsigned short plen,
                   const unsigned char *src_prefix, unsigned short src_plen,
-                  unsigned int ifindex,
-                  struct filter_result *result);
+                  unsigned int ifindex);
 int redistribute_filter(const unsigned char *prefix, unsigned short plen,
                     const unsigned char *src_prefix, unsigned short src_plen,
                     unsigned int ifindex, int proto,
