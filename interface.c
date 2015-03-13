@@ -362,7 +362,10 @@ interface_up(struct interface *ifp, int up)
             ifp->max_rtt_penalty > 0))
             ifp->flags |= IF_TIMESTAMPS;
 
-        check_link_local_addresses(ifp);
+        rc = check_link_local_addresses(ifp);
+        if(rc < 0) {
+            goto fail;
+        }
         memset(&mreq, 0, sizeof(mreq));
         memcpy(&mreq.ipv6mr_multiaddr, protocol_group, 16);
         mreq.ipv6mr_interface = ifp->ifindex;
