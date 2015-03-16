@@ -43,12 +43,15 @@ static struct xroute *xroutes;
 static int numxroutes = 0, maxxroutes = 0;
 
 struct xroute *
-find_xroute(const unsigned char *prefix, unsigned char plen)
+find_xroute(const unsigned char *prefix, unsigned char plen,
+            const unsigned char *src_prefix, unsigned char src_plen)
 {
     int i;
     for(i = 0; i < numxroutes; i++) {
         if(xroutes[i].plen == plen &&
-           memcmp(xroutes[i].prefix, prefix, 16) == 0)
+           memcmp(xroutes[i].prefix, prefix, 16) == 0 &&
+           xroutes[i].src_plen == src_plen &&
+           memcmp(xroutes[i].src_prefix, src_prefix, 16) == 0)
             return &xroutes[i];
     }
     return NULL;
@@ -86,9 +89,10 @@ flush_xroute(struct xroute *xroute)
 
 int
 add_xroute(unsigned char prefix[16], unsigned char plen,
+           unsigned char src_prefix[16], unsigned char src_plen,
            unsigned short metric, unsigned int ifindex, int proto)
 {
-    struct xroute *xroute = find_xroute(prefix, plen);
+    struct xroute *xroute = find_xroute(prefix, plen, src_prefix, src_plen);
     if(xroute) {
         if(xroute->metric <= metric)
             return 0;
@@ -111,6 +115,8 @@ add_xroute(unsigned char prefix[16], unsigned char plen,
 
     memcpy(xroutes[numxroutes].prefix, prefix, 16);
     xroutes[numxroutes].plen = plen;
+    memcpy(xroutes[numxroutes].src_prefix, src_prefix, 16);
+    xroutes[numxroutes].src_plen = src_plen;
     xroutes[numxroutes].metric = metric;
     xroutes[numxroutes].ifindex = ifindex;
     xroutes[numxroutes].proto = proto;
@@ -163,14 +169,15 @@ check_xroutes(int send_updates)
 {
     int i, j, metric, export, change = 0, rc;
     struct kernel_route *routes;
-    int numroutes;
+    struct filter_result filter_result = {0};
+    int numroutes, numaddresses;
     static int maxroutes = 8;
     const int maxmaxroutes = 16 * 1024;
 
     debugf("\nChecking kernel routes.\n");
 
  again:
-    routes = malloc(maxroutes * sizeof(struct kernel_route));
+    routes = calloc(maxroutes, sizeof(struct kernel_route));
     if(routes == NULL)
         return -1;
 
@@ -185,6 +192,8 @@ check_xroutes(int send_updates)
     if(numroutes >= maxroutes)
         goto resize;
 
+    numaddresses = numroutes;
+
     rc = kernel_routes(routes + numroutes, maxroutes - numroutes);
     if(rc < 0)
         fprintf(stderr, "Couldn't get kernel routes.\n");
@@ -194,13 +203,30 @@ check_xroutes(int send_updates)
     if(numroutes >= maxroutes)
         goto resize;
 
+    /* Apply filter to kernel routes (e.g. change the source prefix). */
+
+    for(i = numaddresses; i < numroutes; i++) {
+        filter_result.src_prefix = NULL;
+        redistribute_filter(routes[i].prefix, routes[i].plen,
+                            routes[i].src_prefix, routes[i].src_plen,
+                            routes[i].ifindex, routes[i].proto,
+                            &filter_result);
+        if(filter_result.src_prefix) {
+            memcpy(routes[i].src_prefix, filter_result.src_prefix, 16);
+            routes[i].src_plen = filter_result.src_plen;
+        }
+
+    }
+
     /* Check for any routes that need to be flushed */
 
     i = 0;
     while(i < numxroutes) {
         export = 0;
         metric = redistribute_filter(xroutes[i].prefix, xroutes[i].plen,
-                                     xroutes[i].ifindex, xroutes[i].proto);
+                                     xroutes[i].src_prefix, xroutes[i].src_plen,
+                                     xroutes[i].ifindex, xroutes[i].proto,
+                                     NULL);
         if(metric < INFINITY && metric == xroutes[i].metric) {
             for(j = 0; j < numroutes; j++) {
                 if(xroutes[i].plen == routes[j].plen &&
@@ -215,17 +241,20 @@ check_xroutes(int send_updates)
 
         if(!export) {
             unsigned char prefix[16], plen;
+            unsigned char src_prefix[16], src_plen;
             struct babel_route *route;
             memcpy(prefix, xroutes[i].prefix, 16);
             plen = xroutes[i].plen;
+            memcpy(src_prefix, xroutes[i].src_prefix, 16);
+            src_plen = xroutes[i].src_plen;
             flush_xroute(&xroutes[i]);
-            route = find_best_route(prefix, plen, 1, NULL);
+            route = find_best_route(prefix, plen, src_prefix, src_plen, 1,NULL);
             if(route)
                 install_route(route);
             /* send_update_resend only records the prefix, so the update
                will only be sent after we perform all of the changes. */
             if(send_updates)
-                send_update_resend(NULL, prefix, plen);
+                send_update_resend(NULL, prefix, plen, src_prefix, src_plen);
             change = 1;
         } else {
             i++;
@@ -238,13 +267,17 @@ check_xroutes(int send_updates)
         if(martian_prefix(routes[i].prefix, routes[i].plen))
             continue;
         metric = redistribute_filter(routes[i].prefix, routes[i].plen,
-                                     routes[i].ifindex, routes[i].proto);
+                                     routes[i].src_prefix, routes[i].src_plen,
+                                     routes[i].ifindex, routes[i].proto, NULL);
         if(metric < INFINITY) {
             rc = add_xroute(routes[i].prefix, routes[i].plen,
+                            routes[i].src_prefix, routes[i].src_plen,
                             metric, routes[i].ifindex, routes[i].proto);
             if(rc > 0) {
                 struct babel_route *route;
-                route = find_installed_route(routes[i].prefix, routes[i].plen);
+                route = find_installed_route(routes[i].prefix, routes[i].plen,
+                                             routes[i].src_prefix,
+                                             routes[i].src_plen);
                 if(route) {
                     if(allow_duplicates < 0 ||
                        routes[i].metric < allow_duplicates)
@@ -252,7 +285,8 @@ check_xroutes(int send_updates)
                 }
                 change = 1;
                 if(send_updates)
-                    send_update(NULL, 0, routes[i].prefix, routes[i].plen);
+                    send_update(NULL, 0, routes[i].prefix, routes[i].plen,
+                                routes[i].src_prefix, routes[i].src_plen);
             }
         }
     }

@@ -82,6 +82,7 @@ unsigned char protocol_group[16];
 int protocol_socket = -1;
 int kernel_socket = -1;
 static int kernel_routes_changed = 0;
+static int kernel_rules_changed = 0;
 static int kernel_link_changed = 0;
 static int kernel_addr_changed = 0;
 
@@ -512,6 +513,7 @@ main(int argc, char **argv)
         fprintf(stderr, "Warning: couldn't check exported routes.\n");
 
     kernel_routes_changed = 0;
+    kernel_rules_changed = 0;
     kernel_link_changed = 0;
     kernel_addr_changed = 0;
     kernel_dump_time = now.tv_sec + roughly(30);
@@ -540,7 +542,7 @@ main(int argc, char **argv)
         send_hello(ifp);
         send_wildcard_retraction(ifp);
         send_self_update(ifp);
-        send_request(ifp, NULL, 0);
+        send_request(ifp, NULL, 0, NULL, 0);
         flushupdates(ifp);
         flushbuf(ifp);
     }
@@ -673,11 +675,12 @@ main(int argc, char **argv)
         }
 
         if(kernel_routes_changed || kernel_addr_changed ||
-           now.tv_sec >= kernel_dump_time) {
+           kernel_rules_changed || now.tv_sec >= kernel_dump_time) {
             rc = check_xroutes(1);
             if(rc < 0)
                 fprintf(stderr, "Warning: couldn't check exported routes.\n");
-            kernel_routes_changed = kernel_addr_changed = 0;
+            kernel_routes_changed = kernel_rules_changed =
+                kernel_addr_changed = 0;
             if(kernel_socket >= 0)
                 kernel_dump_time = now.tv_sec + roughly(300);
             else
@@ -714,7 +717,7 @@ main(int argc, char **argv)
             if(timeval_compare(&now, &ifp->hello_timeout) >= 0)
                 send_hello(ifp);
             if(timeval_compare(&now, &ifp->update_timeout) >= 0)
-                send_update(ifp, 0, NULL, 0);
+                send_update(ifp, 0, NULL, 0, NULL, 0);
             if(timeval_compare(&now, &ifp->update_flush_timeout) >= 0)
                 flushupdates(ifp);
         }
@@ -1028,9 +1031,10 @@ dump_route(FILE *out, struct babel_route *route)
             channels[0] = '\0';
     }
 
-    fprintf(out, "%s metric %d (%d) refmetric %d id %s seqno %d%s age %d "
-            "via %s neigh %s%s%s%s\n",
+    fprintf(out, "%s from %s metric %d (%d) refmetric %d id %s "
+            "seqno %d%s age %d via %s neigh %s%s%s%s\n",
             format_prefix(route->src->prefix, route->src->plen),
+            format_prefix(route->src->src_prefix, route->src->src_plen),
             route_metric(route), route_smoothed_metric(route), route->refmetric,
             format_eui64(route->src->id),
             (int)route->seqno,
@@ -1047,8 +1051,9 @@ dump_route(FILE *out, struct babel_route *route)
 static void
 dump_xroute(FILE *out, struct xroute *xroute)
 {
-    fprintf(out, "%s metric %d (exported)\n",
+    fprintf(out, "%s from %s metric %d (exported)\n",
             format_prefix(xroute->prefix, xroute->plen),
+            format_prefix(xroute->src_prefix, xroute->src_plen),
             xroute->metric);
 }
 
@@ -1138,5 +1143,7 @@ kernel_routes_callback(int changed, void *closure)
         kernel_addr_changed = 1;
     if(changed & CHANGE_ROUTE)
         kernel_routes_changed = 1;
+    if(changed & CHANGE_RULE)
+        kernel_rules_changed = 1;
     return 1;
 }

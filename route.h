@@ -70,9 +70,15 @@ route_metric_noninterfering(const struct babel_route *route)
 }
 
 struct babel_route *find_route(const unsigned char *prefix, unsigned char plen,
-                         struct neighbour *neigh, const unsigned char *nexthop);
+                        const unsigned char *src_prefix, unsigned char src_plen,
+                        struct neighbour *neigh, const unsigned char *nexthop);
 struct babel_route *find_installed_route(const unsigned char *prefix,
-                                   unsigned char plen);
+                        unsigned char plen, const unsigned char *src_prefix,
+                        unsigned char src_plen);
+struct babel_route *find_min_iroute(const unsigned char *dst_prefix,
+                        unsigned char dst_plen,
+                        const unsigned char *src_prefix, unsigned char src_plen,
+                        int is_fixed_dst, int exclusive_min);
 int installed_routes_estimate(void);
 void flush_route(struct babel_route *route);
 void flush_all_routes(void);
@@ -81,6 +87,7 @@ void flush_interface_routes(struct interface *ifp, int v4only);
 struct route_stream *route_stream(int installed);
 struct babel_route *route_stream_next(struct route_stream *stream);
 void route_stream_done(struct route_stream *stream);
+int metric_to_kernel(int metric);
 void install_route(struct babel_route *route);
 void uninstall_route(struct babel_route *route);
 int route_feasible(struct babel_route *route);
@@ -93,6 +100,8 @@ void change_smoothing_half_life(int half_life);
 int route_smoothed_metric(struct babel_route *route);
 struct babel_route *find_best_route(const unsigned char *prefix,
                                     unsigned char plen,
+                                    const unsigned char *src_prefix,
+                                    unsigned char src_plen,
                                     int feasible, struct neighbour *exclude);
 struct babel_route *install_best_route(const unsigned char prefix[16],
                                  unsigned char plen);
@@ -101,6 +110,8 @@ void update_interface_metric(struct interface *ifp);
 void update_route_metric(struct babel_route *route);
 struct babel_route *update_route(const unsigned char *id,
                            const unsigned char *prefix, unsigned char plen,
+                           const unsigned char *src_prefix,
+                           unsigned char src_plen,
                            unsigned short seqno, unsigned short refmetric,
                            unsigned short interval, struct neighbour *neigh,
                            const unsigned char *nexthop,

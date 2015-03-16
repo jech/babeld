@@ -80,6 +80,12 @@ THE SOFTWARE.
 #endif
 #endif
 
+#ifdef IPV6_SUBTREES
+#define has_ipv6_subtrees 1
+#else
+#define has_ipv6_subtrees 0
+#endif
+
 extern struct timeval now;
 extern int debug;
 extern time_t reboot_time;

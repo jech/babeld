@@ -29,8 +29,6 @@ THE SOFTWARE.
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
-
-
 #include <strings.h>
 #include <netinet/in.h>
 #include <netinet/icmp6.h>
@@ -52,7 +50,6 @@ THE SOFTWARE.
 
 
 static int get_sdl(struct sockaddr_dl *sdl, char *ifname);
-
 
 static const unsigned char v4prefix[16] =
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0 };
@@ -387,6 +384,7 @@ kernel_interface_channel(const char *ifname, int ifindex)
 
 int
 kernel_route(int operation, const unsigned char *dest, unsigned short plen,
+             const unsigned char *src, unsigned short src_plen,
              const unsigned char *gate, int ifindex, unsigned int metric,
              const unsigned char *newgate, int newifindex,
              unsigned int newmetric)
@@ -402,6 +400,12 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     char local4[1][1][16] =
         {{{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x7f, 0x00, 0x00, 0x01 }}};
+
+    /* Source-specific routes are not implemented yet for BSD. */
+    if(src_plen > 0) {
+        errno = ENOSYS;
+        return -1;
+    }
 
     /* Check that the protocol family is consistent. */
     if(plen >= 96 && v4mapped(dest)) {
@@ -427,9 +431,11 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
 
         /* Avoid atomic route changes that is buggy on OS X. */
         kernel_route(ROUTE_FLUSH, dest, plen,
+                     src, src_plen,
                      gate, ifindex, metric,
                      NULL, 0, 0);
         return kernel_route(ROUTE_ADD, dest, plen,
+                            src, src_plen,
                             newgate, newifindex, newmetric,
                             NULL, 0, 0);
 
@@ -668,7 +674,7 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
     size_t len;
     struct rt_msghdr *rtm;
     int rc, i;
-    
+
     mib[0] = CTL_NET;
     mib[1] = PF_ROUTE;
     mib[2] = 0;

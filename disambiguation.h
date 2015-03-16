@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2007, 2008 by Juliusz Chroboczek
+Copyright (c) 2014 by Matthieu Boutier and Juliusz Chroboczek.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -20,26 +20,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-struct xroute {
-    unsigned char prefix[16];
-    unsigned char plen;
-    unsigned char src_prefix[16];
-    unsigned char src_plen;
-    unsigned short metric;
-    unsigned int ifindex;
-    int proto;
-};
-
-struct xroute_stream;
-
-struct xroute *find_xroute(const unsigned char *prefix, unsigned char plen,
-                const unsigned char *src_prefix, unsigned char src_plen);
-void flush_xroute(struct xroute *xroute);
-int add_xroute(unsigned char prefix[16], unsigned char plen,
-               unsigned char src_prefix[16], unsigned char src_plen,
-               unsigned short metric, unsigned int ifindex, int proto);
-int xroutes_estimate(void);
-struct xroute_stream *xroute_stream();
-struct xroute *xroute_stream_next(struct xroute_stream *stream);
-void xroute_stream_done(struct xroute_stream *stream);
-int check_xroutes(int send_updates);
+int kinstall_route(struct babel_route *route);
+int kuninstall_route(struct babel_route *route);
+int kswitch_routes(struct babel_route *old, struct babel_route *new);
+int kchange_route_metric(struct babel_route *route,
+                         unsigned refmetric, unsigned cost, unsigned add);

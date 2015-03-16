@@ -32,6 +32,9 @@ THE SOFTWARE.
 #include "kernel_socket.c"
 #endif
 
+int src_table_idx = 10;
+int src_table_prio = 100;
+
 /* Like gettimeofday, but returns monotonic time.  If POSIX clocks are not
    available, falls back to gettimeofday but enforces monotonicity. */
 int

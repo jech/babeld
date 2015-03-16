@@ -33,6 +33,8 @@ struct resend {
     struct timeval time;
     unsigned char prefix[16];
     unsigned char plen;
+    unsigned char src_prefix[16];
+    unsigned char src_plen;
     unsigned short seqno;
     unsigned char id[8];
     struct interface *ifp;
@@ -42,17 +44,22 @@ struct resend {
 extern struct timeval resend_time;
 
 struct resend *find_request(const unsigned char *prefix, unsigned char plen,
-                            struct resend **previous_return);
+                    const unsigned char *src_prefix, unsigned char src_plen,
+                    struct resend **previous_return);
 void flush_resends(struct neighbour *neigh);
 int record_resend(int kind, const unsigned char *prefix, unsigned char plen,
-                   unsigned short seqno, const unsigned char *id,
-                   struct interface *ifp, int delay);
+                  const unsigned char *src_prefix, unsigned char src_plen,
+                  unsigned short seqno, const unsigned char *id,
+                  struct interface *ifp, int delay);
 int unsatisfied_request(const unsigned char *prefix, unsigned char plen,
+                        const unsigned char *src_prefix, unsigned char src_plen,
                         unsigned short seqno, const unsigned char *id);
 int request_redundant(struct interface *ifp,
                       const unsigned char *prefix, unsigned char plen,
+                      const unsigned char *src_prefix, unsigned char src_plen,
                       unsigned short seqno, const unsigned char *id);
 int satisfy_request(const unsigned char *prefix, unsigned char plen,
+                    const unsigned char *src_prefix, unsigned char src_plen,
                     unsigned short seqno, const unsigned char *id,
                     struct interface *ifp);
 

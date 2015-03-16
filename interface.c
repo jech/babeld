@@ -177,6 +177,40 @@ check_interface_channel(struct interface *ifp)
     return 0;
 }
 
+static int
+check_link_local_addresses(struct interface *ifp)
+{
+    struct kernel_route ll[32];
+    int rc, i;
+    if(ifp->ll)
+        free(ifp->ll);
+    ifp->numll = 0;
+    ifp->ll = NULL;
+    rc = kernel_addresses(ifp->name, ifp->ifindex, 1, ll, 32);
+    if(rc < 0) {
+        perror("kernel_addresses(link local)");
+        return -1;
+    } else if(rc == 0) {
+        fprintf(stderr, "Interface %s has no link-local address.\n",
+                ifp->name);
+        /* Most probably DAD hasn't finished yet.  Reschedule us
+           real soon. */
+        schedule_interfaces_check(2000, 0);
+        return -1;
+    } else {
+        ifp->ll = malloc(16 * rc);
+        if(ifp->ll == NULL) {
+            perror("malloc(ll)");
+        } else {
+            for(i = 0; i < rc; i++)
+                memcpy(ifp->ll[i], ll[i].prefix, 16);
+            ifp->numll = rc;
+        }
+    }
+
+    return 0;
+}
+
 int
 interface_up(struct interface *ifp, int up)
 {
@@ -192,7 +226,6 @@ interface_up(struct interface *ifp, int up)
         ifp->flags &= ~IF_UP;
 
     if(up) {
-        struct kernel_route ll[32];
         if(ifp->ifindex <= 0) {
             fprintf(stderr,
                     "Upping unknown interface %s.\n", ifp->name);
@@ -329,32 +362,10 @@ interface_up(struct interface *ifp, int up)
             ifp->max_rtt_penalty > 0))
             ifp->flags |= IF_TIMESTAMPS;
 
-        if(ifp->ll)
-            free(ifp->ll);
-        ifp->numll = 0;
-        ifp->ll = NULL;
-        rc = kernel_addresses(ifp->name, ifp->ifindex, 1, ll, 32);
+        rc = check_link_local_addresses(ifp);
         if(rc < 0) {
-            perror("kernel_addresses(link local)");
             goto fail;
-        } else if(rc == 0) {
-            fprintf(stderr, "Interface %s has no link-local address.\n",
-                    ifp->name);
-            /* Most probably DAD hasn't finished yet.  Reschedule us
-               real soon. */
-            goto fail_retry;
-        } else {
-            ifp->ll = malloc(16 * rc);
-            if(ifp->ll == NULL) {
-                perror("malloc(ll)");
-            } else {
-                int i;
-                for(i = 0; i < rc; i++)
-                    memcpy(ifp->ll[i], ll[i].prefix, 16);
-                ifp->numll = rc;
-            }
         }
-
         memset(&mreq, 0, sizeof(mreq));
         memcpy(&mreq.ipv6mr_multiaddr, protocol_group, 16);
         mreq.ipv6mr_interface = ifp->ifindex;
@@ -380,8 +391,8 @@ interface_up(struct interface *ifp, int up)
         set_timeout(&ifp->update_timeout, ifp->update_interval);
         send_hello(ifp);
         if(rc > 0)
-            send_update(ifp, 0, NULL, 0);
-        send_request(ifp, NULL, 0);
+            send_update(ifp, 0, NULL, 0, NULL, 0);
+        send_request(ifp, NULL, 0, NULL, 0);
     } else {
         flush_interface_routes(ifp, 0);
         ifp->buffered = 0;
@@ -411,8 +422,6 @@ interface_up(struct interface *ifp, int up)
 
     return 1;
 
- fail_retry:
-    schedule_interfaces_check(2000, 0);
  fail:
     assert(up);
     interface_up(ifp, 0);
@@ -462,12 +471,13 @@ check_interfaces(void)
 
         if(if_up(ifp)) {
             /* Bother, said Pooh.  We should probably check for a change
-               in link-local and IPv4 addresses at this point. */
+               in IPv4 addresses at this point. */
+            check_link_local_addresses(ifp);
             check_interface_channel(ifp);
             rc = check_interface_ipv4(ifp);
             if(rc > 0) {
-                send_request(ifp, NULL, 0);
-                send_update(ifp, 0, NULL, 0);
+                send_request(ifp, NULL, 0, NULL, 0);
+                send_update(ifp, 0, NULL, 0, NULL, 0);
             }
         }
     }

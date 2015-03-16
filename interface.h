@@ -23,8 +23,10 @@ THE SOFTWARE.
 struct buffered_update {
     unsigned char id[8];
     unsigned char prefix[16];
+    unsigned char src_prefix[16];
     unsigned char plen;
-    unsigned char pad[3];
+    unsigned char src_plen; /* 0 <=> no src prefix */
+    unsigned char pad[2];
 };
 
 struct interface_conf {
@@ -94,6 +96,7 @@ struct interface {
     time_t bucket_time;
     unsigned int bucket;
     time_t last_update_time;
+    time_t last_specific_update_time;
     unsigned short hello_seqno;
     unsigned hello_interval;
     unsigned update_interval;
