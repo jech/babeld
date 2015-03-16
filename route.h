@@ -69,9 +69,6 @@ route_metric_noninterfering(const struct babel_route *route)
     return MIN(m, INFINITY);
 }
 
-int route_compare(const unsigned char *prefix, unsigned char plen,
-                  const unsigned char *src_prefix, unsigned char src_plen,
-                  const struct babel_route *route);
 struct babel_route *find_route(const unsigned char *prefix, unsigned char plen,
                         const unsigned char *src_prefix, unsigned char src_plen,
                         struct neighbour *neigh, const unsigned char *nexthop);
