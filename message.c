@@ -1546,8 +1546,10 @@ send_update(struct interface *ifp, int urgent,
             fprintf(stderr, "Couldn't allocate route stream.\n");
         }
         set_timeout(&ifp->update_timeout, ifp->update_interval);
-        ifp->last_update_time = now.tv_sec;
-        ifp->last_specific_update_time = now.tv_sec;
+        if(!prefix)
+            ifp->last_update_time = now.tv_sec;
+        else
+            ifp->last_specific_update_time = now.tv_sec;
     } else {
         send_update(ifp, urgent, NULL, 0, zeroes, 0);
         send_update(ifp, urgent, zeroes, 0, NULL, 0);
