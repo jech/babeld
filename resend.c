@@ -44,7 +44,7 @@ resend_match(struct resend *resend,
     return (resend->kind == kind &&
             resend->plen == plen && memcmp(resend->prefix, prefix, 16) == 0 &&
             resend->src_plen == src_plen &&
-            memcmp(resend->src_prefix, src_prefix, 16));
+            memcmp(resend->src_prefix, src_prefix, 16) == 0);
 }
 
 /* This is called by neigh.c when a neighbour is flushed */
