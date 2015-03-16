@@ -1,5 +1,6 @@
-babeld-1.5.2 (unreleased):
+babeld-1.6.0 (unreleased)
 
+  * Added support for source-specific routing.  Thanks to Matthieu Boutier.
   * Added support for reflecting metrics as kernel priorities.  Thanks to
     Pierre Pfister.
 
