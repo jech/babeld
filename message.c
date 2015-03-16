@@ -1372,10 +1372,8 @@ flushupdates(struct interface *ifp)
                                    NULL, 0);
                 last_prefix = xroute->prefix;
                 last_plen = xroute->plen;
-                if(xroute->src_plen != 0) {
-                    last_src_prefix = xroute->src_prefix;
-                    last_src_plen = xroute->src_plen;
-                }
+                last_src_prefix = xroute->src_prefix;
+                last_src_plen = xroute->src_plen;
             } else if(route) {
                 unsigned char channels[DIVERSITY_HOPS];
                 int chlen;
@@ -1421,10 +1419,8 @@ flushupdates(struct interface *ifp)
                 update_source(route->src, seqno, metric);
                 last_prefix = route->src->prefix;
                 last_plen = route->src->plen;
-                if(route->src->src_plen != 0) {
-                    last_src_prefix = route->src->src_prefix;
-                    last_src_plen = route->src->src_plen;
-                }
+                last_src_prefix = route->src->src_prefix;
+                last_src_plen = route->src->src_plen;
             } else {
             /* There's no route for this prefix.  This can happen shortly
                after an xroute has been retracted, so send a retraction. */
