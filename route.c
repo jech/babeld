@@ -546,9 +546,6 @@ switch_routes(struct babel_route *old, struct babel_route *new)
         fprintf(stderr, "WARNING: switching to unfeasible route "
                 "(this shouldn't happen).");
 
-    /* XXX : should the source-ip be subject to changes ? */
-    assert(memcmp(old->src->src_prefix, new->src->src_prefix, 16) == 0
-           && old->src->src_plen == new->src->src_plen);
     rc = kswitch_routes(old, new);
     if(rc < 0)
         return;
