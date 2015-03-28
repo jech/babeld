@@ -1580,7 +1580,7 @@ send_wildcard_retraction(struct interface *ifp)
 
     start_message(ifp, MESSAGE_UPDATE, 10);
     accumulate_byte(ifp, 0);
-    accumulate_byte(ifp, 0x40);
+    accumulate_byte(ifp, 0);
     accumulate_byte(ifp, 0);
     accumulate_byte(ifp, 0);
     accumulate_short(ifp, 0xFFFF);
