@@ -5,6 +5,8 @@ babeld-1.6.0 (unreleased)
     Pierre Pfister.
   * Worked around a Linux kernel bug with an infinite EAGAIN loop.  Thanks
     to Dave Taht.
+  * Changed wildcard updates to not set flag 0x40.  Reported by Markus
+    Stenberg.
 
 4 July 2014: babeld-1.5.1:
 
