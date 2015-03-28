@@ -141,7 +141,7 @@ babel_send(int s,
 {
     struct iovec iovec[2];
     struct msghdr msg;
-    int rc;
+    int rc, count = 0;
 
     iovec[0].iov_base = (void*)buf1;
     iovec[0].iov_len = buflen1;
@@ -153,16 +153,23 @@ babel_send(int s,
     msg.msg_iov = iovec;
     msg.msg_iovlen = 2;
 
+    /* The Linux kernel can apparently keep returning EAGAIN indefinitely. */
+
  again:
     rc = sendmsg(s, &msg, 0);
     if(rc < 0) {
-        if(errno == EINTR)
-            goto again;
-        else if(errno == EAGAIN) {
+        if(errno == EINTR) {
+            count++;
+            if(count < 100)
+                goto again;
+        } else if(errno == EAGAIN) {
             int rc2;
             rc2 = wait_for_fd(1, s, 5);
-            if(rc2 > 0)
-                goto again;
+            if(rc2 > 0) {
+                count++;
+                if(count < 100)
+                    goto again;
+            }
             errno = EAGAIN;
         }
     }
