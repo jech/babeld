@@ -75,10 +75,6 @@ struct babel_route *find_route(const unsigned char *prefix, unsigned char plen,
 struct babel_route *find_installed_route(const unsigned char *prefix,
                         unsigned char plen, const unsigned char *src_prefix,
                         unsigned char src_plen);
-struct babel_route *find_min_iroute(const unsigned char *dst_prefix,
-                        unsigned char dst_plen,
-                        const unsigned char *src_prefix, unsigned char src_plen,
-                        int is_fixed_dst, int exclusive_min);
 int installed_routes_estimate(void);
 void flush_route(struct babel_route *route);
 void flush_all_routes(void);
