@@ -691,6 +691,7 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
               strcmp(token, "link-detect") == 0 ||
               strcmp(token, "random-id") == 0 ||
               strcmp(token, "daemonise") == 0 ||
+              strcmp(token, "ipv6-subtrees") == 0 ||
               strcmp(token, "reflect-kernel-metric") == 0) {
         int b;
         c = getbool(c, &b, gnc, closure);
@@ -705,6 +706,8 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
             random_id = b;
         else if(strcmp(token, "daemonise") == 0)
             do_daemonise = b;
+        else if(strcmp(token, "ipv6-subtrees") == 0)
+            has_ipv6_subtrees = b;
         else if(strcmp(token, "reflect-kernel-metric") == 0)
             reflect_kernel_metric = b;
         else

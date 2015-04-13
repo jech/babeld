@@ -188,6 +188,10 @@ This specifies whether to use a random router-id, and is
 equivalent to the command-line option
 .BR \-r .
 .TP
+.BR ipv6-subtrees " {" true | false }
+This specifies whether to use native source-specific table rather than using
+multiple tables with rules.
+.TP
 .BI debug " level"
 This specifies the debugging level, and is equivalent to the command-line
 option

@@ -80,12 +80,6 @@ THE SOFTWARE.
 #endif
 #endif
 
-#ifdef IPV6_SUBTREES
-#define has_ipv6_subtrees 1
-#else
-#define has_ipv6_subtrees 0
-#endif
-
 extern struct timeval now;
 extern int debug;
 extern time_t reboot_time;
@@ -96,6 +90,7 @@ extern int do_daemonise;
 extern const char *logfile, *pidfile, *state_file;
 extern int link_detect;
 extern int all_wireless;
+extern int has_ipv6_subtrees;
 
 extern unsigned char myid[8];
 
