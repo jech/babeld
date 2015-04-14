@@ -1,4 +1,4 @@
-babeld-1.6.0 (unreleased)
+14 April 2014: babeld-1.6.0
 
   * Added support for source-specific routing.  Thanks to Matthieu Boutier.
   * Added support for reflecting metrics as kernel priorities.  Thanks to
@@ -7,6 +7,7 @@ babeld-1.6.0 (unreleased)
     to Dave Taht.
   * Changed wildcard updates to not set flag 0x40.  Reported by Markus
     Stenberg.
+  * Made ipv6-subtrees a runtime option.  Thanks to Matthieu Boutier.
 
 4 July 2014: babeld-1.5.1:
 
