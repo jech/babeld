@@ -1093,6 +1093,8 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
 {
     int table = rtm->rtm_table;
     struct rtattr *rta= RTM_RTA(rtm);;
+    int i;
+
     len -= NLMSG_ALIGN(sizeof(*rtm));
 
     memset(route, 0, sizeof(struct kernel_route));
@@ -1147,10 +1149,10 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
 #undef COPY_ADDR
 #undef GET_PLEN
 
-    int i;
     for(i = 0; i < import_table_count; i++)
         if(table == import_tables[i])
             return 0;
+
     return -1;
 }
 

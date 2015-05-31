@@ -117,7 +117,7 @@ enum prefix_status {
     PST_DISJOINT      = 1 << 0,
     PST_EQUALS        = 1 << 1,
     PST_MORE_SPECIFIC = 1 << 2,
-    PST_LESS_SPECIFIC = 1 << 3,
+    PST_LESS_SPECIFIC = 1 << 3
 };
 enum prefix_status
 prefix_cmp(const unsigned char *p1, unsigned char plen1,

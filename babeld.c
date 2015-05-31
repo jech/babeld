@@ -843,12 +843,11 @@ main(int argc, char **argv)
 static int
 accept_local_connections(fd_set *readfds)
 {
-    int rc;
+    int rc, s;
 
     if(local_server_socket < 0 || !FD_ISSET(local_server_socket, readfds))
         return 0;
 
-    int s;
     s = accept(local_server_socket, NULL, NULL);
 
     if(s < 0) {

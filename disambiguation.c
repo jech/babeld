@@ -65,9 +65,10 @@ rt_cmp(const struct babel_route *rt1, const struct babel_route *rt2)
 static const struct babel_route *
 min_route(const struct babel_route *r1, const struct babel_route *r2)
 {
+    int rc;
     if (!r1) return r2;
     if (!r2) return r1;
-    int rc = rt_cmp(r1, r2);
+    rc = rt_cmp(r1, r2);
     return rc <= 0 ? r1 : r2;
 }
 
