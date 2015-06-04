@@ -266,7 +266,7 @@ kinstall_route(const struct babel_route *route)
            format_prefix(route->src->prefix, route->src->plen),
            format_prefix(route->src->src_prefix, route->src->src_plen));
     /* Install source-specific conflicting routes */
-    if(!has_ipv6_subtrees || v4) {
+    if(!kernel_disambiguate(v4)) {
         stream = route_stream(1);
         if(!stream) {
             fprintf(stderr, "Couldn't allocate route stream.\n");
@@ -330,7 +330,7 @@ kuninstall_route(const struct babel_route *route)
         perror("kernel_route(FLUSH)");
 
     /* Remove source-specific conflicting routes */
-    if(!has_ipv6_subtrees || v4) {
+    if(!kernel_disambiguate(v4)) {
         stream = route_stream(1);
         if(!stream) {
             fprintf(stderr, "Couldn't allocate route stream.\n");
@@ -376,7 +376,7 @@ kswitch_routes(const struct babel_route *old, const struct babel_route *new)
     }
 
     /* Remove source-specific conflicting routes */
-    if(!has_ipv6_subtrees || v4mapped(old->nexthop)) {
+    if(!kernel_disambiguate(v4mapped(old->nexthop))) {
         stream = route_stream(1);
         if(!stream) {
             fprintf(stderr, "Couldn't allocate route stream.\n");
@@ -423,7 +423,7 @@ kchange_route_metric(const struct babel_route *route,
         return -1;
     }
 
-    if(!has_ipv6_subtrees || v4mapped(route->nexthop)) {
+    if(!kernel_disambiguate(v4mapped(route->nexthop))) {
         stream = route_stream(1);
         if(!stream) {
             fprintf(stderr, "Couldn't allocate route stream.\n");

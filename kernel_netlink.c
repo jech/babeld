@@ -917,6 +917,14 @@ kernel_interface_channel(const char *ifname, int ifindex)
         return -1;
 }
 
+/* Return true if we cannot handle disambiguation ourselves. */
+
+int
+kernel_disambiguate(int v4)
+{
+    return !v4 && has_ipv6_subtrees;
+}
+
 int
 kernel_route(int operation, const unsigned char *dest, unsigned short plen,
              const unsigned char *src, unsigned short src_plen,
@@ -994,7 +1002,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
 
     if(src_plen == 0) {
         table = export_table;
-    } else if(has_ipv6_subtrees && !ipv4) {
+    } else if(kernel_disambiguate(ipv4)) {
         table = export_table;
         use_src = 1;
     } else {
@@ -1841,7 +1849,7 @@ find_table(const unsigned char *src, unsigned short src_plen)
     int i, new_i;
 
     if(src_plen == 0 ||
-       (has_ipv6_subtrees && (src_plen < 96 || !v4mapped(src)))) {
+       (kernel_disambiguate(src_plen >= 96  && v4mapped(src)))) {
         fprintf(stderr, "Find_table called for route handled by kernel "
                 "(this shouldn't happen).");
         return -1;

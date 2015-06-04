@@ -383,6 +383,12 @@ kernel_interface_channel(const char *ifname, int ifindex)
 }
 
 int
+kernel_disambiguate(int v4)
+{
+    return 0;
+}
+
+int
 kernel_route(int operation, const unsigned char *dest, unsigned short plen,
              const unsigned char *src, unsigned short src_plen,
              const unsigned char *gate, int ifindex, unsigned int metric,
