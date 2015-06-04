@@ -1961,8 +1961,7 @@ filter_kernel_rules(struct nlmsghdr *nh, void *data)
         return 1;
 
     if(prefix_cmp(src, src_plen,
-                  kernel_tables[i].src, kernel_tables[i].plen)
-       == PST_EQUALS &&
+                  kernel_tables[i].src, kernel_tables[i].plen) == PST_EQUALS &&
        table == kernel_tables[i].table &&
        !rule_exists[i]) {
         rule_exists[i] = 1;

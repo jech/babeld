@@ -49,15 +49,15 @@ rt_cmp(const struct babel_route *rt1, const struct babel_route *rt2)
     enum prefix_status dst_st, src_st;
     const struct source *r1 = rt1->src, *r2 = rt2->src;
     dst_st = prefix_cmp(r1->prefix, r1->plen, r2->prefix, r2->plen);
-    if(dst_st & PST_MORE_SPECIFIC)
+    if(dst_st == PST_MORE_SPECIFIC)
         return -1;
-    else if(dst_st & PST_LESS_SPECIFIC)
+    else if(dst_st == PST_LESS_SPECIFIC)
         return 1;
     src_st = prefix_cmp(r1->src_prefix, r1->src_plen,
                         r2->src_prefix, r2->src_plen);
-    if(src_st & PST_MORE_SPECIFIC)
+    if(src_st == PST_MORE_SPECIFIC)
         return -1;
-    else if(src_st & PST_LESS_SPECIFIC)
+    else if(src_st == PST_LESS_SPECIFIC)
         return 1;
     return 0;
 }
@@ -78,7 +78,7 @@ conflicts(const struct babel_route *rt, const struct babel_route *rt1)
     enum prefix_status dst_st, src_st;
     const struct source *r = rt->src, *r1 = rt1->src;
     dst_st = prefix_cmp(r->prefix, r->plen, r1->prefix, r1->plen);
-    if(dst_st & (PST_DISJOINT | PST_EQUALS))
+    if(dst_st == PST_DISJOINT || dst_st == PST_EQUALS)
         return 0;
     src_st = prefix_cmp(r->src_prefix, r->src_plen,
                         r1->src_prefix, r1->src_plen);
@@ -105,20 +105,20 @@ inter(const struct babel_route *rt, const struct babel_route *rt1,
     enum prefix_status dst_st, src_st;
     const struct source *r = rt->src, *r1 = rt1->src;
     dst_st = prefix_cmp(r->prefix, r->plen, r1->prefix, r1->plen);
-    if(dst_st & PST_DISJOINT)
+    if(dst_st == PST_DISJOINT)
         return NULL;
     src_st = prefix_cmp(r->src_prefix, r->src_plen,
                         r1->src_prefix, r1->src_plen);
-    if(src_st & PST_DISJOINT)
+    if(src_st == PST_DISJOINT)
         return NULL;
-    if (dst_st & (PST_MORE_SPECIFIC | PST_EQUALS)) {
+    if (dst_st == PST_MORE_SPECIFIC || dst_st == PST_EQUALS) {
         zone->dst_prefix = r->prefix;
         zone->dst_plen = r->plen;
     } else {
         zone->dst_prefix = r1->prefix;
         zone->dst_plen = r1->plen;
     }
-    if (src_st & (PST_MORE_SPECIFIC | PST_EQUALS)) {
+    if (src_st == PST_MORE_SPECIFIC || src_st == PST_EQUALS) {
         zone->src_prefix = r->src_prefix;
         zone->src_plen = r->src_plen;
     } else {
