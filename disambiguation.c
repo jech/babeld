@@ -132,9 +132,9 @@ static int
 zone_equal(const struct zone *z1, const struct zone *z2)
 {
     return z1 && z2 && z1->dst_plen == z2->dst_plen &&
-        memcmp(z1->dst_prefix, z2->dst_prefix, z1->dst_plen) == 0 &&
+        memcmp(z1->dst_prefix, z2->dst_prefix, 16) == 0 &&
         z1->src_plen == z2->src_plen &&
-        memcmp(z1->src_prefix, z2->src_prefix, z1->src_plen) == 0;
+        memcmp(z1->src_prefix, z2->src_prefix, 16) == 0;
 }
 
 static const struct babel_route *
