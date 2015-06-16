@@ -1,4 +1,4 @@
-14 April 2014: babeld-1.6.0
+14 April 2015: babeld-1.6.0
 
   * Added support for source-specific routing.  Thanks to Matthieu Boutier.
   * Added support for reflecting metrics as kernel priorities.  Thanks to
