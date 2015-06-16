@@ -41,7 +41,7 @@ THE SOFTWARE.
 #include <linux/rtnetlink.h>
 #include <linux/if_bridge.h>
 #include <linux/fib_rules.h>
-#include <netinet/ether.h>
+#include <net/if_arp.h>
 
 #if(__GLIBC__ < 2) || (__GLIBC__ == 2 && __GLIBC_MINOR__ <= 5)
 #define RTA_TABLE 15
@@ -74,6 +74,7 @@ int num_old_if = 0;
 static int dgram_socket = -1;
 
 #ifndef ARPHRD_ETHER
+#warning ARPHRD_ETHER not defined, we might not support exotic link layers
 #define ARPHRD_ETHER 1
 #define NO_ARPHRD
 #endif
