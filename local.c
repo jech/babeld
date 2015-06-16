@@ -25,6 +25,7 @@ THE SOFTWARE.
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/time.h>
 
 #include "babeld.h"
 #include "interface.h"
