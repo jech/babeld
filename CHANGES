@@ -1,3 +1,12 @@
+babeld-1.6.1 (unreleased)
+
+  * Fixed a buffer overflow in zone_equal.  This is probably not
+    exploitable, but might cause incorrect routing tables in the presence
+    of source-specific routing.
+  * Added support for defaulting ipv6-subtrees automatically based on the
+    kernel version.
+  * Fixed compilation under musl.
+
 14 April 2015: babeld-1.6.0
 
   * Added support for source-specific routing.  Thanks to Matthieu Boutier.
