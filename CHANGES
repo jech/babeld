@@ -1,4 +1,4 @@
-babeld-1.6.1 (unreleased)
+16 June 2015: babeld-1.6.1.
 
   * Fixed a buffer overflow in zone_equal.  This is probably not
     exploitable, but might cause incorrect routing tables in the presence
