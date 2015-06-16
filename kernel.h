@@ -78,3 +78,5 @@ int kernel_addresses(char *ifname, int ifindex, int ll,
 int if_eui64(char *ifname, int ifindex, unsigned char *eui);
 int gettime(struct timeval *tv);
 int read_random_bytes(void *buf, size_t len);
+int kernel_older_than(const char *sysname, int version, int sub_version);
+int kernel_has_ipv6_subtrees(void);

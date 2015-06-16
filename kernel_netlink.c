@@ -926,6 +926,12 @@ kernel_disambiguate(int v4)
 }
 
 int
+kernel_has_ipv6_subtrees(void)
+{
+    return (kernel_older_than("Linux", 3, 11) == 0);
+}
+
+int
 kernel_route(int operation, const unsigned char *dest, unsigned short plen,
              const unsigned char *src, unsigned short src_plen,
              const unsigned char *gate, int ifindex, unsigned int metric,

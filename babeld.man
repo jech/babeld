@@ -190,13 +190,8 @@ equivalent to the command-line option
 .TP
 .BR ipv6-subtrees " {" true | false }
 This specifies whether to use native source-specific IPv6 forwarding
-rather than multiple routing tables.  The default is
-.BR false ,
-setting this to
-.B true
-is recommended on sufficiently recent
-.I Linux
-kernels.
+rather than multiple routing tables.  The default is chosen automatically
+depending on the kernel version.
 .TP
 .BI debug " level"
 This specifies the debugging level, and is equivalent to the command-line

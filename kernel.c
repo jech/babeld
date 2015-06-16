@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include <sys/utsname.h>
 #include <sys/time.h>
 #include <sys/param.h>
 #include <time.h>
@@ -108,4 +109,22 @@ add_import_table(int table)
     if(import_table_count > MAX_IMPORT_TABLES - 1) return -2;
     import_tables[import_table_count++] = table;
     return 0;
+}
+
+int
+kernel_older_than(const char *sysname, int version, int sub_version)
+{
+    struct utsname un;
+    int rc;
+    int v = 0;
+    int sub_v = 0;
+    rc = uname(&un);
+    if (rc < 0)
+        return -1;
+    if (strcmp(sysname, un.sysname) != 0)
+        return -1;
+    rc = sscanf(un.release, "%d.%d", &v, &sub_v);
+    if (rc < 2)
+        return -1;
+    return (v < version || (v == version && sub_v < sub_version));
 }

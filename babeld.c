@@ -123,6 +123,7 @@ main(int argc, char **argv)
     parse_address("ff02:0:0:0:0:0:1:6", protocol_group, NULL);
     protocol_port = 6696;
     change_smoothing_half_life(4);
+    has_ipv6_subtrees = kernel_has_ipv6_subtrees();
 
     while(1) {
         opt = getopt(argc, argv, "m:p:h:H:i:k:A:sruS:d:g:lwz:M:t:T:c:C:DL:I:");
