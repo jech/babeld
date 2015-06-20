@@ -566,8 +566,6 @@ firewalls to allow forwarding of Babel protocol packets.  If local
 filtering is being done, UDP datagrams to the port used by the protocol
 should be allowed.  As Babel uses unicast packets in some cases, it is not
 enough to just allow packets destined to Babel's multicast address.
-.SH BUGS
-Plenty.  This is experimental software, run at your own risk.
 .SH SEE ALSO
 .BR routed (8),
 .BR route6d (8),
