@@ -266,30 +266,34 @@ kinstall_route(const struct babel_route *route)
            format_prefix(route->src->prefix, route->src->plen),
            format_prefix(route->src->src_prefix, route->src->src_plen));
     /* Install source-specific conflicting routes */
-    if(!kernel_disambiguate(v4)) {
-        stream = route_stream(1);
-        if(!stream) {
-            fprintf(stderr, "Couldn't allocate route stream.\n");
-            return -1;
-        }
-        /* Install source-specific conflicting routes */
-        while(1) {
-            rt1 = route_stream_next(stream);
-            if(rt1 == NULL) break;
-
-            inter(route, rt1, &zone);
-            if(!(conflicts(route, rt1) &&
-                 !is_installed(&zone) &&
-                 rt_cmp(rt1, min_conflict(&zone, route)) == 0))
-                continue;
-            rt2 = min_conflict(&zone, rt1);
-            if(rt2 == NULL)
-                add_route(&zone, min_route(route, rt1));
-            else if(rt_cmp(route, rt2) < 0 && rt_cmp(route, rt1) < 0)
-                chg_route(&zone, rt2, route);
-        }
-        route_stream_done(stream);
+    if(kernel_disambiguate(v4)) {
+        to_zone(route, &zone);
+        rc = add_route(&zone, route);
+        goto end;
     }
+
+    stream = route_stream(1);
+    if(!stream) {
+        fprintf(stderr, "Couldn't allocate route stream.\n");
+        return -1;
+    }
+    /* Install source-specific conflicting routes */
+    while(1) {
+        rt1 = route_stream_next(stream);
+        if(rt1 == NULL) break;
+
+        inter(route, rt1, &zone);
+        if(!(conflicts(route, rt1) &&
+             !is_installed(&zone) &&
+             rt_cmp(rt1, min_conflict(&zone, route)) == 0))
+            continue;
+        rt2 = min_conflict(&zone, rt1);
+        if(rt2 == NULL)
+            add_route(&zone, min_route(route, rt1));
+        else if(rt_cmp(route, rt2) < 0 && rt_cmp(route, rt1) < 0)
+            chg_route(&zone, rt2, route);
+    }
+    route_stream_done(stream);
 
     /* Non conflicting case */
     to_zone(route, &zone);
@@ -298,6 +302,7 @@ kinstall_route(const struct babel_route *route)
         rc = add_route(&zone, route);
     else
         rc = chg_route(&zone, rt1, route);
+ end:
     if(rc < 0) {
         int save = errno;
         perror("kernel_route(ADD)");
@@ -319,8 +324,14 @@ kuninstall_route(const struct babel_route *route)
     debugf("uninstall_route(%s from %s)\n",
            format_prefix(route->src->prefix, route->src->plen),
            format_prefix(route->src->src_prefix, route->src->src_plen));
-    /* Remove the route, or change if the route was solving a conflict. */
     to_zone(route, &zone);
+    if(kernel_disambiguate(v4)) {
+        rc = del_route(&zone, route);
+        if(rc < 0)
+            perror("kernel_route(FLUSH)");
+        return rc;
+    }
+    /* Remove the route, or change if the route was solving a conflict. */
     rt1 = conflict_solution(route);
     if(rt1 == NULL)
         rc = del_route(&zone, route);
@@ -330,29 +341,27 @@ kuninstall_route(const struct babel_route *route)
         perror("kernel_route(FLUSH)");
 
     /* Remove source-specific conflicting routes */
-    if(!kernel_disambiguate(v4)) {
-        stream = route_stream(1);
-        if(!stream) {
-            fprintf(stderr, "Couldn't allocate route stream.\n");
-            return -1;
-        }
-        while(1) {
-            rt1 = route_stream_next(stream);
-            if(rt1 == NULL) break;
-
-            inter(route, rt1, &zone);
-            if(!(conflicts(route, rt1) &&
-                 !is_installed(&zone) &&
-                 rt_cmp(rt1, min_conflict(&zone, route)) == 0))
-                continue;
-            rt2 = min_conflict(&zone, rt1);
-            if(rt2 == NULL)
-                del_route(&zone, min_route(route, rt1));
-            else if(rt_cmp(route, rt2) < 0 && rt_cmp(route, rt1) < 0)
-                chg_route(&zone, route, rt2);
-        }
-        route_stream_done(stream);
+    stream = route_stream(1);
+    if(!stream) {
+        fprintf(stderr, "Couldn't allocate route stream.\n");
+        return -1;
     }
+    while(1) {
+        rt1 = route_stream_next(stream);
+        if(rt1 == NULL) break;
+
+        inter(route, rt1, &zone);
+        if(!(conflicts(route, rt1) &&
+             !is_installed(&zone) &&
+             rt_cmp(rt1, min_conflict(&zone, route)) == 0))
+            continue;
+        rt2 = min_conflict(&zone, rt1);
+        if(rt2 == NULL)
+            del_route(&zone, min_route(route, rt1));
+        else if(rt_cmp(route, rt2) < 0 && rt_cmp(route, rt1) < 0)
+            chg_route(&zone, route, rt2);
+    }
+    route_stream_done(stream);
 
     return rc;
 }
