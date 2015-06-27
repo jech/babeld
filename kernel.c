@@ -84,21 +84,24 @@ gettime(struct timeval *tv)
 /* If /dev/urandom doesn't exist, this will fail with ENOENT, which the
    caller will deal with gracefully. */
 
-int
+ssize_t
 read_random_bytes(void *buf, size_t len)
 {
     int fd;
-    int rc;
+    size_t rc;
 
     fd = open("/dev/urandom", O_RDONLY);
     if(fd < 0) {
-        rc = -1;
-    } else {
-        rc = read(fd, buf, len);
-        if(rc < 0 || (unsigned)rc < len)
-            rc = -1;
-        close(fd);
+        errno = ENOSYS;
+        return -1;
     }
+
+    rc = read(fd, buf, len);
+    if(rc < len)
+        rc = -1;
+
+    close(fd);
+
     return rc;
 }
 
