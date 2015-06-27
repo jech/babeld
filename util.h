@@ -30,11 +30,11 @@ THE SOFTWARE.
 /* #elif defined __GNUC__*/
 #else
 #define DO_NTOHS(_d, _s) \
-    do { short _dd; \
+    do { unsigned short _dd; \
          memcpy(&(_dd), (_s), 2); \
          _d = ntohs(_dd); } while(0)
 #define DO_NTOHL(_d, _s) \
-    do { int _dd; \
+    do { unsigned int _dd; \
          memcpy(&(_dd), (_s), 4); \
          _d = ntohl(_dd); } while(0)
 #define DO_HTONS(_d, _s) \
