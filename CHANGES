@@ -1,3 +1,11 @@
+babeld-1.6.2 (unreleased)
+
+  * Changed router-id computation to use all interfaces, which increases
+    the chances of a stable id.
+  * Changed the format of babel-state to only contain the seqno -- the
+    validation of router-id was useless, and actually harmful when the
+    router-id changed multiple times.
+
 16 June 2015: babeld-1.6.1.
 
   * Fixed a buffer overflow in zone_equal.  This is probably not
