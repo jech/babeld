@@ -398,21 +398,10 @@ main(int argc, char **argv)
     if(random_id)
         goto random_id;
 
-    FOR_ALL_INTERFACES(ifp) {
-        /* ifp->ifindex is not necessarily valid at this point */
-        int ifindex = if_nametoindex(ifp->name);
-        if(ifindex > 0) {
-            unsigned char eui[8];
-            rc = if_eui64(ifp->name, ifindex, eui);
-            if(rc < 0)
-                continue;
-            memcpy(myid, eui, 8);
-            goto have_id;
-        }
-    }
+    /* We use all available interfaces here, since this increases the
+       chances of getting a stable router-id in case the set of Babel
+       interfaces changes. */
 
-    /* We failed to get a global EUI64 from the interfaces we were given.
-       Let's try to find an interface with a MAC address. */
     for(i = 1; i < 256; i++) {
         char buf[IF_NAMESIZE], *ifname;
         unsigned char eui[8];
