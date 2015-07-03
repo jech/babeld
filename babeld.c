@@ -442,30 +442,15 @@ main(int argc, char **argv)
     }
     if(fd >= 0) {
         char buf[100];
-        char buf2[100];
         int s;
-        long t;
         rc = read(fd, buf, 99);
         if(rc < 0) {
             perror("read(babel-state)");
         } else {
             buf[rc] = '\0';
-            rc = sscanf(buf, "%99s %d %ld\n", buf2, &s, &t);
-            if(rc == 3 && s >= 0 && s <= 0xFFFF) {
-                unsigned char sid[8];
-                rc = parse_eui64(buf2, sid);
-                if(rc < 0) {
-                    fprintf(stderr, "Couldn't parse babel-state.\n");
-                } else {
-                    struct timeval realnow;
-                    debugf("Got %s %d %ld from babel-state.\n",
-                           format_eui64(sid), s, t);
-                    gettimeofday(&realnow, NULL);
-                    if(memcmp(sid, myid, 8) == 0)
-                        myseqno = seqno_plus(s, 1);
-                    else if(!random_id)
-                        fprintf(stderr, "ID mismatch in babel-state.\n");
-                }
+            rc = sscanf(buf, "%d\n", &s);
+            if(rc == 1 && s >= 0 && s <= 0xFFFF) {
+                myseqno = seqno_plus(s, 1);
             } else {
                 fprintf(stderr, "Couldn't parse babel-state.\n");
             }
@@ -775,13 +760,9 @@ main(int argc, char **argv)
         perror("creat(babel-state)");
         unlink(state_file);
     } else {
-        struct timeval realnow;
-        char buf[100];
-        gettimeofday(&realnow, NULL);
-        rc = snprintf(buf, 100, "%s %d %ld\n",
-                      format_eui64(myid), (int)myseqno,
-                      (long)realnow.tv_sec);
-        if(rc < 0 || rc >= 100) {
+        char buf[10];
+        rc = snprintf(buf, 10, "%d\n", (int)myseqno);
+        if(rc < 0 || rc >= 10) {
             fprintf(stderr, "write(babel-state): overflow.\n");
             unlink(state_file);
         } else {
