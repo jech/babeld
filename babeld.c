@@ -56,6 +56,7 @@ THE SOFTWARE.
 struct timeval now;
 
 unsigned char myid[8];
+int have_id = 0;
 int debug = 0;
 
 int link_detect = 0;
@@ -126,7 +127,8 @@ main(int argc, char **argv)
     has_ipv6_subtrees = kernel_has_ipv6_subtrees();
 
     while(1) {
-        opt = getopt(argc, argv, "m:p:h:H:i:k:A:sruS:d:g:lwz:M:t:T:c:C:DL:I:");
+        opt = getopt(argc, argv,
+                     "m:p:h:H:i:k:A:srR:uS:d:g:lwz:M:t:T:c:C:DL:I:");
         if(opt < 0)
             break;
 
@@ -178,6 +180,12 @@ main(int argc, char **argv)
             break;
         case 'r':
             random_id = 1;
+            break;
+        case 'R':
+            rc = parse_eui64(optarg, myid);
+            if(rc < 0)
+                goto usage;
+            have_id = 1;
             break;
         case 'u':
             keep_unfeasible = 1;
@@ -395,39 +403,40 @@ main(int argc, char **argv)
         goto fail;
     }
 
-    if(random_id)
-        goto random_id;
+    if(!have_id && !random_id) {
+        /* We use all available interfaces here, since this increases the
+           chances of getting a stable router-id in case the set of Babel
+           interfaces changes. */
 
-    /* We use all available interfaces here, since this increases the
-       chances of getting a stable router-id in case the set of Babel
-       interfaces changes. */
-
-    for(i = 1; i < 256; i++) {
-        char buf[IF_NAMESIZE], *ifname;
-        unsigned char eui[8];
-        ifname = if_indextoname(i, buf);
-        if(ifname == NULL)
-            continue;
-        rc = if_eui64(ifname, i, eui);
-        if(rc < 0)
-            continue;
-        memcpy(myid, eui, 8);
-        goto have_id;
+        for(i = 1; i < 256; i++) {
+            char buf[IF_NAMESIZE], *ifname;
+            unsigned char eui[8];
+            ifname = if_indextoname(i, buf);
+            if(ifname == NULL)
+                continue;
+            rc = if_eui64(ifname, i, eui);
+            if(rc < 0)
+                continue;
+            memcpy(myid, eui, 8);
+            have_id = 1;
+            break;
+        }
     }
 
-    fprintf(stderr,
-            "Warning: couldn't find router id -- using random value.\n");
-
- random_id:
-    rc = read_random_bytes(myid, 8);
-    if(rc < 0) {
-        perror("read(random)");
-        goto fail;
+    if(!have_id) {
+        if(!random_id)
+            fprintf(stderr,
+                    "Warning: couldn't find router id -- "
+                    "using random value.\n");
+        rc = read_random_bytes(myid, 8);
+        if(rc < 0) {
+            perror("read(random)");
+            goto fail;
+        }
+        /* Clear group and global bits */
+        myid[0] &= ~3;
     }
-    /* Clear group and global bits */
-    myid[0] &= ~3;
 
- have_id:
     myseqno = (random() & 0xFFFF);
 
     fd = open(state_file, O_RDONLY);
