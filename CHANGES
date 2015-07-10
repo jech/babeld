@@ -5,6 +5,8 @@ babeld-1.6.2 (unreleased)
   * Changed the format of babel-state to only contain the seqno -- the
     validation of router-id was useless, and actually harmful when the
     router-id changed multiple times.
+  * Fixed a bug with native source-specific routing.  Thanks to Matthieu
+    Boutier.
 
 16 June 2015: babeld-1.6.1.
 
