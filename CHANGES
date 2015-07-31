@@ -1,4 +1,4 @@
-babeld-1.6.2 (unreleased)
+31 July 2015: babeld-1.6.2
 
   * Added the ability to specify a router-id explicitly (-R).
   * Changed router-id computation to use all interfaces, which increases
