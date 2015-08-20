@@ -1,3 +1,8 @@
+babeld-1.6.3 (unreleased)
+
+  * Changed the handling of kernel configuration and added the
+    skip-kernel-setup option.  Thanks to Toke Høiland-Jørgensen.
+
 31 July 2015: babeld-1.6.2
 
   * Added the ability to specify a router-id explicitly (-R).
