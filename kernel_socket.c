@@ -214,6 +214,8 @@ kernel_setup(int setup)
     int mib[4];
     size_t datasize;
 
+    if(skip_kernel_setup) return 1;
+
     mib[0] = CTL_NET;
     mib[1] = AF_INET6;
     seq = time(NULL);

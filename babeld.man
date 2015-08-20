@@ -253,6 +253,11 @@ This specifies whether to daemonize at startup, and is equivalent to
 the command-line option
 .BR \-D .
 .TP
+.BR skip-kernel-setup " {" true | false }
+If this flag is set, no kernel (sysctl) setup is performed on startup. This can
+be useful when running in environments where system permissions prevent setting
+kernel parameters, for instance inside a Linux container.
+.TP
 .BI state-file " filename"
 This specifies the name of the file used for preserving long-term
 information between invocations of the

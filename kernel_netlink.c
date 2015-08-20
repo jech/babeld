@@ -514,6 +514,7 @@ kernel_setup(int setup)
         }
         nl_setup = 1;
 
+        if(skip_kernel_setup) return 1;
 
         for(i=0; i<NUM_SYSCTLS; i++) {
             s = &sysctl_settings[i];
@@ -540,6 +541,8 @@ kernel_setup(int setup)
         close(nl_command.sock);
         nl_command.sock = -1;
         nl_setup = 0;
+
+        if(skip_kernel_setup) return 1;
 
         for(i=0; i<NUM_SYSCTLS; i++) {
             s = &sysctl_settings[i];
