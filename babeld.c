@@ -129,7 +129,7 @@ main(int argc, char **argv)
 
     while(1) {
         opt = getopt(argc, argv,
-                     "m:p:h:H:i:k:A:srR:uS:d:g:lwz:M:t:T:c:C:DL:I:");
+                     "m:p:h:H:i:k:A:sruS:d:g:lwz:M:t:T:c:C:DL:I:");
         if(opt < 0)
             break;
 
@@ -181,12 +181,6 @@ main(int argc, char **argv)
             break;
         case 'r':
             random_id = 1;
-            break;
-        case 'R':
-            rc = parse_eui64(optarg, myid);
-            if(rc < 0)
-                goto usage;
-            have_id = 1;
             break;
         case 'u':
             keep_unfeasible = 1;

@@ -94,6 +94,7 @@ extern int all_wireless;
 extern int has_ipv6_subtrees;
 
 extern unsigned char myid[8];
+extern int have_id;
 
 extern const unsigned char zeroes[16], ones[16];
 

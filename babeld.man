@@ -94,11 +94,6 @@ derived from the MAC address of the first interface, which is easier
 to debug and more reliably prevents routing loops but may sometimes
 cause a node to be unreachable for 120 seconds just after boot.
 .TP
-.BI \-R " router-id"
-Specify the router-id explicitly, as a modified EUI-64 or a MAC-48
-address.  If two nodes have the same router-id, bad things will happen.
-Don't use this option unless you know what you are doing.
-.TP
 .B \-u
 Do not flush unfeasible (useless) routes.  This is useful in order to
 announce more information to a front-end (see
@@ -257,6 +252,11 @@ the command-line option
 If this flag is set, no kernel (sysctl) setup is performed on startup. This can
 be useful when running in environments where system permissions prevent setting
 kernel parameters, for instance inside a Linux container.
+.TP
+.BI router-id " id"
+Specify the router-id explicitly, as a modified EUI-64 or a MAC-48
+address.  If two nodes have the same router-id, bad things will happen.
+Don't use this option unless you know what you are doing.
 .TP
 .BI state-file " filename"
 This specifies the name of the file used for preserving long-term

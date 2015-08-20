@@ -782,6 +782,14 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
         if(c < -1 || n <= 0 || n + SRC_TABLE_NUM >= 32765)
             goto error;
         src_table_prio = n;
+    } else if(strcmp(token, "router-id") == 0) {
+        unsigned char *id = NULL;
+        c = getid(c, &id, gnc, closure);
+        if(c < -1 || id == NULL)
+            goto error;
+        memcpy(myid, id, 8);
+        free(id);
+        have_id = 1;
     } else {
         goto error;
     }
