@@ -2,6 +2,8 @@ babeld-1.6.3 (unreleased)
 
   * Changed the handling of kernel configuration and added the
     skip-kernel-setup option.  Thanks to Toke Høiland-Jørgensen.
+  * Added the option "router-id" and removed the flag "-R".  This is an
+    incompatible change.
 
 31 July 2015: babeld-1.6.2
 
