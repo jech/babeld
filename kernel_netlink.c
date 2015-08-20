@@ -58,10 +58,19 @@ THE SOFTWARE.
 
 int export_table = -1, import_tables[MAX_IMPORT_TABLES], import_table_count = 0;
 
-static int old_forwarding = -1;
-static int old_ipv4_forwarding = -1;
-static int old_accept_redirects = -1;
-static int old_rp_filter = -1;
+struct sysctl_setting {
+    char *name;
+    int want;
+    int was;
+};
+#define NUM_SYSCTLS 4
+
+static struct sysctl_setting sysctl_settings[NUM_SYSCTLS] = {
+    {"/proc/sys/net/ipv6/conf/all/forwarding", 1, -1},
+    {"/proc/sys/net/ipv4/conf/all/forwarding", 1, -1},
+    {"/proc/sys/net/ipv6/conf/all/accept_redirects", 0, -1},
+    {"/proc/sys/net/ipv4/conf/all/rp_filter", 0, -1},
+};
 
 struct old_if {
     char *ifname;
@@ -480,10 +489,12 @@ netlink_send_dump(int type, void *data, int len) {
     return 0;
 }
 
+
 int
 kernel_setup(int setup)
 {
-    int rc;
+    struct sysctl_setting *s;
+    int i, rc;
 
     if(setup) {
         if(export_table < 0)
@@ -503,56 +514,21 @@ kernel_setup(int setup)
         }
         nl_setup = 1;
 
-        old_forwarding = read_proc("/proc/sys/net/ipv6/conf/all/forwarding");
-        if(old_forwarding < 0) {
-            perror("Couldn't read forwarding knob.");
-            return -1;
-        }
 
-        rc = write_proc("/proc/sys/net/ipv6/conf/all/forwarding", 1);
-        if(rc < 0) {
-            perror("Couldn't write forwarding knob.");
-            return -1;
-        }
-
-        old_ipv4_forwarding =
-            read_proc("/proc/sys/net/ipv4/conf/all/forwarding");
-        if(old_ipv4_forwarding < 0) {
-            perror("Couldn't read IPv4 forwarding knob.");
-            return -1;
-        }
-
-        rc = write_proc("/proc/sys/net/ipv4/conf/all/forwarding", 1);
-        if(rc < 0) {
-            perror("Couldn't write IPv4 forwarding knob.");
-            return -1;
-        }
-
-
-        old_accept_redirects =
-            read_proc("/proc/sys/net/ipv6/conf/all/accept_redirects");
-        if(old_accept_redirects < 0) {
-            perror("Couldn't read accept_redirects knob.");
-            return -1;
-        }
-
-        rc = write_proc("/proc/sys/net/ipv6/conf/all/accept_redirects", 0);
-        if(rc < 0) {
-            perror("Couldn't write accept_redirects knob.");
-            return -1;
-        }
-
-        old_rp_filter =
-            read_proc("/proc/sys/net/ipv4/conf/all/rp_filter");
-        if(old_rp_filter < 0) {
-            perror("Couldn't read rp_filter knob.");
-            return -1;
-        }
-
-        rc = write_proc("/proc/sys/net/ipv4/conf/all/rp_filter", 0);
-        if(rc < 0) {
-            perror("Couldn't write rp_filter knob.");
-            return -1;
+        for(i=0; i<NUM_SYSCTLS; i++) {
+            s = &sysctl_settings[i];
+            s->was = read_proc(s->name);
+            if(s->was < 0) {
+                perror("Couldn't read sysctl");
+                return -1;
+            }
+            if(s->was != s->want) {
+                rc = write_proc(s->name, s->want);
+                if(rc < 0) {
+                    perror("Couldn't write sysctl");
+                    return -1;
+                }
+            }
         }
 
         return 1;
@@ -561,46 +537,21 @@ kernel_setup(int setup)
         close(dgram_socket);
         dgram_socket = -1;
 
-        if(old_forwarding >= 0) {
-            rc = write_proc("/proc/sys/net/ipv6/conf/all/forwarding",
-                            old_forwarding);
-            if(rc < 0) {
-                perror("Couldn't write forwarding knob.\n");
-                return -1;
-            }
-        }
-
-        if(old_ipv4_forwarding >= 0) {
-            rc = write_proc("/proc/sys/net/ipv4/conf/all/forwarding",
-                            old_ipv4_forwarding);
-            if(rc < 0) {
-                perror("Couldn't write IPv4 forwarding knob.\n");
-                return -1;
-            }
-        }
-
-        if(old_accept_redirects >= 0) {
-            rc = write_proc("/proc/sys/net/ipv6/conf/all/accept_redirects",
-                            old_accept_redirects);
-            if(rc < 0) {
-                perror("Couldn't write accept_redirects knob.\n");
-                return -1;
-            }
-        }
-
-        if(old_rp_filter >= 0) {
-            rc = write_proc("/proc/sys/net/ipv4/conf/all/rp_filter",
-                            old_rp_filter);
-            if(rc < 0) {
-                perror("Couldn't write rp_filter knob.\n");
-                return -1;
-            }
-        }
-
         close(nl_command.sock);
         nl_command.sock = -1;
-
         nl_setup = 0;
+
+        for(i=0; i<NUM_SYSCTLS; i++) {
+            s = &sysctl_settings[i];
+            if(s->was && s->was != s->want) {
+                rc = write_proc(s->name,s->was);
+                if(rc < 0) {
+                    perror("Couldn't write sysctl");
+                    return -1;
+                }
+            }
+        }
+
         return 1;
 
     }
