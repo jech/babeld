@@ -252,7 +252,7 @@ kernel_setup(int setup)
             rc = sysctl(mib, 4, &old_accept_redirects, &datasize,
                         &accept_redirects, datasize);
         }
-    else if(old_accept_redirects >= 0 && old_accept_redirects != accept_redirects)
+    } else if(old_accept_redirects >= 0 && old_accept_redirects != accept_redirects)
         rc = sysctl(mib, 4, NULL, NULL,
                     &old_accept_redirects, datasize);
     if(rc == -1) {
