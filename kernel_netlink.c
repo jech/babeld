@@ -546,7 +546,7 @@ kernel_setup(int setup)
 
         for(i=0; i<NUM_SYSCTLS; i++) {
             s = &sysctl_settings[i];
-            if(s->was && s->was != s->want) {
+            if(s->was >= 0 && s->was != s->want) {
                 rc = write_proc(s->name,s->was);
                 if(rc < 0) {
                     perror("Couldn't write sysctl");
