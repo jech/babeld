@@ -1,4 +1,4 @@
-.TH BABELD 8
+s.TH BABELD 8
 .SH NAME
 babeld \- ad-hoc network routing daemon
 .SH SYNOPSIS
@@ -410,8 +410,9 @@ A filtering rule is defined by a single line with the following format:
 specifies the filter to which this entry will be added, and can be one of
 .BR in ,
 .BR out ,
+.BR redistribute ,
 or
-.BR redistribute .
+.BR install .
 
 Each
 .I selector
@@ -498,6 +499,14 @@ For a redistribute filter, redistribute this route with metric
 .BI src-prefix " prefix"
 For a redistribute filter, set the source prefix of this route to
 .IR prefix .
+.TP
+.BI table " table"
+In an
+.B install
+filter, specify the kernel routing table to use.  For source-specific
+routes, this only works reliably for IPv6, and only when
+.B ipv6-subtrees
+is true.
 .PP
 If
 .I action

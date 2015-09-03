@@ -24,6 +24,7 @@ struct filter_result {
     unsigned int add_metric; /* allow = 0, deny = INF, metric = <0..INF> */
     unsigned char *src_prefix;
     unsigned char src_plen;
+    unsigned int table;
 };
 
 struct filter {
@@ -61,4 +62,7 @@ int redistribute_filter(const unsigned char *prefix, unsigned short plen,
                     const unsigned char *src_prefix, unsigned short src_plen,
                     unsigned int ifindex, int proto,
                     struct filter_result *result);
+int install_filter(const unsigned char *prefix, unsigned short plen,
+                   const unsigned char *src_prefix, unsigned short src_plen,
+                   unsigned int ifindex, struct filter_result *result);
 int finalise_config(void);

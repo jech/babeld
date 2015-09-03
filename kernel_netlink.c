@@ -51,6 +51,7 @@ THE SOFTWARE.
 #include "kernel.h"
 #include "util.h"
 #include "interface.h"
+#include "configuration.h"
 
 #ifndef MAX_INTERFACES
 #define MAX_INTERFACES 20
@@ -893,6 +894,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
              const unsigned char *newgate, int newifindex,
              unsigned int newmetric)
 {
+    struct filter_result filter_result = {0};
     union { char raw[1024]; struct nlmsghdr nh; } buf;
     struct rtmsg *rtm;
     struct rtattr *rta;
@@ -961,7 +963,10 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
 
     ipv4 = v4mapped(gate);
 
-    if(src_plen == 0) {
+    install_filter(dest, plen, src, src_plen, ifindex, &filter_result);
+    if(filter_result.table) {
+        table = filter_result.table;
+    } else if(src_plen == 0) {
         table = export_table;
     } else if(kernel_disambiguate(ipv4)) {
         table = export_table;

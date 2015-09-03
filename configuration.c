@@ -42,6 +42,7 @@ THE SOFTWARE.
 struct filter *input_filters = NULL;
 struct filter *output_filters = NULL;
 struct filter *redistribute_filters = NULL;
+struct filter *install_filters = NULL;
 struct interface_conf *default_interface_conf = NULL;
 struct interface_conf *interface_confs = NULL;
 
@@ -403,6 +404,13 @@ parse_filter(int c, gnc_t gnc, void *closure, struct filter **filter_return)
                 goto error;
             if(af == AF_INET && filter->action.src_plen == 96)
                 memset(&filter->action.src_prefix, 0, 16);
+        } else if(strcmp(token, "table") == 0) {
+            int table;
+            c = getint(c, &table, gnc, closure);
+            if(c < -1) goto error;
+            if(table <= 0 || table > INFINITY)
+                goto error;
+            filter->action.table = table;
         } else {
             goto error;
         }
@@ -846,6 +854,12 @@ parse_config(gnc_t gnc, void *closure)
             if(c < -1)
                 return -1;
             add_filter(filter, &redistribute_filters);
+        } else if(strcmp(token, "install") == 0) {
+            struct filter *filter;
+            c = parse_filter(c, gnc, closure, &filter);
+            if(c < -1)
+                return -1;
+            add_filter(filter, &install_filters);
         } else if(strcmp(token, "interface") == 0) {
             struct interface_conf *if_conf;
             c = parse_ifconf(c, gnc, closure, &if_conf);
@@ -945,6 +959,7 @@ renumber_filters()
     renumber_filter(input_filters);
     renumber_filter(output_filters);
     renumber_filter(redistribute_filters);
+    renumber_filter(install_filters);
 }
 
 static int
@@ -1073,6 +1088,20 @@ redistribute_filter(const unsigned char *prefix, unsigned short plen,
     int res;
     res = do_filter(redistribute_filters, NULL, prefix, plen,
                     src_prefix, src_plen, NULL, ifindex, proto, result);
+    if(res < 0)
+        res = INFINITY;
+    return res;
+}
+
+int
+install_filter(const unsigned char *prefix, unsigned short plen,
+               const unsigned char *src_prefix, unsigned short src_plen,
+               unsigned int ifindex,
+               struct filter_result *result)
+{
+    int res;
+    res = do_filter(install_filters, NULL, prefix, plen,
+                    src_prefix, src_plen, NULL, ifindex, 0, result);
     if(res < 0)
         res = INFINITY;
     return res;
