@@ -1,4 +1,4 @@
-babeld-1.6.3 (unreleased)
+1 October 2015: babeld-1.6.3
 
   * Changed the handling of kernel configuration and added the
     skip-kernel-setup option.  Thanks to Toke Høiland-Jørgensen.
@@ -16,7 +16,7 @@ babeld-1.6.3 (unreleased)
   * Fixed a bug with native source-specific routing.  Thanks to Matthieu
     Boutier.
 
-16 June 2015: babeld-1.6.1.
+16 June 2015: babeld-1.6.1
 
   * Fixed a buffer overflow in zone_equal.  This is probably not
     exploitable, but might cause incorrect routing tables in the presence
@@ -36,7 +36,7 @@ babeld-1.6.3 (unreleased)
     Stenberg.
   * Made ipv6-subtrees a runtime option.  Thanks to Matthieu Boutier.
 
-4 July 2014: babeld-1.5.1:
+4 July 2014: babeld-1.5.1
 
   * Added support for reading multiple configuration files by specifying
     the -c command-line flag multiple times.
