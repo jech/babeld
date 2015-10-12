@@ -1689,16 +1689,16 @@ flush_rule(int prio, int family)
 
 /* The table used for non-specific routes is "export_table", therefore, we can
    take the convention of plen == 0 <=> empty table. */
-struct kernel_table {
+struct rule {
     unsigned char src[16];
     unsigned char plen;
     unsigned char table;
 };
 
-/* kernel_tables contains informations about the rules we installed. It is an
-   array indexed by: <table priority> - src_table_prio.
+/* rules contains informations about the rules we installed. It is an array
+   indexed by: <table priority> - src_table_prio.
    (First entries are the most specific, since they have priority.) */
-static struct kernel_table kernel_tables[SRC_TABLE_NUM];
+static struct rule rules[SRC_TABLE_NUM];
 /* used tables is indexed by: <table number> - src_table_idx
    used_tables[i] == 1 <=> the table number (i + src_table_idx) is used */
 static char used_tables[SRC_TABLE_NUM] = {0};
@@ -1717,9 +1717,9 @@ change_table_priority(const unsigned char *src, int plen, int table,
     return flush_rule(old_prio, v4mapped(src) ? AF_INET : AF_INET6);
 }
 
-/* Return a new table at index [idx] of kernel_tables.  If cell at that index is
-   not free, we need to shift cells (and rules).  If it's full, return NULL. */
-static struct kernel_table *
+/* Return a new table at index [idx] of rules.  If cell at that index is not
+   free, we need to shift cells (and rules).  If it's full, return NULL. */
+static struct rule *
 insert_table(const unsigned char *src, unsigned short src_plen, int idx)
 {
     int table;
@@ -1743,22 +1743,22 @@ insert_table(const unsigned char *src, unsigned short src_plen, int idx)
     table += src_table_idx;
 
     /* Create the table's rule at the right place. Shift rules if necessary. */
-    if(kernel_tables[idx].plen != 0) {
+    if(rules[idx].plen != 0) {
         /* shift right */
         i = src_table_used;
         while(i > idx) {
             i--;
-            rc = change_table_priority(kernel_tables[i].src,
-                                       kernel_tables[i].plen,
-                                       kernel_tables[i].table,
+            rc = change_table_priority(rules[i].src,
+                                       rules[i].plen,
+                                       rules[i].table,
                                        i + src_table_prio,
                                        i + 1 + src_table_prio);
             if(rc < 0) {
                 perror("change_table_priority");
                 return NULL;
             }
-            kernel_tables[i+1] = kernel_tables[i];
-            kernel_tables[i].plen = 0;
+            rules[i+1] = rules[i];
+            rules[i].plen = 0;
         }
     }
 
@@ -1768,27 +1768,27 @@ insert_table(const unsigned char *src, unsigned short src_plen, int idx)
         return NULL;
     }
     used_tables[table - src_table_idx] = 1;
-    memcpy(kernel_tables[idx].src, src, 16);
-    kernel_tables[idx].plen = src_plen;
-    kernel_tables[idx].table = table;
+    memcpy(rules[idx].src, src, 16);
+    rules[idx].plen = src_plen;
+    rules[idx].table = table;
 
     src_table_used++;
-    return &kernel_tables[idx];
+    return &rules[idx];
 }
 
-/* Sorting kernel_tables in a well ordered fashion will increase code complexity
-   and decrease performances, because more rule shifs will be required, so more
+/* Sorting rules in a well ordered fashion will increase code complexity and
+   decrease performances, because more rule shifs will be required, so more
    system calls invoked. */
 static int
 find_table_slot(const unsigned char *src, unsigned short src_plen,
                  int *new_return)
  {
-    struct kernel_table *kt = NULL;
+    struct rule *kt = NULL;
     int i;
     *new_return = -1;
 
     for(i = 0; i < SRC_TABLE_NUM; i++) {
-        kt = &kernel_tables[i];
+        kt = &rules[i];
         if(kt->plen == 0)
             goto new_table_here; /* empty table here */
         switch(prefix_cmp(src, src_plen, kt->src, kt->plen)) {
@@ -1811,7 +1811,7 @@ find_table_slot(const unsigned char *src, unsigned short src_plen,
 static int
 find_table(const unsigned char *src, unsigned short src_plen)
 {
-    struct kernel_table *kt = NULL;
+    struct rule *kt = NULL;
     int i, new_i;
 
     if(src_plen == 0 ||
@@ -1827,7 +1827,7 @@ find_table(const unsigned char *src, unsigned short src_plen)
             return -1;
         kt = insert_table(src, src_plen, new_i);
     } else {
-        kt = &kernel_tables[i];
+        kt = &rules[i];
     }
     return kt == NULL ? -1 : kt->table;
 }
@@ -1837,10 +1837,10 @@ release_tables(void)
 {
     int i;
     for(i = 0; i < SRC_TABLE_NUM; i++) {
-        if(kernel_tables[i].plen != 0) {
+        if(rules[i].plen != 0) {
             flush_rule(i + src_table_prio,
-                       v4mapped(kernel_tables[i].src) ? AF_INET : AF_INET6);
-            kernel_tables[i].plen = 0;
+                       v4mapped(rules[i].src) ? AF_INET : AF_INET6);
+            rules[i].plen = 0;
         }
         used_tables[i] = 0;
     }
@@ -1935,8 +1935,8 @@ filter_kernel_rules(struct nlmsghdr *nh, void *data)
         return 1;
 
     if(prefix_cmp(src, src_plen,
-                  kernel_tables[i].src, kernel_tables[i].plen) == PST_EQUALS &&
-       table == kernel_tables[i].table &&
+                  rules[i].src, rules[i].plen) == PST_EQUALS &&
+       table == rules[i].table &&
        !rule_exists[i]) {
         rule_exists[i] = 1;
     } else {
@@ -1944,7 +1944,7 @@ filter_kernel_rules(struct nlmsghdr *nh, void *data)
         do {
             rc = flush_rule(i + src_table_prio, is_v4 ? AF_INET : AF_INET6);
         } while(rc >= 0);
-        /* flush unexpected rules, but keep information in kernel_tables[i].  It
+        /* flush unexpected rules, but keep information in rules[i].  It
             will be used afterwards to reinstall the rule. */
         if(errno != ENOENT && errno != EEXIST)
             fprintf(stderr,
@@ -1968,16 +1968,16 @@ install_missing_rules(char rule_exists[SRC_TABLE_NUM], int v4)
 {
     int i, rc;
     for(i = 0; i < SRC_TABLE_NUM; i++)
-        if(v4mapped(kernel_tables[i].src) == v4 &&
-           !rule_exists[i] && kernel_tables[i].plen != 0) {
-            rc = add_rule(i + src_table_prio, kernel_tables[i].src,
-                          kernel_tables[i].plen, kernel_tables[i].table);
+        if(v4mapped(rules[i].src) == v4 &&
+           !rule_exists[i] && rules[i].plen != 0) {
+            rc = add_rule(i + src_table_prio, rules[i].src,
+                          rules[i].plen, rules[i].table);
             if(rc < 0)
                 fprintf(stderr,
                         "install_missing_rules: "
                         "Cannot install rule: table %d prio %d from %s\n",
-                        kernel_tables[i].table, i + src_table_prio,
-                        format_prefix(kernel_tables[i].src,
-                                      kernel_tables[i].plen));
+                        rules[i].table, i + src_table_prio,
+                        format_prefix(rules[i].src,
+                                      rules[i].plen));
         }
 }
