@@ -1684,6 +1684,18 @@ flush_rule(int prio, int family)
     return netlink_talk(message_header);
 }
 
+static int
+change_rule(int new_prio, int old_prio,
+            const unsigned char *src, int plen, int table)
+{
+    int rc;
+    kdebugf("/Swap: ");
+    rc = add_rule(new_prio, src, plen, table);
+    if(rc < 0)
+        return rc;
+    kdebugf("\\Swap: ");
+    return flush_rule(old_prio, v4mapped(src) ? AF_INET : AF_INET6);
+}
 
 /* Source specific functions and data structures */
 
@@ -1702,19 +1714,53 @@ static struct rule rules[SRC_TABLE_NUM];
 /* used tables is indexed by: <table number> - src_table_idx
    used_tables[i] == 1 <=> the table number (i + src_table_idx) is used */
 static char used_tables[SRC_TABLE_NUM] = {0};
-static unsigned char src_table_used = 0; /* number of tables used */
 
-static inline int
-change_table_priority(const unsigned char *src, int plen, int table,
-                      int old_prio, int new_prio)
+static int
+get_free_table(void)
 {
-    int rc;
-    kdebugf("/Swap: ");
-    rc = add_rule(new_prio, src, plen, table);
-    if(rc < 0)
-        return rc;
-    kdebugf("\\Swap: ");
-    return flush_rule(old_prio, v4mapped(src) ? AF_INET : AF_INET6);
+    int i;
+    for(i = 0; i < SRC_TABLE_NUM; i++)
+        if(!used_tables[i]) {
+            used_tables[i] = 1;
+            return i + src_table_idx;
+        }
+    return -1;
+}
+
+static void
+release_table(int i)
+{
+    used_tables[i - src_table_idx] = 0;
+}
+
+static int
+find_hole_around(int i)
+{
+    int j;
+    for(j = i; j < SRC_TABLE_NUM; j++)
+        if(rules[j].plen == 0)
+            return j;
+    for(j = i - 1; j >= 0; j--)
+        if(rules[j].plen == 0)
+            return j;
+    return -1;
+}
+
+static int
+shift_rule(int from, int to)
+{
+    int dec = (from < to) ? 1 /* right */ : -1 /* left */;
+    while(to != from) {
+        to =- dec;
+        rc = change_rule(to + dec + src_table_prio, to + src_table_prio,
+                         rules[to].src, rules[to].plen, rules[to].table);
+        if(rc < 0) {
+            perror("change_table_priority");
+            return NULL;
+        }
+        rules[to+dec] = rules[to];
+        rules[to].plen = 0;
+    }
 }
 
 /* Return a new table at index [idx] of rules.  If cell at that index is not
@@ -1724,95 +1770,77 @@ insert_table(const unsigned char *src, unsigned short src_plen, int idx)
 {
     int table;
     int rc;
-    int i;
+    int hole;
 
     if(idx < 0 || idx >= SRC_TABLE_NUM) {
         fprintf(stderr, "Incorrect table number %d\n", idx);
         return NULL;
     }
 
-    if(src_table_used >= SRC_TABLE_NUM) {
+    table = get_free_table();
+    if(table < 0) {
         kdebugf("All allowed routing tables are used!\n");
         return NULL;
     }
 
-    /* find a free table number */
-    for(table = 0; table < SRC_TABLE_NUM; table++)
-        if(!used_tables[table])
-            break;
-    table += src_table_idx;
-
-    /* Create the table's rule at the right place. Shift rules if necessary. */
-    if(rules[idx].plen != 0) {
-        /* shift right */
-        i = src_table_used;
-        while(i > idx) {
-            i--;
-            rc = change_table_priority(rules[i].src,
-                                       rules[i].plen,
-                                       rules[i].table,
-                                       i + src_table_prio,
-                                       i + 1 + src_table_prio);
-            if(rc < 0) {
-                perror("change_table_priority");
-                return NULL;
-            }
-            rules[i+1] = rules[i];
-            rules[i].plen = 0;
-        }
+    hole = find_hole_around(idx);
+    if(hole < 0) {
+        fprintf(stderr, "Have free table but not free rule.\n");
+        goto fail;
     }
+    rc = shift_rule(idx, hole);
+    if(rc < 0) {
+        goto fail;
 
     rc = add_rule(idx + src_table_prio, src, src_plen, table);
     if(rc < 0) {
         perror("add rule");
-        return NULL;
+        goto fail;
     }
-    used_tables[table - src_table_idx] = 1;
     memcpy(rules[idx].src, src, 16);
     rules[idx].plen = src_plen;
     rules[idx].table = table;
 
-    src_table_used++;
     return &rules[idx];
+  fail:
+    release_table(table);
+    return NULL;
 }
 
 /* Sorting rules in a well ordered fashion will increase code complexity and
    decrease performances, because more rule shifs will be required, so more
    system calls invoked. */
 static int
-find_table_slot(const unsigned char *src, unsigned short src_plen,
-                 int *new_return)
- {
-    struct rule *kt = NULL;
+find_table_slot(const unsigned char *src, unsigned short src_plen, int *found)
+{
+    struct rule *kr = NULL;
     int i;
-    *new_return = -1;
+    *found = false;
 
     for(i = 0; i < SRC_TABLE_NUM; i++) {
-        kt = &rules[i];
-        if(kt->plen == 0)
-            goto new_table_here; /* empty table here */
-        switch(prefix_cmp(src, src_plen, kt->src, kt->plen)) {
+        kr = &rules[i];
+        if(kr->plen == 0)
+            return i;
+        switch(prefix_cmp(src, src_plen, kr->src, kr->plen)) {
         case PST_LESS_SPECIFIC:
         case PST_DISJOINT:
-            continue; /* try to find a comparable route entry. */
+            continue;
         case PST_MORE_SPECIFIC:
-            goto new_table_here;
+            return i;
         case PST_EQUALS:
+            *found = true;
             return i;
         }
     }
 
     return -1;
- new_table_here:
-    *new_return = i;
-    return -1;
- }
+}
 
 static int
 find_table(const unsigned char *src, unsigned short src_plen)
 {
-    struct rule *kt = NULL;
-    int i, new_i;
+    struct rule *kr = NULL;
+    int i, found;
 
     if(src_plen == 0 ||
        (kernel_disambiguate(src_plen >= 96  && v4mapped(src)))) {
@@ -1821,15 +1849,13 @@ find_table(const unsigned char *src, unsigned short src_plen)
         return -1;
     }
 
-    i = find_table_slot(src, src_plen, &new_i);
-    if(i < 0) {
-        if(new_i < 0)
-            return -1;
-        kt = insert_table(src, src_plen, new_i);
-    } else {
-        kt = &rules[i];
-    }
-    return kt == NULL ? -1 : kt->table;
+    i = find_table_slot(src, src_plen, &found);
+    if(found)
+        return rules[i].table;
+    if(i < 0)
+        return -1;
+    kr = insert_table(src, src_plen, i);
+    return kr == NULL ? -1 : kr->table;
 }
 
 static void
@@ -1844,7 +1870,6 @@ release_tables(void)
         }
         used_tables[i] = 0;
     }
-    src_table_used = 0;
 }
 
 static int
