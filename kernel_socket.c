@@ -851,6 +851,29 @@ kernel_callback(struct kernel_filter *filter)
 
 }
 
+int
+add_rule(int prio, const unsigned char *src_prefix, int src_plen, int table)
+{
+    errno = ENOSYS;
+    return -1;
+}
+
+int
+flush_rule(int prio, int family)
+{
+    errno = ENOSYS;
+    return -1;
+}
+
+int
+change_rule(int new_prio, int old_prio,
+            const unsigned char *src, int plen, int table)
+{
+    errno = ENOSYS;
+    return -1;
+}
+
+
 /* Local Variables:      */
 /* c-basic-offset: 4     */
 /* indent-tabs-mode: nil */

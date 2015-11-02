@@ -1464,7 +1464,7 @@ kernel_callback(struct kernel_filter *filter)
 
 /* Routing table's rules */
 
-static int
+int
 add_rule(int prio, const unsigned char *src_prefix, int src_plen, int table)
 {
     char buffer[64] = {0}; /* 56 needed */
@@ -1536,7 +1536,7 @@ add_rule(int prio, const unsigned char *src_prefix, int src_plen, int table)
     return netlink_talk(message_header);
 }
 
-static int
+int
 flush_rule(int prio, int family)
 {
     char buffer[64] = {0}; /* 36 needed */
@@ -1589,7 +1589,7 @@ flush_rule(int prio, int family)
     return netlink_talk(message_header);
 }
 
-static int
+int
 change_rule(int new_prio, int old_prio,
             const unsigned char *src, int plen, int table)
 {
