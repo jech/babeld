@@ -722,20 +722,16 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
     }
 
     i = 0;
-    p = buf;
-    while(p < buf + len && i < maxroutes) {
+    for(p = buf; p < buf + len && i < maxroutes; p += rtm->rtm_msglen) {
         rtm = (struct rt_msghdr*)p;
         rc = parse_kernel_route(rtm, &routes[i]);
-        if(rc)
-            goto cont;
+        if(rc < 0)
+            continue;
 
         if(debug > 2)
             print_kernel_route(1,&routes[i]);
 
         i++;
-
-    cont:
-        p += rtm->rtm_msglen;
     }
 
     free(buf);
