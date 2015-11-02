@@ -36,6 +36,12 @@ struct kernel_route {
     unsigned char gw[16];
 };
 
+struct kernel_filter {
+    /* return -1 to interrupt search. */
+    int (*route)(struct kernel_route *, void *);
+    void *route_closure;
+};
+
 #define ROUTE_FLUSH 0
 #define ROUTE_ADD 1
 #define ROUTE_MODIFY 2
@@ -71,8 +77,8 @@ int kernel_route(int operation, const unsigned char *dest, unsigned short plen,
                  const unsigned char *gate, int ifindex, unsigned int metric,
                  const unsigned char *newgate, int newifindex,
                  unsigned int newmetric);
-int kernel_routes(struct kernel_route *routes, int maxroutes);
-int kernel_callback(int (*fn)(int, void*), void *closure);
+int kernel_dump(int operation, struct kernel_filter *filter);
+int kernel_callback(struct kernel_filter *filter);
 int kernel_addresses(char *ifname, int ifindex, int ll,
                      struct kernel_route *routes, int maxroutes);
 int if_eui64(char *ifname, int ifindex, unsigned char *eui);

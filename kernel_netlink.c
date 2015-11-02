@@ -89,6 +89,7 @@ static int dgram_socket = -1;
 #define NO_ARPHRD
 #endif
 
+static int filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter);
 
 static int find_table(const unsigned char *src, unsigned short src_plen);
 static void release_tables(void);
@@ -899,7 +900,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     struct rtmsg *rtm;
     struct rtattr *rta;
     int len = sizeof(buf.raw);
-    int rc, ipv4, table, use_src = 0;
+    int rc, ipv4, use_src = 0;
 
     if(!nl_setup) {
         fprintf(stderr,"kernel_route: netlink not initialized.\n");
@@ -1170,34 +1171,15 @@ print_kernel_route(int add, int protocol, int type,
 }
 
 static int
-filter_kernel_routes(struct nlmsghdr *nh, void *data)
+filter_kernel_routes(struct nlmsghdr *nh, struct kernel_route *route)
 {
-    int rc;
-
-    struct kernel_route *current_route;
-    struct kernel_route route;
-
-    int maxroutes = 0;
-    struct kernel_route *routes = NULL;
-    int *found = NULL;
-    int len;
-
+    int rc, len;
     struct rtmsg *rtm;
-
-    if(data) {
-        void **args = (void**)data;
-        maxroutes = *(int*)args[0];
-        routes = (struct kernel_route *)args[1];
-        found = (int*)args[2];
-    }
 
     len = nh->nlmsg_len;
 
-    if(data && *found >= maxroutes)
-        return 0;
-
     if(nh->nlmsg_type != RTM_NEWROUTE &&
-       (data || nh->nlmsg_type != RTM_DELROUTE))
+       nh->nlmsg_type != RTM_DELROUTE)
         return 0;
 
     rtm = (struct rtmsg*)NLMSG_DATA(nh);
@@ -1210,31 +1192,20 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
     if(rtm->rtm_flags & RTM_F_CLONED)
         return 0;
 
-    if(data)
-        current_route = &routes[*found];
-    else
-        current_route = &route;
-
-    rc = parse_kernel_route_rta(rtm, len, current_route);
+    rc = parse_kernel_route_rta(rtm, len, route);
     if(rc < 0)
         return 0;
 
-    if(martian_prefix(current_route->prefix, current_route->plen) ||
-       martian_prefix(current_route->src_prefix, current_route->src_plen))
-        return 0;
-
     /* Ignore default unreachable routes; no idea where they come from. */
-    if(current_route->plen == 0 && current_route->metric >= KERNEL_INFINITY)
+    if(route->plen == 0 && route->metric >= KERNEL_INFINITY)
         return 0;
 
     if(debug >= 2) {
         if(rc >= 0) {
             print_kernel_route(nh->nlmsg_type, rtm->rtm_protocol,
-                               rtm->rtm_type, current_route);
+                               rtm->rtm_type, route);
         }
     }
-
-    if(data) *found = (*found)+1;
 
     return 1;
 
@@ -1242,18 +1213,14 @@ filter_kernel_routes(struct nlmsghdr *nh, void *data)
 
 /* This function should not return routes installed by us. */
 int
-kernel_routes(struct kernel_route *routes, int maxroutes)
+kernel_dump(int operation, struct kernel_filter *filter)
 {
     int i, rc;
-    int maxr = maxroutes;
-    int found = 0;
-    void *data[3] = { &maxr, routes, &found };
     int families[2] = { AF_INET6, AF_INET };
-    char rule_exists[SRC_TABLE_NUM] = {0};
     struct rtgenmsg g;
 
     if(!nl_setup) {
-        fprintf(stderr,"kernel_routes: netlink not initialized.\n");
+        fprintf(stderr,"kernel_dump: netlink not initialized.\n");
         errno = EIO;
         return -1;
     }
@@ -1261,7 +1228,7 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
     if(nl_command.sock < 0) {
         rc = netlink_socket(&nl_command, 0);
         if(rc < 0) {
-            perror("kernel_routes: netlink_socket()");
+            perror("kernel_dump: netlink_socket()");
             return -1;
         }
     }
@@ -1269,28 +1236,32 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
     for(i = 0; i < 2; i++) {
         memset(&g, 0, sizeof(g));
         g.rtgen_family = families[i];
-        rc = netlink_send_dump(RTM_GETROUTE, &g, sizeof(g));
-        if(rc < 0)
-            return -1;
+        if(operation & CHANGE_ROUTE) {
+            rc = netlink_send_dump(RTM_GETROUTE, &g, sizeof(g));
+            if(rc < 0)
+                return -1;
 
-        rc = netlink_read(&nl_command, NULL, 1,
-                          filter_kernel_routes, (void *)data);
-        if(rc < 0)
-            return -1;
+            rc = netlink_read(&nl_command, NULL, 1,
+                              filter_netlink, (void *)filter);
+            if(rc < 0)
+                return -1;
+        }
 
-        rc = netlink_send_dump(RTM_GETRULE, &g, sizeof(g));
-        if(rc < 0)
-            return -1;
+        memset(&g, 0, sizeof(g));
+        g.rtgen_family = families[i];
+        if(operation & CHANGE_RULE) {
+            rc = netlink_send_dump(RTM_GETRULE, &g, sizeof(g));
+            if(rc < 0)
+                return -1;
 
-        rc = netlink_read(&nl_command, NULL, 1,
-                          filter_kernel_rules, rule_exists);
-        if(rc < 0)
-            return -1;
-
-        install_missing_rules(rule_exists, families[i] == AF_INET);
+            rc = netlink_read(&nl_command, NULL, 1,
+                              filter_kernel_rules, rule_exists);
+            if(rc < 0)
+                return -1;
+        }
     }
 
-    return found;
+    return 0;
 }
 
 static char *
@@ -1450,18 +1421,21 @@ filter_addresses(struct nlmsghdr *nh, void *data)
 }
 
 static int
-filter_netlink(struct nlmsghdr *nh, void *data)
+filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter)
 {
     int rc;
     int *changed = data;
+    union {
+        struct kernel_route route;
+    } u;
 
     switch(nh->nlmsg_type) {
     case RTM_NEWROUTE:
     case RTM_DELROUTE:
-        rc = filter_kernel_routes(nh, NULL);
-        if(changed && rc > 0)
-            *changed |= CHANGE_ROUTE;
-        return rc;
+        if(!filter->route) break;
+        rc = filter_kernel_routes(nh, &u.route);
+        if(rc <= 0) break;
+        return filter->route(&u.route, filter->route_closure);
     case RTM_NEWLINK:
     case RTM_DELLINK:
         rc = filter_link(nh, NULL);
@@ -1470,7 +1444,7 @@ filter_netlink(struct nlmsghdr *nh, void *data)
         return rc;
     case RTM_NEWADDR:
     case RTM_DELADDR:
-        rc = filter_addresses(nh, NULL);
+        rc = filter_addresses(nh, &kernel_addr);
         if(changed && rc > 0)
             *changed |= CHANGE_ADDR;
         return rc;
@@ -1529,10 +1503,9 @@ kernel_addresses(char *ifname, int ifindex, int ll,
 }
 
 int
-kernel_callback(int (*fn)(int, void*), void *closure)
+kernel_callback(struct kernel_filter *filter)
 {
     int rc;
-    int changed = 0;
 
     kdebugf("\nReceived changes in kernel tables.\n");
 
@@ -1543,15 +1516,11 @@ kernel_callback(int (*fn)(int, void*), void *closure)
             return -1;
         }
     }
-    rc = netlink_read(&nl_listen, &nl_command, 0, filter_netlink, &changed);
+    rc = netlink_read(&nl_listen, &nl_command, 0, filter_netlink,
+                      (void*) filter);
 
     if(rc < 0 && nl_listen.sock < 0)
         kernel_setup_socket(1);
-
-    /* if netlink return 0 (found something interesting) */
-    /* or -1 (i.e. IO error), we call... back ! */
-    if(rc)
-        return fn(changed, closure);
 
     return 0;
 }

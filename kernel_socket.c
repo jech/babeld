@@ -688,13 +688,13 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
 }
 
 int
-kernel_routes(struct kernel_route *routes, int maxroutes)
+kernel_dump(int operation, struct kernel_filter *filter)
 {
     int mib[6];
     char *buf, *p;
     size_t len;
     struct rt_msghdr *rtm;
-    int rc, i;
+    int rc;
 
     mib[0] = CTL_NET;
     mib[1] = PF_ROUTE;
@@ -721,21 +721,23 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
         goto fail;
     }
 
-    i = 0;
-    for(p = buf; p < buf + len && i < maxroutes; p += rtm->rtm_msglen) {
+    for(p = buf; p < buf + len; p += rtm->rtm_msglen) {
+        struct kernel_route route;
         rtm = (struct rt_msghdr*)p;
-        rc = parse_kernel_route(rtm, &routes[i]);
+        rc = parse_kernel_route(rtm, &route);
         if(rc < 0)
             continue;
 
         if(debug > 2)
-            print_kernel_route(1,&routes[i]);
+            print_kernel_route(1, &route);
 
-        i++;
+        rc = filter->route(&route, filter->route_closure);
+        if(rc < 0)
+            break;
     }
 
     free(buf);
-    return i;
+    return 0;
 
  fail:
     free(buf);
@@ -744,7 +746,7 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
 }
 
 static int
-socket_read(int sock)
+socket_read(int sock, struct kernel_filter *filter)
 {
     int rc;
     struct {
@@ -774,6 +776,7 @@ socket_read(int sock)
         rc = parse_kernel_route(&buf.rtm, &route);
         if(rc < 0)
             return 0;
+        filter->route(&route, filter->route_closure);
         if(debug > 2)
             print_kernel_route(1,&route);
         return 1;
@@ -843,16 +846,12 @@ kernel_addresses(char *ifname, int ifindex, int ll,
 }
 
 int
-kernel_callback(int (*fn)(int, void*), void *closure)
+kernel_callback(struct kernel_filter *filter)
 {
-    int rc;
-
     if(kernel_socket < 0) kernel_setup_socket(1);
 
     kdebugf("Reading kernel table modification.");
-    rc = socket_read(kernel_socket);
-    if(rc)
-        return fn(~0, closure);
+    socket_read(kernel_socket, filter);
 
     return 0;
 

@@ -94,10 +94,16 @@ struct timeval check_neighbours_timeout, check_interfaces_timeout;
 static volatile sig_atomic_t exiting = 0, dumping = 0, reopening = 0;
 
 static int accept_local_connections(fd_set *readfds);
-static int kernel_routes_callback(int changed, void *closure);
 static void init_signals(void);
 static void dump_tables(FILE *out);
 static int reopen_logfile(void);
+
+static int
+kernel_route_notify(struct kernel_route *route, void *closure)
+{
+    kernel_routes_changed = 1;
+    return -1;
+}
 
 int
 main(int argc, char **argv)
@@ -588,8 +594,11 @@ main(int argc, char **argv)
         if(exiting)
             break;
 
-        if(kernel_socket >= 0 && FD_ISSET(kernel_socket, &readfds))
-            kernel_callback(kernel_routes_callback, NULL);
+        if(kernel_socket >= 0 && FD_ISSET(kernel_socket, &readfds)) {
+            struct kernel_filter filter = {0};
+            filter.route = kernel_route_notify;
+            kernel_callback(&filter);
+        }
 
         if(FD_ISSET(protocol_socket, &readfds)) {
             rc = babel_recv(protocol_socket,
@@ -1106,19 +1115,5 @@ reopen_logfile()
     if(lfd > 2)
         close(lfd);
 
-    return 1;
-}
-
-static int
-kernel_routes_callback(int changed, void *closure)
-{
-    if(changed & CHANGE_LINK)
-        kernel_link_changed = 1;
-    if(changed & CHANGE_ADDR)
-        kernel_addr_changed = 1;
-    if(changed & CHANGE_ROUTE)
-        kernel_routes_changed = 1;
-    if(changed & CHANGE_RULE)
-        kernel_rules_changed = 1;
     return 1;
 }

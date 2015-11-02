@@ -164,6 +164,40 @@ xroute_stream_done(struct xroute_stream *stream)
     free(stream);
 }
 
+static int
+filter_route(struct kernel_route *route, void *data) {
+    void **args = (void**)data;
+    int maxroutes = *(int*)args[0];
+    struct kernel_route *routes = (struct kernel_route *)args[1];
+    int *found = (int*)args[2];
+
+    if(*found >= maxroutes)
+        return -1;
+
+    if(martian_prefix(route->prefix, route->plen) ||
+       martian_prefix(route->src_prefix, route->src_plen))
+        return 0;
+
+    routes[*found] = *route;
+    ++ *found;
+
+    return 0;
+}
+
+static int
+kernel_routes(struct kernel_route *routes, int maxroutes)
+{
+    int found = 0;
+    void *data[3] = { &maxroutes, routes, &found };
+    struct kernel_filter filter = {0};
+    filter.route = filter_route;
+    filter.route_closure = data;
+
+    kernel_dump(CHANGE_ROUTE, &filter);
+
+    return found;
+}
+
 int
 check_xroutes(int send_updates)
 {
