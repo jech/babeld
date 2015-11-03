@@ -174,16 +174,20 @@ find_table_slot(const unsigned char *src, unsigned short src_plen, int *found)
 }
 
 int
-find_table(const unsigned char *src, unsigned short src_plen)
+find_table(const unsigned char *dest, unsigned short plen,
+           const unsigned char *src, unsigned short src_plen)
 {
+    struct filter_result filter_result = {0};
     struct rule *kr = NULL;
     int i, found;
 
-    if(src_plen == 0 ||
-       (kernel_disambiguate(src_plen >= 96  && v4mapped(src)))) {
-        fprintf(stderr, "Find_table called for route handled by kernel "
-                "(this shouldn't happen).");
-        return -1;
+    install_filter(dest, plen, src, src_plen, &filter_result);
+    if(filter_result.table) {
+        return filter_result.table;
+    } else if(src_plen == 0) {
+        return export_table;
+    } else if(kernel_disambiguate(v4mapped(dest))) {
+        return export_table;
     }
 
     i = find_table_slot(src, src_plen, &found);

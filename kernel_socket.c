@@ -404,11 +404,12 @@ kernel_has_ipv6_subtrees(void)
 }
 
 int
-kernel_route(int operation, const unsigned char *dest, unsigned short plen,
+kernel_route(int operation, int table,
+             const unsigned char *dest, unsigned short plen,
              const unsigned char *src, unsigned short src_plen,
              const unsigned char *gate, int ifindex, unsigned int metric,
              const unsigned char *newgate, int newifindex,
-             unsigned int newmetric)
+             unsigned int newmetric, int newtable)
 {
     struct {
         struct rt_msghdr m_rtm;
@@ -451,14 +452,14 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
     if(operation == ROUTE_MODIFY) {
 
         /* Avoid atomic route changes that is buggy on OS X. */
-        kernel_route(ROUTE_FLUSH, dest, plen,
+        kernel_route(ROUTE_FLUSH, table, dest, plen,
                      src, src_plen,
                      gate, ifindex, metric,
-                     NULL, 0, 0);
-        return kernel_route(ROUTE_ADD, dest, plen,
+                     NULL, 0, 0, 0);
+        return kernel_route(ROUTE_ADD, table, dest, plen,
                             src, src_plen,
                             newgate, newifindex, newmetric,
-                            NULL, 0, 0);
+                            NULL, 0, 0, 0);
 
     }
 

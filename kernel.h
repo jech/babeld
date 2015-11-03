@@ -91,11 +91,12 @@ int kernel_interface_mtu(const char *ifname, int ifindex);
 int kernel_interface_wireless(const char *ifname, int ifindex);
 int kernel_interface_channel(const char *ifname, int ifindex);
 int kernel_disambiguate(int v4);
-int kernel_route(int operation, const unsigned char *dest, unsigned short plen,
+int kernel_route(int operation, int table,
+                 const unsigned char *dest, unsigned short plen,
                  const unsigned char *src, unsigned short src_plen,
                  const unsigned char *gate, int ifindex, unsigned int metric,
                  const unsigned char *newgate, int newifindex,
-                 unsigned int newmetric);
+                 unsigned int newmetric, int newtable);
 int kernel_dump(int operation, struct kernel_filter *filter);
 int kernel_callback(struct kernel_filter *filter);
 int if_eui64(char *ifname, int ifindex, unsigned char *eui);

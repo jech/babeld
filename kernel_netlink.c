@@ -883,13 +883,13 @@ kernel_has_ipv6_subtrees(void)
 }
 
 int
-kernel_route(int operation, const unsigned char *dest, unsigned short plen,
+kernel_route(int operation, int table,
+             const unsigned char *dest, unsigned short plen,
              const unsigned char *src, unsigned short src_plen,
              const unsigned char *gate, int ifindex, unsigned int metric,
              const unsigned char *newgate, int newifindex,
-             unsigned int newmetric)
+             unsigned int newmetric, int newtable)
 {
-    struct filter_result filter_result = {0};
     union { char raw[1024]; struct nlmsghdr nh; } buf;
     struct rtmsg *rtm;
     struct rtattr *rta;
@@ -938,14 +938,14 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
            silently fail the request, causing "stuck" routes.  Let's
            stick with the naive approach, and hope that the window is
            small enough to be negligible. */
-        kernel_route(ROUTE_FLUSH, dest, plen,
+        kernel_route(ROUTE_FLUSH, table, dest, plen,
                      src, src_plen,
                      gate, ifindex, metric,
-                     NULL, 0, 0);
-        rc = kernel_route(ROUTE_ADD, dest, plen,
+                     NULL, 0, 0, 0);
+        rc = kernel_route(ROUTE_ADD, newtable, dest, plen,
                           src, src_plen,
                           newgate, newifindex, newmetric,
-                          NULL, 0, 0);
+                          NULL, 0, 0, 0);
         if(rc < 0) {
             if(errno == EEXIST)
                 rc = 1;
@@ -957,20 +957,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
 
 
     ipv4 = v4mapped(gate);
-
-    install_filter(dest, plen, src, src_plen, &filter_result);
-    if(filter_result.table) {
-        table = filter_result.table;
-    } else if(src_plen == 0) {
-        table = export_table;
-    } else if(kernel_disambiguate(ipv4)) {
-        table = export_table;
-        use_src = 1;
-    } else {
-        table = find_table(src, src_plen);
-        if(table < 0)
-            return -1;
-    }
+    use_src = (src_plen != 0 && kernel_disambiguate(ipv4));
 
     kdebugf("kernel_route: %s %s from %s "
             "table %d metric %d dev %d nexthop %s\n",
