@@ -1228,7 +1228,9 @@ kernel_dump(int operation, struct kernel_filter *filter)
     if(nl_command.sock < 0) {
         rc = netlink_socket(&nl_command, 0);
         if(rc < 0) {
+            int save = errno;
             perror("kernel_dump: netlink_socket()");
+            errno = save;
             return -1;
         }
     }
@@ -1259,6 +1261,18 @@ kernel_dump(int operation, struct kernel_filter *filter)
             if(rc < 0)
                 return -1;
         }
+    }
+
+    if(operation & CHANGE_ADDR) {
+        memset(&g, 0, sizeof(g));
+        g.rtgen_family = AF_UNSPEC;
+        rc = netlink_send_dump(RTM_GETADDR, &g, sizeof(g));
+        if(rc < 0)
+            return -1;
+
+        rc = netlink_read(&nl_command, NULL, 1, filter_netlink, (void*)filter);
+        if(rc < 0)
+            return -1;
     }
 
     return 0;
@@ -1358,64 +1372,30 @@ filter_link(struct nlmsghdr *nh, void *data)
    data[4]. */
 
 static int
-filter_addresses(struct nlmsghdr *nh, void *data)
+filter_addresses(struct nlmsghdr *nh, struct kernel_addr *addr)
 {
     int rc;
-    int maxroutes = 0;
-    struct kernel_route *routes = NULL;
-    struct in6_addr addr;
-    int *found = NULL;
     int len;
     struct ifaddrmsg *ifa;
     char ifname[IFNAMSIZ];
-    int ifindex = 0;
-    int ll = 0;
-
-    if(data) {
-        void **args = (void **)data;
-        maxroutes = *(int *)args[0];
-        routes = (struct kernel_route*)args[1];
-        found = (int *)args[2];
-        ifindex = args[3] ? *(int*)args[3] : 0;
-        ll = args[4] ? !!*(int*)args[4] : 0;
-    }
 
     len = nh->nlmsg_len;
 
-    if(data && *found >= maxroutes)
-        return 0;
-
     if(nh->nlmsg_type != RTM_NEWADDR &&
-       (data || nh->nlmsg_type != RTM_DELADDR))
+       nh->nlmsg_type != RTM_DELADDR)
         return 0;
 
     ifa = (struct ifaddrmsg *)NLMSG_DATA(nh);
     len -= NLMSG_LENGTH(0);
 
-    rc = parse_addr_rta(ifa, len, &addr);
+    rc = parse_addr_rta(ifa, len, &addr->addr);
     if(rc < 0)
         return 0;
-
-    if(data && ll == !IN6_IS_ADDR_LINKLOCAL(&addr))
-        return 0;
-
-    if(ifindex && ifa->ifa_index != ifindex)
-        return 0;
+    addr->ifindex = ifa->ifa_index;
 
     kdebugf("found address on interface %s(%d): %s\n",
             if_indextoname(ifa->ifa_index, ifname), ifa->ifa_index,
-            format_address(addr.s6_addr));
-
-    if(data) {
-        struct kernel_route *route = &routes[*found];
-        memcpy(route->prefix, addr.s6_addr, 16);
-        route->plen = 128;
-        route->metric = 0;
-        route->ifindex = ifa->ifa_index;
-        route->proto = RTPROT_BABEL_LOCAL;
-        memset(route->gw, 0, 16);
-        *found = (*found)+1;
-    }
+            format_address(addr->addr.s6_addr));
 
     return 1;
 }
@@ -1427,6 +1407,7 @@ filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter)
     int *changed = data;
     union {
         struct kernel_route route;
+        struct kernel_addr addr;
     } u;
 
     switch(nh->nlmsg_type) {
@@ -1444,10 +1425,10 @@ filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter)
         return rc;
     case RTM_NEWADDR:
     case RTM_DELADDR:
-        rc = filter_addresses(nh, &kernel_addr);
-        if(changed && rc > 0)
-            *changed |= CHANGE_ADDR;
-        return rc;
+        if(!filter->addr) break;
+        rc = filter_addresses(nh, &u.addr);
+        if(rc <= 0) break;
+        return filter->addr(&u.addr, filter->addr_closure);
     case RTM_NEWRULE:
     case RTM_DELRULE:
         rc = filter_kernel_rules(nh, NULL);
@@ -1460,46 +1441,6 @@ filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter)
         break;
     }
     return 0;
-}
-
-int
-kernel_addresses(char *ifname, int ifindex, int ll,
-                 struct kernel_route *routes, int maxroutes)
-{
-    int maxr = maxroutes;
-    int found = 0;
-    void *data[] = { &maxr, routes, &found, &ifindex, &ll, NULL };
-    struct rtgenmsg g;
-    int rc;
-
-    if(!nl_setup) {
-        fprintf(stderr, "kernel_addresses: netlink not initialized.\n");
-        errno = ENOSYS;
-        return -1;
-    }
-
-    if(nl_command.sock < 0) {
-        rc = netlink_socket(&nl_command, 0);
-        if(rc < 0) {
-            int save = errno;
-            perror("kernel_addresses: netlink_socket()");
-            errno = save;
-            return -1;
-        }
-    }
-
-    memset(&g, 0, sizeof(g));
-    g.rtgen_family = AF_UNSPEC;
-    rc = netlink_send_dump(RTM_GETADDR, &g, sizeof(g));
-    if(rc < 0)
-        return -1;
-
-    rc = netlink_read(&nl_command, NULL, 1, filter_addresses, (void*)data);
-
-    if(rc < 0)
-        return -1;
-
-    return found;
 }
 
 int

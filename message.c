@@ -35,11 +35,11 @@ THE SOFTWARE.
 #include "source.h"
 #include "neighbour.h"
 #include "route.h"
+#include "kernel.h"
 #include "xroute.h"
 #include "resend.h"
 #include "message.h"
 #include "configuration.h"
-#include "kernel.h"
 
 unsigned char packet_header[4] = {42, 2};
 

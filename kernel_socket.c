@@ -687,9 +687,8 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
     return 0;
 }
 
-int
-kernel_dump(int operation, struct kernel_filter *filter)
-{
+static int
+kernel_routes(struct kernel_filter *filter) {
     int mib[6];
     char *buf, *p;
     size_t len;
@@ -787,62 +786,57 @@ socket_read(int sock, struct kernel_filter *filter)
 
 }
 
-int
-kernel_addresses(char *ifname, int ifindex, int ll,
-                 struct kernel_route *routes, int maxroutes)
+static int
+kernel_addresses(struct kernel_filter *filter)
 {
     struct ifaddrs *ifa, *ifap;
-    int rc, i;
+    int rc;
 
     rc = getifaddrs(&ifa);
     if(rc < 0)
         return -1;
 
-    ifap = ifa;
-    i = 0;
+    for(ifap = ifa; ifap != NULL; ifap = ifap->ifa_next) {
+        struct kernel_addr addr;
+        addr.ifindex = if_nametoindex(ifap->ifa_name);
+        if(!addr.ifindex)
+            continue;
 
-    while(ifap && i < maxroutes) {
-        if((ifname != NULL && strcmp(ifap->ifa_name, ifname) != 0))
-            goto next;
         if(ifap->ifa_addr->sa_family == AF_INET6) {
             struct sockaddr_in6 *sin6 = (struct sockaddr_in6*)ifap->ifa_addr;
-            if(!!ll != !!IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr))
-                goto next;
-            memcpy(routes[i].prefix, &sin6->sin6_addr, 16);
-            if(ll)
+            memcpy(&addr.addr, &sin6->sin6_addr, 16);
+            if(IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr))
                 /* This a perfect example of counter-productive optimisation :
                    KAME encodes interface index onto bytes 2 and 3, so we have
                    to reset those bytes to 0 before passing them to babeld. */
-                memset(routes[i].prefix + 2, 0, 2);
-            routes[i].plen = 128;
-            routes[i].metric = 0;
-            routes[i].ifindex = ifindex;
-            routes[i].proto = RTPROT_BABEL_LOCAL;
-            memset(routes[i].gw, 0, 16);
-            i++;
+                memset(((char*)&addr.addr) + 2, 0, 2);
         } else if(ifap->ifa_addr->sa_family == AF_INET) {
             struct sockaddr_in *sin = (struct sockaddr_in*)ifap->ifa_addr;
-            if(ll)
-                goto next;
 #if defined(IN_LINKLOCAL)
             if(IN_LINKLOCAL(htonl(sin->sin_addr.s_addr)))
-                goto next;
+                continue;
 #endif
-            memcpy(routes[i].prefix, v4prefix, 12);
-            memcpy(routes[i].prefix + 12, &sin->sin_addr, 4);
-            routes[i].plen = 128;
-            routes[i].metric = 0;
-            routes[i].ifindex = ifindex;
-            routes[i].proto = RTPROT_BABEL_LOCAL;
-            memset(routes[i].gw, 0, 16);
-            i++;
+            v4tov6((void*)&addr.addr, (void*) &sin->sin_addr);
+        } else {
+            continue;
         }
- next:
-        ifap = ifap->ifa_next;
+        filter->addr(&addr, filter->addr_closure);
     }
 
     freeifaddrs(ifa);
-    return i;
+    return 0;
+}
+
+int
+kernel_dump(int operation, struct kernel_filter *filter)
+{
+    switch(operation) {
+    case CHANGE_ROUTE: return kernel_routes(filter);
+    case CHANGE_ADDR: return kernel_addresses(filter);
+    default: break;
+    }
+
+    return -1;
 }
 
 int

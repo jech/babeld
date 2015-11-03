@@ -31,6 +31,7 @@ THE SOFTWARE.
 #include "interface.h"
 #include "source.h"
 #include "neighbour.h"
+#include "kernel.h"
 #include "xroute.h"
 #include "route.h"
 #include "util.h"

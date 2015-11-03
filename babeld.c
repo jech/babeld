@@ -105,6 +105,13 @@ kernel_route_notify(struct kernel_route *route, void *closure)
     return -1;
 }
 
+static int
+kernel_addr_notify(struct kernel_addr *addr, void *closure)
+{
+    kernel_addr_changed = 1;
+    return -1;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -597,6 +604,7 @@ main(int argc, char **argv)
         if(kernel_socket >= 0 && FD_ISSET(kernel_socket, &readfds)) {
             struct kernel_filter filter = {0};
             filter.route = kernel_route_notify;
+            filter.addr = kernel_addr_notify;
             kernel_callback(&filter);
         }
 

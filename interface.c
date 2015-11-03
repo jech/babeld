@@ -40,6 +40,7 @@ THE SOFTWARE.
 #include "message.h"
 #include "route.h"
 #include "configuration.h"
+#include "xroute.h"
 
 struct interface *interfaces = NULL;
 
@@ -186,7 +187,7 @@ check_link_local_addresses(struct interface *ifp)
         free(ifp->ll);
     ifp->numll = 0;
     ifp->ll = NULL;
-    rc = kernel_addresses(ifp->name, ifp->ifindex, 1, ll, 32);
+    rc = kernel_addresses(ifp->ifindex, 1, ll, 32);
     if(rc < 0) {
         perror("kernel_addresses(link local)");
         return -1;
