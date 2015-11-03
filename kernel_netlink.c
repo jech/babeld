@@ -1335,14 +1335,12 @@ parse_addr_rta(struct ifaddrmsg *addr, int len, struct in6_addr *res)
 }
 
 static int
-filter_link(struct nlmsghdr *nh, void *data)
+filter_link(struct nlmsghdr *nh, struct kernel_link *link)
 {
     struct ifinfomsg *info;
     int len;
     int ifindex;
-    char *ifname;
     unsigned int ifflags;
-    struct interface *ifp;
 
     len = nh->nlmsg_len;
 
@@ -1355,16 +1353,12 @@ filter_link(struct nlmsghdr *nh, void *data)
     ifindex = info->ifi_index;
     ifflags = info->ifi_flags;
 
-    ifname = parse_ifname_rta(info, len);
-    if(ifname == NULL)
+    link->ifname = parse_ifname_rta(info, len);
+    if(link->ifname == NULL)
         return 0;
     kdebugf("filter_interfaces: link change on if %s(%d): 0x%x\n",
-            ifname, ifindex, (unsigned)ifflags);
-    FOR_ALL_INTERFACES(ifp) {
-        if(strcmp(ifp->name, ifname) == 0)
-            return 1;
-    }
-    return 0;
+            link->ifname, ifindex, (unsigned)ifflags);
+    return 1;
 }
 
 /* If data is null, takes all addresses.  If data is not null, takes
@@ -1408,6 +1402,7 @@ filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter)
     union {
         struct kernel_route route;
         struct kernel_addr addr;
+        struct kernel_link link;
     } u;
 
     switch(nh->nlmsg_type) {
@@ -1419,10 +1414,10 @@ filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter)
         return filter->route(&u.route, filter->route_closure);
     case RTM_NEWLINK:
     case RTM_DELLINK:
-        rc = filter_link(nh, NULL);
-        if(changed && rc > 0)
-            *changed |= CHANGE_LINK;
-        return rc;
+        if(!filter->link) break;
+        rc = filter_link(nh, &u.link);
+        if(rc <= 0) break;
+        return filter->link(&u.link, filter->link_closure);
     case RTM_NEWADDR:
     case RTM_DELADDR:
         if(!filter->addr) break;

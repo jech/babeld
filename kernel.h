@@ -41,12 +41,18 @@ struct kernel_addr {
     unsigned int ifindex;
 };
 
+struct kernel_link {
+    char *ifname;
+};
+
 struct kernel_filter {
     /* return -1 to interrupt search. */
     int (*addr)(struct kernel_addr *, void *);
     void *addr_closure;
     int (*route)(struct kernel_route *, void *);
     void *route_closure;
+    int (*link)(struct kernel_link *, void *);
+    void *link_closure;
 };
 
 #define ROUTE_FLUSH 0

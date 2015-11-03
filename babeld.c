@@ -112,6 +112,19 @@ kernel_addr_notify(struct kernel_addr *addr, void *closure)
     return -1;
 }
 
+static int
+kernel_link_notify(struct kernel_link *link, void *closure)
+{
+    struct interface *ifp;
+    FOR_ALL_INTERFACES(ifp) {
+        if(strcmp(ifp->name, link->ifname) == 0) {
+            kernel_link_changed = 1;
+            return -1;
+        }
+    }
+    return 0;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -605,6 +618,7 @@ main(int argc, char **argv)
             struct kernel_filter filter = {0};
             filter.route = kernel_route_notify;
             filter.addr = kernel_addr_notify;
+            filter.link = kernel_link_notify;
             kernel_callback(&filter);
         }
 
