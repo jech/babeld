@@ -963,7 +963,7 @@ kernel_route(int operation, const unsigned char *dest, unsigned short plen,
 
     ipv4 = v4mapped(gate);
 
-    install_filter(dest, plen, src, src_plen, ifindex, &filter_result);
+    install_filter(dest, plen, src, src_plen, &filter_result);
     if(filter_result.table) {
         table = filter_result.table;
     } else if(src_plen == 0) {

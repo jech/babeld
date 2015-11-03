@@ -64,5 +64,5 @@ int redistribute_filter(const unsigned char *prefix, unsigned short plen,
                     struct filter_result *result);
 int install_filter(const unsigned char *prefix, unsigned short plen,
                    const unsigned char *src_prefix, unsigned short src_plen,
-                   unsigned int ifindex, struct filter_result *result);
+                   struct filter_result *result);
 int finalise_config(void);
