@@ -45,6 +45,13 @@ struct kernel_link {
     char *ifname;
 };
 
+struct kernel_rule {
+    unsigned int priority;
+    unsigned int table;
+    unsigned char src[16];
+    unsigned char src_plen;
+};
+
 struct kernel_filter {
     /* return -1 to interrupt search. */
     int (*addr)(struct kernel_addr *, void *);
@@ -53,6 +60,8 @@ struct kernel_filter {
     void *route_closure;
     int (*link)(struct kernel_link *, void *);
     void *link_closure;
+    int (*rule)(struct kernel_rule *, void *);
+    void *rule_closure;
 };
 
 #define ROUTE_FLUSH 0
@@ -71,9 +80,6 @@ struct kernel_filter {
 extern int export_table, import_tables[MAX_IMPORT_TABLES], import_table_count;
 
 int add_import_table(int table);
-#define SRC_TABLE_NUM 10
-extern int src_table_idx; /* number of the first table */
-extern int src_table_prio; /* first prio range */
 
 int kernel_setup(int setup);
 int kernel_setup_socket(int setup);

@@ -38,6 +38,7 @@ THE SOFTWARE.
 #include "route.h"
 #include "kernel.h"
 #include "configuration.h"
+#include "rule.h"
 
 struct filter *input_filters = NULL;
 struct filter *output_filters = NULL;

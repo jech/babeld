@@ -90,11 +90,7 @@ static int dgram_socket = -1;
 #endif
 
 static int filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter);
-
-static int find_table(const unsigned char *src, unsigned short src_plen);
-static void release_tables(void);
-static int filter_kernel_rules(struct nlmsghdr *nh, void *data);
-static void install_missing_rules(char rule_exists[SRC_TABLE_NUM], int v4);
+static int filter_kernel_rules(struct nlmsghdr *nh, struct kernel_rule *rule);
 
 
 /* Determine an interface's hardware address, in modified EUI-64 format */
@@ -536,7 +532,6 @@ kernel_setup(int setup)
 
         return 1;
     } else {
-        release_tables();
         close(dgram_socket);
         dgram_socket = -1;
 
@@ -1257,7 +1252,7 @@ kernel_dump(int operation, struct kernel_filter *filter)
                 return -1;
 
             rc = netlink_read(&nl_command, NULL, 1,
-                              filter_kernel_rules, rule_exists);
+                              filter_netlink, (void*) filter);
             if(rc < 0)
                 return -1;
         }
@@ -1398,11 +1393,11 @@ static int
 filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter)
 {
     int rc;
-    int *changed = data;
     union {
         struct kernel_route route;
         struct kernel_addr addr;
         struct kernel_link link;
+        struct kernel_rule rule;
     } u;
 
     switch(nh->nlmsg_type) {
@@ -1426,10 +1421,10 @@ filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter)
         return filter->addr(&u.addr, filter->addr_closure);
     case RTM_NEWRULE:
     case RTM_DELRULE:
-        rc = filter_kernel_rules(nh, NULL);
-        if(changed && rc > 0)
-            *changed |= CHANGE_RULE;
-        return rc;
+        if(!filter->rule) break;
+        rc = filter_kernel_rules(nh, &u.rule);
+        if(rc <= 0) break;
+        return filter->rule(&u.rule, filter->rule_closure);
     default:
         kdebugf("filter_netlink: unexpected message type %d\n",
                 nh->nlmsg_type);
@@ -1602,201 +1597,22 @@ change_rule(int new_prio, int old_prio,
     return flush_rule(old_prio, v4mapped(src) ? AF_INET : AF_INET6);
 }
 
-/* Source specific functions and data structures */
-
-/* The table used for non-specific routes is "export_table", therefore, we can
-   take the convention of plen == 0 <=> empty table. */
-struct rule {
-    unsigned char src[16];
-    unsigned char plen;
-    unsigned char table;
-};
-
-/* rules contains informations about the rules we installed. It is an array
-   indexed by: <table priority> - src_table_prio.
-   (First entries are the most specific, since they have priority.) */
-static struct rule rules[SRC_TABLE_NUM];
-/* used tables is indexed by: <table number> - src_table_idx
-   used_tables[i] == 1 <=> the table number (i + src_table_idx) is used */
-static char used_tables[SRC_TABLE_NUM] = {0};
-
 static int
-get_free_table(void)
+filter_kernel_rules(struct nlmsghdr *nh, struct kernel_rule *rule)
 {
-    int i;
-    for(i = 0; i < SRC_TABLE_NUM; i++)
-        if(!used_tables[i]) {
-            used_tables[i] = 1;
-            return i + src_table_idx;
-        }
-    return -1;
-}
-
-static void
-release_table(int i)
-{
-    used_tables[i - src_table_idx] = 0;
-}
-
-static int
-find_hole_around(int i)
-{
-    int j;
-    for(j = i; j < SRC_TABLE_NUM; j++)
-        if(rules[j].plen == 0)
-            return j;
-    for(j = i - 1; j >= 0; j--)
-        if(rules[j].plen == 0)
-            return j;
-    return -1;
-}
-
-static int
-shift_rule(int from, int to)
-{
-    int dec = (from < to) ? 1 /* right */ : -1 /* left */;
-    while(to != from) {
-        to =- dec;
-        rc = change_rule(to + dec + src_table_prio, to + src_table_prio,
-                         rules[to].src, rules[to].plen, rules[to].table);
-        if(rc < 0) {
-            perror("change_table_priority");
-            return NULL;
-        }
-        rules[to+dec] = rules[to];
-        rules[to].plen = 0;
-    }
-}
-
-/* Return a new table at index [idx] of rules.  If cell at that index is not
-   free, we need to shift cells (and rules).  If it's full, return NULL. */
-static struct rule *
-insert_table(const unsigned char *src, unsigned short src_plen, int idx)
-{
-    int table;
-    int rc;
-    int hole;
-
-    if(idx < 0 || idx >= SRC_TABLE_NUM) {
-        fprintf(stderr, "Incorrect table number %d\n", idx);
-        return NULL;
-    }
-
-    table = get_free_table();
-    if(table < 0) {
-        kdebugf("All allowed routing tables are used!\n");
-        return NULL;
-    }
-
-    hole = find_hole_around(idx);
-    if(hole < 0) {
-        fprintf(stderr, "Have free table but not free rule.\n");
-        goto fail;
-    }
-    rc = shift_rule(idx, hole);
-    if(rc < 0) {
-        goto fail;
-
-    rc = add_rule(idx + src_table_prio, src, src_plen, table);
-    if(rc < 0) {
-        perror("add rule");
-        goto fail;
-    }
-    memcpy(rules[idx].src, src, 16);
-    rules[idx].plen = src_plen;
-    rules[idx].table = table;
-
-    return &rules[idx];
-  fail:
-    release_table(table);
-    return NULL;
-}
-
-/* Sorting rules in a well ordered fashion will increase code complexity and
-   decrease performances, because more rule shifs will be required, so more
-   system calls invoked. */
-static int
-find_table_slot(const unsigned char *src, unsigned short src_plen, int *found)
-{
-    struct rule *kr = NULL;
-    int i;
-    *found = false;
-
-    for(i = 0; i < SRC_TABLE_NUM; i++) {
-        kr = &rules[i];
-        if(kr->plen == 0)
-            return i;
-        switch(prefix_cmp(src, src_plen, kr->src, kr->plen)) {
-        case PST_LESS_SPECIFIC:
-        case PST_DISJOINT:
-            continue;
-        case PST_MORE_SPECIFIC:
-            return i;
-        case PST_EQUALS:
-            *found = true;
-            return i;
-        }
-    }
-
-    return -1;
-}
-
-static int
-find_table(const unsigned char *src, unsigned short src_plen)
-{
-    struct rule *kr = NULL;
-    int i, found;
-
-    if(src_plen == 0 ||
-       (kernel_disambiguate(src_plen >= 96  && v4mapped(src)))) {
-        fprintf(stderr, "Find_table called for route handled by kernel "
-                "(this shouldn't happen).");
-        return -1;
-    }
-
-    i = find_table_slot(src, src_plen, &found);
-    if(found)
-        return rules[i].table;
-    if(i < 0)
-        return -1;
-    kr = insert_table(src, src_plen, i);
-    return kr == NULL ? -1 : kr->table;
-}
-
-static void
-release_tables(void)
-{
-    int i;
-    for(i = 0; i < SRC_TABLE_NUM; i++) {
-        if(rules[i].plen != 0) {
-            flush_rule(i + src_table_prio,
-                       v4mapped(rules[i].src) ? AF_INET : AF_INET6);
-            rules[i].plen = 0;
-        }
-        used_tables[i] = 0;
-    }
-}
-
-static int
-filter_kernel_rules(struct nlmsghdr *nh, void *data)
-{
-    int i, len, has_priority = 0;
+    int len, has_priority = 0;
     unsigned int rta_len;
     struct rtmsg *rtm = NULL;
     struct rtattr *rta = NULL;
     int is_v4 = 0;
-    char *rule_exists = data;
-    unsigned char src[16];
-    unsigned char src_plen;
-    unsigned int table, priority = 0xFFFFFFFF;
 
     len = nh->nlmsg_len;
 
     rtm = (struct rtmsg*)NLMSG_DATA(nh);
     len -= NLMSG_LENGTH(0);
 
-    src_plen = rtm->rtm_src_len;
-    table = rtm->rtm_table;
+    rule->src_plen = rtm->rtm_src_len;
+    rule->table = rtm->rtm_table;
 
     if(rtm->rtm_family != AF_INET && rtm->rtm_family != AF_INET6) {
         kdebugf("filter_rules: Unknown family: %d\n", rtm->rtm_family);
@@ -1807,6 +1623,7 @@ filter_kernel_rules(struct nlmsghdr *nh, void *data)
     rta = RTM_RTA(rtm);
     len -= NLMSG_ALIGN(sizeof(*rtm));
 
+    /* TODO: merge GET_PLEN && COPY_ADDR with the parse_routes ones ? */
 #define GET_PLEN(p) (rtm->rtm_family == AF_INET) ? p + 96 : p
 #define COPY_ADDR(d, s)                                                 \
     do {                                                                \
@@ -1830,15 +1647,15 @@ filter_kernel_rules(struct nlmsghdr *nh, void *data)
         switch(rta->rta_type) {
         case FRA_UNSPEC: break;
         case FRA_SRC:
-            src_plen = GET_PLEN(rtm->rtm_src_len);
-            COPY_ADDR(src, RTA_DATA(rta));
+            rule->src_plen = GET_PLEN(rtm->rtm_src_len);
+            COPY_ADDR(rule->src, RTA_DATA(rta));
             break;
         case FRA_PRIORITY:
-            priority = *(unsigned int*)RTA_DATA(rta);
+            rule->priority = *(unsigned int*)RTA_DATA(rta);
             has_priority = 1;
             break;
         case FRA_TABLE:
-            table = *(int*)RTA_DATA(rta);
+            rule->table = *(int*)RTA_DATA(rta);
             break;
         default:
             kdebugf("filter_rules: Unknown rule attribute: %d.\n",
@@ -1850,64 +1667,11 @@ filter_kernel_rules(struct nlmsghdr *nh, void *data)
 #undef GET_PLEN
 
     kdebugf("filter_rules: from %s prio %d table %d\n",
-            format_prefix(src, src_plen), priority, table);
+            format_prefix(rule->src, rule->src_plen),
+            has_priority ? rule->priority : -1, rule->table);
 
-    if(martian_prefix(src, src_plen) || !has_priority)
+    if(!has_priority)
         return 0;
-
-    i = priority - src_table_prio;
-
-    if(i < 0 || SRC_TABLE_NUM <= i)
-        return 0;
-
-    /* There is an unexpected change on one of our rules. */
-    if(!rule_exists)
-        return 1;
-
-    if(prefix_cmp(src, src_plen,
-                  rules[i].src, rules[i].plen) == PST_EQUALS &&
-       table == rules[i].table &&
-       !rule_exists[i]) {
-        rule_exists[i] = 1;
-    } else {
-        int rc;
-        do {
-            rc = flush_rule(i + src_table_prio, is_v4 ? AF_INET : AF_INET6);
-        } while(rc >= 0);
-        /* flush unexpected rules, but keep information in rules[i].  It
-            will be used afterwards to reinstall the rule. */
-        if(errno != ENOENT && errno != EEXIST)
-            fprintf(stderr,
-                    "filter_rules: cannot remove from %s prio %d table %d"
-                    "(%s)\n",
-                    format_prefix(src, src_plen), priority, table,
-                    strerror(errno));
-        rule_exists[i] = 0;
-    }
 
     return 1;
-}
-
-/* This functions should be executed wrt the code just bellow: [rule_exists]
-   contains is a boolean array telling whether the rules we should have
-   installed in the kernel are installed or not.  If they aren't, then reinstall
-   them (this can append when rules are modified by third parties). */
-
-static void
-install_missing_rules(char rule_exists[SRC_TABLE_NUM], int v4)
-{
-    int i, rc;
-    for(i = 0; i < SRC_TABLE_NUM; i++)
-        if(v4mapped(rules[i].src) == v4 &&
-           !rule_exists[i] && rules[i].plen != 0) {
-            rc = add_rule(i + src_table_prio, rules[i].src,
-                          rules[i].plen, rules[i].table);
-            if(rc < 0)
-                fprintf(stderr,
-                        "install_missing_rules: "
-                        "Cannot install rule: table %d prio %d from %s\n",
-                        rules[i].table, i + src_table_prio,
-                        format_prefix(rules[i].src,
-                                      rules[i].plen));
-        }
 }
