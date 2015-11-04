@@ -90,7 +90,6 @@ static int dgram_socket = -1;
 #endif
 
 static int filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter);
-static int filter_kernel_rules(struct nlmsghdr *nh, struct kernel_rule *rule);
 
 
 /* Determine an interface's hardware address, in modified EUI-64 format */
@@ -1390,6 +1389,85 @@ filter_addresses(struct nlmsghdr *nh, struct kernel_addr *addr)
 }
 
 static int
+filter_kernel_rules(struct nlmsghdr *nh, struct kernel_rule *rule)
+{
+    int len, has_priority = 0;
+    unsigned int rta_len;
+    struct rtmsg *rtm = NULL;
+    struct rtattr *rta = NULL;
+    int is_v4 = 0;
+
+    len = nh->nlmsg_len;
+
+    rtm = (struct rtmsg*)NLMSG_DATA(nh);
+    len -= NLMSG_LENGTH(0);
+
+    rule->src_plen = rtm->rtm_src_len;
+    rule->table = rtm->rtm_table;
+
+    if(rtm->rtm_family != AF_INET && rtm->rtm_family != AF_INET6) {
+        kdebugf("filter_rules: Unknown family: %d\n", rtm->rtm_family);
+        return -1;
+    }
+    is_v4 = rtm->rtm_family == AF_INET;
+
+    rta = RTM_RTA(rtm);
+    len -= NLMSG_ALIGN(sizeof(*rtm));
+
+    /* TODO: merge GET_PLEN && COPY_ADDR with the parse_routes ones ? */
+#define GET_PLEN(p) (rtm->rtm_family == AF_INET) ? p + 96 : p
+#define COPY_ADDR(d, s)                                                 \
+    do {                                                                \
+        if(!is_v4) {                                                    \
+            if(UNLIKELY(rta_len < 16)) {                                \
+                fprintf(stderr, "filter_rules: truncated message.");    \
+                return -1;                                              \
+            }                                                           \
+            memcpy(d, s, 16);                                           \
+        }else {                                                         \
+            if(UNLIKELY(rta_len < 4)) {                                 \
+                fprintf(stderr, "filter_rules: truncated message.");    \
+                return -1;                                              \
+            }                                                           \
+            v4tov6(d, s);                                               \
+        }                                                               \
+    } while(0)
+
+    for(; RTA_OK(rta, len); rta = RTA_NEXT(rta, len)) {
+        rta_len = RTA_PAYLOAD(rta);
+        switch(rta->rta_type) {
+        case FRA_UNSPEC: break;
+        case FRA_SRC:
+            rule->src_plen = GET_PLEN(rtm->rtm_src_len);
+            COPY_ADDR(rule->src, RTA_DATA(rta));
+            break;
+        case FRA_PRIORITY:
+            rule->priority = *(unsigned int*)RTA_DATA(rta);
+            has_priority = 1;
+            break;
+        case FRA_TABLE:
+            rule->table = *(int*)RTA_DATA(rta);
+            break;
+        default:
+            kdebugf("filter_rules: Unknown rule attribute: %d.\n",
+                    rta->rta_type);
+            break;
+        }
+    }
+#undef COPY_ADDR
+#undef GET_PLEN
+
+    kdebugf("filter_rules: from %s prio %d table %d\n",
+            format_prefix(rule->src, rule->src_plen),
+            has_priority ? rule->priority : -1, rule->table);
+
+    if(!has_priority)
+        return 0;
+
+    return 1;
+}
+
+static int
 filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter)
 {
     int rc;
@@ -1595,83 +1673,4 @@ change_rule(int new_prio, int old_prio,
         return rc;
     kdebugf("\\Swap: ");
     return flush_rule(old_prio, v4mapped(src) ? AF_INET : AF_INET6);
-}
-
-static int
-filter_kernel_rules(struct nlmsghdr *nh, struct kernel_rule *rule)
-{
-    int len, has_priority = 0;
-    unsigned int rta_len;
-    struct rtmsg *rtm = NULL;
-    struct rtattr *rta = NULL;
-    int is_v4 = 0;
-
-    len = nh->nlmsg_len;
-
-    rtm = (struct rtmsg*)NLMSG_DATA(nh);
-    len -= NLMSG_LENGTH(0);
-
-    rule->src_plen = rtm->rtm_src_len;
-    rule->table = rtm->rtm_table;
-
-    if(rtm->rtm_family != AF_INET && rtm->rtm_family != AF_INET6) {
-        kdebugf("filter_rules: Unknown family: %d\n", rtm->rtm_family);
-        return -1;
-    }
-    is_v4 = rtm->rtm_family == AF_INET;
-
-    rta = RTM_RTA(rtm);
-    len -= NLMSG_ALIGN(sizeof(*rtm));
-
-    /* TODO: merge GET_PLEN && COPY_ADDR with the parse_routes ones ? */
-#define GET_PLEN(p) (rtm->rtm_family == AF_INET) ? p + 96 : p
-#define COPY_ADDR(d, s)                                                 \
-    do {                                                                \
-        if(!is_v4) {                                                    \
-            if(UNLIKELY(rta_len < 16)) {                                \
-                fprintf(stderr, "filter_rules: truncated message.");    \
-                return -1;                                              \
-            }                                                           \
-            memcpy(d, s, 16);                                           \
-        }else {                                                         \
-            if(UNLIKELY(rta_len < 4)) {                                 \
-                fprintf(stderr, "filter_rules: truncated message.");    \
-                return -1;                                              \
-            }                                                           \
-            v4tov6(d, s);                                               \
-        }                                                               \
-    } while(0)
-
-    for(; RTA_OK(rta, len); rta = RTA_NEXT(rta, len)) {
-        rta_len = RTA_PAYLOAD(rta);
-        switch(rta->rta_type) {
-        case FRA_UNSPEC: break;
-        case FRA_SRC:
-            rule->src_plen = GET_PLEN(rtm->rtm_src_len);
-            COPY_ADDR(rule->src, RTA_DATA(rta));
-            break;
-        case FRA_PRIORITY:
-            rule->priority = *(unsigned int*)RTA_DATA(rta);
-            has_priority = 1;
-            break;
-        case FRA_TABLE:
-            rule->table = *(int*)RTA_DATA(rta);
-            break;
-        default:
-            kdebugf("filter_rules: Unknown rule attribute: %d.\n",
-                    rta->rta_type);
-            break;
-        }
-    }
-#undef COPY_ADDR
-#undef GET_PLEN
-
-    kdebugf("filter_rules: from %s prio %d table %d\n",
-            format_prefix(rule->src, rule->src_plen),
-            has_priority ? rule->priority : -1, rule->table);
-
-    if(!has_priority)
-        return 0;
-
-    return 1;
 }
