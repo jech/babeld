@@ -261,7 +261,7 @@ netlink_socket(struct netlink *nl, uint32_t groups)
 
 static int
 netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
-             int (*fn)(struct nlmsghdr *nh, void *data), void *data)
+             struct kernel_filter *filter)
 {
 
     /* 'answer' must be true when we just have send a request on 'nl_socket' */
@@ -271,9 +271,7 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
 
     /* Return code :                                       */
     /* -1 : error                                          */
-    /*  0 : if(fn) found_interesting; else found_ack;      */
-    /*  1 : only if(fn) nothing interesting has been found */
-    /*  2 : nothing found, retry                           */
+    /*  0 : success                                        */
 
     int err;
     struct msghdr msg;
@@ -281,8 +279,8 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
     struct iovec iov;
     struct nlmsghdr *nh;
     int len;
-    int interesting = 0;
     int done = 0;
+    int skip = 0;
 
     char buf[8192];
 
@@ -314,7 +312,7 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
 
         if(len < 0) {
             perror("netlink_read: recvmsg()");
-            return 2;
+            return -1;
         } else if(len == 0) {
             fprintf(stderr, "netlink_read: EOF\n");
             goto socket_error;
@@ -325,7 +323,7 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
             goto socket_error;
         } else if(nladdr.nl_pid != 0) {
             kdebugf("netlink_read: message not sent by kernel.\n");
-            return 2;
+            return -1;
         }
 
         kdebugf("Netlink message: ");
@@ -359,12 +357,13 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
                     errno = -err->error;
                     return -1;
                 }
-            } else if(fn) {
+            } else if(skip) {
+                kdebugf("(skip)");
+            } if(filter) {
                 kdebugf("(msg -> \"");
-                err = fn(nh,data);
+                err = filter_netlink(nh, filter);
                 kdebugf("\" %d), ", err);
-                if(err < 0) return err;
-                interesting = interesting || err;
+                if(err < 0) skip = 1;
                 continue;
             }
             kdebugf(", ");
@@ -376,14 +375,14 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
 
     } while(!done);
 
-    return interesting;
+    return 0;
 
-    socket_error:
-        close(nl->sock);
-        nl->sock = -1;
-        errno = EIO;
-        return -1;
-    }
+ socket_error:
+    close(nl->sock);
+    nl->sock = -1;
+    errno = EIO;
+    return -1;
+}
 
 static int
 netlink_talk(struct nlmsghdr *nh)
@@ -428,7 +427,7 @@ netlink_talk(struct nlmsghdr *nh)
         return -1;
     }
 
-    rc = netlink_read(&nl_command, NULL, 1, NULL, NULL); /* ACK */
+    rc = netlink_read(&nl_command, NULL, 1, NULL); /* ACK */
 
     return rc;
 }
@@ -1224,8 +1223,7 @@ kernel_dump(int operation, struct kernel_filter *filter)
             if(rc < 0)
                 return -1;
 
-            rc = netlink_read(&nl_command, NULL, 1,
-                              filter_netlink, (void *)filter);
+            rc = netlink_read(&nl_command, NULL, 1, filter);
             if(rc < 0)
                 return -1;
         }
@@ -1237,8 +1235,7 @@ kernel_dump(int operation, struct kernel_filter *filter)
             if(rc < 0)
                 return -1;
 
-            rc = netlink_read(&nl_command, NULL, 1,
-                              filter_netlink, (void*) filter);
+            rc = netlink_read(&nl_command, NULL, 1, filter);
             if(rc < 0)
                 return -1;
         }
@@ -1251,7 +1248,7 @@ kernel_dump(int operation, struct kernel_filter *filter)
         if(rc < 0)
             return -1;
 
-        rc = netlink_read(&nl_command, NULL, 1, filter_netlink, (void*)filter);
+        rc = netlink_read(&nl_command, NULL, 1, filter);
         if(rc < 0)
             return -1;
     }
@@ -1512,8 +1509,7 @@ kernel_callback(struct kernel_filter *filter)
             return -1;
         }
     }
-    rc = netlink_read(&nl_listen, &nl_command, 0, filter_netlink,
-                      (void*) filter);
+    rc = netlink_read(&nl_listen, &nl_command, 0, filter);
 
     if(rc < 0 && nl_listen.sock < 0)
         kernel_setup_socket(1);
