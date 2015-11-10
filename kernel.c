@@ -118,12 +118,12 @@ kernel_older_than(const char *sysname, int version, int sub_version)
     int v = 0;
     int sub_v = 0;
     rc = uname(&un);
-    if (rc < 0)
+    if(rc < 0)
         return -1;
-    if (strcmp(sysname, un.sysname) != 0)
+    if(strcmp(sysname, un.sysname) != 0)
         return -1;
     rc = sscanf(un.release, "%d.%d", &v, &sub_v);
-    if (rc < 2)
+    if(rc < 2)
         return -1;
     return (v < version || (v == version && sub_v < sub_version));
 }

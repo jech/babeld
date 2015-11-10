@@ -67,8 +67,8 @@ static const struct babel_route *
 min_route(const struct babel_route *r1, const struct babel_route *r2)
 {
     int rc;
-    if (!r1) return r2;
-    if (!r2) return r1;
+    if(!r1) return r2;
+    if(!r2) return r1;
     rc = rt_cmp(r1, r2);
     return rc <= 0 ? r1 : r2;
 }
@@ -112,14 +112,14 @@ inter(const struct babel_route *rt, const struct babel_route *rt1,
                         r1->src_prefix, r1->src_plen);
     if(src_st == PST_DISJOINT)
         return NULL;
-    if (dst_st == PST_MORE_SPECIFIC || dst_st == PST_EQUALS) {
+    if(dst_st == PST_MORE_SPECIFIC || dst_st == PST_EQUALS) {
         zone->dst_prefix = r->prefix;
         zone->dst_plen = r->plen;
     } else {
         zone->dst_prefix = r1->prefix;
         zone->dst_plen = r1->plen;
     }
-    if (src_st == PST_MORE_SPECIFIC || src_st == PST_EQUALS) {
+    if(src_st == PST_MORE_SPECIFIC || src_st == PST_EQUALS) {
         zone->src_prefix = r->src_prefix;
         zone->src_plen = r->src_plen;
     } else {
@@ -188,7 +188,7 @@ conflict_solution(const struct babel_route *rt)
 
         while(1) {
             rt2 = route_stream_next(stream2);
-            if (rt2 == NULL) break;
+            if(rt2 == NULL) break;
             if(!(conflicts(rt1, rt2) &&
                  zone_equal(inter(rt1, rt2, &tmp), to_zone(rt, &zone)) &&
                  rt_cmp(rt1, rt2) < 0))
