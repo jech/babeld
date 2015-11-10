@@ -331,7 +331,8 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
         for(nh = (struct nlmsghdr *)buf;
             NLMSG_OK(nh, len);
             nh = NLMSG_NEXT(nh, len)) {
-            kdebugf("%s", (nh->nlmsg_flags & NLM_F_MULTI) ? "[multi] " : "");
+            kdebugf("%s{seq:%d}", (nh->nlmsg_flags & NLM_F_MULTI) ? "[multi] " : "",
+                    nh->nlmsg_seq);
             if(!answer)
                 done = 1;
             if(nl_ignore && nh->nlmsg_pid == nl_ignore->sockaddr.nl_pid) {
@@ -409,6 +410,9 @@ netlink_talk(struct nlmsghdr *nh)
     nh->nlmsg_flags |= NLM_F_ACK;
     nh->nlmsg_seq = ++nl_command.seqno;
 
+    kdebugf("Sending seqno %d from address %p (talk)\n",
+            nl_command.seqno, &nl_command.seqno);
+
     rc = sendmsg(nl_command.sock, &msg, 0);
     if(rc < 0 && (errno == EAGAIN || errno == EINTR)) {
         rc = wait_for_fd(1, nl_command.sock, 100);
@@ -473,6 +477,9 @@ netlink_send_dump(int type, void *data, int len) {
     buf.nh.nlmsg_type = type;
     buf.nh.nlmsg_seq = ++nl_command.seqno;
     buf.nh.nlmsg_len = NLMSG_LENGTH(len);
+
+    kdebugf("Sending seqno %d from address %p (dump)\n",
+            nl_command.seqno, &nl_command.seqno);
 
     rc = sendmsg(nl_command.sock, &msg, 0);
     if(rc < buf.nh.nlmsg_len) {
