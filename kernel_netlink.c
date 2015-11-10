@@ -57,6 +57,19 @@ THE SOFTWARE.
 #define MAX_INTERFACES 20
 #endif
 
+#define GET_PLEN(p, v4) (v4) ? (p) + 96 : (p)
+#define COPY_ADDR(d, rta, v4)                                           \
+    do {                                                                \
+        if(UNLIKELY(RTA_PAYLOAD(rta) < (v4 ? 4 : 16))) {                \
+            fprintf(stderr, "truncated message.");                      \
+            return -1;                                                  \
+        }                                                               \
+        if(v4)                                                          \
+            v4tov6(d, RTA_DATA(rta));                                   \
+        else                                                            \
+            memcpy(d, RTA_DATA(rta), 16);                               \
+    } while(0)
+
 int export_table = -1, import_tables[MAX_IMPORT_TABLES], import_table_count = 0;
 
 struct sysctl_setting {
@@ -1055,7 +1068,7 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
 {
     int table = rtm->rtm_table;
     struct rtattr *rta= RTM_RTA(rtm);;
-    int i;
+    int i, is_v4;
 
     len -= NLMSG_ALIGN(sizeof(*rtm));
 
@@ -1068,29 +1081,20 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
     }
     route->proto = rtm->rtm_protocol;
 
-#define GET_PLEN(p) (rtm->rtm_family == AF_INET) ? p + 96 : p
-#define COPY_ADDR(d, s) \
-    do { \
-        if(rtm->rtm_family == AF_INET6) \
-            memcpy(d, s, 16); \
-        else if(rtm->rtm_family == AF_INET) \
-            v4tov6(d, s); \
-        else \
-            return -1; \
-    } while(0)
+    is_v4 = rtm->rtm_family == AF_INET;
 
     while(RTA_OK(rta, len)) {
         switch(rta->rta_type) {
         case RTA_DST:
-            route->plen = GET_PLEN(rtm->rtm_dst_len);
-            COPY_ADDR(route->prefix, RTA_DATA(rta));
+            route->plen = GET_PLEN(rtm->rtm_dst_len, is_v4);
+            COPY_ADDR(route->prefix, rta, is_v4);
             break;
         case RTA_SRC:
-            route->src_plen = GET_PLEN(rtm->rtm_src_len);
-            COPY_ADDR(route->src_prefix, RTA_DATA(rta));
+            route->src_plen = GET_PLEN(rtm->rtm_src_len, is_v4);
+            COPY_ADDR(route->src_prefix, rta, is_v4);
             break;
         case RTA_GATEWAY:
-            COPY_ADDR(route->gw, RTA_DATA(rta));
+            COPY_ADDR(route->gw, rta, is_v4);
             break;
         case RTA_OIF:
             route->ifindex = *(int*)RTA_DATA(rta);
@@ -1108,8 +1112,6 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
         }
         rta = RTA_NEXT(rta, len);
     }
-#undef COPY_ADDR
-#undef GET_PLEN
 
     for(i = 0; i < import_table_count; i++)
         if(table == import_tables[i])
@@ -1383,7 +1385,6 @@ static int
 filter_kernel_rules(struct nlmsghdr *nh, struct kernel_rule *rule)
 {
     int len, has_priority = 0;
-    unsigned int rta_len;
     struct rtmsg *rtm = NULL;
     struct rtattr *rta = NULL;
     int is_v4 = 0;
@@ -1405,32 +1406,12 @@ filter_kernel_rules(struct nlmsghdr *nh, struct kernel_rule *rule)
     rta = RTM_RTA(rtm);
     len -= NLMSG_ALIGN(sizeof(*rtm));
 
-    /* TODO: merge GET_PLEN && COPY_ADDR with the parse_routes ones ? */
-#define GET_PLEN(p) (rtm->rtm_family == AF_INET) ? p + 96 : p
-#define COPY_ADDR(d, s)                                                 \
-    do {                                                                \
-        if(!is_v4) {                                                    \
-            if(UNLIKELY(rta_len < 16)) {                                \
-                fprintf(stderr, "filter_rules: truncated message.");    \
-                return -1;                                              \
-            }                                                           \
-            memcpy(d, s, 16);                                           \
-        }else {                                                         \
-            if(UNLIKELY(rta_len < 4)) {                                 \
-                fprintf(stderr, "filter_rules: truncated message.");    \
-                return -1;                                              \
-            }                                                           \
-            v4tov6(d, s);                                               \
-        }                                                               \
-    } while(0)
-
     for(; RTA_OK(rta, len); rta = RTA_NEXT(rta, len)) {
-        rta_len = RTA_PAYLOAD(rta);
         switch(rta->rta_type) {
         case FRA_UNSPEC: break;
         case FRA_SRC:
-            rule->src_plen = GET_PLEN(rtm->rtm_src_len);
-            COPY_ADDR(rule->src, RTA_DATA(rta));
+            rule->src_plen = GET_PLEN(rtm->rtm_src_len, is_v4);
+            COPY_ADDR(rule->src, rta, is_v4);
             break;
         case FRA_PRIORITY:
             rule->priority = *(unsigned int*)RTA_DATA(rta);
@@ -1445,8 +1426,6 @@ filter_kernel_rules(struct nlmsghdr *nh, struct kernel_rule *rule)
             break;
         }
     }
-#undef COPY_ADDR
-#undef GET_PLEN
 
     kdebugf("filter_rules: from %s prio %d table %d\n",
             format_prefix(rule->src, rule->src_plen),
