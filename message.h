@@ -25,9 +25,6 @@ THE SOFTWARE.
 #define BUCKET_TOKENS_MAX 4000
 #define BUCKET_TOKENS_PER_SEC 1000
 
-/* A registry of assigned TLV and sub-TLV types is available at
-   http://www.pps.univ-paris-diderot.fr/~jch/software/babel/babel-tlv-registry.text
-*/
 #define MESSAGE_PAD1 0
 #define MESSAGE_PADN 1
 #define MESSAGE_ACK_REQ 2
