@@ -232,6 +232,7 @@ static int
 netlink_socket(struct netlink *nl, uint32_t groups)
 {
     int rc;
+    int rcvsize = 512 * 1024;
 
     nl->sock = socket(PF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
     if(nl->sock < 0)
@@ -251,6 +252,20 @@ netlink_socket(struct netlink *nl, uint32_t groups)
     rc = fcntl(nl->sock, F_SETFL, (rc | O_NONBLOCK));
     if(rc < 0)
         goto fail;
+
+#ifdef SO_RCVBUFFORCE
+    rc = setsockopt(nl->sock, SOL_SOCKET, SO_RCVBUFFORCE,
+                    &rcvsize, sizeof(rcvsize));
+#else
+    rc = -1;
+#endif
+    if(rc < 0) {
+        rc = setsockopt(nl->sock, SOL_SOCKET, SO_RCVBUF,
+                        &rcvsize, sizeof(rcvsize));
+        if(rc < 0) {
+            perror("setsockopt(SO_RCVBUF)");
+        }
+    }
 
     rc = bind(nl->sock, (struct sockaddr *)&nl->sockaddr, nl->socklen);
     if(rc < 0)
