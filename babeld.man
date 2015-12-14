@@ -1,4 +1,4 @@
-s.TH BABELD 8
+.TH BABELD 8
 .SH NAME
 babeld \- ad-hoc network routing daemon
 .SH SYNOPSIS
