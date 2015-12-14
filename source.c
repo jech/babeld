@@ -212,7 +212,7 @@ expire_sources()
         if(src->time < now.tv_sec - SOURCE_GC_TIME) {
             free(src);
             memmove(sources + i, sources + i + 1,
-                    (source_slots - i - 1) * sizeof(struct source));
+                    (source_slots - i - 1) * sizeof(struct source*));
             sources[source_slots - 1] = NULL;
             source_slots--;
         } else {
