@@ -32,7 +32,89 @@ THE SOFTWARE.
 #include "interface.h"
 #include "route.h"
 
-struct source *srcs = NULL;
+static struct source **sources = NULL;
+static int source_slots = 0, max_source_slots = 0;
+
+static int
+source_compare(const unsigned char *id,
+               const unsigned char *prefix, unsigned char plen,
+               const unsigned char *src_prefix, unsigned char src_plen,
+               const struct source *src)
+{
+    int rc;
+
+    rc = memcmp(id, src->id, 8);
+    if(rc != 0)
+        return rc;
+
+    if(plen < src->plen)
+        return -1;
+    if(plen > src->plen)
+        return 1;
+
+    rc = memcmp(prefix, src->prefix, 16);
+    if(rc != 0)
+        return rc;
+
+    rc = memcmp(src_prefix, src->src_prefix, 16);
+    if(rc != 0)
+        return rc;
+
+    return 0;
+}
+
+static int
+find_source_slot(const unsigned char *id,
+                 const unsigned char *prefix, unsigned char plen,
+                 const unsigned char *src_prefix, unsigned char src_plen,
+                 int *new_return)
+{
+    int p, m, g, c;
+
+    if(source_slots < 1) {
+        if(new_return)
+            *new_return = 0;
+        return -1;
+    }
+
+    p = 0; g = source_slots - 1;
+
+    do {
+        m = (p + g) / 2;
+        c = source_compare(id, prefix, plen, src_prefix, src_plen, sources[m]);
+        if(c == 0)
+            return m;
+        else if(c < 0)
+            g = m - 1;
+        else
+            p = m + 1;
+    } while(p <= g);
+
+    if(new_return)
+        *new_return = p;
+
+    return -1;
+}
+
+static int
+resize_source_table(int new_slots)
+{
+    struct source **new_sources;
+    assert(new_slots >= source_slots);
+
+    if(new_slots == 0) {
+        new_sources = NULL;
+        free(sources);
+    } else {
+        new_sources = realloc(sources, new_slots * sizeof(struct source*));
+        if(new_sources == NULL)
+            return -1;
+    }
+
+    max_source_slots = new_slots;
+    sources = new_sources;
+    return 1;
+}
 
 struct source*
 find_source(const unsigned char *id,
@@ -40,24 +122,12 @@ find_source(const unsigned char *id,
             const unsigned char *src_prefix, unsigned char src_plen,
             int create, unsigned short seqno)
 {
+    int n = -1;
+    int i = find_source_slot(id, prefix, plen, src_prefix, src_plen, &n);
     struct source *src;
 
-    for(src = srcs; src; src = src->next) {
-        /* This should really be a hash table.  For now, check the
-           last byte first. */
-        if(src->id[7] != id[7])
-            continue;
-        if(memcmp(src->id, id, 8) != 0)
-            continue;
-        if(src->plen != plen)
-            continue;
-        if(src->src_plen != src_plen)
-            continue;
-        if(memcmp(src->prefix, prefix, 16) != 0)
-            continue;
-        if(memcmp(src->src_prefix, src_prefix, 16) == 0)
-            return src;
-    }
+    if(i >= 0)
+        return sources[i];
 
     if(!create)
         return NULL;
@@ -77,8 +147,19 @@ find_source(const unsigned char *id,
     src->metric = INFINITY;
     src->time = now.tv_sec;
     src->route_count = 0;
-    src->next = srcs;
-    srcs = src;
+
+    if(source_slots >= max_source_slots)
+        resize_source_table(max_source_slots < 1 ? 8 : 2 * max_source_slots);
+    if(source_slots >= max_source_slots) {
+        free(src);
+        return NULL;
+    }
+    if(n < source_slots)
+        memmove(sources + n + 1, sources + n,
+                (source_slots - n) * sizeof(struct source*));
+    source_slots++;
+    sources[n] = src;
+
     return src;
 }
 
@@ -95,26 +176,6 @@ release_source(struct source *src)
 {
     assert(src->route_count > 0);
     src->route_count--;
-}
-
-int
-flush_source(struct source *src)
-{
-    if(src->route_count > 0)
-        /* The source is in use by a route. */
-        return 0;
-
-    if(srcs == src) {
-        srcs = src->next;
-    } else {
-        struct source *previous = srcs;
-        while(previous->next != src)
-            previous = previous->next;
-        previous->next = src->next;
-    }
-
-    free(src);
-    return 1;
 }
 
 void
@@ -140,29 +201,34 @@ update_source(struct source *src,
 void
 expire_sources()
 {
-    struct source *src;
+    int i = 0;
+    while(i < source_slots) {
+        struct source *src = sources[i];
 
-    src = srcs;
-    while(src) {
         if(src->time > now.tv_sec)
             /* clock stepped */
             src->time = now.tv_sec;
+
         if(src->time < now.tv_sec - SOURCE_GC_TIME) {
-            struct source *old = src;
-            src = src->next;
-            flush_source(old);
-            continue;
+            free(src);
+            memmove(sources + i, sources + i + 1,
+                    (source_slots - i - 1) * sizeof(struct source));
+            sources[source_slots - 1] = NULL;
+            source_slots--;
+        } else {
+            i++;
         }
-        src = src->next;
     }
 }
 
 void
 check_sources_released(void)
 {
-    struct source *src;
+    int i;
 
-    for(src = srcs; src; src = src->next) {
+    for(i = 0; i < source_slots; i++) {
+        struct source *src = sources[i];
+
         if(src->route_count != 0)
             fprintf(stderr, "Warning: source %s %s has refcount %d.\n",
                     format_eui64(src->id),

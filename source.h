@@ -23,7 +23,6 @@ THE SOFTWARE.
 #define SOURCE_GC_TIME 200
 
 struct source {
-    struct source *next;
     unsigned char id[8];
     unsigned char prefix[16];
     unsigned char plen;
@@ -43,7 +42,6 @@ struct source *find_source(const unsigned char *id,
                            int create, unsigned short seqno);
 struct source *retain_source(struct source *src);
 void release_source(struct source *src);
-int flush_source(struct source *src);
 void update_source(struct source *src,
                    unsigned short seqno, unsigned short metric);
 void expire_sources(void);
