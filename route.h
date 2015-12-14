@@ -44,6 +44,9 @@ struct babel_route {
     struct babel_route *next;
 };
 
+#define ROUTE_ALL 0
+#define ROUTE_INSTALLED 1
+#define ROUTE_SS_INSTALLED 2
 struct route_stream;
 
 extern struct babel_route **routes;
@@ -80,7 +83,7 @@ void flush_route(struct babel_route *route);
 void flush_all_routes(void);
 void flush_neighbour_routes(struct neighbour *neigh);
 void flush_interface_routes(struct interface *ifp, int v4only);
-struct route_stream *route_stream(int installed);
+struct route_stream *route_stream(int which);
 struct babel_route *route_stream_next(struct route_stream *stream);
 void route_stream_done(struct route_stream *stream);
 int metric_to_kernel(int metric);

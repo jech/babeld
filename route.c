@@ -52,6 +52,22 @@ int keep_unfeasible = 0;
 static int smoothing_half_life = 0;
 static int two_to_the_one_over_hl = 0; /* 2^(1/hl) * 0x10000 */
 
+static int
+check_specific_first(void)
+{
+    /* All source-specific routes are in front of the list */
+    int specific = 1;
+    int i;
+    for(i = 0; i < route_slots; i++) {
+        if(routes[i]->src->src_plen == 0) {
+            specific = 0;
+        } else if(!specific) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 /* We maintain a list of "slots", ordered by prefix.  Every slot
    contains a linked list of the routes to this prefix, with the
    installed route, if any, at the head of the list. */
@@ -61,7 +77,16 @@ route_compare(const unsigned char *prefix, unsigned char plen,
               const unsigned char *src_prefix, unsigned char src_plen,
               struct babel_route *route)
 {
-    int i = memcmp(prefix, route->src->prefix, 16);
+    int i;
+
+    /* Put all source-specific routes in the front of the list. */
+    if(src_plen == 0 && route->src->src_plen > 0) {
+        return 1;
+    } else if(src_plen > 0 && route->src->src_plen == 0) {
+        return -1;
+    }
+
+    i = memcmp(prefix, route->src->prefix, 16);
     if(i != 0)
         return i;
 
@@ -344,16 +369,19 @@ struct route_stream {
 
 
 struct route_stream *
-route_stream(int installed)
+route_stream(int which)
 {
     struct route_stream *stream;
+
+    if(!check_specific_first())
+        fprintf(stderr, "Invariant failed: specific routes first in RIB.\n");
 
     stream = malloc(sizeof(struct route_stream));
     if(stream == NULL)
         return NULL;
 
-    stream->installed = installed;
-    stream->index = installed ? 0 : -1;
+    stream->installed = which;
+    stream->index = which == ROUTE_ALL ? -1 : 0;
     stream->next = NULL;
 
     return stream;
@@ -363,8 +391,14 @@ struct babel_route *
 route_stream_next(struct route_stream *stream)
 {
     if(stream->installed) {
-        while(stream->index < route_slots && !routes[stream->index]->installed)
-            stream->index++;
+        while(stream->index < route_slots)
+            if(stream->installed == ROUTE_SS_INSTALLED &&
+               routes[stream->index]->src->src_plen == 0)
+                return NULL;
+            else if(routes[stream->index]->installed)
+                break;
+            else
+                stream->index++;
 
         if(stream->index < route_slots)
             return routes[stream->index++];

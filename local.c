@@ -289,7 +289,7 @@ local_notify_all_1(int s)
         xroute_stream_done(xroutes);
     }
 
-    routes = route_stream(0);
+    routes = route_stream(ROUTE_ALL);
     if(routes) {
         while(1) {
             struct babel_route *route = route_stream_next(routes);
