@@ -222,7 +222,7 @@ filter_address(struct kernel_addr *addr, void *data) {
     memcpy(route->prefix, addr->addr.s6_addr, 16);
     route->plen = 128;
     route->metric = 0;
-    route->ifindex = ifindex;
+    route->ifindex = addr->ifindex;
     route->proto = RTPROT_BABEL_LOCAL;
     memset(route->gw, 0, 16);
     ++ *found;
