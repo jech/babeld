@@ -20,6 +20,15 @@ OBJS = babeld.o net.o kernel.o util.o interface.o source.o neighbour.o \
 babeld: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o babeld $(OBJS) $(LDLIBS)
 
+babeld.o: babeld.c version.h
+
+local.o: local.c version.h
+
+kernel.o: kernel_netlink.c kernel_socket.c
+
+version.h:
+	./generate-version.sh > version.h
+
 .SUFFIXES: .man .html
 
 .man.html:
@@ -49,6 +58,4 @@ uninstall:
 	-rm -f $(TARGET)$(MANDIR)/man8/babeld.8
 
 clean:
-	-rm -f babeld babeld.html *.o *~ core TAGS gmon.out
-
-kernel.o: kernel_netlink.c kernel_socket.c
+	-rm -f babeld babeld.html version.h *.o *~ core TAGS gmon.out

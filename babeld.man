@@ -17,6 +17,9 @@ While it is optimised for wireless mesh networks, Babel will also work
 efficiently on wired networks.
 .SH OPTIONS
 .TP
+.BI \-V
+Display babeld's version and quit.
+.TP
 .BI \-m " multicast-address"
 Specify the link-local multicast address to be used by the protocol.
 The default is

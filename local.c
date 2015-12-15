@@ -36,6 +36,7 @@ THE SOFTWARE.
 #include "route.h"
 #include "util.h"
 #include "local.h"
+#include "version.h"
 
 #ifdef NO_LOCAL_INTERFACE
 
@@ -266,10 +267,18 @@ local_notify_all_1(int s)
     int rc;
     struct neighbour *neigh;
     const char *header = "BABEL 0.0\n";
+    char buf[512];
     struct xroute_stream *xroutes;
     struct route_stream *routes;
 
     rc = write_timeout(s, header, strlen(header));
+    if(rc < 0)
+        goto fail;
+
+    rc = snprintf(buf, 512, "version %s\n", BABELD_VERSION);
+    if(rc < 0 || rc >= 512)
+        goto fail;
+    rc = write_timeout(s, buf, rc);
     if(rc < 0)
         goto fail;
 

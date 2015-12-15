@@ -53,6 +53,7 @@ THE SOFTWARE.
 #include "configuration.h"
 #include "local.h"
 #include "rule.h"
+#include "version.h"
 
 struct timeval now;
 
@@ -172,7 +173,7 @@ main(int argc, char **argv)
 
     while(1) {
         opt = getopt(argc, argv,
-                     "m:p:h:H:i:k:A:sruS:d:g:lwz:M:t:T:c:C:DL:I:");
+                     "m:p:h:H:i:k:A:sruS:d:g:lwz:M:t:T:c:C:DL:I:V");
         if(opt < 0)
             break;
 
@@ -306,6 +307,10 @@ main(int argc, char **argv)
             break;
         case 'I':
             pidfile = optarg;
+            break;
+        case 'V':
+            fprintf(stderr, "%s\n", BABELD_VERSION);
+            exit(0);
             break;
         default:
             goto usage;
@@ -842,19 +847,20 @@ main(int argc, char **argv)
 
  usage:
     fprintf(stderr,
-            "Syntax: %s "
-            "[-m multicast_address] [-p port] [-S state-file]\n"
-            "                "
+            "%s\n"
+            "Syntax: babeld "
+            "[-V] [-m multicast_address] [-p port] [-S state-file]\n"
+            "               "
             "[-h hello] [-H wired_hello] [-z kind[,factor]]\n"
-            "                "
+            "               "
             "[-k metric] [-A metric] [-s] [-l] [-w] [-r] [-u] [-g port]\n"
-            "                "
+            "               "
             "[-t table] [-T table] [-c file] [-C statement]\n"
-            "                "
+            "               "
             "[-d level] [-D] [-L logfile] [-I pidfile]\n"
-            "                "
+            "               "
             "[id] interface...\n",
-            argv[0]);
+            BABELD_VERSION);
     exit(1);
 
  fail:
