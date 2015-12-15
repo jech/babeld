@@ -1,3 +1,19 @@
+babeld-1.7.0 (unreleased)
+
+  * Added the ability to choose the kernel routing table on a per-route
+    basis.  Thanks to Matthieu Boutier.
+  * Refactored the disambiguation code to live above the kernel interface.
+    Thanks to Matthieu Boutier.
+  * Reworked the source table to function in log time.
+  * Optimised the disambiguation code to avoid scanning all routes in
+    non-source-specific networks.  Thanks to Matthieu Boutier.
+  * Modified the triggered updates logic to no longer send multihop
+    requests.  This makes babeld slightly less noisy, at the cost of
+    slightly longer reconvergence after mobility.
+  * Increased the token bucket limits, which some large meshes are
+    starting to hit.
+  * Increased the size of the netlink socket buffer.
+
 1 October 2015: babeld-1.6.3
 
   * Changed the handling of kernel configuration and added the
