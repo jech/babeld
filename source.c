@@ -209,7 +209,7 @@ expire_sources()
             /* clock stepped */
             src->time = now.tv_sec;
 
-        if(src->time < now.tv_sec - SOURCE_GC_TIME) {
+        if(src->route_count == 0 && src->time < now.tv_sec - SOURCE_GC_TIME) {
             free(src);
             memmove(sources + i, sources + i + 1,
                     (source_slots - i - 1) * sizeof(struct source*));
