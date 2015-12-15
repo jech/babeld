@@ -1676,9 +1676,9 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
 
     ll = linklocal(neigh->address);
 
-    if((ifp->flags & IF_TIMESTAMPS) && neigh->hello_send_us
+    if((ifp->flags & IF_TIMESTAMPS) && neigh->hello_send_us &&
        /* Checks whether the RTT data is not too old to be sent. */
-       && timeval_minus_msec(&now, &neigh->hello_rtt_receive_time) < 1000000) {
+       timeval_minus_msec(&now, &neigh->hello_rtt_receive_time) < 1000000) {
         send_rtt_data = 1;
     } else {
         neigh->hello_send_us = 0;
