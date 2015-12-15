@@ -145,7 +145,7 @@ insert_table(const unsigned char *src, unsigned short src_plen, int idx)
 }
 
 /* Sorting rules in a well ordered fashion will increase code complexity and
-   decrease performances, because more rule shifs will be required, so more
+   decrease performances, because more rule shifts will be required, so more
    system calls invoked. */
 static int
 find_table_slot(const unsigned char *src, unsigned short src_plen, int *found)
