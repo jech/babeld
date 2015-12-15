@@ -1639,8 +1639,7 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
         struct interface *ifp_aux;
         FOR_ALL_INTERFACES(ifp_aux) {
             if(if_up(ifp_aux))
-                continue;
-            send_ihu(NULL, ifp_aux);
+                send_ihu(NULL, ifp_aux);
         }
         return;
     }
