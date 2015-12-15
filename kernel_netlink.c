@@ -1399,7 +1399,7 @@ filter_addresses(struct nlmsghdr *nh, struct kernel_addr *addr)
 static int
 filter_kernel_rules(struct nlmsghdr *nh, struct kernel_rule *rule)
 {
-    int len, has_priority = 0;
+    int len, has_priority = 0, has_table = 0;
     struct rtmsg *rtm = NULL;
     struct rtattr *rta = NULL;
     int is_v4 = 0;
@@ -1410,6 +1410,7 @@ filter_kernel_rules(struct nlmsghdr *nh, struct kernel_rule *rule)
     len -= NLMSG_LENGTH(0);
 
     rule->src_plen = rtm->rtm_src_len;
+    memset(rule->src, 0, sizeof(rule->src));
     rule->table = rtm->rtm_table;
 
     if(rtm->rtm_family != AF_INET && rtm->rtm_family != AF_INET6) {
@@ -1434,6 +1435,7 @@ filter_kernel_rules(struct nlmsghdr *nh, struct kernel_rule *rule)
             break;
         case FRA_TABLE:
             rule->table = *(int*)RTA_DATA(rta);
+            has_table = 1;
             break;
         default:
             kdebugf("filter_rules: Unknown rule attribute: %d.\n",
@@ -1446,7 +1448,7 @@ filter_kernel_rules(struct nlmsghdr *nh, struct kernel_rule *rule)
             format_prefix(rule->src, rule->src_plen),
             has_priority ? rule->priority : -1, rule->table);
 
-    if(!has_priority)
+    if(!has_priority || !has_table)
         return 0;
 
     return 1;
