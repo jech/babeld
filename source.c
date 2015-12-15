@@ -201,7 +201,7 @@ update_source(struct source *src,
 void
 expire_sources()
 {
-    int i = 0;
+    int i = 0, j = 0;
     while(i < source_slots) {
         struct source *src = sources[i];
 
@@ -211,14 +211,18 @@ expire_sources()
 
         if(src->route_count == 0 && src->time < now.tv_sec - SOURCE_GC_TIME) {
             free(src);
-            memmove(sources + i, sources + i + 1,
-                    (source_slots - i - 1) * sizeof(struct source*));
-            sources[source_slots - 1] = NULL;
-            source_slots--;
-        } else {
+            sources[i] = NULL;
             i++;
+        } else {
+            if(j < i) {
+                sources[j] = sources[i];
+                sources[i] = NULL;
+            }
+            i++;
+            j++;
         }
     }
+    source_slots = j;
 }
 
 void
