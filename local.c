@@ -230,9 +230,21 @@ local_notify_route(struct babel_route *route, int kind)
 static void
 local_notify_all_1(struct local_socket *s)
 {
+    struct interface *ifp;
     struct neighbour *neigh;
     struct xroute_stream *xroutes;
     struct route_stream *routes;
+
+    FOR_ALL_INTERFACES(ifp) {
+        char buf[512];
+        int rc;
+        rc = snprintf(buf, 512, "add interface %s\n", ifp->name);
+        if(rc < 0 || rc >= 512)
+            goto fail;
+        rc = write_timeout(s->fd, buf, rc);
+        if(rc < 0)
+            goto fail;
+    }
 
     FOR_ALL_NEIGHBOURS(neigh) {
         local_notify_neighbour_1(s, neigh, LOCAL_ADD);
@@ -259,6 +271,10 @@ local_notify_all_1(struct local_socket *s)
         }
         route_stream_done(routes);
     }
+    return;
+
+ fail:
+    shutdown(s->fd, 1);
     return;
 }
 
