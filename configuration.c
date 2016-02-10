@@ -938,9 +938,9 @@ gnc_buf(struct buf_state *s)
 }
 
 int
-parse_config_from_string(char *string)
+parse_config_from_string(char *string, int n)
 {
-    struct buf_state s = { string, 0, strlen(string) };
+    struct buf_state s = { string, 0, n };
     return parse_config((gnc_t)gnc_buf, &s);
 }
 
