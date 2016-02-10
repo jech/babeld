@@ -230,7 +230,6 @@ local_notify_route(struct babel_route *route, int kind)
 static void
 local_notify_all_1(struct local_socket *s)
 {
-    int rc;
     struct neighbour *neigh;
     struct xroute_stream *xroutes;
     struct route_stream *routes;
@@ -260,14 +259,6 @@ local_notify_all_1(struct local_socket *s)
         }
         route_stream_done(routes);
     }
-
-    rc = write_timeout(s->fd, "done\n", 5);
-    if(rc < 0)
-        goto fail;
-    return;
-
- fail:
-    shutdown(s->fd, 1);
     return;
 }
 
@@ -276,6 +267,7 @@ local_read(struct local_socket *s)
 {
     int rc;
     char *eol;
+    char *reply = "ok\n";
 
     if(s->buf == NULL)
         s->buf = malloc(LOCAL_BUFSIZE);
@@ -302,6 +294,7 @@ local_read(struct local_socket *s)
         break;
     case CONFIG_QUIT:
         shutdown(s->fd, 1);
+        reply = NULL;
         break;
     case CONFIG_DUMP:
         local_notify_all_1(s);
@@ -313,12 +306,14 @@ local_read(struct local_socket *s)
     case CONFIG_UNMONITOR:
         s->monitor = 0;
         break;
-    default: {
-        char *buf = "error\n";
-        rc = write_timeout(s->fd, buf, 6);
+    default:
+        reply = "bad\n";
+    }
+
+    if(reply != NULL) {
+        rc = write_timeout(s->fd, reply, strlen(reply));
         if(rc < 0)
             goto fail;
-    }
     }
 
     if(s->n > eol + 1 - s->buf) {
@@ -347,7 +342,7 @@ local_header(struct local_socket *s)
     if(rc < 0)
         strncpy(host, "alamakota", 64);
 
-    rc = snprintf(buf, 512, "BABEL 1.0 version %s host %s id %s\n",
+    rc = snprintf(buf, 512, "BABEL 1.0\nversion %s\nhost %s\nmy-id %s\nok\n",
                   BABELD_VERSION, host, format_eui64(myid));
     if(rc < 0 || rc >= 512)
         goto fail;
