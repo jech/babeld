@@ -60,7 +60,7 @@ typedef int (*gnc_t)(void*);
 static int
 skip_whitespace(int c, gnc_t gnc, void *closure)
 {
-    while(c == ' ' || c == '\t')
+    while(c == ' ' || c == '\t' || c == '\r')
         c = gnc(closure);
     return c;
 }
@@ -88,7 +88,7 @@ getword(int c, char **token_r, gnc_t gnc, void *closure)
         if(i >= 255) return -2;
         buf[i++] = c;
         c = gnc(closure);
-    } while(c != ' ' && c != '\t' && c != '\n' && c != '#' && c >= 0);
+    } while(c != ' ' && c != '\t' && c != '\r' && c != '\n' && c != '#' && c >= 0);
     buf[i] = '\0';
     *token_r = strdup(buf);
     return c;
