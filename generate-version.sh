@@ -7,7 +7,7 @@ if [ -d .git ] ; then
 elif [ -f version ] ; then
     version="$(cat version)"
 else
-    version="(unknown version)"
+    version="unknown"
 fi
 
 echo "#define BABELD_VERSION \"$version\""
