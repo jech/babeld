@@ -39,12 +39,6 @@ THE SOFTWARE.
 #include "local.h"
 #include "version.h"
 
-#ifdef NO_LOCAL_INTERFACE
-
-int dummy;
-
-#else
-
 int local_server_socket = -1;
 struct local_socket local_sockets[MAX_LOCAL_SOCKETS];
 int num_local_sockets = 0;
@@ -421,5 +415,3 @@ local_socket_destroy(int i)
     close(local_sockets[i].fd);
     local_sockets[i] = local_sockets[--num_local_sockets];
 }
-
-#endif

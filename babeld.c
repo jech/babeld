@@ -95,7 +95,7 @@ struct timeval check_neighbours_timeout, check_interfaces_timeout;
 
 static volatile sig_atomic_t exiting = 0, dumping = 0, reopening = 0;
 
-static int accept_local_connections(fd_set *readfds);
+static int accept_local_connections(void);
 static void init_signals(void);
 static void dump_tables(FILE *out);
 static int reopen_logfile(void);
@@ -238,13 +238,9 @@ main(int argc, char **argv)
                 goto usage;
             break;
         case 'g':
-#ifdef NO_LOCAL_INTERFACE
-            fprintf(stderr, "Warning: no local interface in this version.\n");
-#else
             local_server_port = parse_nat(optarg);
             if(local_server_port <= 0 || local_server_port > 0xFFFF)
                 goto usage;
-#endif
             break;
         case 'l':
             link_detect = 1;
@@ -517,7 +513,6 @@ main(int argc, char **argv)
         goto fail;
     }
 
-#ifndef NO_LOCAL_INTERFACE
     if(local_server_port >= 0) {
         local_server_socket = tcp_server_socket(local_server_port, 1);
         if(local_server_socket < 0) {
@@ -525,7 +520,6 @@ main(int argc, char **argv)
             goto fail;
         }
     }
-#endif
 
     init_signals();
     rc = resize_receive_buffer(1500);
@@ -612,7 +606,6 @@ main(int argc, char **argv)
                 FD_SET(kernel_socket, &readfds);
                 maxfd = MAX(maxfd, kernel_socket);
             }
-#ifndef NO_LOCAL_INTERFACE
             if(local_server_socket >= 0 &&
                num_local_sockets < MAX_LOCAL_SOCKETS) {
                 FD_SET(local_server_socket, &readfds);
@@ -622,7 +615,6 @@ main(int argc, char **argv)
                 FD_SET(local_sockets[i].fd, &readfds);
                 maxfd = MAX(maxfd, local_sockets[i].fd);
             }
-#endif
             rc = select(maxfd + 1, &readfds, NULL, NULL, &tv);
             if(rc < 0) {
                 if(errno != EINTR) {
@@ -672,8 +664,8 @@ main(int argc, char **argv)
             }
         }
 
-#ifndef NO_LOCAL_INTERFACE
-        accept_local_connections(&readfds);
+        if(local_server_socket >= 0 && FD_ISSET(local_server_socket, &readfds))
+           accept_local_connections();
 
         i = 0;
         while(i < num_local_sockets) {
@@ -690,7 +682,6 @@ main(int argc, char **argv)
             }
             i++;
         }
-#endif
 
         if(reopening) {
             kernel_dump_time = now.tv_sec;
@@ -876,12 +867,12 @@ main(int argc, char **argv)
 }
 
 static int
-accept_local_connections(fd_set *readfds)
+accept_local_connections()
 {
     int rc, s;
     struct local_socket *ls;
 
-    if(local_server_socket < 0 || !FD_ISSET(local_server_socket, readfds))
+    if(local_server_socket < 0)
         return 0;
 
     s = accept(local_server_socket, NULL, NULL);

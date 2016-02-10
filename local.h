@@ -28,8 +28,6 @@ struct xroute;
 #define LOCAL_ADD 1
 #define LOCAL_CHANGE 2
 
-#ifndef NO_LOCAL_INTERFACE
-
 #ifndef MAX_LOCAL_SOCKETS
 #define MAX_LOCAL_SOCKETS 4
 #endif
@@ -56,11 +54,3 @@ int local_read(struct local_socket *s);
 int local_header(struct local_socket *s);
 struct local_socket *local_socket_create(int fd);
 void local_socket_destroy(int i);
-
-#else
-
-#define local_notify_neighbour(n, k) do {} while(0)
-#define local_notify_xroute(x, k) do {} while(0)
-#define local_notify_route(r, k) do {} while(0)
-#define local_dump() do {} while 0
-#endif
