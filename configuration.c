@@ -876,6 +876,11 @@ parse_config_line(int c, gnc_t gnc, void *closure, int *action_return)
                          if_conf, default_interface_conf);
             free(if_conf);
         }
+    } else if(strcmp(token, "quit") == 0) {
+        c = skip_eol(c, gnc, closure);
+        if(c < -1 || !action_return)
+            goto fail;
+        *action_return = CONFIG_QUIT;
     } else {
         c = parse_option(c, gnc, closure, token);
         if(c < -1)

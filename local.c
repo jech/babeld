@@ -107,11 +107,18 @@ local_read(struct local_socket *s)
         return 1;
 
     rc = parse_config_from_string(s->buf, eol + 1 - s->buf);
-    if(rc < 0) {
+    switch(rc) {
+    case CONFIG_DONE:
+        break;
+    case CONFIG_QUIT:
+        shutdown(s->fd, 1);
+        break;
+    default: {
         char *buf = "error\n";
         rc = write_timeout(s->fd, buf, 6);
         if(rc < 0)
             goto fail;
+    }
     }
 
     if(s->n > eol + 1 - s->buf) {
