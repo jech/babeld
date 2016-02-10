@@ -35,6 +35,7 @@ THE SOFTWARE.
 #include "xroute.h"
 #include "route.h"
 #include "util.h"
+#include "configuration.h"
 #include "local.h"
 #include "version.h"
 
@@ -48,43 +49,6 @@ int local_server_socket = -1;
 struct local_socket local_sockets[MAX_LOCAL_SOCKETS];
 int num_local_sockets = 0;
 int local_server_port = -1;
-
-int
-local_read(struct local_socket *s)
-{
-    int rc;
-    char *eol;
-
-    if(s->buf == NULL)
-        s->buf = malloc(LOCAL_BUFSIZE);
-    if(s->buf == NULL)
-        return -1;
-
-    if(s->n >= LOCAL_BUFSIZE) {
-        errno = ENOSPC;
-        return -1;
-    }
-
-    rc = read(s->fd, s->buf + s->n, LOCAL_BUFSIZE - s->n);
-    if(rc <= 0)
-        return rc;
-    s->n += rc;
-
-    eol = memchr(s->buf, '\n', s->n);
-    if(eol == NULL)
-        return 1;
-
-    if(s->n > eol + 1 - s->buf) {
-        memmove(s->buf, eol + 1, s->n - (eol + 1 - s->buf));
-        s->n -= (eol + 1 - s->buf);
-    } else {
-        s->n = 0;
-        free(s->buf);
-        s->buf = NULL;
-    }
-
-    return 1;
-}
 
 static int
 write_timeout(int fd, const void *buf, int len)
@@ -117,32 +81,53 @@ write_timeout(int fd, const void *buf, int len)
     }
 }
 
-static void
-local_notify_self_1(struct local_socket *s)
+int
+local_read(struct local_socket *s)
 {
-    char buf[512];
-    char host[64];
     int rc;
+    char *eol;
 
-    rc = gethostname(host, 64);
+    if(s->buf == NULL)
+        s->buf = malloc(LOCAL_BUFSIZE);
+    if(s->buf == NULL)
+        return -1;
 
-    if(rc < 0)
-        strncpy(host, "alamakota", 64);
-
-    rc = snprintf(buf, 512, "add self %.64s id %s\n",
-                  host, format_eui64(myid));
-
-    if(rc < 0 || rc >= 512)
+    if(s->n >= LOCAL_BUFSIZE) {
+        errno = ENOSPC;
         goto fail;
+    }
 
-    rc = write_timeout(s->fd, buf, rc);
-    if(rc < 0)
-        goto fail;
-    return;
+    rc = read(s->fd, s->buf + s->n, LOCAL_BUFSIZE - s->n);
+    if(rc <= 0)
+        return rc;
+    s->n += rc;
+
+    eol = memchr(s->buf, '\n', s->n);
+    if(eol == NULL)
+        return 1;
+
+    rc = parse_config_from_string(s->buf, eol + 1 - s->buf);
+    if(rc < 0) {
+        char *buf = "error\n";
+        rc = write_timeout(s->fd, buf, 6);
+        if(rc < 0)
+            goto fail;
+    }
+
+    if(s->n > eol + 1 - s->buf) {
+        memmove(s->buf, eol + 1, s->n - (eol + 1 - s->buf));
+        s->n -= (eol + 1 - s->buf);
+    } else {
+        s->n = 0;
+        free(s->buf);
+        s->buf = NULL;
+    }
+
+    return 1;
 
  fail:
     shutdown(s->fd, 1);
-    return;
+    return -1;
 }
 
 static const char *
@@ -285,63 +270,31 @@ local_notify_route(struct babel_route *route, int kind)
         local_notify_route_1(&local_sockets[i], route, kind);
 }
 
-void
-local_notify_all_1(struct local_socket *s)
+int
+local_header(struct local_socket *s)
 {
+    char buf[512], host[64];
     int rc;
-    struct neighbour *neigh;
-    const char *header = "BABEL 0.0\n";
-    char buf[512];
-    struct xroute_stream *xroutes;
-    struct route_stream *routes;
 
-    rc = write_timeout(s->fd, header, strlen(header));
+    rc = gethostname(host, 64);
     if(rc < 0)
-        goto fail;
+        strncpy(host, "alamakota", 64);
 
-    rc = snprintf(buf, 512, "version %s\n", BABELD_VERSION);
+    rc = snprintf(buf, 512, "BABEL 1.0 version %s host %s id %s\n",
+                  BABELD_VERSION, host, format_eui64(myid));
     if(rc < 0 || rc >= 512)
         goto fail;
     rc = write_timeout(s->fd, buf, rc);
     if(rc < 0)
         goto fail;
 
-    local_notify_self_1(s);
-    FOR_ALL_NEIGHBOURS(neigh) {
-        local_notify_neighbour_1(s, neigh, LOCAL_ADD);
-    }
-
-    xroutes = xroute_stream();
-    if(xroutes) {
-        while(1) {
-            struct xroute *xroute = xroute_stream_next(xroutes);
-            if(xroute == NULL)
-                break;
-            local_notify_xroute_1(s, xroute, LOCAL_ADD);
-        }
-        xroute_stream_done(xroutes);
-    }
-
-    routes = route_stream(ROUTE_ALL);
-    if(routes) {
-        while(1) {
-            struct babel_route *route = route_stream_next(routes);
-            if(route == NULL)
-                break;
-            local_notify_route_1(s, route, LOCAL_ADD);
-        }
-        route_stream_done(routes);
-    }
-
-    rc = write_timeout(s->fd, "done\n", 5);
-    if(rc < 0)
-        goto fail;
-    return;
+    return 1;
 
  fail:
     shutdown(s->fd, 1);
-    return;
+    return -1;
 }
+
 
 struct local_socket *
 local_socket_create(int fd)

@@ -917,7 +917,12 @@ accept_local_connections(fd_set *readfds)
     }
 
     ls = local_socket_create(s);
-    local_notify_all_1(ls);
+    if(ls == NULL) {
+        fprintf(stderr, "Unable create local socket.\n");
+        close(s);
+        return -1;
+    }
+    local_header(ls);
     return 1;
 }
 
