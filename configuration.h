@@ -24,6 +24,9 @@ THE SOFTWARE.
 
 #define CONFIG_DONE 0
 #define CONFIG_QUIT 1
+#define CONFIG_DUMP 2
+#define CONFIG_MONITOR 3
+#define CONFIG_UNMONITOR 4
 
 struct filter_result {
     unsigned int add_metric; /* allow = 0, deny = INF, metric = <0..INF> */

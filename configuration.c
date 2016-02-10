@@ -881,6 +881,21 @@ parse_config_line(int c, gnc_t gnc, void *closure, int *action_return)
         if(c < -1 || !action_return)
             goto fail;
         *action_return = CONFIG_QUIT;
+    } else if(strcmp(token, "dump") == 0) {
+        c = skip_eol(c, gnc, closure);
+        if(c < -1 || !action_return)
+            goto fail;
+        *action_return = CONFIG_DUMP;
+    } else if(strcmp(token, "monitor") == 0) {
+        c = skip_eol(c, gnc, closure);
+        if(c < -1 || !action_return)
+            goto fail;
+        *action_return = CONFIG_MONITOR;
+    } else if(strcmp(token, "unmonitor") == 0) {
+        c = skip_eol(c, gnc, closure);
+        if(c < -1 || !action_return)
+            goto fail;
+        *action_return = CONFIG_UNMONITOR;
     } else {
         c = parse_option(c, gnc, closure, token);
         if(c < -1)
