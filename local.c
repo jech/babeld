@@ -66,18 +66,23 @@ local_read(struct local_socket *s)
     }
 
     rc = read(s->fd, s->buf + s->n, LOCAL_BUFSIZE - s->n);
-
     if(rc <= 0)
         return rc;
+    s->n += rc;
 
     eol = memchr(s->buf, '\n', s->n);
     if(eol == NULL)
         return 1;
 
-    
+    if(s->n > eol + 1 - s->buf) {
+        memmove(s->buf, eol + 1, s->n - (eol + 1 - s->buf));
+        s->n -= (eol + 1 - s->buf);
+    } else {
+        s->n = 0;
+        free(s->buf);
+        s->buf = NULL;
+    }
 
-    memmove(s->buf, eol + 1, s->n - (eol + 1 - s->buf));
-    s->n -= (eol + 1 - s->buf);
     return 1;
 }
 
