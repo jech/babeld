@@ -681,13 +681,11 @@ main(int argc, char **argv)
                 rc = local_read(&local_sockets[i]);
                 if(rc <= 0) {
                     if(rc < 0) {
-                        if(errno == EINTR)
+                        if(errno == EINTR || errno == EAGAIN)
                             continue;
                         perror("read(local_socket)");
                     }
-                    close(local_sockets[i].fd);
-                    local_sockets[i] = local_sockets[--num_local_sockets];
-                    continue;
+                    local_socket_destroy(i);
                 }
             }
             i++;
@@ -881,6 +879,7 @@ static int
 accept_local_connections(fd_set *readfds)
 {
     int rc, s;
+    struct local_socket *ls;
 
     if(local_server_socket < 0 || !FD_ISSET(local_server_socket, readfds))
         return 0;
@@ -917,8 +916,8 @@ accept_local_connections(fd_set *readfds)
         return -1;
     }
 
-    local_sockets[num_local_sockets++].fd = s;
-    local_notify_all_1(&local_sockets[num_local_sockets - 1]);
+    ls = local_socket_create(s);
+    local_notify_all_1(ls);
     return 1;
 }
 

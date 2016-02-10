@@ -321,4 +321,28 @@ local_notify_all_1(struct local_socket *s)
     return;
 }
 
+struct local_socket *
+local_socket_create(int fd)
+{
+    if(num_local_sockets >= MAX_LOCAL_SOCKETS)
+        return NULL;
+
+    local_sockets[num_local_sockets].fd = fd;
+    num_local_sockets++;
+
+    return &local_sockets[num_local_sockets - 1];
+}
+
+void
+local_socket_destroy(int i)
+{
+    if(i < 0 || i >= num_local_sockets) {
+        fprintf(stderr, "Internal error: closing unknown local socket.\n");
+        return;
+    }
+
+    close(local_sockets[i].fd);
+    local_sockets[i] = local_sockets[--num_local_sockets];
+}
+
 #endif

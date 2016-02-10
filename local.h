@@ -48,6 +48,8 @@ void local_notify_neighbour(struct neighbour *neigh, int kind);
 void local_notify_xroute(struct xroute *xroute, int kind);
 void local_notify_route(struct babel_route *route, int kind);
 void local_notify_all_1(struct local_socket *s);
+struct local_socket *local_socket_create(int fd);
+void local_socket_destroy(int i);
 
 #else
 
