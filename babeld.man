@@ -112,6 +112,9 @@ is 0.
 .BI \-g " port"
 Listen for connections from a front-end on port
 .IR port .
+The protocol is described in the section
+.B Local Configuration Protocol
+below.
 .TP
 .BI \-t " table"
 Use the given kernel routing table for routes inserted by
@@ -525,6 +528,47 @@ should include the line
 redistribute local deny
 .PP
 as the last line in your configuration file.
+.SH LOCAL CONFIGURATION INTERFACE
+If
+.B babeld
+is invoked with the flag
+.BR \-g ,
+it accepts TCP connections from local clients on the given port and address
+.B ::1
+(the IPv6
+.B localhost
+address).  When a client connects,
+.B babeld
+replies with
+.B BABEL
+followed with the supported version of the local configuration protocol (currently
+.BR 1.0 ).
+It follows with a number of informational lines 
+.RB ( version
+etc.), followed with
+.BR ok .
+The client can then send requests, one per line.  To each request,
+.B babeld
+replies with one or more lines of data, followed with one of
+.BR ok ,
+.BR no ,
+or
+.BR bad .
+
+The following requests are currently defined:
+.IP \(bu 2
+any configuration file directive, including
+.BR interface ;
+.IP \(bu 2
+.BR "flush interface" ;
+.IP \(bu 2
+.BR dump ;
+.IP \(bu 2
+.B monitor
+and
+.BR unmonitor ;
+.IP \(bu 2
+.BR quit .
 .SH EXAMPLES
 You can participate in a Babel network by simply running
 .IP
