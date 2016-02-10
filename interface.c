@@ -40,6 +40,7 @@ THE SOFTWARE.
 #include "message.h"
 #include "route.h"
 #include "configuration.h"
+#include "local.h"
 #include "xroute.h"
 
 struct interface *interfaces = NULL;
@@ -89,6 +90,8 @@ add_interface(char *ifname, struct interface_conf *if_conf)
     else
         last_interface()->next = ifp;
 
+    local_notify_interface(ifp, LOCAL_ADD);
+
     return ifp;
 }
 
@@ -116,8 +119,13 @@ flush_interface(char *ifname)
     else
         interfaces = ifp->next;
 
+    local_notify_interface(ifp, LOCAL_FLUSH);
+
     if(ifp->conf != NULL && ifp->conf != default_interface_conf)
         flush_ifconf(ifp->conf);
+
+    local_notify_interface(ifp, LOCAL_FLUSH);
+
     free(ifp);
 }
 
@@ -453,11 +461,14 @@ interface_up(struct interface *ifp, int up)
         ifp->numll = 0;
     }
 
+    local_notify_interface(ifp, LOCAL_CHANGE);
+
     return 1;
 
  fail:
     assert(up);
     interface_up(ifp, 0);
+    local_notify_interface(ifp, LOCAL_CHANGE);
     return -1;
 }
 
