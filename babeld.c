@@ -619,8 +619,8 @@ main(int argc, char **argv)
                 maxfd = MAX(maxfd, local_server_socket);
             }
             for(i = 0; i < num_local_sockets; i++) {
-                FD_SET(local_sockets[i], &readfds);
-                maxfd = MAX(maxfd, local_sockets[i]);
+                FD_SET(local_sockets[i].fd, &readfds);
+                maxfd = MAX(maxfd, local_sockets[i].fd);
             }
 #endif
             rc = select(maxfd + 1, &readfds, NULL, NULL, &tv);
@@ -677,15 +677,15 @@ main(int argc, char **argv)
 
         i = 0;
         while(i < num_local_sockets) {
-            if(FD_ISSET(local_sockets[i], &readfds)) {
-                rc = local_read(local_sockets[i]);
+            if(FD_ISSET(local_sockets[i].fd, &readfds)) {
+                rc = local_read(&local_sockets[i]);
                 if(rc <= 0) {
                     if(rc < 0) {
                         if(errno == EINTR)
                             continue;
                         perror("read(local_socket)");
                     }
-                    close(local_sockets[i]);
+                    close(local_sockets[i].fd);
                     local_sockets[i] = local_sockets[--num_local_sockets];
                     continue;
                 }
@@ -917,8 +917,8 @@ accept_local_connections(fd_set *readfds)
         return -1;
     }
 
-    local_sockets[num_local_sockets++] = s;
-    local_notify_all_1(s);
+    local_sockets[num_local_sockets++].fd = s;
+    local_notify_all_1(&local_sockets[num_local_sockets - 1]);
     return 1;
 }
 

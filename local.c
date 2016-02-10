@@ -44,18 +44,19 @@ int dummy;
 
 #else
 
-int local_server_socket = -1, local_sockets[MAX_LOCAL_SOCKETS];
+int local_server_socket = -1;
+struct local_socket local_sockets[MAX_LOCAL_SOCKETS];
 int num_local_sockets = 0;
 int local_server_port = -1;
 
 int
-local_read(int s)
+local_read(struct local_socket *s)
 {
     int rc;
     char buf[500];
 
     /* Ignore anything that comes in, except for EOF */
-    rc = read(s, buf, 500);
+    rc = read(s->fd, buf, 500);
 
     if(rc <= 0)
         return rc;
@@ -95,7 +96,7 @@ write_timeout(int fd, const void *buf, int len)
 }
 
 static void
-local_notify_self_1(int s)
+local_notify_self_1(struct local_socket *s)
 {
     char buf[512];
     char host[64];
@@ -112,13 +113,13 @@ local_notify_self_1(int s)
     if(rc < 0 || rc >= 512)
         goto fail;
 
-    rc = write_timeout(s, buf, rc);
+    rc = write_timeout(s->fd, buf, rc);
     if(rc < 0)
         goto fail;
     return;
 
  fail:
-    shutdown(s, 1);
+    shutdown(s->fd, 1);
     return;
 }
 
@@ -134,7 +135,8 @@ local_kind(int kind)
 }
 
 static void
-local_notify_neighbour_1(int s, struct neighbour *neigh, int kind)
+local_notify_neighbour_1(struct local_socket *s,
+                         struct neighbour *neigh, int kind)
 {
     char buf[512], rttbuf[64];
     int rc;
@@ -165,13 +167,13 @@ local_notify_neighbour_1(int s, struct neighbour *neigh, int kind)
     if(rc < 0 || rc >= 512)
         goto fail;
 
-    rc = write_timeout(s, buf, rc);
+    rc = write_timeout(s->fd, buf, rc);
     if(rc < 0)
         goto fail;
     return;
 
  fail:
-    shutdown(s, 1);
+    shutdown(s->fd, 1);
     return;
 }
 
@@ -180,11 +182,11 @@ local_notify_neighbour(struct neighbour *neigh, int kind)
 {
     int i;
     for(i = 0; i < num_local_sockets; i++)
-        local_notify_neighbour_1(local_sockets[i], neigh, kind);
+        local_notify_neighbour_1(&local_sockets[i], neigh, kind);
 }
 
 static void
-local_notify_xroute_1(int s, struct xroute *xroute, int kind)
+local_notify_xroute_1(struct local_socket *s, struct xroute *xroute, int kind)
 {
     char buf[512];
     int rc;
@@ -200,13 +202,13 @@ local_notify_xroute_1(int s, struct xroute *xroute, int kind)
     if(rc < 0 || rc >= 512)
         goto fail;
 
-    rc = write_timeout(s, buf, rc);
+    rc = write_timeout(s->fd, buf, rc);
     if(rc < 0)
         goto fail;
     return;
 
  fail:
-    shutdown(s, 1);
+    shutdown(s->fd, 1);
     return;
 }
 
@@ -215,11 +217,11 @@ local_notify_xroute(struct xroute *xroute, int kind)
 {
     int i;
     for(i = 0; i < num_local_sockets; i++)
-        local_notify_xroute_1(local_sockets[i], xroute, kind);
+        local_notify_xroute_1(&local_sockets[i], xroute, kind);
 }
 
 static void
-local_notify_route_1(int s, struct babel_route *route, int kind)
+local_notify_route_1(struct local_socket *s, struct babel_route *route, int kind)
 {
     char buf[512];
     int rc;
@@ -243,13 +245,13 @@ local_notify_route_1(int s, struct babel_route *route, int kind)
     if(rc < 0 || rc >= 512)
         goto fail;
 
-    rc = write_timeout(s, buf, rc);
+    rc = write_timeout(s->fd, buf, rc);
     if(rc < 0)
         goto fail;
     return;
 
  fail:
-    shutdown(s, 1);
+    shutdown(s->fd, 1);
     return;
 }
 
@@ -258,11 +260,11 @@ local_notify_route(struct babel_route *route, int kind)
 {
     int i;
     for(i = 0; i < num_local_sockets; i++)
-        local_notify_route_1(local_sockets[i], route, kind);
+        local_notify_route_1(&local_sockets[i], route, kind);
 }
 
 void
-local_notify_all_1(int s)
+local_notify_all_1(struct local_socket *s)
 {
     int rc;
     struct neighbour *neigh;
@@ -271,14 +273,14 @@ local_notify_all_1(int s)
     struct xroute_stream *xroutes;
     struct route_stream *routes;
 
-    rc = write_timeout(s, header, strlen(header));
+    rc = write_timeout(s->fd, header, strlen(header));
     if(rc < 0)
         goto fail;
 
     rc = snprintf(buf, 512, "version %s\n", BABELD_VERSION);
     if(rc < 0 || rc >= 512)
         goto fail;
-    rc = write_timeout(s, buf, rc);
+    rc = write_timeout(s->fd, buf, rc);
     if(rc < 0)
         goto fail;
 
@@ -309,13 +311,13 @@ local_notify_all_1(int s)
         route_stream_done(routes);
     }
 
-    rc = write_timeout(s, "done\n", 5);
+    rc = write_timeout(s->fd, "done\n", 5);
     if(rc < 0)
         goto fail;
     return;
 
  fail:
-    shutdown(s, 1);
+    shutdown(s->fd, 1);
     return;
 }
 

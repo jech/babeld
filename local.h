@@ -34,15 +34,20 @@ struct xroute;
 #define MAX_LOCAL_SOCKETS 4
 #endif
 
-extern int local_server_socket, local_sockets[MAX_LOCAL_SOCKETS];
+struct local_socket {
+    int fd;
+};
+
+extern int local_server_socket;
+extern struct local_socket local_sockets[MAX_LOCAL_SOCKETS];
 extern int num_local_sockets;
 extern int local_server_port;
 
-int local_read(int s);
+int local_read(struct local_socket *s);
 void local_notify_neighbour(struct neighbour *neigh, int kind);
 void local_notify_xroute(struct xroute *xroute, int kind);
 void local_notify_route(struct babel_route *route, int kind);
-void local_notify_all_1(int s);
+void local_notify_all_1(struct local_socket *s);
 
 #else
 
