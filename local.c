@@ -53,6 +53,7 @@ int
 local_read(struct local_socket *s)
 {
     int rc;
+    char *eol;
 
     if(s->buf == NULL)
         s->buf = malloc(LOCAL_BUFSIZE);
@@ -69,6 +70,14 @@ local_read(struct local_socket *s)
     if(rc <= 0)
         return rc;
 
+    eol = memchr(s->buf, '\n', s->n);
+    if(eol == NULL)
+        return 1;
+
+    
+
+    memmove(s->buf, eol + 1, s->n - (eol + 1 - s->buf));
+    s->n -= (eol + 1 - s->buf);
     return 1;
 }
 

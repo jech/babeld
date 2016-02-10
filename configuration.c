@@ -816,77 +816,66 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
 }
 
 static int
-parse_config(gnc_t gnc, void *closure)
+parse_config_line(int c, gnc_t gnc, void *closure)
 {
-    int c;
     char *token;
 
-    c = gnc(closure);
-    if(c < -1)
-        return -1;
+    c = skip_whitespace(c, gnc, closure);
+    if(c == '\n' || c == '#')
+        return skip_to_eol(c, gnc, closure);
 
-    while(1) {
-        c = skip_whitespace(c, gnc, closure);
-        if(c == '\n' || c == '#') {
-            c = skip_to_eol(c, gnc, closure);
-            continue;
-        }
-        if(c < 0)
-            break;
-        c = getword(c, &token, gnc, closure);
+    c = getword(c, &token, gnc, closure);
+    if(c < -1)
+        return c;
+
+    if(strcmp(token, "in") == 0) {
+        struct filter *filter;
+        c = parse_filter(c, gnc, closure, &filter);
         if(c < -1)
             return -1;
-
-        if(strcmp(token, "in") == 0) {
-            struct filter *filter;
-            c = parse_filter(c, gnc, closure, &filter);
-            if(c < -1)
-                return -1;
-            add_filter(filter, &input_filters);
-        } else if(strcmp(token, "out") == 0) {
-            struct filter *filter;
-            c = parse_filter(c, gnc, closure, &filter);
-            if(c < -1)
-                return -1;
-            add_filter(filter, &output_filters);
-        } else if(strcmp(token, "redistribute") == 0) {
-            struct filter *filter;
-            c = parse_filter(c, gnc, closure, &filter);
-            if(c < -1)
-                return -1;
-            add_filter(filter, &redistribute_filters);
-        } else if(strcmp(token, "install") == 0) {
-            struct filter *filter;
-            c = parse_filter(c, gnc, closure, &filter);
-            if(c < -1)
-                return -1;
-            add_filter(filter, &install_filters);
-        } else if(strcmp(token, "interface") == 0) {
-            struct interface_conf *if_conf;
-            c = parse_ifconf(c, gnc, closure, &if_conf);
-            if(c < -1)
-                return -1;
-            add_ifconf(if_conf, &interface_confs);
-        } else if(strcmp(token, "default") == 0) {
-            struct interface_conf *if_conf;
-            c = parse_anonymous_ifconf(c, gnc, closure, NULL, &if_conf);
-            if(c < -1)
-                return -1;
-            if(default_interface_conf == NULL)
-                default_interface_conf = if_conf;
-            else {
-                merge_ifconf(default_interface_conf,
-                             if_conf, default_interface_conf);
-                free(if_conf);
-            }
-        } else {
-            c = parse_option(c, gnc, closure, token);
-            if(c < -1)
-                return -1;
+        add_filter(filter, &input_filters);
+    } else if(strcmp(token, "out") == 0) {
+        struct filter *filter;
+        c = parse_filter(c, gnc, closure, &filter);
+        if(c < -1)
+            return -1;
+        add_filter(filter, &output_filters);
+    } else if(strcmp(token, "redistribute") == 0) {
+        struct filter *filter;
+        c = parse_filter(c, gnc, closure, &filter);
+        if(c < -1)
+            return -1;
+        add_filter(filter, &redistribute_filters);
+    } else if(strcmp(token, "install") == 0) {
+        struct filter *filter;
+        c = parse_filter(c, gnc, closure, &filter);
+        if(c < -1)
+            return -1;
+    } else if(strcmp(token, "interface") == 0) {
+        struct interface_conf *if_conf;
+        c = parse_ifconf(c, gnc, closure, &if_conf);
+        if(c < -1)
+            return -1;
+        add_ifconf(if_conf, &interface_confs);
+    } else if(strcmp(token, "default") == 0) {
+        struct interface_conf *if_conf;
+        c = parse_anonymous_ifconf(c, gnc, closure, NULL, &if_conf);
+        if(c < -1)
+            return -1;
+        if(default_interface_conf == NULL)
+            default_interface_conf = if_conf;
+        else {
+            merge_ifconf(default_interface_conf,
+                         if_conf, default_interface_conf);
+            free(if_conf);
         }
-        free(token);
+    } else {
+        c = parse_option(c, gnc, closure, token);
+        if(c < -1)
+            return -1;
     }
-    return 1;
+    free(token);
+    return c;
 }
 
 struct file_state {
@@ -908,7 +897,7 @@ int
 parse_config_from_file(const char *filename, int *line_return)
 {
     struct file_state s = { NULL, 1 };
-    int rc;
+    int c;
 
     s.f = fopen(filename, "r");
     if(s.f == NULL) {
@@ -916,11 +905,22 @@ parse_config_from_file(const char *filename, int *line_return)
         return -1;
     }
 
-    rc = parse_config((gnc_t)gnc_file, &s);
+    c = gnc_file(&s);
+    if(c < 0)
+        return 0;
+
+    while(1) {
+        c = parse_config_line(c, (gnc_t)gnc_file, &s);
+        if(c < -1) {
+            *line_return = s.line;
+            return -1;
+        }
+        if(c == -1)
+            break;
+    }
     fclose(s.f);
 
-    *line_return = s.line;
-    return rc;
+    return 1;
 }
 
 struct buf_state {
@@ -940,8 +940,18 @@ gnc_buf(struct buf_state *s)
 int
 parse_config_from_string(char *string, int n)
 {
+    int c;
     struct buf_state s = { string, 0, n };
-    return parse_config((gnc_t)gnc_buf, &s);
+
+    c = gnc_buf(&s);
+    if(c < 0)
+        return -1;
+
+    c = parse_config_line(c, (gnc_t)gnc_buf, &s);
+    if(c == -1)
+        return 1;
+    else
+        return -1;
 }
 
 static void
