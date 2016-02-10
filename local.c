@@ -93,6 +93,40 @@ local_kind(int kind)
 }
 
 static void
+local_notify_interface_1(struct local_socket *s,
+                         struct interface *ifp, int kind)
+{
+    char buf[512];
+    int rc;
+
+    rc = snprintf(buf, 512,
+                  "%s interface %s up %s\n",
+                  local_kind(kind), ifp->name,
+                  if_up(ifp) ? "true" : "false");
+    if(rc < 0 || rc >= 512)
+        goto fail;
+
+    rc = write_timeout(s->fd, buf, rc);
+    if(rc < 0)
+        goto fail;
+    return;
+
+ fail:
+    shutdown(s->fd, 1);
+    return;
+}
+
+void
+local_notify_interface(struct interface *ifp, int kind)
+{
+    int i;
+    for(i = 0; i < num_local_sockets; i++) {
+        if(local_sockets[i].monitor)
+            local_notify_interface_1(&local_sockets[i], ifp, kind);
+    }
+}
+
+static void
 local_notify_neighbour_1(struct local_socket *s,
                          struct neighbour *neigh, int kind)
 {
@@ -236,14 +270,7 @@ local_notify_all_1(struct local_socket *s)
     struct route_stream *routes;
 
     FOR_ALL_INTERFACES(ifp) {
-        char buf[512];
-        int rc;
-        rc = snprintf(buf, 512, "add interface %s\n", ifp->name);
-        if(rc < 0 || rc >= 512)
-            goto fail;
-        rc = write_timeout(s->fd, buf, rc);
-        if(rc < 0)
-            goto fail;
+        local_notify_interface_1(s, ifp, LOCAL_ADD);
     }
 
     FOR_ALL_NEIGHBOURS(neigh) {
@@ -271,10 +298,6 @@ local_notify_all_1(struct local_socket *s)
         }
         route_stream_done(routes);
     }
-    return;
-
- fail:
-    shutdown(s->fd, 1);
     return;
 }
 
