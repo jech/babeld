@@ -34,8 +34,12 @@ struct xroute;
 #define MAX_LOCAL_SOCKETS 4
 #endif
 
+#define LOCAL_BUFSIZE 1024
+
 struct local_socket {
     int fd;
+    char *buf;
+    int n;
 };
 
 extern int local_server_socket;

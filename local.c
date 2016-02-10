@@ -53,10 +53,18 @@ int
 local_read(struct local_socket *s)
 {
     int rc;
-    char buf[500];
 
-    /* Ignore anything that comes in, except for EOF */
-    rc = read(s->fd, buf, 500);
+    if(s->buf == NULL)
+        s->buf = malloc(LOCAL_BUFSIZE);
+    if(s->buf == NULL)
+        return -1;
+
+    if(s->n >= LOCAL_BUFSIZE) {
+        errno = ENOSPC;
+        return -1;
+    }
+
+    rc = read(s->fd, s->buf + s->n, LOCAL_BUFSIZE - s->n);
 
     if(rc <= 0)
         return rc;
@@ -327,6 +335,7 @@ local_socket_create(int fd)
     if(num_local_sockets >= MAX_LOCAL_SOCKETS)
         return NULL;
 
+    memset(&local_sockets[num_local_sockets], 0, sizeof(struct local_socket));
     local_sockets[num_local_sockets].fd = fd;
     num_local_sockets++;
 
@@ -341,6 +350,7 @@ local_socket_destroy(int i)
         return;
     }
 
+    free(local_sockets[i].buf);
     close(local_sockets[i].fd);
     local_sockets[i] = local_sockets[--num_local_sockets];
 }
