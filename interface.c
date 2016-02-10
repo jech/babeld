@@ -65,7 +65,10 @@ add_interface(char *ifname, struct interface_conf *if_conf)
 
     FOR_ALL_INTERFACES(ifp) {
         if(strcmp(ifp->name, ifname) == 0) {
-            assert(if_conf == NULL);
+            if(if_conf)
+                fprintf(stderr,
+                        "Warning: attempting to add existing interface, "
+                        "new configuration ignored.\n");
             return ifp;
         }
     }
@@ -87,6 +90,35 @@ add_interface(char *ifname, struct interface_conf *if_conf)
         last_interface()->next = ifp;
 
     return ifp;
+}
+
+void
+flush_interface(char *ifname)
+{
+    struct interface *ifp, *prev;
+
+    prev = NULL;
+    ifp = interfaces;
+    while(ifp) {
+        if(strcmp(ifp->name, ifname) == 0)
+            break;
+        prev = ifp;
+        ifp = ifp->next;
+    }
+
+    if(ifp == NULL) {
+        fprintf(stderr, "Warning: attempting to flush nonexistent interface.\n");
+        return;
+    }
+    interface_up(ifp, 0);
+    if(prev)
+        prev->next = ifp->next;
+    else
+        interfaces = ifp->next;
+
+    if(ifp->conf != NULL && ifp->conf != default_interface_conf)
+        flush_ifconf(ifp->conf);
+    free(ifp);
 }
 
 /* This should be no more than half the hello interval, so that hellos

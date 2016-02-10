@@ -675,6 +675,27 @@ add_ifconf(struct interface_conf *if_conf, struct interface_conf **if_confs)
     }
 }
 
+void
+flush_ifconf(struct interface_conf *if_conf)
+{
+    if(if_conf == interface_confs) {
+        interface_confs = if_conf->next;
+        free(if_conf);
+        return;
+    } else {
+        struct interface_conf *prev = interface_confs;
+        while(prev) {
+            if(prev->next == if_conf) {
+                prev->next = if_conf->next;
+                free(if_conf);
+                return;
+            }
+            prev = prev->next;
+        }
+    }
+    fprintf(stderr, "Warning: attempting to free nonexistent ifconf.\n");
+}
+
 static int
 parse_option(int c, gnc_t gnc, void *closure, char *token)
 {
