@@ -923,25 +923,25 @@ parse_config_from_file(const char *filename, int *line_return)
     return rc;
 }
 
-struct string_state {
-    char *string;
-    int n;
+struct buf_state {
+    char *buf;
+    int i, n;
 };
 
 static int
-gnc_string(struct string_state *s)
+gnc_buf(struct buf_state *s)
 {
-    if(s->string[s->n] == '\0')
-        return -1;
+    if(s->i < s->n)
+        return s->buf[s->i++];
     else
-        return s->string[s->n++];
+        return -1;
 }
 
 int
 parse_config_from_string(char *string)
 {
-    struct string_state s = { string, 0 };
-    return parse_config((gnc_t)gnc_string, &s);
+    struct buf_state s = { string, 0, strlen(string) };
+    return parse_config((gnc_t)gnc_buf, &s);
 }
 
 static void
