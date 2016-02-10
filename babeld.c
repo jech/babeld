@@ -293,7 +293,7 @@ main(int argc, char **argv)
             break;
         case 'C':
             rc = parse_config_from_string(optarg, strlen(optarg));
-            if(rc < 0) {
+            if(rc != CONFIG_DONE) {
                 fprintf(stderr,
                         "Couldn't parse configuration from command line.\n");
                 exit(1);

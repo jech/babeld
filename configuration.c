@@ -816,9 +816,11 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
 }
 
 static int
-parse_config_line(int c, gnc_t gnc, void *closure)
+parse_config_line(int c, gnc_t gnc, void *closure, int *action_return)
 {
     char *token;
+    if(action_return)
+        *action_return = CONFIG_DONE;
 
     c = skip_whitespace(c, gnc, closure);
     if(c < 0 || c == '\n' || c == '#')
@@ -914,7 +916,7 @@ parse_config_from_file(const char *filename, int *line_return)
         return 0;
 
     while(1) {
-        c = parse_config_line(c, (gnc_t)gnc_file, &s);
+        c = parse_config_line(c, (gnc_t)gnc_file, &s, NULL);
         if(c < -1) {
             *line_return = s.line;
             return -1;
@@ -944,16 +946,16 @@ gnc_buf(struct buf_state *s)
 int
 parse_config_from_string(char *string, int n)
 {
-    int c;
+    int c, action;
     struct buf_state s = { string, 0, n };
 
     c = gnc_buf(&s);
     if(c < 0)
         return -1;
 
-    c = parse_config_line(c, (gnc_t)gnc_buf, &s);
+    c = parse_config_line(c, (gnc_t)gnc_buf, &s, &action);
     if(c == -1)
-        return 1;
+        return action;
     else
         return -1;
 }
