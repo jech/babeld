@@ -46,6 +46,7 @@ struct filter *redistribute_filters = NULL;
 struct filter *install_filters = NULL;
 struct interface_conf *default_interface_conf = NULL;
 struct interface_conf *interface_confs = NULL;
+int config_finalised = 0;
 
 /* This file implements a recursive descent parser with one character
    lookahead.  The looked-ahead character is returned from most
@@ -665,7 +666,8 @@ add_ifconf(struct interface_conf *if_conf, struct interface_conf **if_confs)
             if(strcmp(next->ifname, if_conf->ifname) == 0) {
                 merge_ifconf(next, if_conf, next);
                 free(if_conf);
-                return;
+                if_conf = next;
+                goto done;
             }
             prev = next;
             next = next->next;
@@ -673,6 +675,10 @@ add_ifconf(struct interface_conf *if_conf, struct interface_conf **if_confs)
         if_conf->next = NULL;
         prev->next = if_conf;
     }
+
+ done:
+    if(config_finalised)
+        add_interface(if_conf->ifname, if_conf);
 }
 
 void
@@ -896,6 +902,23 @@ parse_config_line(int c, gnc_t gnc, void *closure, int *action_return)
             merge_ifconf(default_interface_conf,
                          if_conf, default_interface_conf);
             free(if_conf);
+        }
+    } else if(strcmp(token, "flush") == 0) {
+        char *token2, *ifname;
+        c = skip_whitespace(c, gnc, closure);
+        c = getword(c, &token2, gnc, closure);
+        if(c < -1)
+            goto fail;
+        if(strcmp(token2, "interface") == 0) {
+            c = getword(c, &ifname, gnc, closure);
+            c = skip_eol(c, gnc, closure);
+            if(c < -1) {
+                free(token2);
+                goto fail;
+            }
+            flush_interface(ifname);
+            free(token2);
+            free(ifname);
         }
     } else if(strcmp(token, "quit") == 0) {
         c = skip_eol(c, gnc, closure);
@@ -1195,6 +1218,8 @@ finalise_config()
             return -1;
         }
     }
+
+    config_finalised = 1;
 
     return 1;
 }
