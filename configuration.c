@@ -76,6 +76,17 @@ skip_to_eol(int c, gnc_t gnc, void *closure)
 }
 
 static int
+skip_eol(int c, gnc_t gnc, void *closure)
+{
+    c = skip_whitespace(c, gnc, closure);
+    if(c < 0 || c == '\n' || c == '#') {
+        c = skip_to_eol(c, gnc, closure);
+        return c;
+    }
+    return -2;
+}
+
+static int
 getword(int c, char **token_r, gnc_t gnc, void *closure)
 {
     char buf[256];
@@ -803,13 +814,7 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
         goto error;
     }
 
-    c = skip_whitespace(c, gnc, closure);
-    if(c < 0 || c == '\n' || c == '#') {
-        c = skip_to_eol(c, gnc, closure);
-        return c;
-    }
-
-    /* Fall through */
+    return skip_eol(c, gnc, closure);
  error:
     return -2;
 
