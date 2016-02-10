@@ -414,4 +414,6 @@ local_socket_destroy(int i)
     free(local_sockets[i].buf);
     close(local_sockets[i].fd);
     local_sockets[i] = local_sockets[--num_local_sockets];
+    VALGRIND_MAKE_MEM_UNDEFINED(local_sockets + num_local_sockets,
+                                sizeof(struct local_socket));
 }
