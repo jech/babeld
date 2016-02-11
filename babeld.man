@@ -543,13 +543,13 @@ replies with
 .B BABEL
 followed with the supported version of the local configuration protocol (currently
 .BR 1.0 ).
-It follows with a number of informational lines 
+This is followed with a number of informational lines
 .RB ( version
-etc.), followed with
+etc.), terminated by
 .BR ok .
 The client can then send requests, one per line.  To each request,
 .B babeld
-replies with one or more lines of data, followed with one of
+replies with one or more lines of data terminated by one of
 .BR ok ,
 .BR no ,
 or
@@ -559,16 +559,17 @@ The following requests are currently defined:
 .IP \(bu 2
 any configuration file directive, including
 .BR interface ;
-.IP \(bu 2
+.IP \(bu
 .BR "flush interface" ;
-.IP \(bu 2
+.IP \(bu
 .BR dump ;
-.IP \(bu 2
+.IP \(bu
 .B monitor
 and
 .BR unmonitor ;
-.IP \(bu 2
+.IP \(bu
 .BR quit .
+.RE
 .SH EXAMPLES
 You can participate in a Babel network by simply running
 .IP
