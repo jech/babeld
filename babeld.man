@@ -597,12 +597,21 @@ or, if you want to constrain the routes that you redistribute,
     \-C 'redistribute proto 11 ip ::/0 le 64 metric 256' \\
     \-C 'redistribute proto 11 ip 0.0.0.0/0 le 24 metric 256' \\
     wlan0
-.SS Source-sensitive routing
+.SS Source-specific routing
 .PP
 If your want to redistribute kernel routes as source-specific to the network,
 with the 2001:DB8:0:1::/64 prefix:
 .IP
 redistribute src-prefix 2001:DB8:0:1::/64
+.PP
+For more information about source-specific routing, please see
+.IP
+Matthieu Boutier and Juliusz Chroboczek.  Source-sensitive routing.  In
+Proc. IFIP Networking 2015.  2015.
+.PP
+available online at
+.IP
+http://arxiv.org/pdf/1403.0445v4.pdf
 .SH FILES
 .TP
 .B /etc/babeld.conf
