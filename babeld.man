@@ -569,7 +569,6 @@ and
 .BR unmonitor ;
 .IP \(bu
 .BR quit .
-.RE
 .SH EXAMPLES
 You can participate in a Babel network by simply running
 .IP
