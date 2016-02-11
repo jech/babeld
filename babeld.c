@@ -238,16 +238,34 @@ main(int argc, char **argv)
                 goto usage;
             break;
         case 'g':
-            local_server_port = parse_nat(optarg);
             local_server_write = 0;
-            if(local_server_port <= 0 || local_server_port > 0xFFFF)
-                goto usage;
+            if (optarg[0] == '/') {
+                local_server_port = -1;
+                if (strlen(optarg) >= sizeof(local_server_path))
+                    goto usage;
+                strncpy(local_server_path, optarg, sizeof(local_server_path));
+            } else {
+                local_server_port = parse_nat(optarg);
+                local_server_path[0] = 0;
+                if(local_server_port <= 0 || local_server_port > 0xFFFF)
+                    goto usage;
+            }
             break;
         case 'G':
-            local_server_port = parse_nat(optarg);
-            local_server_write = 1;
-            if(local_server_port <= 0 || local_server_port > 0xFFFF)
+            if (local_server_port || local_server_path[0])
                 goto usage;
+            local_server_write = 1;
+            if (optarg[0] == '/') {
+                local_server_port = -1;
+                if (strlen(optarg) >= sizeof(local_server_path))
+                    goto usage;
+                strncpy(local_server_path, optarg, sizeof(local_server_path));
+            } else {
+                local_server_port = parse_nat(optarg);
+                local_server_path[0] = 0;
+                if(local_server_port <= 0 || local_server_port > 0xFFFF)
+                    goto usage;
+            }
             break;
         case 'l':
             link_detect = 1;
@@ -522,6 +540,12 @@ main(int argc, char **argv)
 
     if(local_server_port >= 0) {
         local_server_socket = tcp_server_socket(local_server_port, 1);
+        if(local_server_socket < 0) {
+            perror("local_server_socket");
+            goto fail;
+        }
+    } else if (local_server_path[0]) {
+        local_server_socket = unix_server_socket(local_server_path);
         if(local_server_socket < 0) {
             perror("local_server_socket");
             goto fail;
@@ -836,6 +860,8 @@ main(int argc, char **argv)
         }
         close(fd);
     }
+    if (local_server_socket >= 0 && local_server_path[0])
+        unlink(local_server_path);
     if(pidfile)
         unlink(pidfile);
     debugf("Done.\n");

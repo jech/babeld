@@ -44,6 +44,7 @@ int local_server_socket = -1;
 struct local_socket local_sockets[MAX_LOCAL_SOCKETS];
 int num_local_sockets = 0;
 int local_server_port = -1;
+char local_server_path[108];
 int local_server_write = 0;
 
 static int
