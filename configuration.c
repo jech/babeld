@@ -709,6 +709,7 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
        strcmp(token, "kernel-priority") == 0 ||
        strcmp(token, "allow-duplicates") == 0 ||
        strcmp(token, "local-port") == 0 ||
+       strcmp(token, "local-port-readwrite") == 0 ||
        strcmp(token, "export-table") == 0 ||
        strcmp(token, "import-table") == 0) {
         int v;
@@ -722,9 +723,13 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
             kernel_metric = v;
         else if(strcmp(token, "allow_duplicates") == 0)
             allow_duplicates = v;
-        else if(strcmp(token, "local-port") == 0)
+        else if(strcmp(token, "local-port") == 0) {
             local_server_port = v;
-        else if(strcmp(token, "export-table") == 0)
+            local_server_write = 0;
+        } else if(strcmp(token, "local-port-readwrite") == 0) {
+            local_server_port = v;
+            local_server_write = 1;
+        } else if(strcmp(token, "export-table") == 0)
             export_table = v;
         else if(strcmp(token, "import-table") == 0)
             add_import_table(v);
