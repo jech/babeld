@@ -32,11 +32,7 @@ version.h:
 .SUFFIXES: .man .html
 
 .man.html:
-	rman -f html $< | \
-	sed -e "s|<a href='babeld.8'|<a href=\"babeld.html\"|" \
-            -e "s|<a href='\\(ahcp[-a-z]*\\).8'|<a href=\"../ahcp/\1.html\"|" \
-	    -e "s|<a href='[^']*8'>\\(.*(8)\\)</a>|\1|" \
-	> $@
+	mandoc -Thtml $< > $@
 
 babeld.html: babeld.man
 
