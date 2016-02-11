@@ -178,6 +178,7 @@ check_interface_ipv4(struct interface *ifp)
                 ifp->ipv4 = malloc(4);
             if(ifp->ipv4)
                 memcpy(ifp->ipv4, ipv4, 4);
+            local_notify_interface(ifp, LOCAL_CHANGE);
             return 1;
         }
     } else {
@@ -186,6 +187,7 @@ check_interface_ipv4(struct interface *ifp)
             flush_interface_routes(ifp, 0);
             free(ifp->ipv4);
             ifp->ipv4 = NULL;
+            local_notify_interface(ifp, LOCAL_CHANGE);
             return 1;
         }
     }
@@ -223,29 +225,50 @@ check_link_local_addresses(struct interface *ifp)
 {
     struct kernel_route ll[32];
     int rc, i;
-    if(ifp->ll)
-        free(ifp->ll);
-    ifp->numll = 0;
-    ifp->ll = NULL;
+
     rc = kernel_addresses(ifp->ifindex, 1, ll, 32);
-    if(rc < 0) {
-        perror("kernel_addresses(link local)");
-        return -1;
-    } else if(rc == 0) {
-        fprintf(stderr, "Interface %s has no link-local address.\n",
-                ifp->name);
+    if(rc <= 0) {
+        if(rc < 0)
+            perror("kernel_addresses(link local)");
+        else
+            fprintf(stderr, "Interface %s has no link-local address.\n",
+                    ifp->name);
+        if(ifp->ll) {
+            free(ifp->ll);
+            ifp->numll = 0;
+            ifp->ll = NULL;
+        }
+        local_notify_interface(ifp, LOCAL_CHANGE);
         /* Most probably DAD hasn't finished yet.  Reschedule us
            real soon. */
         schedule_interfaces_check(2000, 0);
         return -1;
     } else {
-        ifp->ll = malloc(16 * rc);
-        if(ifp->ll == NULL) {
-            perror("malloc(ll)");
+        int changed;
+        if(rc == ifp->numll) {
+            changed = 0;
+            for(i = 0; i < rc; i++) {
+                if(memcmp(ifp->ll[i], ll[i].prefix, 16) != 0) {
+                    changed = 1;
+                    break;
+                }
+            }
         } else {
-            for(i = 0; i < rc; i++)
-                memcpy(ifp->ll[i], ll[i].prefix, 16);
-            ifp->numll = rc;
+            changed = 1;
+        }
+
+        if(changed) {
+            free(ifp->ll);
+            ifp->numll = 0;
+            ifp->ll = malloc(16 * rc);
+            if(ifp->ll == NULL) {
+                perror("malloc(ll)");
+            } else {
+                for(i = 0; i < rc; i++)
+                    memcpy(ifp->ll[i], ll[i].prefix, 16);
+                ifp->numll = rc;
+            }
+            local_notify_interface(ifp, LOCAL_CHANGE);
         }
     }
 
