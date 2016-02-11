@@ -110,11 +110,18 @@ requests tracing every message sent or received.  A value of
 is 0.
 .TP
 .BI \-g " port"
-Listen for connections from a front-end on port
-.IR port .
-The protocol is described in the section
+Set up a local configuration server on port
+.I port
+in read-only mode.  The protocol is described in the section
 .B Local Configuration Protocol
 below.
+.TP
+.BI \-G " port"
+Set up a local configuration server on port
+.I port
+in read-write mode.  This allows any local user to change
+.BR babeld 's
+configuration, and may therefore be a security issue.
 .TP
 .BI \-t " table"
 Use the given kernel routing table for routes inserted by
@@ -207,9 +214,18 @@ option
 .BI local-port " port"
 This specifies the TCP port on which
 .B babeld
-will listen for connections from a front-end, and is equivalent to the
-command-line option
+will listen for connections from a configuration client in read-only mode,
+and is equivalent to the command-line option
 .BR \-g .
+.TP
+.BI local-port-readwrite " port"
+This specifies the TCP port on which
+.B babeld
+will listen for connections from a configuration client in read-write mode,
+and is equivalent to the command-line option
+.BR \-G .  This allows any local user to change
+.BR babeld 's
+configuration, and may therefore be a security issue.
 .TP
 .BI export-table " table"
 This specifies the kernel routing table to use for routes inserted by
@@ -635,6 +651,12 @@ Check interfaces and kernel routes right now, then reopen the log file.
 Babel is a completely insecure protocol: any attacker able to inject
 IP packets with a link-local source address can disrupt the protocol's
 operation.  This is no different from unsecured neighbour discovery or ARP.
+
+Usage of the
+.B \-G
+flag allows any user logged on the local host to change
+.BR babeld 's
+configuration.
 
 Since Babel uses link-local IPv6 packets only, there is no need to update
 firewalls to allow forwarding of Babel protocol packets.  If local

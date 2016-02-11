@@ -22,11 +22,12 @@ THE SOFTWARE.
 
 /* Values returned by parse_config_from_string. */
 
-#define CONFIG_DONE 0
-#define CONFIG_QUIT 1
-#define CONFIG_DUMP 2
-#define CONFIG_MONITOR 3
-#define CONFIG_UNMONITOR 4
+#define CONFIG_ACTION_DONE 0
+#define CONFIG_ACTION_QUIT 1
+#define CONFIG_ACTION_DUMP 2
+#define CONFIG_ACTION_MONITOR 3
+#define CONFIG_ACTION_UNMONITOR 4
+#define CONFIG_ACTION_NO 5
 
 struct filter_result {
     unsigned int add_metric; /* allow = 0, deny = INF, metric = <0..INF> */

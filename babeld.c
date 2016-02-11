@@ -173,7 +173,7 @@ main(int argc, char **argv)
 
     while(1) {
         opt = getopt(argc, argv,
-                     "m:p:h:H:i:k:A:sruS:d:g:lwz:M:t:T:c:C:DL:I:V");
+                     "m:p:h:H:i:k:A:sruS:d:g:G:lwz:M:t:T:c:C:DL:I:V");
         if(opt < 0)
             break;
 
@@ -239,6 +239,13 @@ main(int argc, char **argv)
             break;
         case 'g':
             local_server_port = parse_nat(optarg);
+            local_server_write = 0;
+            if(local_server_port <= 0 || local_server_port > 0xFFFF)
+                goto usage;
+            break;
+        case 'G':
+            local_server_port = parse_nat(optarg);
+            local_server_write = 1;
             if(local_server_port <= 0 || local_server_port > 0xFFFF)
                 goto usage;
             break;
@@ -289,7 +296,7 @@ main(int argc, char **argv)
             break;
         case 'C':
             rc = parse_config_from_string(optarg, strlen(optarg));
-            if(rc != CONFIG_DONE) {
+            if(rc != CONFIG_ACTION_DONE) {
                 fprintf(stderr,
                         "Couldn't parse configuration from command line.\n");
                 exit(1);
@@ -842,13 +849,13 @@ main(int argc, char **argv)
             "               "
             "[-h hello] [-H wired_hello] [-z kind[,factor]]\n"
             "               "
-            "[-k metric] [-A metric] [-s] [-l] [-w] [-r] [-u] [-g port]\n"
+            "[-g port] [-G port] [-k metric] [-A metric] [-s] [-l] [-w] [-r]\n"
             "               "
-            "[-t table] [-T table] [-c file] [-C statement]\n"
+            "[-u] [-t table] [-T table] [-c file] [-C statement]\n"
             "               "
             "[-d level] [-D] [-L logfile] [-I pidfile]\n"
             "               "
-            "[id] interface...\n",
+            "interface...\n",
             BABELD_VERSION);
     exit(1);
 

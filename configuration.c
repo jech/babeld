@@ -848,7 +848,7 @@ parse_config_line(int c, gnc_t gnc, void *closure, int *action_return)
 {
     char *token;
     if(action_return)
-        *action_return = CONFIG_DONE;
+        *action_return = CONFIG_ACTION_DONE;
 
     c = skip_whitespace(c, gnc, closure);
     if(c < 0 || c == '\n' || c == '#')
@@ -858,7 +858,34 @@ parse_config_line(int c, gnc_t gnc, void *closure, int *action_return)
     if(c < -1)
         return c;
 
-    if(strcmp(token, "in") == 0) {
+    /* Directives allowed in read-only mode */
+    if(strcmp(token, "quit") == 0) {
+        c = skip_eol(c, gnc, closure);
+        if(c < -1 || !action_return)
+            goto fail;
+        *action_return = CONFIG_ACTION_QUIT;
+    } else if(strcmp(token, "dump") == 0) {
+        c = skip_eol(c, gnc, closure);
+        if(c < -1 || !action_return)
+            goto fail;
+        *action_return = CONFIG_ACTION_DUMP;
+    } else if(strcmp(token, "monitor") == 0) {
+        c = skip_eol(c, gnc, closure);
+        if(c < -1 || !action_return)
+            goto fail;
+        *action_return = CONFIG_ACTION_MONITOR;
+    } else if(strcmp(token, "unmonitor") == 0) {
+        c = skip_eol(c, gnc, closure);
+        if(c < -1 || !action_return)
+            goto fail;
+        *action_return = CONFIG_ACTION_UNMONITOR;
+    } else if(config_finalised && !local_server_write) {
+        /* The remaining directives are only allowed in read-write mode. */
+        c = skip_to_eol(c, gnc, closure);
+        if(c < -1 || !action_return)
+            goto fail;
+        *action_return = CONFIG_ACTION_NO;
+    } else if(strcmp(token, "in") == 0) {
         struct filter *filter;
         c = parse_filter(c, gnc, closure, &filter);
         if(c < -1)
@@ -916,31 +943,12 @@ parse_config_line(int c, gnc_t gnc, void *closure, int *action_return)
             free(token2);
             free(ifname);
         }
-    } else if(strcmp(token, "quit") == 0) {
-        c = skip_eol(c, gnc, closure);
-        if(c < -1 || !action_return)
-            goto fail;
-        *action_return = CONFIG_QUIT;
-    } else if(strcmp(token, "dump") == 0) {
-        c = skip_eol(c, gnc, closure);
-        if(c < -1 || !action_return)
-            goto fail;
-        *action_return = CONFIG_DUMP;
-    } else if(strcmp(token, "monitor") == 0) {
-        c = skip_eol(c, gnc, closure);
-        if(c < -1 || !action_return)
-            goto fail;
-        *action_return = CONFIG_MONITOR;
-    } else if(strcmp(token, "unmonitor") == 0) {
-        c = skip_eol(c, gnc, closure);
-        if(c < -1 || !action_return)
-            goto fail;
-        *action_return = CONFIG_UNMONITOR;
     } else {
         c = parse_option(c, gnc, closure, token);
         if(c < -1)
             goto fail;
     }
+
     free(token);
     return c;
 

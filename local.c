@@ -44,6 +44,7 @@ int local_server_socket = -1;
 struct local_socket local_sockets[MAX_LOCAL_SOCKETS];
 int num_local_sockets = 0;
 int local_server_port = -1;
+int local_server_write = 0;
 
 static int
 write_timeout(int fd, const void *buf, int len)
@@ -337,21 +338,24 @@ local_read(struct local_socket *s)
 
     rc = parse_config_from_string(s->buf, eol + 1 - s->buf);
     switch(rc) {
-    case CONFIG_DONE:
+    case CONFIG_ACTION_DONE:
         break;
-    case CONFIG_QUIT:
+    case CONFIG_ACTION_QUIT:
         shutdown(s->fd, 1);
         reply = NULL;
         break;
-    case CONFIG_DUMP:
+    case CONFIG_ACTION_DUMP:
         local_notify_all_1(s);
         break;
-    case CONFIG_MONITOR:
+    case CONFIG_ACTION_MONITOR:
         local_notify_all_1(s);
         s->monitor = 1;
         break;
-    case CONFIG_UNMONITOR:
+    case CONFIG_ACTION_UNMONITOR:
         s->monitor = 0;
+        break;
+    case CONFIG_ACTION_NO:
+        reply = "no\n";
         break;
     default:
         reply = "bad\n";
