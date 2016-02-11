@@ -26,6 +26,7 @@ THE SOFTWARE.
 #include <unistd.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <arpa/inet.h>
 
 #include "babeld.h"
 #include "interface.h"
@@ -90,13 +91,26 @@ static void
 local_notify_interface_1(struct local_socket *s,
                          struct interface *ifp, int kind)
 {
-    char buf[512];
+    char buf[512], v4[INET_ADDRSTRLEN];
     int rc;
+    int up;
 
-    rc = snprintf(buf, 512,
-                  "%s interface %s up %s\n",
-                  local_kind(kind), ifp->name,
-                  if_up(ifp) ? "true" : "false");
+    up = if_up(ifp);
+    if(up && ifp->ipv4)
+        inet_ntop(AF_INET, ifp->ipv4, v4, INET_ADDRSTRLEN);
+    else
+        v4[0] = '\0';
+    if(up)
+        rc = snprintf(buf, 512,
+                      "%s interface %s up true%s%s%s%s\n",
+                      local_kind(kind), ifp->name,
+                      ifp->ll ? " ipv6 " : "",
+                      ifp->ll ? format_address(*ifp->ll) : "",
+                      v4[0] ? " ipv4 " : "", v4);
+    else
+            rc = snprintf(buf, 512, "%s interface %s up false\n",
+                          local_kind(kind), ifp->name);
+
     if(rc < 0 || rc >= 512)
         goto fail;
 
