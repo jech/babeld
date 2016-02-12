@@ -896,9 +896,9 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         c = skip_to_eol(c, gnc, closure);
         if(c < -1 || !action_return)
             goto fail;
-        *action_return = CONFIG_ACTION_NO;
-        if(message_return)
-            *message_return = "Permission denied";
+        /* Unfortunately, we cannot report NO here, since we don't know if
+           the line is parsable.  Oh, well. */
+        goto fail;
     } else if(strcmp(token, "in") == 0) {
         struct filter *filter;
         c = parse_filter(c, gnc, closure, &filter);
