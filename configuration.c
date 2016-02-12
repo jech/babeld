@@ -932,12 +932,13 @@ parse_config_line(int c, gnc_t gnc, void *closure, int *action_return)
             free(if_conf);
         }
     } else if(strcmp(token, "flush") == 0) {
-        char *token2, *ifname;
+        char *token2;
         c = skip_whitespace(c, gnc, closure);
         c = getword(c, &token2, gnc, closure);
         if(c < -1)
             goto fail;
         if(strcmp(token2, "interface") == 0) {
+            char *ifname;
             c = getword(c, &ifname, gnc, closure);
             c = skip_eol(c, gnc, closure);
             if(c < -1) {
@@ -947,6 +948,9 @@ parse_config_line(int c, gnc_t gnc, void *closure, int *action_return)
             flush_interface(ifname);
             free(token2);
             free(ifname);
+        } else {
+            free(token2);
+            goto fail;
         }
     } else {
         c = parse_option(c, gnc, closure, token);
