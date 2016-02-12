@@ -103,6 +103,8 @@ getword(int c, char **token_r, gnc_t gnc, void *closure)
     } while(c != ' ' && c != '\t' && c != '\r' && c != '\n' && c != '#' && c >= 0);
     buf[i] = '\0';
     *token_r = strdup(buf);
+    if(*token_r == NULL)
+        return -2;
     return c;
 }
 
@@ -140,6 +142,8 @@ getstring(int c, char **token_r, gnc_t gnc, void *closure)
 
     buf[i] = '\0';
     *token_r = strdup(buf);
+    if(*token_r == NULL)
+        return -2;
     return c;
 }
 
