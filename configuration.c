@@ -729,9 +729,11 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
             allow_duplicates = v;
         else if(strcmp(token, "local-port") == 0) {
             local_server_port = v;
+            local_server_path[0] = 0;
             local_server_write = 0;
         } else if(strcmp(token, "local-port-readwrite") == 0) {
             local_server_port = v;
+            local_server_path[0] = 0;
             local_server_write = 1;
         } else if(strcmp(token, "export-table") == 0)
             export_table = v;
@@ -776,7 +778,9 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
         free(group);
     } else if(strcmp(token, "state-file") == 0 ||
               strcmp(token, "log-file") == 0 ||
-              strcmp(token, "pid-file") == 0) {
+              strcmp(token, "pid-file") == 0 ||
+              strcmp(token, "local-path") == 0 ||
+              strcmp(token, "local-path-readwrite") == 0) {
         char *file;
         c = getstring(c, &file, gnc, closure);
         if(c < -1)
@@ -787,7 +791,19 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
             logfile = file;
         else if(strcmp(token, "pid-file") == 0)
             pidfile = file;
-        else
+        else if(strcmp(token, "local-path") == 0) {
+            if (strlen(file) >= sizeof(local_server_path))
+                goto error;
+            local_server_port = -1;
+            strncpy(local_server_path, file, sizeof(local_server_path));
+            local_server_write = 0;
+        } else if(strcmp(token, "local-path-readwrite") == 0) {
+            if (strlen(file) >= sizeof(local_server_path))
+                goto error;
+            local_server_port = -1;
+            strncpy(local_server_path, file, sizeof(local_server_path));
+            local_server_write = 1;
+        } else
             abort();
     } else if(strcmp(token, "debug") == 0) {
         int d;
