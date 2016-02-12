@@ -95,7 +95,7 @@ add_interface(char *ifname, struct interface_conf *if_conf)
     return ifp;
 }
 
-void
+int
 flush_interface(char *ifname)
 {
     struct interface *ifp, *prev;
@@ -109,10 +109,9 @@ flush_interface(char *ifname)
         ifp = ifp->next;
     }
 
-    if(ifp == NULL) {
-        fprintf(stderr, "Warning: attempting to flush nonexistent interface.\n");
-        return;
-    }
+    if(ifp == NULL)
+        return 0;
+
     interface_up(ifp, 0);
     if(prev)
         prev->next = ifp->next;
@@ -127,6 +126,8 @@ flush_interface(char *ifname)
     local_notify_interface(ifp, LOCAL_FLUSH);
 
     free(ifp);
+
+    return 1;
 }
 
 /* This should be no more than half the hello interval, so that hellos
