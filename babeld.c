@@ -951,26 +951,19 @@ schedule_interfaces_check(int msecs, int override)
 int
 resize_receive_buffer(int size)
 {
+    unsigned char *new;
+
     if(size <= receive_buffer_size)
         return 0;
 
-    if(receive_buffer == NULL) {
-        receive_buffer = malloc(size);
-        if(receive_buffer == NULL) {
-            perror("malloc(receive_buffer)");
-            return -1;
-        }
-        receive_buffer_size = size;
-    } else {
-        unsigned char *new;
-        new = realloc(receive_buffer, size);
-        if(new == NULL) {
-            perror("realloc(receive_buffer)");
-            return -1;
-        }
-        receive_buffer = new;
-        receive_buffer_size = size;
+    new = realloc(receive_buffer, size);
+    if(new == NULL) {
+        perror("realloc(receive_buffer)");
+        return -1;
     }
+    receive_buffer = new;
+    receive_buffer_size = size;
+
     return 1;
 }
 
