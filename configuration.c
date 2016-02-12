@@ -853,11 +853,14 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
 }
 
 static int
-parse_config_line(int c, gnc_t gnc, void *closure, int *action_return)
+parse_config_line(int c, gnc_t gnc, void *closure,
+                  int *action_return, const char **message_return)
 {
     char *token;
     if(action_return)
         *action_return = CONFIG_ACTION_DONE;
+    if(message_return)
+        *message_return = NULL;
 
     c = skip_whitespace(c, gnc, closure);
     if(c < 0 || c == '\n' || c == '#')
@@ -1002,7 +1005,7 @@ parse_config_from_file(const char *filename, int *line_return)
         return 0;
 
     while(1) {
-        c = parse_config_line(c, (gnc_t)gnc_file, &s, NULL);
+        c = parse_config_line(c, (gnc_t)gnc_file, &s, NULL, NULL);
         if(c < -1) {
             *line_return = s.line;
             return -1;
@@ -1030,19 +1033,22 @@ gnc_buf(struct buf_state *s)
 }
 
 int
-parse_config_from_string(char *string, int n)
+parse_config_from_string(char *string, int n, const char **message_return)
 {
     int c, action;
+    const char *message;
     struct buf_state s = { string, 0, n };
 
     c = gnc_buf(&s);
     if(c < 0)
         return -1;
 
-    c = parse_config_line(c, (gnc_t)gnc_buf, &s, &action);
-    if(c == -1)
+    c = parse_config_line(c, (gnc_t)gnc_buf, &s, &action, &message);
+    if(c == -1) {
+        if(message_return)
+            *message_return = message;
         return action;
-    else
+    } else
         return -1;
 }
 

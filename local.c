@@ -315,7 +315,8 @@ local_read(struct local_socket *s)
 {
     int rc;
     char *eol;
-    char *reply = "ok\n";
+    char reply[100] = "ok\n";
+    const char *message = NULL;
 
     if(s->buf == NULL)
         s->buf = malloc(LOCAL_BUFSIZE);
@@ -336,13 +337,13 @@ local_read(struct local_socket *s)
     if(eol == NULL)
         return 1;
 
-    rc = parse_config_from_string(s->buf, eol + 1 - s->buf);
+    rc = parse_config_from_string(s->buf, eol + 1 - s->buf, &message);
     switch(rc) {
     case CONFIG_ACTION_DONE:
         break;
     case CONFIG_ACTION_QUIT:
         shutdown(s->fd, 1);
-        reply = NULL;
+        reply[0] = '\0';
         break;
     case CONFIG_ACTION_DUMP:
         local_notify_all_1(s);
@@ -355,13 +356,14 @@ local_read(struct local_socket *s)
         s->monitor = 0;
         break;
     case CONFIG_ACTION_NO:
-        reply = "no\n";
+        snprintf(reply, sizeof(reply), "no%s%s\n",
+                 message ? " " : "", message ? message : "");
         break;
     default:
-        reply = "bad\n";
+        snprintf(reply, sizeof(reply), "bad\n");
     }
 
-    if(reply != NULL) {
+    if(reply[0] != '\0') {
         rc = write_timeout(s->fd, reply, strlen(reply));
         if(rc < 0)
             goto fail;

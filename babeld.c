@@ -295,7 +295,7 @@ main(int argc, char **argv)
             config_files[num_config_files++] = optarg;
             break;
         case 'C':
-            rc = parse_config_from_string(optarg, strlen(optarg));
+            rc = parse_config_from_string(optarg, strlen(optarg), NULL);
             if(rc != CONFIG_ACTION_DONE) {
                 fprintf(stderr,
                         "Couldn't parse configuration from command line.\n");
