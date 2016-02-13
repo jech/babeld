@@ -1,3 +1,7 @@
+babeld-1.7.1 (unreleased)
+
+  * Fix compilation under musl.  Thanks to Gabriel Kerneis.
+
 3 February 2016: babeld-1.7.0
 
   * Added the ability to choose the kernel routing table on a per-route
