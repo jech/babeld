@@ -2,6 +2,7 @@ babeld-1.8.0 (unreleased)
 
   * Added the ability to reconfigure babeld dynamically from the
     monitoring interface.  This is an incompatible change.
+  * Added PF_UNIX support to the local interface.  Thanks to Julien Cristau.
 
 3 February 2016: babeld-1.7.0
 
