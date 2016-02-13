@@ -99,6 +99,7 @@ extern int have_id;
 extern const unsigned char zeroes[16], ones[16];
 
 extern int protocol_port, local_server_port;
+extern char *local_server_path;
 extern int local_server_write;
 extern unsigned char protocol_group[16];
 extern int protocol_socket;

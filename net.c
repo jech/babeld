@@ -28,6 +28,7 @@ THE SOFTWARE.
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
@@ -226,6 +227,59 @@ tcp_server_socket(int port, int local)
     return s;
 
  fail:
+    saved_errno = errno;
+    close(s);
+    errno = saved_errno;
+    return -1;
+}
+
+int
+unix_server_socket(const char *path)
+{
+    struct sockaddr_un sun;
+    int s, rc, saved_errno;
+
+    if(strlen(path) >= sizeof(sun.sun_path))
+        return -1;
+
+    s = socket(PF_UNIX, SOCK_STREAM, 0);
+    if(s < 0)
+        return -1;
+
+    rc = fcntl(s, F_GETFL, 0);
+    if(rc < 0)
+        goto fail;
+
+    rc = fcntl(s, F_SETFL, rc | O_NONBLOCK);
+    if(rc < 0)
+        goto fail;
+
+    rc = fcntl(s, F_GETFD, 0);
+    if(rc < 0)
+        goto fail;
+
+    rc = fcntl(s, F_SETFD, rc | FD_CLOEXEC);
+    if(rc < 0)
+        goto fail;
+
+    memset(&sun, 0, sizeof(sun));
+    sun.sun_family = AF_UNIX;
+    strncpy(sun.sun_path, path, sizeof(sun.sun_path));
+    rc = bind(s, (struct sockaddr *)&sun, sizeof(sun));
+    if(rc < 0)
+        goto fail;
+
+    rc = listen(s, 2);
+    if(rc < 0)
+        goto fail_unlink;
+
+    return s;
+
+fail_unlink:
+    saved_errno = errno;
+    unlink(path);
+    errno = saved_errno;
+fail:
     saved_errno = errno;
     close(s);
     errno = saved_errno;

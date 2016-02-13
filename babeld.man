@@ -109,16 +109,20 @@ requests tracing every message sent or received.  A value of
 3 additionally dumps all interactions with the OS kernel.  The default
 is 0.
 .TP
-.BI \-g " port"
+.BI \-g " port\fR,\fP" " \-g" " path"
 Set up a local configuration server on port
 .I port
+or at
+.I path
 in read-only mode.  The protocol is described in the section
 .B Local Configuration Protocol
 below.
 .TP
-.BI \-G " port"
+.BI \-G " port\fR,\fP" " \-G" " path"
 Set up a local configuration server on port
 .I port
+or at
+.I path
 in read-write mode.  This allows any local user to change
 .BR babeld 's
 configuration, and may therefore be a security issue.
@@ -224,9 +228,27 @@ This specifies the TCP port on which
 .B babeld
 will listen for connections from a configuration client in read-write mode,
 and is equivalent to the command-line option
-.BR \-G .  This allows any local user to change
+.BR \-G .
+This allows any local user to change
 .BR babeld 's
 configuration, and may therefore be a security issue.
+.TP
+.BI local-path " path"
+This specifies the filesystem path to a socket on which
+.B babeld
+will listen for connections from a configuration client in read-only mode,
+and is equivalent to the command-line option
+.BR \-g .
+.TP
+.BI local-path-readwrite " path"
+This specifies the filesystem path to a socket on which
+.B babeld
+will listen for connections from a configuration client in read-write mode,
+and is equivalent to the command-line option
+.BR \-G .
+Any user with write access to that socket will be able to change
+.BR babeld 's
+configuration.
 .TP
 .BI export-table " table"
 This specifies the kernel routing table to use for routes inserted by
@@ -554,7 +576,8 @@ it accepts TCP connections from local clients on the given port and address
 .B ::1
 (the IPv6
 .B localhost
-address).  When a client connects,
+address), or on the given UNIX-domain socket path if the argument starts with
+\[oq]/\[cq].  When a client connects,
 .B babeld
 replies with
 .B BABEL

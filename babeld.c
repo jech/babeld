@@ -238,16 +238,22 @@ main(int argc, char **argv)
                 goto usage;
             break;
         case 'g':
-            local_server_port = parse_nat(optarg);
-            local_server_write = 0;
-            if(local_server_port <= 0 || local_server_port > 0xFFFF)
-                goto usage;
-            break;
         case 'G':
-            local_server_port = parse_nat(optarg);
-            local_server_write = 1;
-            if(local_server_port <= 0 || local_server_port > 0xFFFF)
-                goto usage;
+            if(opt == 'g')
+                local_server_write = 0;
+            else
+                local_server_write = 1;
+            if(optarg[0] == '/') {
+                local_server_port = -1;
+                free(local_server_path);
+                local_server_path = strdup(optarg);
+            } else {
+                local_server_port = parse_nat(optarg);
+                free(local_server_path);
+                local_server_path = NULL;
+                if(local_server_port <= 0 || local_server_port > 0xFFFF)
+                    goto usage;
+            }
             break;
         case 'l':
             link_detect = 1;
@@ -522,6 +528,12 @@ main(int argc, char **argv)
 
     if(local_server_port >= 0) {
         local_server_socket = tcp_server_socket(local_server_port, 1);
+        if(local_server_socket < 0) {
+            perror("local_server_socket");
+            goto fail;
+        }
+    } else if(local_server_path) {
+        local_server_socket = unix_server_socket(local_server_path);
         if(local_server_socket < 0) {
             perror("local_server_socket");
             goto fail;
@@ -835,6 +847,10 @@ main(int argc, char **argv)
             fsync(fd);
         }
         close(fd);
+    }
+    if(local_server_socket >= 0 && local_server_path) {
+        unlink(local_server_path);
+        free(local_server_path);
     }
     if(pidfile)
         unlink(pidfile);

@@ -45,6 +45,7 @@ extern int local_server_socket;
 extern struct local_socket local_sockets[MAX_LOCAL_SOCKETS];
 extern int num_local_sockets;
 extern int local_server_port;
+extern char *local_server_path;
 
 void local_notify_interface(struct interface *ifp, int kind);
 void local_notify_neighbour(struct neighbour *neigh, int kind);
