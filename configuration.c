@@ -1015,6 +1015,11 @@ parse_config_line(int c, gnc_t gnc, void *closure,
             free(token2);
             goto fail;
         }
+    } else if(strcmp(token, "reopen-logfile") == 0) {
+        c = skip_eol(c, gnc, closure);
+        if(c < -1 || !action_return)
+            goto fail;
+        reopen_logfile();
     } else {
         c = parse_option(c, gnc, closure, token);
         if(c < -1)
