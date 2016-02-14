@@ -4,6 +4,10 @@ babeld-1.8.0 (unreleased)
     monitoring interface.  This is an incompatible change.
   * Added PF_UNIX support to the local interface.  Thanks to Julien Cristau.
 
+14 February 2016: babeld-1.7.1
+
+  * Fix compilation under musl.  Thanks to Gabriel Kerneis.
+
 3 February 2016: babeld-1.7.0
 
   * Added the ability to choose the kernel routing table on a per-route
