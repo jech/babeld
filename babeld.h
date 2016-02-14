@@ -109,3 +109,4 @@ extern int max_request_hopcount;
 void schedule_neighbours_check(int msecs, int override);
 void schedule_interfaces_check(int msecs, int override);
 int resize_receive_buffer(int size);
+int reopen_logfile(void);

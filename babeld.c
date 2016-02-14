@@ -98,7 +98,6 @@ static volatile sig_atomic_t exiting = 0, dumping = 0, reopening = 0;
 static int accept_local_connections(void);
 static void init_signals(void);
 static void dump_tables(FILE *out);
-static int reopen_logfile(void);
 
 static int
 kernel_route_notify(struct kernel_route *route, void *closure)
@@ -1153,7 +1152,7 @@ dump_tables(FILE *out)
     fflush(out);
 }
 
-static int
+int
 reopen_logfile()
 {
     int lfd, rc;
