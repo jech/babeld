@@ -1,4 +1,4 @@
-babeld-1.7.1 (unreleased)
+14 February 2016: babeld-1.7.1
 
   * Fix compilation under musl.  Thanks to Gabriel Kerneis.
 
