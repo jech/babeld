@@ -46,6 +46,10 @@ struct filter *redistribute_filters = NULL;
 struct filter *install_filters = NULL;
 struct interface_conf *default_interface_conf = NULL;
 struct interface_conf *interface_confs = NULL;
+
+/* This indicates whether initial configuration is done.  See
+   finalize_config below. */
+
 int config_finalised = 0;
 
 /* This file implements a recursive descent parser with one character
@@ -709,6 +713,19 @@ flush_ifconf(struct interface_conf *if_conf)
 static int
 parse_option(int c, gnc_t gnc, void *closure, char *token)
 {
+    /* These are the only options that are allowed at runtime, either
+       because they require no special setup or because there is special
+       case code for them. */
+    if(config_finalised) {
+        if(strcmp(token, "keep-unfeasible") != 0 &&
+           strcmp(token, "link-detect") != 0 &&
+           strcmp(token, "log-file") != 0 &&
+           strcmp(token, "diversity") != 0 &&
+           strcmp(token, "diversity-factor") != 0 &&
+           strcmp(token, "smoothing-half-life") != 0)
+            goto error;
+    }
+
     if(strcmp(token, "protocol-port") == 0 ||
        strcmp(token, "kernel-priority") == 0 ||
        strcmp(token, "allow-duplicates") == 0 ||
@@ -789,9 +806,11 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
             goto error;
         if(strcmp(token, "state-file") == 0)
             state_file = file;
-        else if(strcmp(token, "log-file") == 0)
+        else if(strcmp(token, "log-file") == 0) {
             logfile = file;
-        else if(strcmp(token, "pid-file") == 0)
+            if(config_finalised)
+                reopen_logfile();
+        } else if(strcmp(token, "pid-file") == 0)
             pidfile = file;
         else if(strcmp(token, "local-path") == 0) {
             local_server_port = -1;
@@ -917,24 +936,32 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         goto fail;
     } else if(strcmp(token, "in") == 0) {
         struct filter *filter;
+        if(config_finalised)
+            goto fail;
         c = parse_filter(c, gnc, closure, &filter);
         if(c < -1)
             goto fail;
         add_filter(filter, &input_filters);
     } else if(strcmp(token, "out") == 0) {
         struct filter *filter;
+        if(config_finalised)
+            goto fail;
         c = parse_filter(c, gnc, closure, &filter);
         if(c < -1)
             goto fail;
         add_filter(filter, &output_filters);
     } else if(strcmp(token, "redistribute") == 0) {
         struct filter *filter;
+        if(config_finalised)
+            goto fail;
         c = parse_filter(c, gnc, closure, &filter);
         if(c < -1)
             goto fail;
         add_filter(filter, &redistribute_filters);
     } else if(strcmp(token, "install") == 0) {
         struct filter *filter;
+        if(config_finalised)
+            goto fail;
         c = parse_filter(c, gnc, closure, &filter);
         if(c < -1)
             goto fail;
