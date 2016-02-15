@@ -110,8 +110,8 @@ local_notify_interface_1(struct local_socket *s,
                       ifp->ll ? format_address(*ifp->ll) : "",
                       v4[0] ? " ipv4 " : "", v4);
     else
-            rc = snprintf(buf, 512, "%s interface %s up false\n",
-                          local_kind(kind), ifp->name);
+        rc = snprintf(buf, 512, "%s interface %s up false\n",
+                      local_kind(kind), ifp->name);
 
     if(rc < 0 || rc >= 512)
         goto fail;
