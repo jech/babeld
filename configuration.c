@@ -303,7 +303,7 @@ parse_filter(int c, gnc_t gnc, void *closure, struct filter **filter_return)
 
     filter = calloc(1, sizeof(struct filter));
     if(filter == NULL)
-        goto error;
+        return -2;
     filter->plen_le = 128;
     filter->src_plen_le = 128;
 
@@ -314,8 +314,10 @@ parse_filter(int c, gnc_t gnc, void *closure, struct filter **filter_return)
             break;
         }
         c = getword(c, &token, gnc, closure);
-        if(c < -1)
-            goto error;
+        if(c < -1) {
+            free(filter);
+            return -2;
+        }
 
         if(strcmp(token, "ip") == 0) {
             int af;
@@ -449,6 +451,7 @@ parse_filter(int c, gnc_t gnc, void *closure, struct filter **filter_return)
     return c;
 
  error:
+    free(token);
     free(filter);
     return -2;
 }
