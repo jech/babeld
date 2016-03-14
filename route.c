@@ -1069,7 +1069,6 @@ retract_neighbour_routes(struct neighbour *neigh)
             }
             r = r->next;
         }
-        i++;
     }
 }
 
