@@ -138,11 +138,10 @@ struct
 xroute_stream *
 xroute_stream()
 {
-    struct xroute_stream *stream = malloc(sizeof(struct xroute_stream));
+    struct xroute_stream *stream = calloc(1, sizeof(struct xroute_stream));
     if(stream == NULL)
         return NULL;
 
-    stream->index = 0;
     return stream;
 }
 

@@ -84,7 +84,7 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
     debugf("Creating neighbour %s on %s.\n",
            format_address(address), ifp->name);
 
-    neigh = malloc(sizeof(struct neighbour));
+    neigh = calloc(1, sizeof(struct neighbour));
     if(neigh == NULL) {
         perror("malloc(neighbour)");
         return NULL;
@@ -92,15 +92,10 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
 
     neigh->hello_seqno = -1;
     memcpy(neigh->address, address, 16);
-    neigh->reach = 0;
     neigh->txcost = INFINITY;
     neigh->ihu_time = now;
     neigh->hello_time = zero;
-    neigh->hello_interval = 0;
-    neigh->ihu_interval = 0;
-    neigh->hello_send_us = 0;
     neigh->hello_rtt_receive_time = zero;
-    neigh->rtt = 0;
     neigh->rtt_time = zero;
     neigh->ifp = ifp;
     neigh->next = neighs;

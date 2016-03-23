@@ -132,7 +132,7 @@ find_source(const unsigned char *id,
     if(!create)
         return NULL;
 
-    src = malloc(sizeof(struct source));
+    src = calloc(1, sizeof(struct source));
     if(src == NULL) {
         perror("malloc(source)");
         return NULL;
@@ -146,7 +146,6 @@ find_source(const unsigned char *id,
     src->seqno = seqno;
     src->metric = INFINITY;
     src->time = now.tv_sec;
-    src->route_count = 0;
 
     if(source_slots >= max_source_slots)
         resize_source_table(max_source_slots < 1 ? 8 : 2 * max_source_slots);

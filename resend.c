@@ -127,7 +127,7 @@ record_resend(int kind, const unsigned char *prefix, unsigned char plen,
         if(resend->ifp != ifp)
             resend->ifp = NULL;
     } else {
-        resend = malloc(sizeof(struct resend));
+        resend = calloc(1, sizeof(struct resend));
         if(resend == NULL)
             return -1;
         resend->kind = kind;
@@ -140,8 +140,6 @@ record_resend(int kind, const unsigned char *prefix, unsigned char plen,
         resend->seqno = seqno;
         if(id)
             memcpy(resend->id, id, 8);
-        else
-            memset(resend->id, 0, 8);
         resend->ifp = ifp;
         resend->time = now;
         resend->next = to_resend;

@@ -74,11 +74,10 @@ add_interface(char *ifname, struct interface_conf *if_conf)
         }
     }
 
-    ifp = malloc(sizeof(struct interface));
+    ifp = calloc(1, sizeof(struct interface));
     if(ifp == NULL)
         return NULL;
 
-    memset(ifp, 0, sizeof(struct interface));
     strncpy(ifp->name, ifname, IF_NAMESIZE);
     ifp->conf = if_conf ? if_conf : default_interface_conf;
     ifp->bucket_time = now.tv_sec;

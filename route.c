@@ -377,7 +377,7 @@ route_stream(int which)
     if(!check_specific_first())
         fprintf(stderr, "Invariant failed: specific routes first in RIB.\n");
 
-    stream = malloc(sizeof(struct route_stream));
+    stream = calloc(1, sizeof(struct route_stream));
     if(stream == NULL)
         return NULL;
 
@@ -939,7 +939,7 @@ update_route(const unsigned char *id,
                 return NULL;
         }
 
-        route = malloc(sizeof(struct babel_route));
+        route = calloc(1, sizeof(struct babel_route));
         if(route == NULL) {
             perror("malloc(route)");
             return NULL;
@@ -956,8 +956,6 @@ update_route(const unsigned char *id,
         route->hold_time = hold_time;
         route->smoothed_metric = MAX(route_metric(route), INFINITY / 2);
         route->smoothed_metric_time = now.tv_sec;
-        route->installed = 0;
-        memset(&route->channels, 0, sizeof(route->channels));
         if(channels_len > 0)
             memcpy(&route->channels, channels,
                    MIN(channels_len, DIVERSITY_HOPS));
