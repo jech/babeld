@@ -25,8 +25,6 @@ THE SOFTWARE.
 #define DIVERSITY_CHANNEL_1 2
 #define DIVERSITY_CHANNEL 3
 
-#define DIVERSITY_HOPS 8
-
 struct babel_route {
     struct source *src;
     unsigned short refmetric;
@@ -40,7 +38,8 @@ struct babel_route {
     unsigned short smoothed_metric; /* for route selection */
     time_t smoothed_metric_time;
     short installed;
-    unsigned char channels[DIVERSITY_HOPS];
+    short channels_len;
+    unsigned char *channels;
     struct babel_route *next;
 };
 

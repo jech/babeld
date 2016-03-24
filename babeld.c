@@ -1059,23 +1059,19 @@ dump_route(FILE *out, struct babel_route *route)
         NULL : route->nexthop;
     char channels[100];
 
-    if(route->channels[0] == 0)
+    if(route->channels_len == 0) {
         channels[0] = '\0';
-    else {
+    } else {
         int k, j = 0;
         snprintf(channels, 100, " chan (");
         j = strlen(channels);
-        for(k = 0; k < DIVERSITY_HOPS; k++) {
-            if(route->channels[k] == 0)
-                break;
+        for(k = 0; k < route->channels_len; k++) {
             if(k > 0)
                 channels[j++] = ',';
             snprintf(channels + j, 100 - j, "%u", (unsigned)route->channels[k]);
             j = strlen(channels);
         }
         snprintf(channels + j, 100 - j, ")");
-        if(k == 0)
-            channels[0] = '\0';
     }
 
     fprintf(out, "%s from %s metric %d (%d) refmetric %d id %s "

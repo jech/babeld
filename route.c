@@ -242,6 +242,13 @@ insert_route(struct babel_route *route)
     return route;
 }
 
+static void
+destroy_route(struct babel_route *route)
+{
+    free(route->channels);
+    free(route);
+}
+
 void
 flush_route(struct babel_route *route)
 {
@@ -267,7 +274,7 @@ flush_route(struct babel_route *route)
     if(route == routes[i]) {
         routes[i] = route->next;
         route->next = NULL;
-        free(route);
+        destroy_route(route);
 
         if(routes[i] == NULL) {
             if(i < route_slots - 1)
@@ -288,7 +295,7 @@ flush_route(struct babel_route *route)
             r = r->next;
         r->next = route->next;
         route->next = NULL;
-        free(route);
+        destroy_route(route);
     }
 
     if(lost)
@@ -620,10 +627,9 @@ route_interferes(struct babel_route *route, struct interface *ifp)
             return 1;
         if(diversity_kind == DIVERSITY_CHANNEL) {
             int i;
-            for(i = 0; i < DIVERSITY_HOPS; i++) {
-                if(route->channels[i] == 0)
-                    break;
-                if(channels_interfere(ifp->channel, route->channels[i]))
+            for(i = 0; i < route->channels_len; i++) {
+                if(route->channels[i] != 0 &&
+                   channels_interfere(ifp->channel, route->channels[i]))
                     return 1;
             }
         }
@@ -910,10 +916,24 @@ update_route(const unsigned char *id,
             route->time = now.tv_sec;
         route->seqno = seqno;
 
-        memset(&route->channels, 0, sizeof(route->channels));
-        if(channels_len > 0)
-            memcpy(&route->channels, channels,
-                   MIN(channels_len, DIVERSITY_HOPS));
+        if(channels_len == 0) {
+            free(route->channels);
+            route->channels_len = 0;
+        } else {
+            if(channels_len != route->channels_len) {
+                unsigned char *new_channels =
+                    realloc(route->channels, channels_len);
+                if(new_channels == NULL) {
+                    perror("malloc(channels)");
+                    /* Truncate the data. */
+                    channels_len = MIN(channels_len, route->channels_len);
+                } else {
+                    route->channels = new_channels;
+                }
+            }
+            memcpy(route->channels, channels, channels_len);
+            route->channels_len = channels_len;
+        }
 
         change_route_metric(route,
                             refmetric, neighbour_cost(neigh), add_metric);
@@ -956,14 +976,19 @@ update_route(const unsigned char *id,
         route->hold_time = hold_time;
         route->smoothed_metric = MAX(route_metric(route), INFINITY / 2);
         route->smoothed_metric_time = now.tv_sec;
-        if(channels_len > 0)
-            memcpy(&route->channels, channels,
-                   MIN(channels_len, DIVERSITY_HOPS));
+        if(channels_len > 0) {
+            route->channels = malloc(channels_len);
+            if(route->channels == NULL) {
+                perror("malloc(channels)");
+            } else {
+                memcpy(route->channels, channels, channels_len);
+            }
+        }
         route->next = NULL;
         new_route = insert_route(route);
         if(new_route == NULL) {
             fprintf(stderr, "Couldn't insert route.\n");
-            free(route);
+            destroy_route(route);
             return NULL;
         }
         local_notify_route(route, LOCAL_ADD);
