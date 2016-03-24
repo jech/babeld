@@ -120,10 +120,25 @@ network_prefix(int ae, int plen, unsigned int omitted,
 }
 
 static void
-parse_update_subtlv(const unsigned char *a, int alen,
+parse_update_subtlv(struct interface *ifp, int metric,
+                    const unsigned char *a, int alen,
                     unsigned char *channels)
 {
     int type, len, i = 0;
+
+    if((ifp->flags & IF_FARAWAY)) {
+        channels[0] = 0;
+    } else {
+        /* This will be overwritten if there's a DIVERSITY_HOPS sub-TLV. */
+        if(metric < 256) {
+            /* Assume non-interfering (wired) link. */
+            channels[0] = 0;
+        } else {
+            /* Assume interfering. */
+            channels[0] = IF_CHANNEL_INTERFERING;
+            channels[1] = 0;
+        }
+    }
 
     while(i < alen) {
         type = a[i];
@@ -145,19 +160,21 @@ parse_update_subtlv(const unsigned char *a, int alen,
         if(type == SUBTLV_PADN) {
             /* Nothing. */
         } else if(type == SUBTLV_DIVERSITY) {
-            if(len > DIVERSITY_HOPS) {
-                fprintf(stderr,
-                        "Received overlong channel information (%d > %d).\n",
-                        len, DIVERSITY_HOPS);
-                len = DIVERSITY_HOPS;
+            if(!(ifp->flags & IF_FARAWAY)) {
+                if(len > DIVERSITY_HOPS) {
+                    fprintf(stderr,
+                            "Received overlong channel information (%d > %d).\n",
+                            len, DIVERSITY_HOPS);
+                    len = DIVERSITY_HOPS;
+                }
+                if(memchr(a + i + 2, 0, len) != NULL) {
+                    /* 0 is reserved. */
+                    fprintf(stderr, "Channel information contains 0!");
+                    return;
+                }
+                memset(channels, 0, DIVERSITY_HOPS);
+                memcpy(channels, a + i + 2, len);
             }
-            if(memchr(a + i + 2, 0, len) != NULL) {
-                /* 0 is reserved. */
-                fprintf(stderr, "Channel information contains 0!");
-                return;
-            }
-            memset(channels, 0, DIVERSITY_HOPS);
-            memcpy(channels, a + i + 2, len);
         } else {
             debugf("Received unknown update sub-TLV %d.\n", type);
         }
@@ -523,24 +540,8 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                     goto done;
             }
 
-            if((ifp->flags & IF_FARAWAY)) {
-                channels[0] = 0;
-            } else {
-                /* This will be overwritten by parse_update_subtlv below. */
-                if(metric < 256) {
-                    /* Assume non-interfering (wired) link. */
-                    channels[0] = 0;
-                } else {
-                    /* Assume interfering. */
-                    channels[0] = IF_CHANNEL_INTERFERING;
-                    channels[1] = 0;
-                }
-
-                if(parsed_len < len)
-                    parse_update_subtlv(message + 2 + parsed_len,
-                                        len - parsed_len, channels);
-            }
-
+            parse_update_subtlv(ifp, metric, message + 2 + parsed_len,
+                                len - parsed_len, channels);
             update_route(router_id, prefix, plen, zeroes, 0, seqno,
                          metric, interval, neigh, nh,
                          channels, channels_len(channels));
@@ -652,23 +653,8 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                     goto done;
             }
 
-            if((ifp->flags & IF_FARAWAY)) {
-                channels[0] = 0;
-            } else {
-                /* This will be overwritten by parse_update_subtlv below. */
-                if(metric < 256) {
-                    /* Assume non-interfering (wired) link. */
-                    channels[0] = 0;
-                } else {
-                    /* Assume interfering. */
-                    channels[0] = IF_CHANNEL_INTERFERING;
-                    channels[1] = 0;
-                }
-
-                if(parsed_len < len)
-                    parse_update_subtlv(message + 2 + parsed_len,
-                                        len - parsed_len, channels);
-            }
+            parse_update_subtlv(ifp, metric, message + 2 + parsed_len,
+                                len - parsed_len, channels);
 
             update_route(router_id, prefix, plen, src_prefix, src_plen,
                          seqno, metric, interval, neigh, nh,
