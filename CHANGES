@@ -3,6 +3,8 @@ babeld-1.8.0 (unreleased)
   * Added the ability to reconfigure babeld dynamically from the
     monitoring interface.  This is an incompatible change.
   * Added PF_UNIX support to the local interface.  Thanks to Julien Cristau.
+  * Made it possible to have a 0 channel number within the diversity extension,
+    which is consistent with draft-chroboczek-babel-diversity-routing-01.
 
 14 February 2016: babeld-1.7.1
 
