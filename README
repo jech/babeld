@@ -46,7 +46,7 @@ On every node, run something like:
 You will find the generate-ipv6-address utility, which can generate random
 IPv6 addresses according to RFC 4193, on
 
-      http://www.pps.univ-paris-diderot.fr/~jch/software/files/
+      https://www.irif.univ-paris-diderot.fr/~jch/software/files/
 
 
 A note about tunnels and VPNs
@@ -108,10 +108,5 @@ interface addresses) you advertise:
     # babeld -C 'redistribute local if eth1' -C 'redistribute local deny' \
              -C 'redistribute metric 128' \
              eth1
-
-If you find all of this too complicated and error-prone (as I do), you
-may want to consider autoconfiguring your routing domain using AHCP:
-
-    http://www.pps.univ-paris-diderot.fr/~jch/software/ahcp/
 
 -- Juliusz Chroboczek
