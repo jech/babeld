@@ -5,6 +5,8 @@ babeld-1.8.0 (unreleased)
   * Added PF_UNIX support to the local interface.  Thanks to Julien Cristau.
   * Made it possible to have a 0 channel number within the diversity extension,
     which is consistent with draft-chroboczek-babel-diversity-routing-01.
+  * Fixed a bug (introduced in 1.7.0) that could cause spurious policy
+    rules to be created in the kernel.  Thanks to Matthieu Boutier.
 
 14 February 2016: babeld-1.7.1
 
