@@ -918,6 +918,7 @@ update_route(const unsigned char *id,
 
         if(channels_len == 0) {
             free(route->channels);
+            route->channels = NULL;
             route->channels_len = 0;
         } else {
             if(channels_len != route->channels_len) {
