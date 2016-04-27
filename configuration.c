@@ -1091,7 +1091,7 @@ static int
 gnc_buf(struct buf_state *s)
 {
     if(s->i < s->n)
-        return s->buf[s->i++];
+        return (s->buf[s->i++]) & 0xFF;
     else
         return -1;
 }
