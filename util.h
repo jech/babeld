@@ -20,15 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#if defined(i386) || defined(__mc68020__) || defined(__x86_64__)
-#define DO_NTOHS(_d, _s) do{ _d = ntohs(*(const unsigned short*)(_s)); }while(0)
-#define DO_NTOHL(_d, _s) do{ _d = ntohl(*(const unsigned*)(_s)); } while(0)
-#define DO_HTONS(_d, _s) do{ *(unsigned short*)(_d) = htons(_s); } while(0)
-#define DO_HTONL(_d, _s) do{ *(unsigned*)(_d) = htonl(_s); } while(0)
-/* Some versions of gcc seem to be buggy, and ignore the packed attribute.
-   Disable this code until the issue is clarified. */
-/* #elif defined __GNUC__*/
-#else
 #define DO_NTOHS(_d, _s) \
     do { unsigned short _dd; \
          memcpy(&(_dd), (_s), 2); \
@@ -45,7 +36,6 @@ THE SOFTWARE.
     do { unsigned _dd; \
          _dd = htonl(_s); \
          memcpy((_d), &(_dd), 4); } while(0)
-#endif
 
 static inline int
 seqno_compare(unsigned short s1, unsigned short s2)
