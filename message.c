@@ -1775,6 +1775,7 @@ send_request(struct interface *ifp,
         len += spb + 1;
         start_message(ifp, MESSAGE_REQUEST_SRC_SPECIFIC, len);
     } else {
+        spb = 0;
         start_message(ifp, MESSAGE_REQUEST, len);
     }
     accumulate_byte(ifp, v4 ? 1 : 2);
@@ -1791,9 +1792,9 @@ send_request(struct interface *ifp,
         else
             accumulate_bytes(ifp, src_prefix, spb);
         end_message(ifp, MESSAGE_REQUEST_SRC_SPECIFIC, len);
-        return;
+    } else {
+        end_message(ifp, MESSAGE_REQUEST, len);
     }
-    end_message(ifp, MESSAGE_REQUEST, len);
 }
 
 void
@@ -1845,6 +1846,7 @@ send_unicast_request(struct neighbour *neigh,
         len += spb + 1;
         rc = start_unicast_message(neigh, MESSAGE_REQUEST_SRC_SPECIFIC, len);
     } else {
+        spb = 0;
         rc = start_unicast_message(neigh, MESSAGE_REQUEST, len);
     }
     if(rc < 0) return;
@@ -1862,9 +1864,9 @@ send_unicast_request(struct neighbour *neigh,
         else
             accumulate_unicast_bytes(neigh, src_prefix, spb);
         end_unicast_message(neigh, MESSAGE_REQUEST_SRC_SPECIFIC, len);
-        return;
+    } else {
+        end_unicast_message(neigh, MESSAGE_REQUEST, len);
     }
-    end_unicast_message(neigh, MESSAGE_REQUEST, len);
 }
 
 void
@@ -1905,6 +1907,7 @@ send_multihop_request(struct interface *ifp,
         len += spb;
         start_message(ifp, MESSAGE_MH_REQUEST_SRC_SPECIFIC, len);
     } else {
+        spb = 0;
         start_message(ifp, MESSAGE_MH_REQUEST, len);
     }
     accumulate_byte(ifp, v4 ? 1 : 2);
@@ -1925,9 +1928,9 @@ send_multihop_request(struct interface *ifp,
         else
             accumulate_bytes(ifp, src_prefix, spb);
         end_message(ifp, MESSAGE_MH_REQUEST_SRC_SPECIFIC, len);
-        return;
+    } else {
+        end_message(ifp, MESSAGE_MH_REQUEST, len);
     }
-    end_message(ifp, MESSAGE_MH_REQUEST, len);
 }
 
 void
@@ -1956,6 +1959,7 @@ send_unicast_multihop_request(struct neighbour *neigh,
         len += spb;
         rc = start_unicast_message(neigh, MESSAGE_MH_REQUEST_SRC_SPECIFIC, len);
     } else {
+        spb = 0;
         rc = start_unicast_message(neigh, MESSAGE_MH_REQUEST, len);
     }
     if(rc < 0) return;
@@ -1977,9 +1981,9 @@ send_unicast_multihop_request(struct neighbour *neigh,
         else
             accumulate_unicast_bytes(neigh, src_prefix, spb);
         end_unicast_message(neigh, MESSAGE_MH_REQUEST_SRC_SPECIFIC, len);
-        return;
+    } else {
+        end_unicast_message(neigh, MESSAGE_MH_REQUEST, len);
     }
-    end_unicast_message(neigh, MESSAGE_MH_REQUEST, len);
 }
 
 void
