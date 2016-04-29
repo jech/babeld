@@ -230,8 +230,8 @@ in_prefix(const unsigned char *restrict address,
 }
 
 unsigned char *
-mask_prefix(unsigned char *restrict ret,
-            const unsigned char *restrict prefix, unsigned char plen)
+normalize_prefix(unsigned char *restrict ret,
+                 const unsigned char *restrict prefix, unsigned char plen)
 {
     if(plen >= 128) {
         memcpy(ret, prefix, 16);
@@ -383,7 +383,7 @@ parse_net(const char *net, unsigned char *prefix_r, unsigned char *plen_r,
             }
         }
     }
-    mask_prefix(prefix_r, prefix, plen);
+    normalize_prefix(prefix_r, prefix, plen);
     *plen_r = plen;
     if(af_r) *af_r = af;
     return 0;

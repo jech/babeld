@@ -84,9 +84,9 @@ void do_debugf(int level, const char *format, ...)
 int in_prefix(const unsigned char *restrict address,
               const unsigned char *restrict prefix, unsigned char plen)
     ATTRIBUTE ((pure));
-unsigned char *mask_prefix(unsigned char *restrict ret,
-                           const unsigned char *restrict prefix,
-                           unsigned char plen);
+unsigned char *normalize_prefix(unsigned char *restrict ret,
+                                const unsigned char *restrict prefix,
+                                unsigned char plen);
 const char *format_address(const unsigned char *address);
 const char *format_prefix(const unsigned char *address, unsigned char prefix);
 const char *format_eui64(const unsigned char *eui);

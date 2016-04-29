@@ -117,7 +117,7 @@ network_prefix(int ae, int plen, unsigned int omitted,
         return -1;
     }
 
-    mask_prefix(p_r, prefix, plen < 0 ? 128 : ae == 1 ? plen + 96 : plen);
+    normalize_prefix(p_r, prefix, plen < 0 ? 128 : ae == 1 ? plen + 96 : plen);
     return ret;
 }
 
