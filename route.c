@@ -850,15 +850,10 @@ update_route(const unsigned char *id,
     if(memcmp(id, myid, 8) == 0)
         return NULL;
 
-    if(martian_prefix(prefix, plen)) {
-        fprintf(stderr, "Rejecting martian route to %s through %s.\n",
-                format_prefix(prefix, plen), format_address(nexthop));
-        return NULL;
-    }
-    if(src_plen != 0 && martian_prefix(src_prefix, src_plen)) {
+    if(martian_prefix(prefix, plen) || martian_prefix(src_prefix, src_plen)) {
         fprintf(stderr, "Rejecting martian route to %s from %s through %s.\n",
                 format_prefix(prefix, plen),
-                format_prefix(src_prefix, src_plen), format_eui64(id));
+                format_prefix(src_prefix, src_plen), format_address(nexthop));
         return NULL;
     }
 
