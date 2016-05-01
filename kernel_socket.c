@@ -424,7 +424,7 @@ kernel_route(int operation, int table,
             0x00, 0x00, 0x00, 0x00, 0x7f, 0x00, 0x00, 0x01 }}};
 
     /* Source-specific routes are not implemented yet for BSD. */
-    if(src_plen > 0) {
+    if(!is_default(src, src_plen)) {
         errno = ENOSYS;
         return -1;
     }

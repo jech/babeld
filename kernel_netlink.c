@@ -955,12 +955,12 @@ kernel_route(int operation, int table,
     /* Check that the protocol family is consistent. */
     if(plen >= 96 && v4mapped(dest)) {
         if(!v4mapped(gate) ||
-           (src_plen > 0 && (!v4mapped(src) || src_plen < 96))) {
+           !v4mapped(src)) {
             errno = EINVAL;
             return -1;
         }
     } else {
-        if(v4mapped(gate)|| (src_plen > 0 && v4mapped(src))) {
+        if(v4mapped(gate) || v4mapped(src)) {
             errno = EINVAL;
             return -1;
         }
@@ -995,7 +995,7 @@ kernel_route(int operation, int table,
 
 
     ipv4 = v4mapped(gate);
-    use_src = (src_plen != 0 && kernel_disambiguate(ipv4));
+    use_src = (!is_default(src, src_plen) && kernel_disambiguate(ipv4));
 
     kdebugf("kernel_route: %s %s from %s "
             "table %d metric %d dev %d nexthop %s\n",
@@ -1096,6 +1096,7 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
         /* if RTA_DST is not a TLV, that's a default destination */
         const unsigned char zeroes[4] = {0, 0, 0, 0};
         v4tov6(route->prefix, zeroes);
+        v4tov6(route->src_prefix, zeroes);
         route->plen = 96;
     }
     route->proto = rtm->rtm_protocol;

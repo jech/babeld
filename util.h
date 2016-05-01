@@ -103,6 +103,12 @@ void v4tov6(unsigned char *dst, const unsigned char *src);
 int daemonise(void);
 int set_src_prefix(unsigned char *src_addr, unsigned char *src_plen);
 
+static inline int
+is_default(const unsigned char *prefix, int plen)
+{
+    return plen == 0 || (plen == 96 && v4mapped(prefix));
+}
+
 enum prefix_status {
     PST_EQUALS = 0,
     PST_DISJOINT,

@@ -59,7 +59,7 @@ check_specific_first(void)
     int specific = 1;
     int i;
     for(i = 0; i < route_slots; i++) {
-        if(routes[i]->src->src_plen == 0) {
+        if(is_default(routes[i]->src->src_prefix, routes[i]->src->src_plen)) {
             specific = 0;
         } else if(!specific) {
             return 0;
@@ -78,11 +78,13 @@ route_compare(const unsigned char *prefix, unsigned char plen,
               struct babel_route *route)
 {
     int i;
+    int is_ss = !is_default(src_prefix, src_plen);
+    int is_ss_rt = !is_default(route->src->src_prefix, route->src->src_plen);
 
     /* Put all source-specific routes in the front of the list. */
-    if(src_plen == 0 && route->src->src_plen > 0) {
+    if(!is_ss && is_ss_rt) {
         return 1;
-    } else if(src_plen > 0 && route->src->src_plen == 0) {
+    } else if(is_ss && !is_ss_rt) {
         return -1;
     }
 
@@ -95,10 +97,7 @@ route_compare(const unsigned char *prefix, unsigned char plen,
     if(plen > route->src->plen)
         return 1;
 
-    if(src_plen == 0) {
-        if(route->src->src_plen > 0)
-            return -1;
-    } else {
+    if(is_ss) {
         i = memcmp(src_prefix, route->src->src_prefix, 16);
         if(i != 0)
             return i;
@@ -401,7 +400,8 @@ route_stream_next(struct route_stream *stream)
     if(stream->installed) {
         while(stream->index < route_slots)
             if(stream->installed == ROUTE_SS_INSTALLED &&
-               routes[stream->index]->src->src_plen == 0)
+               is_default(routes[stream->index]->src->src_prefix,
+                          routes[stream->index]->src->src_plen))
                 return NULL;
             else if(routes[stream->index]->installed)
                 break;
@@ -858,9 +858,8 @@ update_route(const unsigned char *id,
     }
 
     is_v4 = v4mapped(prefix);
-    if(src_plen != 0 && is_v4 != v4mapped(src_prefix))
+    if(is_v4 != v4mapped(src_prefix))
         return NULL;
-
 
     add_metric = input_filter(id, prefix, plen, src_prefix, src_plen,
                               neigh->address, neigh->ifp->ifindex);

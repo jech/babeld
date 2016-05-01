@@ -185,7 +185,7 @@ find_table(const unsigned char *dest, unsigned short plen,
     install_filter(dest, plen, src, src_plen, &filter_result);
     if(filter_result.table) {
         return filter_result.table;
-    } else if(src_plen == 0) {
+    } else if(is_default(src, src_plen)) {
         return export_table;
     } else if(kernel_disambiguate(v4mapped(dest))) {
         return export_table;
