@@ -56,6 +56,11 @@ source_compare(const unsigned char *id,
     if(rc != 0)
         return rc;
 
+    if(src_plen < src->src_plen)
+        return -1;
+    if(src_plen > src->src_plen)
+        return 1;
+
     rc = memcmp(src_prefix, src->src_prefix, 16);
     if(rc != 0)
         return rc;
