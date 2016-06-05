@@ -288,7 +288,7 @@ for smoothing metrics for performing route selection, and is
 equivalent to the command-line option
 .BR \-M .
 .TP
-.BR deamonise " {" true | false }
+.BR daemonise " {" true | false }
 This specifies whether to daemonize at startup, and is equivalent to
 the command-line option
 .BR \-D .
