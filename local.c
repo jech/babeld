@@ -229,10 +229,10 @@ local_notify_route_1(int s, struct babel_route *route, int kind)
                                            route->src->src_plen);
 
     rc = snprintf(buf, 512,
-                  "%s route %s-%lx-%s prefix %s from %s installed %s "
+                  "%s route %lx prefix %s from %s installed %s "
                   "id %s metric %d refmetric %d via %s if %s\n",
                   local_kind(kind),
-                  dst_prefix, (unsigned long)route->neigh, src_prefix,
+                  (unsigned long)route,
                   dst_prefix, src_prefix,
                   route->installed ? "yes" : "no",
                   format_eui64(route->src->id),
