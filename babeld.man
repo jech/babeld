@@ -453,11 +453,14 @@ A filtering rule is defined by a single line with the following format:
 .PP
 .I Filter
 specifies the filter to which this entry will be added, and can be one of
-.BR in ,
-.BR out ,
-.BR redistribute ,
-or
-.BR install .
+.B in
+(applied to routes learned from Babel neighbours),
+.B out
+(applied to routes announced to Babel neighbours),
+.B redistribute
+(applied to routes redistributed from the kernel), or
+.B install
+(applied to routes installed into the kernel).
 
 Each
 .I selector
