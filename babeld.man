@@ -350,30 +350,32 @@ Each
 .I parameter
 can be one of:
 .TP
-.BR wired " {" true | false | auto }
-This specifies whether to enable optimisations specific to wired interfaces.
-By default, this is determined automatically unless the
+.BR type " {" auto | wired | wireless | tunnel }
+
+The default is
+.B auto
+unless the
 .B \-w
 command-line flag was specified.
 .TP
 .BR link\-quality " {" true | false | auto }
 This specifies whether link quality estimation should be performed on this
 interface.  The default is to perform link quality estimation on wireless
-interfaces but not on wired interfaces.
+interfaces only.
 .TP
 .BR split\-horizon " {" true | false | auto }
 This specifies whether to perform split-horizon processing on this
-interface.  The default is to never perform split-horizon processing on
-wireless interfaces; on wired interfaces, the default depends on the
+interface.  The default is to perform split-horizon processing on
+on wired interfaces, unless the
 .B \-s
-flag.
+flag was set.
 .TP
 .BI rxcost " cost"
 This defines the cost of receiving frames on the given interface under
-ideal conditions (no packet loss); how this relates to the actual cost used
-for computing metrics of routes going through this interface depends on
-whether link quality estimation is being done.  The default is 96 for wired
-interfaces, and 256 for wireless ones.
+ideal conditions (no packet loss); how this relates to the actual cost
+used for computing metrics of routes going through this interface depends
+on whether link quality estimation is being done.  The default is 256 if
+the interface is wireless, and 96 otherwise.
 .TP
 .BI channel " channel"
 Sets the channel for this interface.  The value
@@ -385,7 +387,7 @@ or
 The default is to autodetect the channel number for wireless interfaces,
 and
 .B noninterfering
-for wired interfaces.
+for other interfaces.
 .TP
 .BR faraway " {" true | false }
 This specifies whether the network is "far away", in the sense that
@@ -410,9 +412,7 @@ packet loss is expected.  The default is four times the hello interval.
 Enable sending timestamps with each Hello and IHU message in order to
 compute RTT values.  The default is
 .B true
-if
-.B max\-rtt\-penalty
-is non-zero (see below), and
+for tunnel interfaces, and
 .B false
 otherwise.
 .TP

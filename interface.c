@@ -198,24 +198,23 @@ static int
 check_interface_channel(struct interface *ifp)
 {
     int channel = IF_CONF(ifp, channel);
+    int rc = 1;
 
     if(channel == IF_CHANNEL_UNKNOWN) {
-        if((ifp->flags & IF_WIRED)) {
-            channel = IF_CHANNEL_NONINTERFERING;
-        } else {
-            channel = kernel_interface_channel(ifp->name, ifp->ifindex);
-            if(channel < 0)
-                fprintf(stderr,
-                        "Couldn't determine channel of interface %s: %s.\n",
-                        ifp->name, strerror(errno));
-            if(channel <= 0)
-                channel = IF_CHANNEL_INTERFERING;
+        /* IF_WIRELESS merely means that we know for sure that the
+           interface is wireless, so check unconditionally. */
+        channel = kernel_interface_channel(ifp->name, ifp->ifindex);
+        if(channel < 0) {
+            if((ifp->flags & IF_WIRELESS))
+                rc = -1;
+            channel = (ifp->flags & IF_WIRELESS) ?
+                IF_CHANNEL_INTERFERING : IF_CHANNEL_NONINTERFERING;
         }
     }
 
     if(ifp->channel != channel) {
         ifp->channel = channel;
-        return 1;
+        return rc;
     }
     return 0;
 }
@@ -278,7 +277,7 @@ check_link_local_addresses(struct interface *ifp)
 int
 interface_up(struct interface *ifp, int up)
 {
-    int mtu, rc, wired;
+    int mtu, rc, type;
     struct ipv6_mreq mreq;
 
     if((!!up) == if_up(ifp))
@@ -338,64 +337,63 @@ interface_up(struct interface *ifp, int up)
                     "receive buffer for interface %s (%d) (%d bytes).\n",
                     ifp->name, ifp->ifindex, mtu);
 
-        if(IF_CONF(ifp, wired) == CONFIG_NO) {
-            wired = 0;
-        } else if(IF_CONF(ifp, wired) == CONFIG_YES) {
-            wired = 1;
-        } else if(all_wireless) {
-            wired = 0;
-        } else {
-            rc = kernel_interface_wireless(ifp->name, ifp->ifindex);
-            if(rc < 0) {
-                fprintf(stderr,
-                        "Warning: couldn't determine whether %s (%d) "
-                        "is a wireless interface.\n",
-                        ifp->name, ifp->ifindex);
-                wired = 0;
+        type = IF_CONF(ifp, type);
+        if(type == IF_TYPE_DEFAULT) {
+            if(all_wireless) {
+                type = IF_TYPE_WIRELESS;
             } else {
-                wired = !rc;
+                rc = kernel_interface_wireless(ifp->name, ifp->ifindex);
+                if(rc < 0) {
+                    fprintf(stderr,
+                            "Warning: couldn't determine whether %s (%d) "
+                            "is a wireless interface.\n",
+                            ifp->name, ifp->ifindex);
+                } else if(rc) {
+                    type = IF_TYPE_WIRELESS;
+                }
             }
         }
+        printf("Type: %d\n", type);
 
-        if(wired) {
-            ifp->flags |= IF_WIRED;
-            ifp->cost = IF_CONF(ifp, cost);
-            if(ifp->cost <= 0) ifp->cost = 96;
-            if(IF_CONF(ifp, split_horizon) == CONFIG_NO)
-                ifp->flags &= ~IF_SPLIT_HORIZON;
-            else if(IF_CONF(ifp, split_horizon) == CONFIG_YES)
-                ifp->flags |= IF_SPLIT_HORIZON;
-            else if(split_horizon)
-                ifp->flags |= IF_SPLIT_HORIZON;
-            else
-                ifp->flags &= ~IF_SPLIT_HORIZON;
-            if(IF_CONF(ifp, lq) == CONFIG_YES)
-                ifp->flags |= IF_LQ;
-            else
-                ifp->flags &= ~IF_LQ;
-        } else {
-            ifp->flags &= ~IF_WIRED;
-            ifp->cost = IF_CONF(ifp, cost);
-            if(ifp->cost <= 0) ifp->cost = 256;
-            if(IF_CONF(ifp, split_horizon) == CONFIG_YES)
-                ifp->flags |= IF_SPLIT_HORIZON;
-            else
-                ifp->flags &= ~IF_SPLIT_HORIZON;
-            if(IF_CONF(ifp, lq) == CONFIG_NO)
-                ifp->flags &= ~IF_LQ;
-            else
-                ifp->flags |= IF_LQ;
-        }
+        /* Type is CONFIG_TYPE_AUTO if interface is not known to be
+           wireless, so provide sane defaults for that case. */
+
+        if(type == IF_TYPE_WIRELESS)
+            ifp->flags |= IF_WIRELESS;
+        else
+            ifp->flags &= ~IF_WIRELESS;
+
+        ifp->cost = IF_CONF(ifp, cost);
+        if(ifp->cost <= 0)
+            ifp->cost = type == IF_TYPE_WIRELESS ? 256 : 96;
+
+        if(IF_CONF(ifp, split_horizon) == CONFIG_YES)
+            ifp->flags |= IF_SPLIT_HORIZON;
+        else if(IF_CONF(ifp, split_horizon) == CONFIG_NO)
+            ifp->flags &= ~IF_SPLIT_HORIZON;
+        else if(type == IF_TYPE_WIRED)
+            ifp->flags |= IF_SPLIT_HORIZON;
+        else
+            ifp->flags &= ~IF_SPLIT_HORIZON;
+
+        if(IF_CONF(ifp, lq) == CONFIG_YES)
+            ifp->flags |= IF_LQ;
+        else if(IF_CONF(ifp, lq) == CONFIG_NO)
+            ifp->flags &= ~IF_LQ;
+        else if(type == IF_TYPE_WIRELESS)
+            ifp->flags |= IF_LQ;
+        else
+            ifp->flags &= ~IF_LQ;
 
         if(IF_CONF(ifp, faraway) == CONFIG_YES)
             ifp->flags |= IF_FARAWAY;
 
         if(IF_CONF(ifp, hello_interval) > 0)
             ifp->hello_interval = IF_CONF(ifp, hello_interval);
-        else if((ifp->flags & IF_WIRED))
-            ifp->hello_interval = default_wired_hello_interval;
-        else
+        else if(type == IF_TYPE_WIRELESS)
             ifp->hello_interval = default_wireless_hello_interval;
+        else
+            ifp->hello_interval = default_wired_hello_interval;
 
         ifp->update_interval =
             IF_CONF(ifp, update_interval) > 0 ?
@@ -420,11 +418,22 @@ interface_up(struct interface *ifp, int up)
             ifp->rtt_max = ifp->rtt_min + 10000;
         }
         ifp->max_rtt_penalty = IF_CONF(ifp, max_rtt_penalty);
+        if(ifp->max_rtt_penalty == 0 && type == IF_TYPE_TUNNEL)
+            ifp->max_rtt_penalty = 96;
 
-        if(IF_CONF(ifp, enable_timestamps) == CONFIG_YES ||
-           (IF_CONF(ifp, enable_timestamps) == CONFIG_DEFAULT &&
-            ifp->max_rtt_penalty > 0))
+        if(IF_CONF(ifp, enable_timestamps) == CONFIG_YES)
             ifp->flags |= IF_TIMESTAMPS;
+        else if(IF_CONF(ifp, enable_timestamps) == CONFIG_NO)
+            ifp->flags &= ~IF_TIMESTAMPS;
+        else if(type == IF_TYPE_TUNNEL)
+            ifp->flags |= IF_TIMESTAMPS;
+        else
+            ifp->flags &= ~IF_TIMESTAMPS;
+        if(ifp->max_rtt_penalty > 0 && !(ifp->flags & IF_TIMESTAMPS))
+            fprintf(stderr,
+                    "Warning: max_rtt_penalty is set "
+                    "but timestamps are disabled on interface %s.\n",
+                    ifp->name);
 
         rc = check_link_local_addresses(ifp);
         if(rc < 0) {
@@ -440,13 +449,16 @@ interface_up(struct interface *ifp, int up)
             goto fail;
         }
 
-        check_interface_channel(ifp);
+        rc = check_interface_channel(ifp);
+        if(rc < 0)
+            fprintf(stderr,
+                    "Warning: couldn't determine channel of interface %s.\n",
+                    ifp->name);
         update_interface_metric(ifp);
         rc = check_interface_ipv4(ifp);
 
-        debugf("Upped interface %s (%s, cost=%d, channel=%d%s).\n",
+        debugf("Upped interface %s (cost=%d, channel=%d%s).\n",
                ifp->name,
-               (ifp->flags & IF_WIRED) ? "wired" : "wireless",
                ifp->cost,
                ifp->channel,
                ifp->ipv4 ? ", IPv4" : "");

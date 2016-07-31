@@ -29,12 +29,19 @@ struct buffered_update {
     unsigned char pad[2];
 };
 
+#define IF_TYPE_DEFAULT 0
+#define IF_TYPE_WIRED 1
+#define IF_TYPE_WIRELESS 2
+#define IF_TYPE_TUNNEL 3
+
+/* If you modify this structure, also modify the merge_ifconf function. */
+
 struct interface_conf {
     char *ifname;
     unsigned hello_interval;
     unsigned update_interval;
     unsigned short cost;
-    char wired;
+    char type;
     char split_horizon;
     char lq;
     char faraway;
@@ -51,11 +58,17 @@ struct interface_conf {
 #define CONFIG_NO 1
 #define CONFIG_YES 2
 
-#define IF_UP (1 << 0)
-#define IF_WIRED (1<<1)
+/* Interface is up. */
+# define IF_UP (1 << 0)
+/* Interface known to be wireless, unknown otherwise. */
+#define IF_WIRELESS (1<<1)
+/* Apply split horizon. */
 #define IF_SPLIT_HORIZON (1 << 2)
+/* Perform link-quality estimation. */
 #define IF_LQ (1 << 3)
+/* Nodes on the far end don't interfere with nodes on the near end. */
 #define IF_FARAWAY (1 << 4)
+/* Send timestamps in Hello and IHU. */
 #define IF_TIMESTAMPS (1 << 5)
 
 /* Only INTERFERING can appear on the wire. */

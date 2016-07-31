@@ -296,6 +296,32 @@ getnet(int c, unsigned char **p_r, unsigned char *plen_r, int *af_r,
 }
 
 static int
+get_interface_type(int c, int *type_r, gnc_t gnc, void *closure)
+{
+    char *t;
+    int i;
+    c = getword(c, &t, gnc, closure);
+    if(c < -1)
+        return c;
+    if(strcmp(t, "default") == 0 || strcmp(t, "auto") == 0) {
+        i = IF_TYPE_DEFAULT;
+    } else if(strcmp(t, "wired") == 0) {
+        i = IF_TYPE_WIRED;
+    } else if(strcmp(t, "wireless") == 0) {
+        i = IF_TYPE_WIRELESS;
+    } else if(strcmp(t, "tunnel") == 0) {
+        i = IF_TYPE_TUNNEL;
+    } else {
+        free(t);
+        return -2;
+    }
+    free(t);
+    *type_r = i;
+    return c;
+}
+
+
+static int
 parse_filter(int c, gnc_t gnc, void *closure, struct filter **filter_return)
 {
     char *token;
@@ -498,12 +524,21 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if(c < -1 || interval <= 0 || interval > 10 * 0xFFFF)
                 goto error;
             if_conf->update_interval = interval;
+        } else if(strcmp(token, "type") == 0) {
+            int type = IF_TYPE_DEFAULT;
+            c = get_interface_type(c, &type, gnc, closure);
+            if(c < -1)
+                goto error;
+            if_conf->type = type;
         } else if(strcmp(token, "wired") == 0) {
             int v;
+            fprintf(stderr, "Warning: keyword \"wired\" is deprecated -- "
+                    "please use \"type\" instead.\n");
             c = getbool(c, &v, gnc, closure);
             if(c < -1)
                 goto error;
-            if_conf->wired = v;
+            if_conf->type = (v == CONFIG_YES) ?
+                IF_TYPE_WIRED : IF_TYPE_WIRELESS;
         } else if(strcmp(token, "faraway") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
@@ -569,11 +604,11 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
                 goto error;
             if_conf->rtt_max = rtt;
         } else if(strcmp(token, "max-rtt-penalty") == 0) {
-            int cost;
-            c = getint(c, &cost, gnc, closure);
-            if(c < -1 || cost <= 0 || cost > 0xFFFF)
+            int penalty;
+            c = getint(c, &penalty, gnc, closure);
+            if(c < -1 || penalty <= 0 || penalty > 0xFFFF)
                 goto error;
-            if_conf->max_rtt_penalty = cost;
+            if_conf->max_rtt_penalty = penalty;
         } else {
             goto error;
         }
@@ -649,7 +684,7 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(hello_interval);
     MERGE(update_interval);
     MERGE(cost);
-    MERGE(wired);
+    MERGE(type);
     MERGE(split_horizon);
     MERGE(lq);
     MERGE(faraway);
