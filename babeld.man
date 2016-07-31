@@ -442,8 +442,12 @@ This specifies the maximum cost added to a neighbour because of RTT,
 i.e. when the RTT is higher or equal than
 .BR rtt\-max .
 The default is
-.BR 0 ,
-which effectively disables the use of a RTT-based cost.
+.BR 96
+if the interface is of type
+.B tunnel,
+and
+.BR 0 
+otherwise.
 .SS Filtering rules
 A filtering rule is defined by a single line with the following format:
 .IP
