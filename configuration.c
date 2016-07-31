@@ -188,7 +188,7 @@ getthousands(int c, int *int_r, gnc_t gnc, void *closure)
 }
 
 static int
-getbool(int c, int *int_r, gnc_t gnc, void *closure)
+getbool(int c, int *bool_r, gnc_t gnc, void *closure)
 {
     char *t;
     int i;
@@ -206,7 +206,7 @@ getbool(int c, int *int_r, gnc_t gnc, void *closure)
         return -2;
     }
     free(t);
-    *int_r = i;
+    *bool_r = i;
     return c;
 }
 
