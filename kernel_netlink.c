@@ -39,9 +39,13 @@ THE SOFTWARE.
 #include <sys/socket.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
-#include <linux/if_bridge.h>
 #include <linux/fib_rules.h>
 #include <net/if_arp.h>
+
+/* From <linux/if_bridge.h> */
+#ifndef BRCTL_GET_BRIDGES
+#define BRCTL_GET_BRIDGES 1
+#endif
 
 #if(__GLIBC__ < 2) || (__GLIBC__ == 2 && __GLIBC_MINOR__ <= 5)
 #define RTA_TABLE 15
