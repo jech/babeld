@@ -1,4 +1,4 @@
-babeld-1.8.0 (unreleased)
+6 December 2016: babeld-1.8.0
 
   * Added the ability to reconfigure babeld dynamically from the
     monitoring interface.  This is an incompatible change.
