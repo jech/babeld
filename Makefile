@@ -17,6 +17,10 @@ OBJS = babeld.o net.o kernel.o util.o interface.o source.o neighbour.o \
        route.o xroute.o message.o resend.o configuration.o local.o \
        disambiguation.o rule.o
 
+INCLUDES = babeld.h net.h kernel.c util.h interface.h source.h neighbour.h \
+       route.h xroute.h message.h resend.h configuration.h local.h \
+       disambiguation.h rule.h
+
 babeld: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o babeld $(OBJS) $(LDLIBS)
 
@@ -36,9 +40,15 @@ version.h:
 
 babeld.html: babeld.man
 
-.PHONY: all install install.minimal uninstall clean
+.PHONY: all install install.minimal uninstall clean reallyclean
 
 all: babeld babeld.man
+
+TAGS: $(SRCS) $(INCLUDES)
+	etags $(SRCS) $(INCLUDES)
+
+tags: $(SRCS) $(INCLUDES)
+	ctags $(SRCS) $(INCLUDES)
 
 install.minimal: babeld
 	-rm -f $(TARGET)$(PREFIX)/bin/babeld
@@ -54,4 +64,7 @@ uninstall:
 	-rm -f $(TARGET)$(MANDIR)/man8/babeld.8
 
 clean:
-	-rm -f babeld babeld.html version.h *.o *~ core TAGS gmon.out
+	-rm -f babeld babeld.html version.h *.o *~ core
+
+reallyclean: clean
+	-rm -f TAGS tags gmon.out
