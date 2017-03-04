@@ -67,4 +67,4 @@ clean:
 	-rm -f babeld babeld.html version.h *.o *~ core
 
 reallyclean: clean
-	-rm -f TAGS tags gmon.out
+	-rm -f TAGS tags gmon.out cscope.out
