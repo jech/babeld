@@ -273,8 +273,8 @@ getnet(int c, unsigned char **p_r, unsigned char *plen_r, int *af_r,
     char *t;
     unsigned char *ip;
     unsigned char addr[16];
-    unsigned char plen;
-    int af, rc;
+    unsigned char plen = 0;
+    int af = 0, rc = 0;
 
     c = getword(c, &t, gnc, closure);
     if(c < -1)
