@@ -65,6 +65,19 @@ xroute.o: xroute.c babeld.h kernel.h neighbour.h message.h route.h util.h \
 version.h:
 	./generate-version.sh > version.h
 
+# Whole program compilation with maximum optimization
+
+babeld-whole.c: $(SRCS) $(INCLUDES)
+	cat $(SRCS) > babeld-whole.c
+
+babeld-whole.s: babeld-whole.c
+	$(CC) $(CFLAGS) -O3 $(LDFLAGS) -fwhole-program -fverbose-asm \
+	                 babeld-whole.c -S -o babeld-whole.s
+
+babeld-whole: babeld-whole.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -O3 -fwhole-program babeld-whole.c \
+	                           -o babeld-whole $(LDLIBS)
+
 .SUFFIXES: .man .html
 
 .man.html:
@@ -96,7 +109,7 @@ uninstall:
 	-rm -f $(TARGET)$(MANDIR)/man8/babeld.8
 
 clean:
-	-rm -f babeld babeld.html version.h *.o *~ core
+	-rm -f babeld babeld.html version.h *.o *~ core babeld-whole.*
 
 reallyclean: clean
 	-rm -f TAGS tags gmon.out cscope.out
