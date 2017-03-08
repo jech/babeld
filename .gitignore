@@ -5,3 +5,4 @@ version.h
 cscope.out
 gmon.out
 core
+babeld-whole.*
