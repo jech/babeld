@@ -1,3 +1,6 @@
+#ifndef _BABEL_DISAMBIGUATION
+#define _BABEL_DISAMBIGUATION
+
 /*
 Copyright (c) 2014 by Matthieu Boutier and Juliusz Chroboczek.
 
@@ -25,3 +28,5 @@ int kuninstall_route(const struct babel_route *route);
 int kswitch_routes(const struct babel_route *old, const struct babel_route *new);
 int kchange_route_metric(const struct babel_route *route,
                          unsigned refmetric, unsigned cost, unsigned add);
+
+#endif

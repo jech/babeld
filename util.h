@@ -1,3 +1,6 @@
+#ifndef _BABEL_UTIL
+#define _BABEL_UTIL
+
 /*
 Copyright (c) 2007, 2008 by Juliusz Chroboczek
 
@@ -156,3 +159,4 @@ static inline void kdebugf(const char *format, ...) { return; }
 
 #endif
 
+#endif

@@ -1,3 +1,6 @@
+#ifndef _BABEL_SOURCE
+#define _BABEL_SOURCE
+
 /*
 Copyright (c) 2007, 2008 by Juliusz Chroboczek
 
@@ -46,3 +49,5 @@ void update_source(struct source *src,
                    unsigned short seqno, unsigned short metric);
 void expire_sources(void);
 void check_sources_released(void);
+
+#endif
