@@ -2,6 +2,12 @@
 babeld
 babeld.html
 version.h
-cscope.out
+cscope.*
 gmon.out
 core
+TAGS
+tags
+*.rej
+*.orig
+*~
+\#*#
