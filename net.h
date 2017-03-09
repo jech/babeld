@@ -1,3 +1,6 @@
+#ifndef _BABEL_NET
+#define _BABEL_NET
+
 /*
 Copyright (c) 2007, 2008 by Juliusz Chroboczek
 
@@ -27,3 +30,5 @@ int babel_send(int s,
                const struct sockaddr *sin, int slen);
 int tcp_server_socket(int port, int local);
 int unix_server_socket(const char *path);
+
+#endif

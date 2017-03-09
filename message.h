@@ -1,3 +1,6 @@
+#ifndef _BABEL_MESSAGE
+#define _BABEL_MESSAGE
+
 /*
 Copyright (c) 2007, 2008 by Juliusz Chroboczek
 
@@ -109,3 +112,4 @@ void handle_request(struct neighbour *neigh, const unsigned char *prefix,
                     const unsigned char *src_prefix, unsigned char src_plen,
                     unsigned char hop_count,
                     unsigned short seqno, const unsigned char *id);
+#endif

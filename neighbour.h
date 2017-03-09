@@ -1,3 +1,6 @@
+#ifndef _BABEL_NEIGHBOUR
+#define _BABEL_NEIGHBOUR
+
 /*
 Copyright (c) 2007, 2008 by Juliusz Chroboczek
 
@@ -57,3 +60,5 @@ unsigned neighbour_rxcost(struct neighbour *neigh);
 unsigned neighbour_rttcost(struct neighbour *neigh);
 unsigned neighbour_cost(struct neighbour *neigh);
 int valid_rtt(struct neighbour *neigh);
+
+#endif

@@ -2,3 +2,9 @@
 babeld
 babeld.html
 version.h
+cscope.out
+gmon.out
+core
+babeld-whole*
+tags
+TAGS

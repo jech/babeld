@@ -1,3 +1,6 @@
+#ifndef _BABEL_KERNEL
+#define _BABEL_KERNEL
+
 /*
 Copyright (c) 2007, 2008 by Juliusz Chroboczek
 
@@ -109,3 +112,4 @@ int add_rule(int prio, const unsigned char *src_prefix, int src_plen,
 int flush_rule(int prio, int family);
 int change_rule(int new_prio, int old_prio, const unsigned char *src, int plen,
                 int table);
+#endif

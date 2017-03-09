@@ -1,3 +1,6 @@
+#ifndef _BABEL_INTERFACE
+#define _BABEL_INTERFACE
+
 /*
 Copyright (c) 2007, 2008 by Juliusz Chroboczek
 
@@ -143,3 +146,4 @@ void set_timeout(struct timeval *timeout, int msecs);
 int interface_up(struct interface *ifp, int up);
 int interface_ll_address(struct interface *ifp, const unsigned char *address);
 void check_interfaces(void);
+#endif

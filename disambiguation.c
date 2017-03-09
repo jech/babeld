@@ -35,6 +35,7 @@ THE SOFTWARE.
 #include "source.h"
 #include "neighbour.h"
 #include "rule.h"
+#include "disambiguation.h"
 
 struct zone {
     const unsigned char *dst_prefix;

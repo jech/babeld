@@ -1,3 +1,5 @@
+#ifndef _BABEL_BABELD
+#define _BABEL_BABELD
 /*
 Copyright (c) 2007, 2008 by Juliusz Chroboczek
 
@@ -110,3 +112,5 @@ void schedule_neighbours_check(int msecs, int override);
 void schedule_interfaces_check(int msecs, int override);
 int resize_receive_buffer(int size);
 int reopen_logfile(void);
+
+#endif

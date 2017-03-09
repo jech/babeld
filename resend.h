@@ -1,3 +1,6 @@
+#ifndef _BABEL_RESEND
+#define _BABEL_RESEND
+
 /*
 Copyright (c) 2007, 2008 by Juliusz Chroboczek
 
@@ -19,7 +22,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-
 #define REQUEST_TIMEOUT 65000
 #define RESEND_MAX 3
 
@@ -66,3 +68,5 @@ int satisfy_request(const unsigned char *prefix, unsigned char plen,
 void expire_resend(void);
 void recompute_resend_time(void);
 void do_resend(void);
+
+#endif

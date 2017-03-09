@@ -1,3 +1,6 @@
+#ifndef _BABEL_XROUTE
+#define _BABEL_XROUTE
+
 /*
 Copyright (c) 2007, 2008 by Juliusz Chroboczek
 
@@ -45,3 +48,5 @@ void xroute_stream_done(struct xroute_stream *stream);
 int kernel_addresses(int ifindex, int ll,
                      struct kernel_route *routes, int maxroutes);
 int check_xroutes(int send_updates);
+
+#endif
