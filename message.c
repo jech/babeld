@@ -54,8 +54,7 @@ unsigned char *unicast_buffer = NULL;
 struct neighbour *unicast_neighbour = NULL;
 struct timeval unicast_flush_timeout = {0, 0};
 
-static const unsigned char v4prefix[16] =
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0 };
+extern const unsigned char v4prefix[16];
 
 #define MAX_CHANNEL_HOPS 20
 

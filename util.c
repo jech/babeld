@@ -246,7 +246,7 @@ normalize_prefix(unsigned char *restrict ret,
     return ret;
 }
 
-static const unsigned char v4prefix[16] =
+const unsigned char v4prefix[16] =
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0 };
 
 static const unsigned char llprefix[16] =
