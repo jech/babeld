@@ -150,12 +150,12 @@ parse_update_subtlv(struct interface *ifp, int metric,
         }
 
         if(i + 1 > alen) {
-            fprintf(stderr, "Received truncated attributes.\n");
+            fprintf(stderr, "Received truncated sub-TLV on Update.\n");
             return;
         }
         len = a[i + 1];
         if(i + len > alen) {
-            fprintf(stderr, "Received truncated attributes.\n");
+            fprintf(stderr, "Received truncated sub-TLV on Update.\n");
             return;
         }
 
@@ -187,12 +187,12 @@ parse_hello_subtlv(const unsigned char *a, int alen,
         }
 
         if(i + 1 > alen) {
-            fprintf(stderr, "Received truncated sub-TLV on Hello message.\n");
+            fprintf(stderr, "Received truncated sub-TLV on Hello.\n");
             return -1;
         }
         len = a[i + 1];
         if(i + len > alen) {
-            fprintf(stderr, "Received truncated sub-TLV on Hello message.\n");
+            fprintf(stderr, "Received truncated sub-TLV on Hello.\n");
             return -1;
         }
 
@@ -204,7 +204,7 @@ parse_hello_subtlv(const unsigned char *a, int alen,
                 ret = 1;
             } else {
                 fprintf(stderr,
-                        "Received incorrect RTT sub-TLV on Hello message.\n");
+                        "Received incorrect RTT sub-TLV on Hello.\n");
             }
         } else {
             debugf("Received unknown Hello sub-TLV type %d.\n", type);
@@ -230,12 +230,12 @@ parse_ihu_subtlv(const unsigned char *a, int alen,
         }
 
         if(i + 1 > alen) {
-            fprintf(stderr, "Received truncated sub-TLV on IHU message.\n");
+            fprintf(stderr, "Received truncated sub-TLV on IHU.\n");
             return -1;
         }
         len = a[i + 1];
         if(i + len > alen) {
-            fprintf(stderr, "Received truncated sub-TLV on IHU message.\n");
+            fprintf(stderr, "Received truncated sub-TLV on IHU.\n");
             return -1;
         }
 
@@ -249,7 +249,7 @@ parse_ihu_subtlv(const unsigned char *a, int alen,
             }
             else {
                 fprintf(stderr,
-                        "Received incorrect RTT sub-TLV on IHU message.\n");
+                        "Received incorrect RTT sub-TLV on IHU.\n");
             }
         } else {
             debugf("Received unknown IHU sub-TLV type %d.\n", type);
