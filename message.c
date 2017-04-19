@@ -120,7 +120,7 @@ network_prefix(int ae, int plen, unsigned int omitted,
     return ret;
 }
 
-static void
+static int
 parse_update_subtlv(struct interface *ifp, int metric,
                     const unsigned char *a, int alen,
                     unsigned char *channels, int *channels_len_return)
@@ -151,12 +151,12 @@ parse_update_subtlv(struct interface *ifp, int metric,
 
         if(i + 1 > alen) {
             fprintf(stderr, "Received truncated sub-TLV on Update.\n");
-            return;
+            return -1;
         }
         len = a[i + 1];
         if(i + len > alen) {
             fprintf(stderr, "Received truncated sub-TLV on Update.\n");
-            return;
+            return -1;
         }
 
         if(type == SUBTLV_PADN) {
@@ -171,13 +171,15 @@ parse_update_subtlv(struct interface *ifp, int metric,
         i += len + 2;
     }
     *channels_len_return = channels_len;
+    return 1;
 }
 
 static int
 parse_hello_subtlv(const unsigned char *a, int alen,
-                   unsigned int *hello_send_us)
+                   unsigned int *timestamp_return, int *have_timestamp_return)
 {
-    int type, len, i = 0, ret = 0;
+    int type, len, i = 0, have_timestamp = 0;
+    unsigned int timestamp = 0;
 
     while(i < alen) {
         type = a[0];
@@ -200,11 +202,12 @@ parse_hello_subtlv(const unsigned char *a, int alen,
             /* Nothing to do. */
         } else if(type == SUBTLV_TIMESTAMP) {
             if(len >= 4) {
-                DO_NTOHL(*hello_send_us, a + i + 2);
-                ret = 1;
+                DO_NTOHL(timestamp, a + i + 2);
+                have_timestamp = 1;
             } else {
                 fprintf(stderr,
                         "Received incorrect RTT sub-TLV on Hello.\n");
+                /* But don't break. */
             }
         } else {
             debugf("Received unknown Hello sub-TLV type %d.\n", type);
@@ -212,15 +215,22 @@ parse_hello_subtlv(const unsigned char *a, int alen,
 
         i += len + 2;
     }
-    return ret;
+    if(have_timestamp && timestamp_return)
+        *timestamp_return = timestamp;
+    if(have_timestamp_return)
+        *have_timestamp_return = have_timestamp;
+    return 1;
 }
 
 static int
 parse_ihu_subtlv(const unsigned char *a, int alen,
-                 unsigned int *hello_send_us,
-                 unsigned int *hello_rtt_receive_time)
+                 unsigned int *timestamp1_return,
+                 unsigned int *timestamp2_return,
+                 int *have_timestamp_return)
 {
-    int type, len, i = 0, ret = 0;
+    int type, len, i = 0;
+    int have_timestamp = 0;
+    unsigned int timestamp1, timestamp2;
 
     while(i < alen) {
         type = a[0];
@@ -243,13 +253,13 @@ parse_ihu_subtlv(const unsigned char *a, int alen,
             /* Nothing to do. */
         } else if(type == SUBTLV_TIMESTAMP) {
             if(len >= 8) {
-                DO_NTOHL(*hello_send_us, a + i + 2);
-                DO_NTOHL(*hello_rtt_receive_time, a + i + 6);
-                ret = 1;
-            }
-            else {
+                DO_NTOHL(timestamp1, a + i + 2);
+                DO_NTOHL(timestamp2, a + i + 6);
+                have_timestamp = 1;
+            } else {
                 fprintf(stderr,
                         "Received incorrect RTT sub-TLV on IHU.\n");
+                /* But don't break. */
             }
         } else {
             debugf("Received unknown IHU sub-TLV type %d.\n", type);
@@ -257,7 +267,14 @@ parse_ihu_subtlv(const unsigned char *a, int alen,
 
         i += len + 2;
     }
-    return ret;
+    if(have_timestamp && timestamp1_return && timestamp2_return) {
+        *timestamp1_return = timestamp1;
+        *timestamp2_return = timestamp2;
+    }
+    if(have_timestamp_return) {
+        *have_timestamp_return = have_timestamp;
+    }
+    return 1;
 }
 
 static int
@@ -359,7 +376,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             /* Nothing right now */
         } else if(type == MESSAGE_HELLO) {
             unsigned short seqno, interval;
-            int changed;
+            int changed, have_timestamp;
             unsigned int timestamp;
             if(len < 6) goto fail;
             DO_NTOHS(seqno, message + 4);
@@ -374,7 +391,10 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 schedule_neighbours_check(interval * 15, 0);
             /* Sub-TLV handling. */
             if(len > 8) {
-                if(parse_hello_subtlv(message + 8, len - 6, &timestamp) > 0) {
+                int rc;
+                rc = parse_hello_subtlv(message + 8, len - 6,
+                                        &timestamp, &have_timestamp);
+                if(rc >= 0 && have_timestamp) {
                     neigh->hello_send_us = timestamp;
                     neigh->hello_rtt_receive_time = now;
                     have_hello_rtt = 1;
@@ -405,7 +425,8 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 /* RTT sub-TLV. */
                 if(len > 10 + rc)
                     parse_ihu_subtlv(message + 8 + rc, len - 6 - rc,
-                                     &hello_send_us, &hello_rtt_receive_time);
+                                     &hello_send_us, &hello_rtt_receive_time,
+                                     NULL);
             }
         } else if(type == MESSAGE_ROUTER_ID) {
             if(len < 10) {
