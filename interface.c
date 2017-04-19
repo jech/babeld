@@ -353,7 +353,6 @@ interface_up(struct interface *ifp, int up)
                 }
             }
         }
-        printf("Type: %d\n", type);
 
         /* Type is CONFIG_TYPE_AUTO if interface is not known to be
            wireless, so provide sane defaults for that case. */
