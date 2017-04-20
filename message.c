@@ -586,14 +586,14 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    format_address(from), ifp->name);
 
             if(message[2] == 0) {
+                rc = parse_other_subtlv(message + 12, len - 8);
+                if(rc < 0)
+                    goto done;
                 if(metric < 0xFFFF) {
                     fprintf(stderr,
                             "Received wildcard update with finite metric.\n");
                     goto done;
                 }
-                rc = parse_other_subtlv(message + 12, len - 8);
-                if(rc < 0)
-                    goto done;
                 retract_neighbour_routes(neigh);
                 goto done;
             } else if(message[2] == 1) {
@@ -606,15 +606,16 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 nh = neigh->address;
             }
 
+            rc = parse_update_subtlv(ifp, metric, message + 2 + parsed_len,
+                                     len - parsed_len, channels, &channels_len);
+            if (rc < 0)
+                goto done;
+
             if(message[2] == 1) {
                 if(!ifp->ipv4)
                     goto done;
             }
 
-            rc = parse_update_subtlv(ifp, metric, message + 2 + parsed_len,
-                                     len - parsed_len, channels, &channels_len);
-            if (rc < 0)
-                goto done;
             update_route(router_id, prefix, plen, src_prefix, src_plen, seqno,
                          metric, interval, neigh, nh,
                          channels, channels_len);
@@ -730,6 +731,9 @@ parse_packet(const unsigned char *from, struct interface *ifp,
 
             if(ae == 0) {
                 debugf("Received invalid Source-Specific wildcard update.\n");
+                rc = parse_other_subtlv(message + 12, len - 8);
+                if(rc < 0)
+                    goto done;
                 retract_neighbour_routes(neigh);
                 goto done;
             } else if(ae == 1) {
@@ -742,15 +746,16 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 nh = neigh->address;
             }
 
+            rc = parse_update_subtlv(ifp, metric, message + 2 + parsed_len,
+                                     len - parsed_len, channels, &channels_len);
+            if(rc < 0)
+                goto done;
+
             if(ae == 1) {
                 if(!ifp->ipv4)
                     goto done;
             }
 
-            rc = parse_update_subtlv(ifp, metric, message + 2 + parsed_len,
-                                     len - parsed_len, channels, &channels_len);
-            if(rc < 0)
-                goto done;
             update_route(router_id, prefix, plen, src_prefix, src_plen,
                          seqno, metric, interval, neigh, nh,
                          channels, channels_len);
