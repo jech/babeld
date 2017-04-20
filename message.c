@@ -433,16 +433,16 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             debugf("Received hello %d (%d) from %s on %s.\n",
                    seqno, interval,
                    format_address(from), ifp->name);
-            changed = update_neighbour(neigh, seqno, interval);
-            update_neighbour_metric(neigh, changed);
-            if(interval > 0)
-                /* Multiply by 3/2 to allow hellos to expire. */
-                schedule_neighbours_check(interval * 15, 0);
             /* Sub-TLV handling. */
             rc = parse_hello_subtlv(message + 8, len - 6,
                                     &timestamp, &have_timestamp);
             if(rc < 0)
                 goto done;
+            changed = update_neighbour(neigh, seqno, interval);
+            update_neighbour_metric(neigh, changed);
+            if(interval > 0)
+                /* Multiply by 3/2 to allow hellos to expire. */
+                schedule_neighbours_check(interval * 15, 0);
             if(have_timestamp) {
                 neigh->hello_send_us = timestamp;
                 neigh->hello_rtt_receive_time = now;
@@ -604,8 +604,10 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                     goto done;
             }
 
-            parse_update_subtlv(ifp, metric, message + 2 + parsed_len,
-                                len - parsed_len, channels, &channels_len);
+            rc = parse_update_subtlv(ifp, metric, message + 2 + parsed_len,
+                                     len - parsed_len, channels, &channels_len);
+            if (rc < 0)
+                goto done;
             update_route(router_id, prefix, plen, zeroes, 0, seqno,
                          metric, interval, neigh, nh,
                          channels, channels_len);
@@ -624,9 +626,6 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             if(rc < 0)
                 goto done;
             if(message[2] == 0) {
-                rc = parse_other_subtlv(message + 4, len - 2);
-                if(rc < 0)
-                    goto done;
                 /* If a neighbour is requesting a full route dump from us,
                    we might as well send it an IHU. */
                 send_ihu(neigh, NULL);
@@ -649,7 +648,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             rc = network_prefix(message[2], message[3], 0,
                                 message + 16, NULL, len - 14, prefix);
             if(rc < 0) goto fail;
-            rc = parse_other_subtlv(message + 8 + rc, len - 6 - rc);
+            rc = parse_other_subtlv(message + 16 + rc, len - 14 - rc);
             if(rc < 0)
                 goto done;
             plen = message[3] + (message[2] == 1 ? 96 : 0);
@@ -753,7 +752,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             if(ae == 1)
                 src_plen += 96;
             parsed += rc;
-            rc = parse_other_subtlv(message + parsed, len - parsed - 2);
+            rc = parse_other_subtlv(message + parsed, len - parsed + 2);
             if(rc < 0)
                 goto done;
             if(ae == 0) {
@@ -794,7 +793,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                                 NULL, len + 2 - parsed, src_prefix);
             if(rc < 0) goto fail;
             parsed += rc;
-            rc = parse_other_subtlv(message + parsed, len - parsed - 2);
+            rc = parse_other_subtlv(message + parsed, len - parsed + 2);
             if(rc < 0)
                 goto done;
             if(ae == 1)
