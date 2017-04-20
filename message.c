@@ -115,9 +115,10 @@ network_prefix(int ae, int plen, unsigned int omitted,
 }
 
 static int
-parse_update_subtlv(struct interface *ifp, int metric,
+parse_update_subtlv(struct interface *ifp, int metric, int ae,
                     const unsigned char *a, int alen,
-                    unsigned char *channels, int *channels_len_return)
+                    unsigned char *channels, int *channels_len_return,
+                    unsigned char *src_prefix, unsigned char *src_plen)
 {
     int type, len, i = 0;
     int channels_len;
@@ -143,21 +144,28 @@ parse_update_subtlv(struct interface *ifp, int metric,
             continue;
         }
 
-        if(i + 1 > alen) {
-            fprintf(stderr, "Received truncated sub-TLV on Update.\n");
-            return -1;
-        }
+        if(i + 1 > alen)
+            goto fail;
         len = a[i + 1];
-        if(i + len + 2 > alen) {
-            fprintf(stderr, "Received truncated sub-TLV on Update.\n");
-            return -1;
-        }
+        if(i + len + 2 > alen)
+            goto fail;
 
         if(type == SUBTLV_PADN) {
             /* Nothing. */
         } else if(type == SUBTLV_DIVERSITY) {
             memcpy(channels, a + i + 2, MIN(len, *channels_len_return));
             channels_len = MIN(len, *channels_len_return);
+        } else if(type == SUBTLV_SOURCE_PREFIX) {
+            int rc;
+            if(len < 1)
+                goto fail;
+            *src_plen = a[i + 2];
+            rc = network_prefix(ae, *src_plen, 0, a + i + 3, NULL,
+                                len - 1, src_prefix);
+            if(rc < 0)
+                goto fail;
+            if(ae == 1)
+                (*src_plen) += 96;
         } else {
             debugf("Received unknown%s Update sub-TLV %d.\n",
                    (type & 0x80) != 0 ? " mandatory" : "", type);
@@ -169,6 +177,10 @@ parse_update_subtlv(struct interface *ifp, int metric,
     }
     *channels_len_return = channels_len;
     return 1;
+
+ fail:
+    fprintf(stderr, "Received truncated sub-TLV on Update.\n");
+    return -1;
 }
 
 static int
@@ -243,6 +255,7 @@ parse_ihu_subtlv(const unsigned char *a, int alen,
             fprintf(stderr, "Received truncated sub-TLV on IHU.\n");
             return -1;
         }
+
         len = a[i + 1];
         if(i + len + 2 > alen) {
             fprintf(stderr, "Received truncated sub-TLV on IHU.\n");
@@ -281,6 +294,102 @@ parse_ihu_subtlv(const unsigned char *a, int alen,
 }
 
 static int
+parse_request_subtlv(int ae, const unsigned char *a, int alen,
+                     unsigned char *src_prefix, unsigned char *src_plen)
+{
+    int type, len, i = 0;
+
+    while(i < alen) {
+        type = a[0];
+        if(type == SUBTLV_PAD1) {
+            i++;
+            continue;
+        }
+
+        if(i + 1 > alen)
+            goto fail;
+
+        len = a[i + 1];
+        if(i + len > alen)
+            goto fail;
+
+        if(type == SUBTLV_PADN) {
+            /* Nothing to do. */
+        } else if(type == SUBTLV_SOURCE_PREFIX) {
+            int rc;
+            if(len < 1)
+                goto fail;
+            *src_plen = a[i + 2];
+            rc = network_prefix(ae, *src_plen, 0, a + i + 3, NULL,
+                                len - 1, src_prefix);
+            if(rc < 0)
+                goto fail;
+            if(ae == 1)
+                (*src_plen) += 96;
+        } else {
+            debugf("Received unknown%s Route Request sub-TLV %d.\n",
+                   ((type & 0x80) != 0) ? " mandatory" : "", type);
+            if((type & 0x80) != 0)
+                return -1;
+        }
+
+        i += len + 2;
+    }
+    return 1;
+
+ fail:
+    fprintf(stderr, "Received truncated sub-TLV on Route Request.\n");
+    return -1;
+}
+
+static int
+parse_seqno_request_subtlv(int ae, const unsigned char *a, int alen,
+                           unsigned char *src_prefix, unsigned char *src_plen)
+{
+    int type, len, i = 0;
+
+    while(i < alen) {
+        type = a[0];
+        if(type == SUBTLV_PAD1) {
+            i++;
+            continue;
+        }
+
+        if(i + 1 > alen)
+            goto fail;
+        len = a[i + 1];
+        if(i + len + 2 > alen)
+            goto fail;
+
+        if(type == SUBTLV_PADN) {
+            /* Nothing to do. */
+        } else if(type == SUBTLV_SOURCE_PREFIX) {
+            int rc;
+            if(len < 1)
+                goto fail;
+            *src_plen = a[i + 2];
+            rc = network_prefix(ae, *src_plen, 0, a + i + 3, NULL,
+                                len - 1, src_prefix);
+            if(rc < 0)
+                goto fail;
+            if(ae == 1)
+                (*src_plen) += 96;
+        } else {
+            debugf("Received unknown%s Route Request sub-TLV %d.\n",
+                   ((type & 0x80) != 0) ? " mandatory" : "", type);
+            if((type & 0x80) != 0)
+                return -1;
+        }
+
+        i += len + 2;
+    }
+    return 1;
+ fail:
+    fprintf(stderr, "Received truncated sub-TLV on Route Request.\n");
+    return -1;
+}
+
+static int
 parse_other_subtlv(const unsigned char *a, int alen)
 {
     int type, len, i = 0;
@@ -292,15 +401,11 @@ parse_other_subtlv(const unsigned char *a, int alen)
             continue;
         }
 
-        if(i + 1 > alen) {
-            fprintf(stderr, "Received truncated sub-TLV.\n");
-            return -1;
-        }
+        if(i + 1 > alen)
+            goto fail;
         len = a[i + 1];
-        if(i + len + 2 > alen) {
-            fprintf(stderr, "Received truncated sub-TLV.\n");
-            return -1;
-        }
+        if(i + len > alen)
+            goto fail;
 
         if((type & 0x80) != 0) {
             debugf("Received unknown mandatory sub-TLV %d.\n", type);
@@ -310,6 +415,9 @@ parse_other_subtlv(const unsigned char *a, int alen)
         i += len + 2;
     }
     return 1;
+ fail:
+    fprintf(stderr, "Received truncated sub-TLV.\n");
+    return -1;
 }
 
 static int
@@ -522,7 +630,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             unsigned char channels[MAX_CHANNEL_HOPS];
             int channels_len = MAX_CHANNEL_HOPS;
             unsigned short interval, seqno, metric;
-            int rc, parsed_len;
+            int rc, parsed_len, is_ss;
             if(len < 10) {
                 if(len < 2 || message[3] & 0x80)
                     have_v4_prefix = have_v6_prefix = 0;
@@ -582,7 +690,6 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    (message[3] & 0x40) ? "/id" : "",
                    format_prefix(prefix, plen),
                    format_address(from), ifp->name);
-
             if(message[2] == 0) {
                 rc = parse_other_subtlv(message + 12, len - 10);
                 if(rc < 0)
@@ -604,10 +711,20 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 nh = neigh->address;
             }
 
-            rc = parse_update_subtlv(ifp, metric, message + 2 + parsed_len,
-                                     len - parsed_len, channels, &channels_len);
-            if (rc < 0)
+            rc = parse_update_subtlv(ifp, metric, message[2],
+                                     message + 2 + parsed_len,
+                                     len - parsed_len, channels, &channels_len,
+                                     src_prefix, &src_plen);
+            if(rc < 0)
                 goto done;
+            is_ss = !is_default(src_prefix, src_plen);
+            debugf("Received update%s%s for dst %s%s%s from %s on %s.\n",
+                   (message[3] & 0x80) ? "/prefix" : "",
+                   (message[3] & 0x40) ? "/id" : "",
+                   format_prefix(prefix, plen),
+                   is_ss ? " src " : "",
+                   is_ss ? format_prefix(src_prefix, src_plen) : "",
+                   format_address(from), ifp->name);
 
             if(message[2] == 1) {
                 if(!ifp->ipv4)
@@ -619,51 +736,11 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                          channels, channels_len);
         } else if(type == MESSAGE_REQUEST) {
             unsigned char prefix[16], src_prefix[16], plen, src_plen;
-            int rc;
+            int rc, is_ss;
             if(len < 2) goto fail;
             rc = network_prefix(message[2], message[3], 0,
                                 message + 4, NULL, len - 2, prefix);
             if(rc < 0) goto fail;
-            plen = message[3] + (message[2] == 1 ? 96 : 0);
-            debugf("Received request for %s from %s on %s.\n",
-                   message[2] == 0 ? "any" : format_prefix(prefix, plen),
-                   format_address(from), ifp->name);
-            rc = parse_other_subtlv(message + 4 + rc, len - 2 - rc);
-            if(rc < 0)
-                goto done;
-            if(message[2] == 0) {
-                /* If a neighbour is requesting a full route dump from us,
-                   we might as well send it an IHU. */
-                send_ihu(neigh, NULL);
-                /* Since nodes send wildcard requests on boot, booting
-                   a large number of nodes at the same time may cause an
-                   update storm.  Ignore a wildcard request that happens
-                   shortly after we sent a full update. */
-                if(neigh->ifp->last_update_time <
-                   now.tv_sec - MAX(neigh->ifp->hello_interval / 100, 1))
-                    send_update(neigh->ifp, 0, NULL, 0, zeroes, 0);
-            } else {
-                if(message[2] == 1) {
-                    v4tov6(src_prefix, zeroes);
-                    src_plen = 96;
-                } else {
-                    memcpy(src_prefix, zeroes, 16);
-                    src_plen = 0;
-                }
-                send_update(neigh->ifp, 0, prefix, plen, src_prefix, src_plen);
-            }
-        } else if(type == MESSAGE_MH_REQUEST) {
-            unsigned char prefix[16], src_prefix[16], plen, src_plen;
-            unsigned short seqno;
-            int rc;
-            if(len < 14) goto fail;
-            DO_NTOHS(seqno, message + 4);
-            rc = network_prefix(message[2], message[3], 0,
-                                message + 16, NULL, len - 14, prefix);
-            if(rc < 0) goto fail;
-            rc = parse_other_subtlv(message + 16 + rc, len - 14 - rc);
-            if(rc < 0)
-                goto done;
             plen = message[3] + (message[2] == 1 ? 96 : 0);
             if(message[2] == 1) {
                 v4tov6(src_prefix, zeroes);
@@ -672,9 +749,68 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 memcpy(src_prefix, zeroes, 16);
                 src_plen = 0;
             }
-            debugf("Received request (%d) for %s from %s on %s (%s, %d).\n",
+            rc = parse_request_subtlv(message[2], message + 4 + rc,
+                                      len - 2 - rc, src_prefix, &src_plen);
+            if(rc < 0)
+                goto done;
+            is_ss = !is_default(src_prefix, src_plen);
+            if(message[2] == 0) {
+                if(is_ss) {
+                    /* Wildcard requests don't carry a source prefix. */
+                    fprintf(stderr,
+                            "Received source-specific wildcard request.\n");
+                    goto done;
+                }
+                debugf("Received request for any from %s on %s.\n",
+                       format_address(from), ifp->name);
+                /* If a neighbour is requesting a full route dump from us,
+                   we might as well send it an IHU. */
+                send_ihu(neigh, NULL);
+                /* Since nodes send wildcard requests on boot, booting
+                   a large number of nodes at the same time may cause an
+                   update storm.  Ignore a wildcard request that happens
+                   shortly after we sent a full update. */
+                if(neigh->ifp->last_update_time <
+                   now.tv_sec - MAX(neigh->ifp->hello_interval / 100, 1)) {
+                    send_update(neigh->ifp, 0, NULL, 0, NULL, 0);
+                }
+            } else {
+                debugf("Received request for dst %s%s%s from %s on %s.\n",
+                       message[2] == 0 ? "" : format_prefix(prefix, plen),
+                       is_ss ? " src " : "",
+                       is_ss ? format_prefix(src_prefix, src_plen) : "",
+                       format_address(from), ifp->name);
+                send_update(neigh->ifp, 0, prefix, plen, src_prefix, src_plen);
+            }
+        } else if(type == MESSAGE_MH_REQUEST) {
+            unsigned char prefix[16], src_prefix[16], plen, src_plen;
+            unsigned short seqno;
+            int rc, is_ss;
+            if(len < 14) goto fail;
+            DO_NTOHS(seqno, message + 4);
+            rc = network_prefix(message[2], message[3], 0,
+                                message + 16, NULL, len - 14, prefix);
+            if(rc < 0) goto fail;
+            if(message[2] == 1) {
+                v4tov6(src_prefix, zeroes);
+                src_plen = 96;
+            } else {
+                memcpy(src_prefix, zeroes, 16);
+                src_plen = 0;
+            }
+            rc = parse_seqno_request_subtlv(message[2], message + 16 + rc,
+                                            len - 14 - rc, src_prefix,
+                                            &src_plen);
+            if(rc < 0)
+                goto done;
+            is_ss = !is_default(src_prefix, src_plen);
+            plen = message[3] + (message[2] == 1 ? 96 : 0);
+            debugf("Received request (%d) for dst %s%s%s from %s on "
+                   "%s (%s, %d).\n",
                    message[6],
                    format_prefix(prefix, plen),
+                   is_ss ? " src " : "",
+                   is_ss ? format_prefix(src_prefix, src_plen) : "",
                    format_address(from), ifp->name,
                    format_eui64(message + 8), seqno);
             handle_request(neigh, prefix, plen, src_prefix, src_plen,
