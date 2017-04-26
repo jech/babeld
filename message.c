@@ -299,12 +299,12 @@ parse_other_subtlv(const unsigned char *a, int alen)
         }
 
         if(i + 1 > alen) {
-            fprintf(stderr, "Received truncated sub-TLV on IHU.\n");
+            fprintf(stderr, "Received truncated sub-TLV.\n");
             return -1;
         }
         len = a[i + 1];
         if(i + len > alen) {
-            fprintf(stderr, "Received truncated sub-TLV on IHU.\n");
+            fprintf(stderr, "Received truncated sub-TLV.\n");
             return -1;
         }
 
@@ -586,7 +586,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    format_address(from), ifp->name);
 
             if(message[2] == 0) {
-                rc = parse_other_subtlv(message + 12, len - 8);
+                rc = parse_other_subtlv(message + 12, len - 10);
                 if(rc < 0)
                     goto done;
                 if(metric < 0xFFFF) {
@@ -731,7 +731,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
 
             if(ae == 0) {
                 debugf("Received invalid Source-Specific wildcard update.\n");
-                rc = parse_other_subtlv(message + 12, len - 8);
+                rc = parse_other_subtlv(message + 12, len - 10);
                 if(rc < 0)
                     goto done;
                 retract_neighbour_routes(neigh);
