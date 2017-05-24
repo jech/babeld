@@ -483,13 +483,13 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 have_router_id = 0;
                 goto fail;
             }
-            rc = parse_other_subtlv(message + 12, len - 10);
-            if(rc < 0)
-                goto done;
             memcpy(router_id, message + 4, 8);
             have_router_id = 1;
             debugf("Received router-id %s from %s on %s.\n",
                    format_eui64(router_id), format_address(from), ifp->name);
+            rc = parse_other_subtlv(message + 12, len - 10);
+            if(rc < 0)
+                goto done;
         } else if(type == MESSAGE_NH) {
             unsigned char nh[16];
             int rc;
@@ -508,9 +508,6 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             debugf("Received nh %s (%d) from %s on %s.\n",
                    format_address(nh), message[2],
                    format_address(from), ifp->name);
-            rc = parse_other_subtlv(message + 4 + rc, len - 2 - rc);
-            if(rc < 0)
-                goto done;
             if(message[2] == 1) {
                 memcpy(v4_nh, nh, 16);
                 have_v4_nh = 1;
@@ -518,6 +515,9 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 memcpy(v6_nh, nh, 16);
                 have_v6_nh = 1;
             }
+            rc = parse_other_subtlv(message + 4 + rc, len - 2 - rc);
+            if(rc < 0)
+                goto done;
         } else if(type == MESSAGE_UPDATE) {
             unsigned char prefix[16], src_prefix[16], *nh;
             unsigned char plen, src_plen;
