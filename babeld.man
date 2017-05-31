@@ -129,12 +129,15 @@ configuration, and may therefore be a security issue.
 .TP
 .BI \-t " table"
 Use the given kernel routing table for routes inserted by
-.BR babeld .
+.BR babeld . Default: RT_TABLE_MAIN. 
 .TP
 .BI \-T " table"
 Export routes from the given kernel routing table. This can be
 specified multiple times in order to export routes from more than one
-table.
+table. Default: RT_TABLE_MAIN. When set, RT_TABLE_MAIN is not 
+redistributed unless specified explicitly. Note:
+.BR local 
+routes are exported in addition
 .TP
 .BI \-c " filename"
 Specify the name of the configuration file.  This flag can be repeated
@@ -254,7 +257,7 @@ configuration.
 This specifies the kernel routing table to use for routes inserted by
 .BR babeld ,
 and is equivalent to the command-line option
-.BR \-t .
+.BR \-t . Default: RT_TABLE_MAIN.
 .TP
 .BI import-table " table"
 This specifies a kernel routing table from which routes are
@@ -262,7 +265,10 @@ redistributed by
 .BR babeld ,
 and can be specified multiple times with a cumulative effect.  This is
 equivalent to the command-line option
-.BR \-T .
+.BR \-T . Default: RT_TABLE_MAIN. When set, RT_TABLE_MAIN is not
+redistributed unless specified explicitly. Note: 
+.BR local 
+routes are exported in addition
 .TP
 .BR link-detect " {" true | false }
 This specifies whether to use carrier sense for determining interface
