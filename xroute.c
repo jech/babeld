@@ -249,7 +249,7 @@ check_xroutes(int send_updates)
 {
     int i, j, metric, export, change = 0, rc;
     struct kernel_route *routes;
-    struct filter_result filter_result = {0};
+    struct filter_result filter_result;
     int numroutes, numaddresses;
     static int maxroutes = 8;
     const int maxmaxroutes = 16 * 1024;
@@ -286,7 +286,6 @@ check_xroutes(int send_updates)
     /* Apply filter to kernel routes (e.g. change the source prefix). */
 
     for(i = numaddresses; i < numroutes; i++) {
-        filter_result.src_prefix = NULL;
         redistribute_filter(routes[i].prefix, routes[i].plen,
                             routes[i].src_prefix, routes[i].src_plen,
                             routes[i].ifindex, routes[i].proto,
