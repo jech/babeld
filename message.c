@@ -438,6 +438,9 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                                     &timestamp, &have_timestamp);
             if(rc < 0)
                 goto done;
+            if(message[2] & 0x80)
+                 /* Unicast, ignored for now. */
+                goto done;
             changed = update_neighbour(neigh, seqno, interval);
             update_neighbour_metric(neigh, changed);
             if(interval > 0)
