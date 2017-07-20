@@ -90,11 +90,11 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
         return NULL;
     }
 
-    neigh->hello.seqno = -1;
+    neigh->hello.seqno = neigh->uhello.seqno = -1;
     memcpy(neigh->address, address, 16);
     neigh->txcost = INFINITY;
     neigh->ihu_time = now;
-    neigh->hello.time = zero;
+    neigh->hello.time = neigh->uhello.time = zero;
     neigh->hello_rtt_receive_time = zero;
     neigh->rtt_time = zero;
     neigh->ifp = ifp;
@@ -109,7 +109,7 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
    This does not call local_notify_neighbour, see update_neighbour_metric. */
 int
 update_neighbour(struct neighbour *neigh, struct hello_history *hist,
-                 int hello, int hello_interval)
+                 int unicast, int hello, int hello_interval)
 {
     int missed_hellos;
     int rc = 0;
@@ -162,6 +162,9 @@ update_neighbour(struct neighbour *neigh, struct hello_history *hist,
         if((hist->reach & 0xFC00) != 0xFC00)
             rc = 1;
     }
+
+    if(unicast)
+        return rc;
 
     /* Make sure to give neighbours some feedback early after association */
     if((hist->reach & 0xBF00) == 0x8000) {
@@ -218,14 +221,16 @@ unsigned
 check_neighbours()
 {
     struct neighbour *neigh;
-    int changed, rc;
     unsigned msecs = 50000;
 
     debugf("Checking neighbours.\n");
 
     neigh = neighs;
     while(neigh) {
-        changed = update_neighbour(neigh, &neigh->hello, -1, 0);
+        int changed, rc;
+        changed = update_neighbour(neigh, &neigh->hello, 0, -1, 0);
+        rc = update_neighbour(neigh, &neigh->uhello, 1, -1, 0);
+        changed = changed || rc;
 
         if(neigh->hello.reach == 0 ||
            neigh->hello.time.tv_sec > now.tv_sec || /* clock stepped */

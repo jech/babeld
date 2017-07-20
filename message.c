@@ -425,9 +425,10 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             /* Nothing right now */
         } else if(type == MESSAGE_HELLO) {
             unsigned short seqno, interval;
-            int changed, have_timestamp, rc;
+            int unicast, changed, have_timestamp, rc;
             unsigned int timestamp;
             if(len < 6) goto fail;
+            unicast = !!(message[2] & 0x80);
             DO_NTOHS(seqno, message + 4);
             DO_NTOHS(interval, message + 6);
             debugf("Received hello %d (%d) from %s on %s.\n",
@@ -438,10 +439,10 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                                     &timestamp, &have_timestamp);
             if(rc < 0)
                 goto done;
-            if(message[2] & 0x80)
-                 /* Unicast, ignored for now. */
-                goto done;
-            changed = update_neighbour(neigh, &neigh->hello, seqno, interval);
+            changed =
+                update_neighbour(neigh,
+                                 unicast ? &neigh->uhello : &neigh->hello,
+                                 unicast, seqno, interval);
             update_neighbour_metric(neigh, changed);
             if(interval > 0)
                 /* Multiply by 3/2 to allow hellos to expire. */
