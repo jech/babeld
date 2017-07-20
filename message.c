@@ -441,7 +441,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             if(message[2] & 0x80)
                  /* Unicast, ignored for now. */
                 goto done;
-            changed = update_neighbour(neigh, seqno, interval);
+            changed = update_neighbour(neigh, &neigh->hello, seqno, interval);
             update_neighbour_metric(neigh, changed);
             if(interval > 0)
                 /* Multiply by 3/2 to allow hellos to expire. */
@@ -1837,7 +1837,7 @@ send_marginal_ihu(struct interface *ifp)
     FOR_ALL_NEIGHBOURS(neigh) {
         if(ifp && neigh->ifp != ifp)
             continue;
-        if(neigh->txcost >= 384 || (neigh->reach & 0xF000) != 0xF000)
+        if(neigh->txcost >= 384 || (neigh->hello.reach & 0xF000) != 0xF000)
             send_ihu(neigh, ifp);
     }
 }

@@ -1117,7 +1117,7 @@ dump_tables(FILE *out)
                 "rtt %s rttcost %d chan %d%s.\n",
                 format_address(neigh->address),
                 neigh->ifp->name,
-                neigh->reach,
+                neigh->hello.reach,
                 neighbour_rxcost(neigh),
                 neigh->txcost,
                 format_thousands(neigh->rtt),

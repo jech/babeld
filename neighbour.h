@@ -20,16 +20,20 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+struct hello_history {
+    unsigned short reach;
+    unsigned short interval;    /* in centiseconds */
+    int seqno;
+    struct timeval time;
+};
+
 struct neighbour {
     struct neighbour *next;
     /* This is -1 when unknown, so don't make it unsigned */
-    int hello_seqno;
     unsigned char address[16];
-    unsigned short reach;
+    struct hello_history hello;
     unsigned short txcost;
-    struct timeval hello_time;
     struct timeval ihu_time;
-    unsigned short hello_interval; /* in centiseconds */
     unsigned short ihu_interval;   /* in centiseconds */
     /* Used for RTT estimation. */
     /* Absolute time (modulo 2^32) at which the Hello was sent,
@@ -50,7 +54,8 @@ int neighbour_valid(struct neighbour *neigh);
 void flush_neighbour(struct neighbour *neigh);
 struct neighbour *find_neighbour(const unsigned char *address,
                                  struct interface *ifp);
-int update_neighbour(struct neighbour *neigh, int hello, int hello_interval);
+int update_neighbour(struct neighbour *neigh, struct hello_history *hist,
+                     int hello, int hello_interval);
 unsigned check_neighbours(void);
 unsigned neighbour_txcost(struct neighbour *neigh);
 unsigned neighbour_rxcost(struct neighbour *neigh);
