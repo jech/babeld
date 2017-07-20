@@ -196,11 +196,6 @@ at least
 Do not use this option unless you know what you are doing, as it can
 cause persistent route flapping.
 .TP
-.BR keep-unfeasible " {" true | false }
-This specifies whether to keep unfeasible (useless) routes, and is
-equivalent to the command-line option
-.BR \-u .
-.TP
 .BR random-id " {" true | false }
 This specifies whether to use a random router-id, and is
 equivalent to the command-line option

@@ -47,7 +47,6 @@ int kernel_metric = 0, reflect_kernel_metric = 0;
 int allow_duplicates = -1;
 int diversity_kind = DIVERSITY_NONE;
 int diversity_factor = 256;     /* in units of 1/256 */
-int keep_unfeasible = 0;
 
 static int smoothing_half_life = 0;
 static int two_to_the_one_over_hl = 0; /* 2^(1/hl) * 0x10000 */
@@ -906,7 +905,7 @@ update_route(const unsigned char *id,
         }
 
         route->src = retain_source(src);
-        if((feasible || keep_unfeasible) && refmetric < INFINITY)
+        if(refmetric < INFINITY)
             route->time = now.tv_sec;
         route->seqno = seqno;
 
@@ -950,8 +949,6 @@ update_route(const unsigned char *id,
             return NULL;
         if(!feasible) {
             send_unfeasible_request(neigh, 0, seqno, metric, src);
-            if(!keep_unfeasible)
-                return NULL;
         }
 
         route = calloc(1, sizeof(struct babel_route));
