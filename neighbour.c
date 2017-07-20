@@ -256,15 +256,32 @@ check_neighbours()
     return msecs;
 }
 
+/* To lose one hello is a misfortune, to lose two is carelessness. */
+static int
+two_three(int reach)
+{
+    if((reach & 0xC000) == 0xC000)
+        return 1;
+    else if((reach & 0xC000) == 0)
+        return 0;
+    else if((reach & 0x2000))
+        return 1;
+    else
+        return 0;
+}
+
 unsigned
 neighbour_rxcost(struct neighbour *neigh)
 {
-    unsigned delay;
+    unsigned delay, udelay;
     unsigned short reach = neigh->hello.reach;
+    unsigned short ureach = neigh->uhello.reach;
 
     delay = timeval_minus_msec(&now, &neigh->hello.time);
+    udelay = timeval_minus_msec(&now, &neigh->uhello.time);
 
-    if((reach & 0xFFF0) == 0 || delay >= 180000) {
+    if(((reach & 0xFFF0) == 0 || delay >= 180000) &&
+       ((ureach & 0xFFF0) == 0 || udelay >= 180000)) {
         return INFINITY;
     } else if((neigh->ifp->flags & IF_LQ)) {
         int sreach =
@@ -278,12 +295,7 @@ neighbour_rxcost(struct neighbour *neigh)
             cost = (cost * (delay - 20000) + 10000) / 20000;
         return MIN(cost, INFINITY);
     } else {
-        /* To lose one hello is a misfortune, to lose two is carelessness. */
-        if((reach & 0xC000) == 0xC000)
-            return neigh->ifp->cost;
-        else if((reach & 0xC000) == 0)
-            return INFINITY;
-        else if((reach & 0x2000))
+        if(two_three(reach) || two_three(ureach))
             return neigh->ifp->cost;
         else
             return INFINITY;
