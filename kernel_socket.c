@@ -312,7 +312,6 @@ kernel_interface_operational(const char *ifname, int ifindex)
         return -1;
 
     memset(&req, 0, sizeof(req));
-    memset(&req, 0, sizeof(req));
     strncpy(req.ifr_name, ifname, sizeof(req.ifr_name));
     rc = ioctl(s, SIOCGIFFLAGS, &req);
     close(s);
