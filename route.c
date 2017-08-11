@@ -882,9 +882,10 @@ update_route(const unsigned char *id,
 
     if(route) {
         struct source *oldsrc;
-        unsigned short oldmetric;
+        unsigned short oldmetric, oldinstalled;
         int lost = 0;
 
+        oldinstalled = route->installed;
         oldsrc = route->src;
         oldmetric = route_metric(route);
 
@@ -935,12 +936,14 @@ update_route(const unsigned char *id,
         route->hold_time = hold_time;
 
         route_changed(route, oldsrc, oldmetric);
+        if(!lost) {
+            lost = oldinstalled &&
+                find_installed_route(prefix, plen, src_prefix, src_plen) == NULL;
+        }
         if(lost)
             route_lost(oldsrc, oldmetric);
-
-        if(!feasible)
-            send_unfeasible_request(neigh, route->installed && route_old(route),
-                                    seqno, metric, src);
+        else if(!feasible)
+            send_unfeasible_request(neigh, route_old(route), seqno, metric, src);
         release_source(oldsrc);
     } else {
         struct babel_route *new_route;
