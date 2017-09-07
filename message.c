@@ -413,7 +413,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    txcost, interval,
                    format_address(from), ifp->name,
                    format_address(address));
-            if(message[2] == 0 || interface_ll_address(ifp, address)) {
+            if(message[2] == 0 || interface_ll_address(ifp, address) || IF_CONF(ifp, type) == IF_TYPE_TUNNEL) {
                 int changed = txcost != neigh->txcost;
                 neigh->txcost = txcost;
                 neigh->ihu_time = now;
