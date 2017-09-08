@@ -1312,10 +1312,13 @@ parse_addr_rta(struct ifaddrmsg *addr, int len, struct in6_addr *res)
     struct rtattr *rta;
     len -= NLMSG_ALIGN(sizeof(*addr));
     rta = IFA_RTA(addr);
+    int has_local = 0; /* A _LOCAL TLV may be bound with a _ADDRESS' which
+        represents the peer's address.  In this case, ignore _ADDRESS. */
 
     while(RTA_OK(rta, len)) {
         switch(rta->rta_type) {
         case IFA_LOCAL:
+            has_local = 1;
         case IFA_ADDRESS:
             switch(addr->ifa_family) {
             case AF_INET:
@@ -1332,6 +1335,8 @@ parse_addr_rta(struct ifaddrmsg *addr, int len, struct in6_addr *res)
                 return -1;
                 break;
             }
+            if(has_local)
+                return 0;
             break;
         default:
             break;
