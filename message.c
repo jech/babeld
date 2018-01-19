@@ -946,8 +946,6 @@ flushbuf(struct interface *ifp)
 
     assert(ifp->buf.len <= ifp->buf.size);
 
-    flushupdates(ifp);
-
     if(ifp->buf.len > 0) {
         debugf("  (flushing %d buffered bytes on %s)\n",
                ifp->buf.len, ifp->name);
@@ -1141,8 +1139,10 @@ send_hello_noupdate(struct interface *ifp, unsigned interval)
 {
     /* This avoids sending multiple hellos in a single packet, which breaks
        link quality estimation. */
-    if(ifp->buf.hello >= 0)
+    if(ifp->buf.hello >= 0) {
+        flushupdates(ifp);
         flushbuf(ifp);
+    }
 
     ifp->hello_seqno = seqno_plus(ifp->hello_seqno, 1);
     set_timeout(&ifp->hello_timeout, ifp->hello_interval);

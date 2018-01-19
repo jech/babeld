@@ -780,8 +780,10 @@ main(int argc, char **argv)
             if(!if_up(ifp))
                 continue;
             if(ifp->buf.timeout.tv_sec != 0) {
-                if(timeval_compare(&now, &ifp->buf.timeout) >= 0)
+                if(timeval_compare(&now, &ifp->buf.timeout) >= 0) {
+                    flushupdates(ifp);
                     flushbuf(ifp);
+                }
             }
         }
 
