@@ -80,8 +80,6 @@ add_interface(char *ifname, struct interface_conf *if_conf)
 
     strncpy(ifp->name, ifname, IF_NAMESIZE);
     ifp->conf = if_conf ? if_conf : default_interface_conf;
-    ifp->bucket_time = now.tv_sec;
-    ifp->bucket = BUCKET_TOKENS_MAX;
     ifp->hello_seqno = (random() & 0xFFFF);
 
     if(interfaces == NULL)
