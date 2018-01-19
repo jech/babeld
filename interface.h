@@ -76,6 +76,22 @@ struct interface_conf {
 #define IF_CHANNEL_INTERFERING 255
 #define IF_CHANNEL_NONINTERFERING -2
 
+struct buffered {
+    char *buf;
+    int len;
+    int size;
+    struct timeval timeout;
+    char have_id;
+    char have_nh;
+    char have_prefix;
+    unsigned char id[8];
+    unsigned char nh[4];
+    unsigned char prefix[16];
+    /* Relative position of the Hello message in the send buffer, or
+       (-1) if there is none. */
+    int hello;
+};
+
 struct interface {
     struct interface *next;
     struct interface_conf *conf;
@@ -85,24 +101,12 @@ struct interface {
     int channel;
     struct timeval hello_timeout;
     struct timeval update_timeout;
-    struct timeval flush_timeout;
     struct timeval update_flush_timeout;
     char name[IF_NAMESIZE];
     unsigned char *ipv4;
     int numll;
     unsigned char (*ll)[16];
-    int buffered;
-    int bufsize;
-    /* Relative position of the Hello message in the send buffer, or
-       (-1) if there is none. */
-    int buffered_hello;
-    char have_buffered_id;
-    char have_buffered_nh;
-    char have_buffered_prefix;
-    unsigned char buffered_id[8];
-    unsigned char buffered_nh[4];
-    unsigned char buffered_prefix[16];
-    unsigned char *sendbuf;
+    struct buffered buf;
     struct buffered_update *buffered_updates;
     int num_buffered_updates;
     int update_bufsize;

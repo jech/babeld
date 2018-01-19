@@ -319,15 +319,15 @@ interface_up(struct interface *ifp, int up)
             mtu = 128;
         }
 
-        if(ifp->sendbuf)
-            free(ifp->sendbuf);
+        if(ifp->buf.buf)
+            free(ifp->buf.buf);
 
         /* 40 for IPv6 header, 8 for UDP header, 12 for good luck. */
-        ifp->bufsize = mtu - sizeof(packet_header) - 60;
-        ifp->sendbuf = malloc(ifp->bufsize);
-        if(ifp->sendbuf == NULL) {
+        ifp->buf.size = mtu - sizeof(packet_header) - 60;
+        ifp->buf.buf = malloc(ifp->buf.size);
+        if(ifp->buf.buf == NULL) {
             fprintf(stderr, "Couldn't allocate sendbuf.\n");
-            ifp->bufsize = 0;
+            ifp->buf.size = 0;
             goto fail;
         }
 
@@ -469,15 +469,15 @@ interface_up(struct interface *ifp, int up)
             send_update(ifp, 0, NULL, 0, NULL, 0);
     } else {
         flush_interface_routes(ifp, 0);
-        ifp->buffered = 0;
-        ifp->bufsize = 0;
-        free(ifp->sendbuf);
+        ifp->buf.len = 0;
+        ifp->buf.size = 0;
+        free(ifp->buf.buf);
         ifp->num_buffered_updates = 0;
         ifp->update_bufsize = 0;
         if(ifp->buffered_updates)
             free(ifp->buffered_updates);
         ifp->buffered_updates = NULL;
-        ifp->sendbuf = NULL;
+        ifp->buf.buf = NULL;
         if(ifp->ifindex > 0) {
             memset(&mreq, 0, sizeof(mreq));
             memcpy(&mreq.ipv6mr_multiaddr, protocol_group, 16);
