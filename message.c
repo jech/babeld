@@ -943,7 +943,6 @@ void
 flushbuf(struct interface *ifp)
 {
     int rc;
-    struct sockaddr_in6 sin6;
 
     assert(ifp->buf.len <= ifp->buf.size);
 
@@ -953,17 +952,13 @@ flushbuf(struct interface *ifp)
         debugf("  (flushing %d buffered bytes on %s)\n",
                ifp->buf.len, ifp->name);
         if(check_bucket(ifp)) {
-            memset(&sin6, 0, sizeof(sin6));
-            sin6.sin6_family = AF_INET6;
-            memcpy(&sin6.sin6_addr, protocol_group, 16);
-            sin6.sin6_port = htons(protocol_port);
-            sin6.sin6_scope_id = ifp->ifindex;
             DO_HTONS(packet_header + 2, ifp->buf.len);
             fill_rtt_message(ifp);
             rc = babel_send(protocol_socket,
                             packet_header, sizeof(packet_header),
                             ifp->buf.buf, ifp->buf.len,
-                            (struct sockaddr*)&sin6, sizeof(sin6));
+                            (struct sockaddr*)&ifp->buf.sin6,
+                            sizeof(ifp->buf.sin6));
             if(rc < 0)
                 perror("send");
         } else {

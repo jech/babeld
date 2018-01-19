@@ -77,6 +77,7 @@ struct interface_conf {
 #define IF_CHANNEL_NONINTERFERING -2
 
 struct buffered {
+    struct sockaddr_in6 sin6;
     char *buf;
     int len;
     int size;
