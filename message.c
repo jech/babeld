@@ -891,31 +891,6 @@ parse_packet(const unsigned char *from, struct interface *ifp,
     return;
 }
 
-/* Under normal circumstances, there are enough moderation mechanisms
-   elsewhere in the protocol to make sure that this last-ditch check
-   should never trigger.  But I'm superstitious. */
-
-static int
-check_bucket(struct interface *ifp)
-{
-    if(ifp->bucket <= 0) {
-        int seconds = now.tv_sec - ifp->bucket_time;
-        if(seconds > 0) {
-            ifp->bucket = MIN(BUCKET_TOKENS_MAX,
-                              seconds * BUCKET_TOKENS_PER_SEC);
-        }
-        /* Reset bucket time unconditionally, in case clock is stepped. */
-        ifp->bucket_time = now.tv_sec;
-    }
-
-    if(ifp->bucket > 0) {
-        ifp->bucket--;
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
 static int
 fill_rtt_message(struct interface *ifp)
 {
@@ -949,20 +924,15 @@ flushbuf(struct interface *ifp)
     if(ifp->buf.len > 0) {
         debugf("  (flushing %d buffered bytes on %s)\n",
                ifp->buf.len, ifp->name);
-        if(check_bucket(ifp)) {
-            DO_HTONS(packet_header + 2, ifp->buf.len);
-            fill_rtt_message(ifp);
-            rc = babel_send(protocol_socket,
-                            packet_header, sizeof(packet_header),
-                            ifp->buf.buf, ifp->buf.len,
-                            (struct sockaddr*)&ifp->buf.sin6,
-                            sizeof(ifp->buf.sin6));
-            if(rc < 0)
-                perror("send");
-        } else {
-            fprintf(stderr, "Warning: bucket full, dropping packet to %s.\n",
-                    ifp->name);
-        }
+        DO_HTONS(packet_header + 2, ifp->buf.len);
+        fill_rtt_message(ifp);
+        rc = babel_send(protocol_socket,
+                        packet_header, sizeof(packet_header),
+                        ifp->buf.buf, ifp->buf.len,
+                        (struct sockaddr*)&ifp->buf.sin6,
+                        sizeof(ifp->buf.sin6));
+        if(rc < 0)
+            perror("send");
     }
     VALGRIND_MAKE_MEM_UNDEFINED(ifp->buf.buf, ifp->buf.size);
     ifp->buf.len = 0;
@@ -1194,27 +1164,19 @@ flush_unicast(int dofree)
     /* Preserve ordering of messages */
     flushbuf(unicast_neighbour->ifp);
 
-    if(check_bucket(unicast_neighbour->ifp)) {
-        memset(&sin6, 0, sizeof(sin6));
-        sin6.sin6_family = AF_INET6;
-        memcpy(&sin6.sin6_addr, unicast_neighbour->address, 16);
-        sin6.sin6_port = htons(protocol_port);
-        sin6.sin6_scope_id = unicast_neighbour->ifp->ifindex;
-        DO_HTONS(packet_header + 2, unicast_buffered);
-        fill_rtt_message(unicast_neighbour->ifp);
-        rc = babel_send(protocol_socket,
-                        packet_header, sizeof(packet_header),
-                        unicast_buffer, unicast_buffered,
-                        (struct sockaddr*)&sin6, sizeof(sin6));
-        if(rc < 0)
-            perror("send(unicast)");
-    } else {
-        fprintf(stderr,
-                "Warning: bucket full, dropping unicast packet "
-                "to %s if %s.\n",
-                format_address(unicast_neighbour->address),
-                unicast_neighbour->ifp->name);
-    }
+    memset(&sin6, 0, sizeof(sin6));
+    sin6.sin6_family = AF_INET6;
+    memcpy(&sin6.sin6_addr, unicast_neighbour->address, 16);
+    sin6.sin6_port = htons(protocol_port);
+    sin6.sin6_scope_id = unicast_neighbour->ifp->ifindex;
+    DO_HTONS(packet_header + 2, unicast_buffered);
+    fill_rtt_message(unicast_neighbour->ifp);
+    rc = babel_send(protocol_socket,
+                    packet_header, sizeof(packet_header),
+                    unicast_buffer, unicast_buffered,
+                    (struct sockaddr*)&sin6, sizeof(sin6));
+    if(rc < 0)
+        perror("send(unicast)");
 
  done:
     VALGRIND_MAKE_MEM_UNDEFINED(unicast_buffer, UNICAST_BUFSIZE);
