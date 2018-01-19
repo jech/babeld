@@ -604,7 +604,7 @@ main(int argc, char **argv)
         FOR_ALL_INTERFACES(ifp) {
             if(!if_up(ifp))
                 continue;
-            timeval_min(&tv, &ifp->flush_timeout);
+            timeval_min(&tv, &ifp->buf.timeout);
             timeval_min(&tv, &ifp->hello_timeout);
             timeval_min(&tv, &ifp->update_timeout);
             timeval_min(&tv, &ifp->update_flush_timeout);
@@ -779,8 +779,8 @@ main(int argc, char **argv)
         FOR_ALL_INTERFACES(ifp) {
             if(!if_up(ifp))
                 continue;
-            if(ifp->flush_timeout.tv_sec != 0) {
-                if(timeval_compare(&now, &ifp->flush_timeout) >= 0)
+            if(ifp->buf.timeout.tv_sec != 0) {
+                if(timeval_compare(&now, &ifp->buf.timeout) >= 0)
                     flushbuf(ifp);
             }
         }

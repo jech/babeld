@@ -919,15 +919,15 @@ check_bucket(struct interface *ifp)
 static int
 fill_rtt_message(struct interface *ifp)
 {
-    if((ifp->flags & IF_TIMESTAMPS) && (ifp->buffered_hello >= 0)) {
-        if(ifp->sendbuf[ifp->buffered_hello + 8] == SUBTLV_PADN &&
-           ifp->sendbuf[ifp->buffered_hello + 9] == 4) {
+    if((ifp->flags & IF_TIMESTAMPS) && (ifp->buf.hello >= 0)) {
+        if(ifp->buf.buf[ifp->buf.hello + 8] == SUBTLV_PADN &&
+           ifp->buf.buf[ifp->buf.hello + 9] == 4) {
             unsigned int time;
             /* Change the type of sub-TLV. */
-            ifp->sendbuf[ifp->buffered_hello + 8] = SUBTLV_TIMESTAMP;
+            ifp->buf.buf[ifp->buf.hello + 8] = SUBTLV_TIMESTAMP;
             gettime(&now);
             time = time_us(now);
-            DO_HTONL(ifp->sendbuf + ifp->buffered_hello + 10, time);
+            DO_HTONL(ifp->buf.buf + ifp->buf.hello + 10, time);
             return 1;
         } else {
             fprintf(stderr,
@@ -945,24 +945,24 @@ flushbuf(struct interface *ifp)
     int rc;
     struct sockaddr_in6 sin6;
 
-    assert(ifp->buffered <= ifp->bufsize);
+    assert(ifp->buf.len <= ifp->buf.size);
 
     flushupdates(ifp);
 
-    if(ifp->buffered > 0) {
+    if(ifp->buf.len > 0) {
         debugf("  (flushing %d buffered bytes on %s)\n",
-               ifp->buffered, ifp->name);
+               ifp->buf.len, ifp->name);
         if(check_bucket(ifp)) {
             memset(&sin6, 0, sizeof(sin6));
             sin6.sin6_family = AF_INET6;
             memcpy(&sin6.sin6_addr, protocol_group, 16);
             sin6.sin6_port = htons(protocol_port);
             sin6.sin6_scope_id = ifp->ifindex;
-            DO_HTONS(packet_header + 2, ifp->buffered);
+            DO_HTONS(packet_header + 2, ifp->buf.len);
             fill_rtt_message(ifp);
             rc = babel_send(protocol_socket,
                             packet_header, sizeof(packet_header),
-                            ifp->sendbuf, ifp->buffered,
+                            ifp->buf.buf, ifp->buf.len,
                             (struct sockaddr*)&sin6, sizeof(sin6));
             if(rc < 0)
                 perror("send");
@@ -971,24 +971,24 @@ flushbuf(struct interface *ifp)
                     ifp->name);
         }
     }
-    VALGRIND_MAKE_MEM_UNDEFINED(ifp->sendbuf, ifp->bufsize);
-    ifp->buffered = 0;
-    ifp->buffered_hello = -1;
-    ifp->have_buffered_id = 0;
-    ifp->have_buffered_nh = 0;
-    ifp->have_buffered_prefix = 0;
-    ifp->flush_timeout.tv_sec = 0;
-    ifp->flush_timeout.tv_usec = 0;
+    VALGRIND_MAKE_MEM_UNDEFINED(ifp->buf.buf, ifp->buf.size);
+    ifp->buf.len = 0;
+    ifp->buf.hello = -1;
+    ifp->buf.have_id = 0;
+    ifp->buf.have_nh = 0;
+    ifp->buf.have_prefix = 0;
+    ifp->buf.timeout.tv_sec = 0;
+    ifp->buf.timeout.tv_usec = 0;
 }
 
 static void
 schedule_flush(struct interface *ifp)
 {
     unsigned msecs = jitter(ifp, 0);
-    if(ifp->flush_timeout.tv_sec != 0 &&
-       timeval_minus_msec(&ifp->flush_timeout, &now) < msecs)
+    if(ifp->buf.timeout.tv_sec != 0 &&
+       timeval_minus_msec(&ifp->buf.timeout, &now) < msecs)
         return;
-    set_timeout(&ifp->flush_timeout, msecs);
+    set_timeout(&ifp->buf.timeout, msecs);
 }
 
 static void
@@ -996,10 +996,10 @@ schedule_flush_now(struct interface *ifp)
 {
     /* Almost now */
     unsigned msecs = roughly(10);
-    if(ifp->flush_timeout.tv_sec != 0 &&
-       timeval_minus_msec(&ifp->flush_timeout, &now) < msecs)
+    if(ifp->buf.timeout.tv_sec != 0 &&
+       timeval_minus_msec(&ifp->buf.timeout, &now) < msecs)
         return;
-    set_timeout(&ifp->flush_timeout, msecs);
+    set_timeout(&ifp->buf.timeout, msecs);
 }
 
 static void
@@ -1018,54 +1018,54 @@ schedule_unicast_flush(unsigned msecs)
 static void
 ensure_space(struct interface *ifp, int space)
 {
-    if(ifp->bufsize - ifp->buffered < space)
+    if(ifp->buf.size - ifp->buf.len < space)
         flushbuf(ifp);
 }
 
 static void
 start_message(struct interface *ifp, int type, int len)
 {
-    if(ifp->bufsize - ifp->buffered < len + 2)
+    if(ifp->buf.size - ifp->buf.len < len + 2)
         flushbuf(ifp);
-    ifp->sendbuf[ifp->buffered++] = type;
-    ifp->sendbuf[ifp->buffered++] = len;
+    ifp->buf.buf[ifp->buf.len++] = type;
+    ifp->buf.buf[ifp->buf.len++] = len;
 }
 
 static void
 end_message(struct interface *ifp, int type, int bytes)
 {
-    assert(ifp->buffered >= bytes + 2 &&
-           ifp->sendbuf[ifp->buffered - bytes - 2] == type &&
-           ifp->sendbuf[ifp->buffered - bytes - 1] == bytes);
+    assert(ifp->buf.len >= bytes + 2 &&
+           ifp->buf.buf[ifp->buf.len - bytes - 2] == type &&
+           ifp->buf.buf[ifp->buf.len - bytes - 1] == bytes);
     schedule_flush(ifp);
 }
 
 static void
 accumulate_byte(struct interface *ifp, unsigned char value)
 {
-    ifp->sendbuf[ifp->buffered++] = value;
+    ifp->buf.buf[ifp->buf.len++] = value;
 }
 
 static void
 accumulate_short(struct interface *ifp, unsigned short value)
 {
-    DO_HTONS(ifp->sendbuf + ifp->buffered, value);
-    ifp->buffered += 2;
+    DO_HTONS(ifp->buf.buf + ifp->buf.len, value);
+    ifp->buf.len += 2;
 }
 
 static void
 accumulate_int(struct interface *ifp, unsigned int value)
 {
-    DO_HTONL(ifp->sendbuf + ifp->buffered, value);
-    ifp->buffered += 4;
+    DO_HTONL(ifp->buf.buf + ifp->buf.len, value);
+    ifp->buf.len += 4;
 }
 
 static void
 accumulate_bytes(struct interface *ifp,
                  const unsigned char *value, unsigned len)
 {
-    memcpy(ifp->sendbuf + ifp->buffered, value, len);
-    ifp->buffered += len;
+    memcpy(ifp->buf.buf + ifp->buf.len, value, len);
+    ifp->buf.len += len;
 }
 
 static int
@@ -1074,7 +1074,7 @@ start_unicast_message(struct neighbour *neigh, int type, int len)
     if(unicast_neighbour) {
         if(neigh != unicast_neighbour ||
            unicast_buffered + len + 2 >=
-           MIN(UNICAST_BUFSIZE, neigh->ifp->bufsize))
+           MIN(UNICAST_BUFSIZE, neigh->ifp->buf.size))
             flush_unicast(0);
     }
     if(!unicast_buffer)
@@ -1146,7 +1146,7 @@ send_hello_noupdate(struct interface *ifp, unsigned interval)
 {
     /* This avoids sending multiple hellos in a single packet, which breaks
        link quality estimation. */
-    if(ifp->buffered_hello >= 0)
+    if(ifp->buf.hello >= 0)
         flushbuf(ifp);
 
     ifp->hello_seqno = seqno_plus(ifp->hello_seqno, 1);
@@ -1159,7 +1159,7 @@ send_hello_noupdate(struct interface *ifp, unsigned interval)
            ifp->hello_seqno, interval, ifp->name);
 
     start_message(ifp, MESSAGE_HELLO, (ifp->flags & IF_TIMESTAMPS) ? 12 : 6);
-    ifp->buffered_hello = ifp->buffered - 2;
+    ifp->buf.hello = ifp->buf.len - 2;
     accumulate_short(ifp, 0);
     accumulate_short(ifp, ifp->hello_seqno);
     accumulate_short(ifp, interval > 0xFFFF ? 0xFFFF : interval);
@@ -1271,15 +1271,15 @@ really_send_update(struct interface *ifp,
     if(v4) {
         if(!ifp->ipv4)
             return;
-        if(!ifp->have_buffered_nh ||
-           memcmp(ifp->buffered_nh, ifp->ipv4, 4) != 0) {
+        if(!ifp->buf.have_nh ||
+           memcmp(ifp->buf.nh, ifp->ipv4, 4) != 0) {
             start_message(ifp, MESSAGE_NH, 6);
             accumulate_byte(ifp, 1);
             accumulate_byte(ifp, 0);
             accumulate_bytes(ifp, ifp->ipv4, 4);
             end_message(ifp, MESSAGE_NH, 6);
-            memcpy(ifp->buffered_nh, ifp->ipv4, 4);
-            ifp->have_buffered_nh = 1;
+            memcpy(ifp->buf.nh, ifp->ipv4, 4);
+            ifp->buf.have_nh = 1;
         }
 
         real_prefix = prefix + 12;
@@ -1287,12 +1287,12 @@ really_send_update(struct interface *ifp,
         real_src_prefix = src_prefix + 12;
         real_src_plen = src_plen - 96;
     } else {
-        if(ifp->have_buffered_prefix) {
+        if(ifp->buf.have_prefix) {
             while(omit < plen / 8 &&
-                  ifp->buffered_prefix[omit] == prefix[omit])
+                  ifp->buf.prefix[omit] == prefix[omit])
                 omit++;
         }
-        if(!is_ss && (!ifp->have_buffered_prefix || plen >= 48))
+        if(!is_ss && (!ifp->buf.have_prefix || plen >= 48))
             flags |= 0x80;
         real_prefix = prefix;
         real_plen = plen;
@@ -1300,7 +1300,7 @@ really_send_update(struct interface *ifp,
         real_src_plen = src_plen;
     }
 
-    if(!ifp->have_buffered_id || memcmp(id, ifp->buffered_id, 8) != 0) {
+    if(!ifp->buf.have_id || memcmp(id, ifp->buf.id, 8) != 0) {
         if(!is_ss && real_plen == 128 &&
            memcmp(real_prefix + 8, id, 8) == 0) {
             flags |= 0x40;
@@ -1310,8 +1310,8 @@ really_send_update(struct interface *ifp,
             accumulate_bytes(ifp, id, 8);
             end_message(ifp, MESSAGE_ROUTER_ID, 10);
         }
-        memcpy(ifp->buffered_id, id, 8);
-        ifp->have_buffered_id = 1;
+        memcpy(ifp->buf.id, id, 8);
+        ifp->buf.have_id = 1;
     }
 
     if(!is_ss)
@@ -1349,8 +1349,8 @@ really_send_update(struct interface *ifp,
                     (real_src_plen + 7) / 8 + channels_size);
 
     if(flags & 0x80) {
-        memcpy(ifp->buffered_prefix, prefix, 16);
-        ifp->have_buffered_prefix = 1;
+        memcpy(ifp->buf.prefix, prefix, 16);
+        ifp->buf.have_prefix = 1;
     }
 }
 
@@ -1563,7 +1563,7 @@ buffer_update(struct interface *ifp,
            number of installed routes will grow over time, make sure we
            have enough space to send a full-ish frame. */
         n = installed_routes_estimate() + xroutes_estimate() + 4;
-        n = MAX(n, ifp->bufsize / 16);
+        n = MAX(n, ifp->buf.size / 16);
     again:
         ifp->buffered_updates = malloc(n * sizeof(struct buffered_update));
         if(ifp->buffered_updates == NULL) {
@@ -1689,7 +1689,7 @@ send_wildcard_retraction(struct interface *ifp)
     accumulate_short(ifp, 0xFFFF);
     end_message(ifp, MESSAGE_UPDATE, 10);
 
-    ifp->have_buffered_id = 0;
+    ifp->buf.have_id = 0;
 }
 
 void
