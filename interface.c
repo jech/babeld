@@ -302,6 +302,12 @@ interface_up(struct interface *ifp, int up)
             goto fail;
         }
 
+        memset(&ifp->buf.sin6, 0, sizeof(ifp->buf.sin6));
+        ifp->buf.sin6.sin6_family = AF_INET6;
+        memcpy(&ifp->buf.sin6.sin6_addr, protocol_group, 16);
+        ifp->buf.sin6.sin6_port = htons(protocol_port);
+        ifp->buf.sin6.sin6_scope_id = ifp->ifindex;
+
         mtu = kernel_interface_mtu(ifp->name, ifp->ifindex);
         if(mtu < 0) {
             fprintf(stderr, "Warning: couldn't get MTU of interface %s (%d).\n",
