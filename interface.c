@@ -132,12 +132,12 @@ flush_interface(char *ifname)
 unsigned
 jitter(struct interface *ifp, int urgent)
 {
-    unsigned interval = ifp->hello_interval;
+    unsigned interval = ifp->buf.flush_interval;
     if(urgent)
-        interval = MIN(interval, 100);
+        interval = MIN(interval, 20);
     else
-        interval = MIN(interval, 4000);
-    return roughly(interval) / 4;
+        interval = MIN(interval, 2000);
+    return roughly(interval / 2);
 }
 
 unsigned
@@ -402,6 +402,10 @@ interface_up(struct interface *ifp, int up)
             IF_CONF(ifp, update_interval) > 0 ?
             IF_CONF(ifp, update_interval) :
             ifp->hello_interval * 4;
+
+        /* This must be no more than half the Hello interval, or else
+           Hellos will arrive late. */
+        ifp->buf.flush_interval = ifp->hello_interval / 2;
 
         ifp->rtt_decay =
             IF_CONF(ifp, rtt_decay) > 0 ?
