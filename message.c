@@ -892,17 +892,17 @@ parse_packet(const unsigned char *from, struct interface *ifp,
 }
 
 static int
-fill_rtt_message(struct interface *ifp)
+fill_rtt_message(struct buffered *buf)
 {
-    if(ifp->buf.enable_timestamps && (ifp->buf.hello >= 0)) {
-        if(ifp->buf.buf[ifp->buf.hello + 8] == SUBTLV_PADN &&
-           ifp->buf.buf[ifp->buf.hello + 9] == 4) {
+    if(buf->enable_timestamps && (buf->hello >= 0)) {
+        if(buf->buf[buf->hello + 8] == SUBTLV_PADN &&
+           buf->buf[buf->hello + 9] == 4) {
             unsigned int time;
             /* Change the type of sub-TLV. */
-            ifp->buf.buf[ifp->buf.hello + 8] = SUBTLV_TIMESTAMP;
+            buf->buf[buf->hello + 8] = SUBTLV_TIMESTAMP;
             gettime(&now);
             time = time_us(now);
-            DO_HTONL(ifp->buf.buf + ifp->buf.hello + 10, time);
+            DO_HTONL(buf->buf + buf->hello + 10, time);
             return 1;
         } else {
             fprintf(stderr,
@@ -925,7 +925,7 @@ flushbuf(struct interface *ifp)
         debugf("  (flushing %d buffered bytes on %s)\n",
                ifp->buf.len, ifp->name);
         DO_HTONS(packet_header + 2, ifp->buf.len);
-        fill_rtt_message(ifp);
+        fill_rtt_message(&ifp->buf);
         rc = babel_send(protocol_socket,
                         packet_header, sizeof(packet_header),
                         ifp->buf.buf, ifp->buf.len,
@@ -1170,7 +1170,7 @@ flush_unicast(int dofree)
     sin6.sin6_port = htons(protocol_port);
     sin6.sin6_scope_id = unicast_neighbour->ifp->ifindex;
     DO_HTONS(packet_header + 2, unicast_buffered);
-    fill_rtt_message(unicast_neighbour->ifp);
+    fill_rtt_message(&unicast_neighbour->ifp->buf);
     rc = babel_send(protocol_socket,
                     packet_header, sizeof(packet_header),
                     unicast_buffer, unicast_buffered,
