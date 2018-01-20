@@ -29,10 +29,10 @@ THE SOFTWARE.
 
 #include "babeld.h"
 #include "util.h"
+#include "interface.h"
 #include "neighbour.h"
 #include "resend.h"
 #include "message.h"
-#include "interface.h"
 #include "configuration.h"
 
 struct timeval resend_time = {0, 0};

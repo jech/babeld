@@ -915,33 +915,32 @@ fill_rtt_message(struct buffered *buf)
 }
 
 void
-flushbuf(struct interface *ifp)
+flushbuf(struct buffered *buf)
 {
     int rc;
 
-    assert(ifp->buf.len <= ifp->buf.size);
+    assert(buf->len <= buf->size);
 
-    if(ifp->buf.len > 0) {
-        debugf("  (flushing %d buffered bytes on %s)\n",
-               ifp->buf.len, ifp->name);
-        DO_HTONS(packet_header + 2, ifp->buf.len);
-        fill_rtt_message(&ifp->buf);
+    if(buf->len > 0) {
+        debugf("  (flushing %d buffered bytes)\n", buf->len);
+        DO_HTONS(packet_header + 2, buf->len);
+        fill_rtt_message(buf);
         rc = babel_send(protocol_socket,
                         packet_header, sizeof(packet_header),
-                        ifp->buf.buf, ifp->buf.len,
-                        (struct sockaddr*)&ifp->buf.sin6,
-                        sizeof(ifp->buf.sin6));
+                        buf->buf, buf->len,
+                        (struct sockaddr*)&buf->sin6,
+                        sizeof(buf->sin6));
         if(rc < 0)
             perror("send");
     }
-    VALGRIND_MAKE_MEM_UNDEFINED(ifp->buf.buf, ifp->buf.size);
-    ifp->buf.len = 0;
-    ifp->buf.hello = -1;
-    ifp->buf.have_id = 0;
-    ifp->buf.have_nh = 0;
-    ifp->buf.have_prefix = 0;
-    ifp->buf.timeout.tv_sec = 0;
-    ifp->buf.timeout.tv_usec = 0;
+    VALGRIND_MAKE_MEM_UNDEFINED(buf->buf, buf->size);
+    buf->len = 0;
+    buf->hello = -1;
+    buf->have_id = 0;
+    buf->have_nh = 0;
+    buf->have_prefix = 0;
+    buf->timeout.tv_sec = 0;
+    buf->timeout.tv_usec = 0;
 }
 
 static void
@@ -982,14 +981,14 @@ static void
 ensure_space(struct interface *ifp, int space)
 {
     if(ifp->buf.size - ifp->buf.len < space)
-        flushbuf(ifp);
+        flushbuf(&ifp->buf);
 }
 
 static void
 start_message(struct interface *ifp, int type, int len)
 {
     if(ifp->buf.size - ifp->buf.len < len + 2)
-        flushbuf(ifp);
+        flushbuf(&ifp->buf);
     ifp->buf.buf[ifp->buf.len++] = type;
     ifp->buf.buf[ifp->buf.len++] = len;
 }
@@ -1111,7 +1110,7 @@ send_hello_noupdate(struct interface *ifp, unsigned interval)
        link quality estimation. */
     if(ifp->buf.hello >= 0) {
         flushupdates(ifp);
-        flushbuf(ifp);
+        flushbuf(&ifp->buf);
     }
 
     ifp->hello_seqno = seqno_plus(ifp->hello_seqno, 1);
@@ -1162,7 +1161,7 @@ flush_unicast(int dofree)
         goto done;
 
     /* Preserve ordering of messages */
-    flushbuf(unicast_neighbour->ifp);
+    flushbuf(&unicast_neighbour->ifp->buf);
 
     memset(&sin6, 0, sizeof(sin6));
     sin6.sin6_family = AF_INET6;
