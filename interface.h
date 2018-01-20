@@ -79,6 +79,7 @@ struct buffered {
     char *buf;
     int len;
     int size;
+    int flush_interval;
     struct timeval timeout;
     char enable_timestamps;
     char have_id;
