@@ -584,7 +584,7 @@ main(int argc, char **argv)
         send_self_update(ifp);
         send_request(ifp, NULL, 0, NULL, 0);
         flushupdates(ifp);
-        flushbuf(ifp);
+        flushbuf(&ifp->buf);
     }
 
     debugf("Entering main loop.\n");
@@ -782,7 +782,7 @@ main(int argc, char **argv)
             if(ifp->buf.timeout.tv_sec != 0) {
                 if(timeval_compare(&now, &ifp->buf.timeout) >= 0) {
                     flushupdates(ifp);
-                    flushbuf(ifp);
+                    flushbuf(&ifp->buf);
                 }
             }
         }
@@ -807,7 +807,7 @@ main(int argc, char **argv)
         /* Make sure that we expire quickly from our neighbours'
            association caches. */
         send_hello_noupdate(ifp, 10);
-        flushbuf(ifp);
+        flushbuf(&ifp->buf);
         usleep(roughly(1000));
         gettime(&now);
     }
@@ -817,7 +817,7 @@ main(int argc, char **argv)
         /* Make sure they got it. */
         send_wildcard_retraction(ifp);
         send_hello_noupdate(ifp, 1);
-        flushbuf(ifp);
+        flushbuf(&ifp->buf);
         usleep(roughly(10000));
         gettime(&now);
         interface_up(ifp, 0);
