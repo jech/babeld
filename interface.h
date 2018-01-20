@@ -68,8 +68,6 @@ struct interface_conf {
 #define IF_LQ (1 << 3)
 /* Nodes on the far end don't interfere with nodes on the near end. */
 #define IF_FARAWAY (1 << 4)
-/* Send timestamps in Hello and IHU. */
-#define IF_TIMESTAMPS (1 << 5)
 
 /* Only INTERFERING can appear on the wire. */
 #define IF_CHANNEL_UNKNOWN 0
@@ -82,6 +80,7 @@ struct buffered {
     int len;
     int size;
     struct timeval timeout;
+    char enable_timestamps;
     char have_id;
     char have_nh;
     char have_prefix;
