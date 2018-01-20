@@ -57,7 +57,7 @@ extern struct timeval unicast_flush_timeout;
 
 void parse_packet(const unsigned char *from, struct interface *ifp,
                   const unsigned char *packet, int packetlen);
-void flushbuf(struct interface *ifp);
+void flushbuf(struct buffered *buf);
 void flushupdates(struct interface *ifp);
 void send_ack(struct neighbour *neigh, unsigned short nonce,
               unsigned short interval);
