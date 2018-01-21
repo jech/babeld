@@ -140,7 +140,7 @@ if_up(struct interface *ifp)
 
 struct interface *add_interface(char *ifname, struct interface_conf *if_conf);
 int flush_interface(char *ifname);
-unsigned jitter(struct interface *ifp, int urgent);
+unsigned jitter(struct buffered *buf, int urgent);
 unsigned update_jitter(struct interface *ifp, int urgent);
 void set_timeout(struct timeval *timeout, int msecs);
 int interface_up(struct interface *ifp, int up);

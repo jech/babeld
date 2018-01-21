@@ -130,9 +130,9 @@ flush_interface(char *ifname)
 /* This should be no more than half the hello interval, so that hellos
    aren't sent late.  The result is in milliseconds. */
 unsigned
-jitter(struct interface *ifp, int urgent)
+jitter(struct buffered *buf, int urgent)
 {
-    unsigned interval = ifp->buf.flush_interval;
+    unsigned interval = buf->flush_interval;
     if(urgent)
         interval = MIN(interval, 20);
     else
