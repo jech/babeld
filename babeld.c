@@ -582,6 +582,7 @@ main(int argc, char **argv)
         send_hello(ifp);
         send_wildcard_retraction(ifp);
         send_self_update(ifp);
+        send_multicast_request(ifp, NULL, 0, NULL, 0);
         flushupdates(ifp);
         flushbuf(&ifp->buf);
     }
@@ -591,6 +592,7 @@ main(int argc, char **argv)
     while(1) {
         struct timeval tv;
         fd_set readfds;
+        struct neighbour *neigh;
 
         gettime(&now);
 
@@ -608,7 +610,9 @@ main(int argc, char **argv)
             timeval_min(&tv, &ifp->update_timeout);
             timeval_min(&tv, &ifp->update_flush_timeout);
         }
-        timeval_min(&tv, &unicast_flush_timeout);
+        FOR_ALL_NEIGHBOURS(neigh) {
+            timeval_min(&tv, &neigh->buf.timeout);
+        }
         FD_ZERO(&readfds);
         if(timeval_compare(&tv, &now) > 0) {
             int maxfd = 0;
@@ -770,11 +774,6 @@ main(int argc, char **argv)
                 do_resend();
         }
 
-        if(unicast_flush_timeout.tv_sec != 0) {
-            if(timeval_compare(&now, &unicast_flush_timeout) >= 0)
-                flush_unicast(1);
-        }
-
         FOR_ALL_INTERFACES(ifp) {
             if(!if_up(ifp))
                 continue;
@@ -782,6 +781,14 @@ main(int argc, char **argv)
                 if(timeval_compare(&now, &ifp->buf.timeout) >= 0) {
                     flushupdates(ifp);
                     flushbuf(&ifp->buf);
+                }
+            }
+        }
+
+        FOR_ALL_NEIGHBOURS(neigh) {
+            if(neigh->buf.timeout.tv_sec != 0) {
+                if(timeval_compare(&now, &neigh->buf.timeout) >= 0) {
+                    flushbuf(&neigh->buf);
                 }
             }
         }
