@@ -306,10 +306,12 @@ do_resend()
             if(timeval_compare(&now, &timeout) >= 0) {
                 switch(resend->kind) {
                 case RESEND_REQUEST:
-                    send_multihop_request(resend->ifp,
-                                          resend->prefix, resend->plen,
-                                          resend->src_prefix, resend->src_plen,
-                                          resend->seqno, resend->id, 127);
+                    send_multicast_multihop_request(resend->ifp,
+                                                    resend->prefix, resend->plen,
+                                                    resend->src_prefix,
+                                                    resend->src_plen,
+                                                    resend->seqno, resend->id,
+                                                    127);
                     break;
                 case RESEND_UPDATE:
                     send_update(resend->ifp, 1,
