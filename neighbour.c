@@ -248,6 +248,8 @@ check_neighbours()
 
         if(neigh->hello.interval > 0)
             msecs = MIN(msecs, neigh->hello.interval * 10);
+        if(neigh->uhello.interval > 0)
+            msecs = MIN(msecs, neigh->uhello.interval * 10);
         if(neigh->ihu_interval > 0)
             msecs = MIN(msecs, neigh->ihu_interval * 10);
         neigh = neigh->next;
