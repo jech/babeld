@@ -1,3 +1,9 @@
+babeld-1.8.1 (unreleased):
+
+  * Changed the strategy for sending requests when we lose a route.  This
+    makes convergence much faster in some cases, at the cost of slightly
+    increased traffic.
+
 6 December 2016: babeld-1.8.0
 
   * Added the ability to reconfigure babeld dynamically from the
