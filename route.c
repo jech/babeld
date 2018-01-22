@@ -1189,7 +1189,7 @@ route_lost(struct source *src, unsigned oldmetric)
            If it was not, we could be dealing with oscillations around
            the value of INFINITY. */
         if(oldmetric <= INFINITY / 2)
-            send_request_resend(NULL, src->prefix, src->plen,
+            send_request_resend(src->prefix, src->plen,
                                 src->src_prefix, src->src_plen,
                                 src->metric >= INFINITY ?
                                 src->seqno : seqno_plus(src->seqno, 1),
