@@ -90,11 +90,11 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
         return NULL;
     }
 
-    neigh->hello_seqno = -1;
+    neigh->hello.seqno = neigh->uhello.seqno = -1;
     memcpy(neigh->address, address, 16);
     neigh->txcost = INFINITY;
     neigh->ihu_time = now;
-    neigh->hello_time = zero;
+    neigh->hello.time = neigh->uhello.time = zero;
     neigh->hello_rtt_receive_time = zero;
     neigh->rtt_time = zero;
     neigh->ifp = ifp;
@@ -108,84 +108,79 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
 /* Recompute a neighbour's rxcost.  Return true if anything changed.
    This does not call local_notify_neighbour, see update_neighbour_metric. */
 int
-update_neighbour(struct neighbour *neigh, int hello, int hello_interval)
+update_neighbour(struct neighbour *neigh, struct hello_history *hist,
+                 int unicast, int hello, int hello_interval)
 {
     int missed_hellos;
     int rc = 0;
 
     if(hello < 0) {
-        if(neigh->hello_interval <= 0)
+        if(hist->interval <= 0)
             return rc;
         missed_hellos =
-            ((int)timeval_minus_msec(&now, &neigh->hello_time) -
-             neigh->hello_interval * 7) /
-            (neigh->hello_interval * 10);
+            ((int)timeval_minus_msec(&now, &hist->time) -
+             hist->interval * 7) /
+            (hist->interval * 10);
         if(missed_hellos <= 0)
             return rc;
-        timeval_add_msec(&neigh->hello_time, &neigh->hello_time,
-                         missed_hellos * neigh->hello_interval * 10);
+        timeval_add_msec(&hist->time, &hist->time,
+                         missed_hellos * hist->interval * 10);
     } else {
-        if(neigh->hello_seqno >= 0 && neigh->reach > 0) {
-            missed_hellos = seqno_minus(hello, neigh->hello_seqno) - 1;
+        if(hist->seqno >= 0 && hist->reach > 0) {
+            missed_hellos = seqno_minus(hello, hist->seqno) - 1;
             if(missed_hellos < -8) {
                 /* Probably a neighbour that rebooted and lost its seqno.
                    Reboot the universe. */
-                neigh->reach = 0;
+                hist->reach = 0;
                 missed_hellos = 0;
                 rc = 1;
             } else if(missed_hellos < 0) {
-                if(hello_interval > neigh->hello_interval) {
-                    /* This neighbour has increased its hello interval,
-                       and we didn't notice. */
-                    neigh->reach <<= -missed_hellos;
-                    missed_hellos = 0;
-                } else {
-                    /* Late hello.  Probably due to the link layer buffering
-                       packets during a link outage.  Ignore it, but reset
-                       the expected seqno. */
-                    neigh->hello_seqno = hello;
-                    hello = -1;
-                    missed_hellos = 0;
-                }
+                hist->reach <<= -missed_hellos;
+                missed_hellos = 0;
                 rc = 1;
             }
         } else {
             missed_hellos = 0;
         }
-        neigh->hello_time = now;
-        neigh->hello_interval = hello_interval;
+        if(hello_interval != 0) {
+            hist->time = now;
+            hist->interval = hello_interval;
+        }
     }
 
     if(missed_hellos > 0) {
-        neigh->reach >>= missed_hellos;
-        neigh->hello_seqno = seqno_plus(neigh->hello_seqno, missed_hellos);
+        hist->reach >>= missed_hellos;
+        hist->seqno = seqno_plus(hist->seqno, missed_hellos);
         missed_hellos = 0;
         rc = 1;
     }
 
     if(hello >= 0) {
-        neigh->hello_seqno = hello;
-        neigh->reach >>= 1;
-        neigh->reach |= 0x8000;
-        if((neigh->reach & 0xFC00) != 0xFC00)
+        hist->seqno = hello;
+        hist->reach >>= 1;
+        hist->reach |= 0x8000;
+        if((hist->reach & 0xFC00) != 0xFC00)
             rc = 1;
     }
 
+    if(unicast)
+        return rc;
+
     /* Make sure to give neighbours some feedback early after association */
-    if((neigh->reach & 0xBF00) == 0x8000) {
+    if((hist->reach & 0xBF00) == 0x8000) {
         /* A new neighbour */
         send_hello(neigh->ifp);
     } else {
         /* Don't send hellos, in order to avoid a positive feedback loop. */
-        int a = (neigh->reach & 0xC000);
-        int b = (neigh->reach & 0x3000);
+        int a = (hist->reach & 0xC000);
+        int b = (hist->reach & 0x3000);
         if((a == 0xC000 && b == 0) || (a == 0 && b == 0x3000)) {
             /* Reachability is either 1100 or 0011 */
             send_self_update(neigh->ifp);
         }
     }
 
-    if((neigh->reach & 0xFC00) == 0xC000) {
+    if((hist->reach & 0xFC00) == 0xC000) {
         /* This is a newish neighbour, let's request a full route dump.
            We ought to avoid this when the network is dense */
         send_unicast_request(neigh, NULL, 0, NULL, 0);
@@ -205,7 +200,7 @@ reset_txcost(struct neighbour *neigh)
         return 0;
 
     /* If we're losing a lot of packets, we probably lost an IHU too */
-    if(delay >= 180000 || (neigh->reach & 0xFFF0) == 0 ||
+    if(delay >= 180000 || (neigh->hello.reach & 0xFFF0) == 0 ||
        (neigh->ihu_interval > 0 &&
         delay >= neigh->ihu_interval * 10 * 10)) {
         neigh->txcost = INFINITY;
@@ -226,18 +221,20 @@ unsigned
 check_neighbours()
 {
     struct neighbour *neigh;
-    int changed, rc;
     unsigned msecs = 50000;
 
     debugf("Checking neighbours.\n");
 
     neigh = neighs;
     while(neigh) {
-        changed = update_neighbour(neigh, -1, 0);
+        int changed, rc;
+        changed = update_neighbour(neigh, &neigh->hello, 0, -1, 0);
+        rc = update_neighbour(neigh, &neigh->uhello, 1, -1, 0);
+        changed = changed || rc;
 
-        if(neigh->reach == 0 ||
-           neigh->hello_time.tv_sec > now.tv_sec || /* clock stepped */
-           timeval_minus_msec(&now, &neigh->hello_time) > 300000) {
+        if(neigh->hello.reach == 0 ||
+           neigh->hello.time.tv_sec > now.tv_sec || /* clock stepped */
+           timeval_minus_msec(&now, &neigh->hello.time) > 300000) {
             struct neighbour *old = neigh;
             neigh = neigh->next;
             flush_neighbour(old);
@@ -249,8 +246,8 @@ check_neighbours()
 
         update_neighbour_metric(neigh, changed);
 
-        if(neigh->hello_interval > 0)
-            msecs = MIN(msecs, neigh->hello_interval * 10);
+        if(neigh->hello.interval > 0)
+            msecs = MIN(msecs, neigh->hello.interval * 10);
         if(neigh->ihu_interval > 0)
             msecs = MIN(msecs, neigh->ihu_interval * 10);
         neigh = neigh->next;
@@ -259,15 +256,32 @@ check_neighbours()
     return msecs;
 }
 
+/* To lose one hello is a misfortune, to lose two is carelessness. */
+static int
+two_three(int reach)
+{
+    if((reach & 0xC000) == 0xC000)
+        return 1;
+    else if((reach & 0xC000) == 0)
+        return 0;
+    else if((reach & 0x2000))
+        return 1;
+    else
+        return 0;
+}
+
 unsigned
 neighbour_rxcost(struct neighbour *neigh)
 {
-    unsigned delay;
-    unsigned short reach = neigh->reach;
+    unsigned delay, udelay;
+    unsigned short reach = neigh->hello.reach;
+    unsigned short ureach = neigh->uhello.reach;
 
-    delay = timeval_minus_msec(&now, &neigh->hello_time);
+    delay = timeval_minus_msec(&now, &neigh->hello.time);
+    udelay = timeval_minus_msec(&now, &neigh->uhello.time);
 
-    if((reach & 0xFFF0) == 0 || delay >= 180000) {
+    if(((reach & 0xFFF0) == 0 || delay >= 180000) &&
+       ((ureach & 0xFFF0) == 0 || udelay >= 180000)) {
         return INFINITY;
     } else if((neigh->ifp->flags & IF_LQ)) {
         int sreach =
@@ -281,12 +295,7 @@ neighbour_rxcost(struct neighbour *neigh)
             cost = (cost * (delay - 20000) + 10000) / 20000;
         return MIN(cost, INFINITY);
     } else {
-        /* To lose one hello is a misfortune, to lose two is carelessness. */
-        if((reach & 0xC000) == 0xC000)
-            return neigh->ifp->cost;
-        else if((reach & 0xC000) == 0)
-            return INFINITY;
-        else if((reach & 0x2000))
+        if(two_three(reach) || two_three(ureach))
             return neigh->ifp->cost;
         else
             return INFINITY;

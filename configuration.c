@@ -755,8 +755,7 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
        because they require no special setup or because there is special
        case code for them. */
     if(config_finalised) {
-        if(strcmp(token, "keep-unfeasible") != 0 &&
-           strcmp(token, "link-detect") != 0 &&
+        if(strcmp(token, "link-detect") != 0 &&
            strcmp(token, "log-file") != 0 &&
            strcmp(token, "diversity") != 0 &&
            strcmp(token, "diversity-factor") != 0 &&
@@ -798,8 +797,7 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
             add_import_table(v);
         else
             abort();
-    } else if(strcmp(token, "keep-unfeasible") == 0 ||
-              strcmp(token, "link-detect") == 0 ||
+    } else if(strcmp(token, "link-detect") == 0 ||
               strcmp(token, "random-id") == 0 ||
               strcmp(token, "daemonise") == 0 ||
               strcmp(token, "skip-kernel-setup") == 0 ||
@@ -810,9 +808,7 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
         if(c < -1)
             goto error;
         b = (b == CONFIG_YES);
-        if(strcmp(token, "keep-unfeasible") == 0)
-            keep_unfeasible = b;
-        else if(strcmp(token, "link-detect") == 0)
+        if(strcmp(token, "link-detect") == 0)
             link_detect = b;
         else if(strcmp(token, "random-id") == 0)
             random_id = b;
