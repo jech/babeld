@@ -1,5 +1,9 @@
 babeld-1.8.1 (unreleased):
 
+  * Implemented parsing of mandatory sub-TLVs and unicast and unscheduled
+    Hellos.  This makes this version comply with RFC 6126bis.  However, we
+    don't send any of these yet, so this version remains compatible with
+    RFC 6126.
   * Changed the strategy for sending requests when we lose a route.  This
     makes convergence much faster in some cases, at the cost of slightly
     increased traffic.
