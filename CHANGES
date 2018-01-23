@@ -7,6 +7,8 @@ babeld-1.8.1 (unreleased):
   * Changed the strategy for sending requests when we lose a route.  This
     makes convergence much faster in some cases, at the cost of slightly
     increased traffic.
+  * The keep-unfeasible (-u) option has been removed, this is now the
+    default behaviour.
 
 6 December 2016: babeld-1.8.0
 
