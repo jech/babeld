@@ -1024,7 +1024,7 @@ send_ack(struct neighbour *neigh, unsigned short nonce, unsigned short interval)
 }
 
 void
-send_hello_noupdate(struct interface *ifp, unsigned interval)
+send_hello_noihu(struct interface *ifp, unsigned interval)
 {
     /* This avoids sending multiple hellos in a single packet, which breaks
        link quality estimation. */
@@ -1060,7 +1060,7 @@ send_hello_noupdate(struct interface *ifp, unsigned interval)
 void
 send_hello(struct interface *ifp)
 {
-    send_hello_noupdate(ifp, (ifp->hello_interval + 9) / 10);
+    send_hello_noihu(ifp, (ifp->hello_interval + 9) / 10);
     /* Send full IHU every 3 hellos, and marginal IHU each time */
     if(ifp->hello_seqno % 3 == 0)
         send_ihu(NULL, ifp);
