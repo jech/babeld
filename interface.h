@@ -45,6 +45,7 @@ struct interface_conf {
     char split_horizon;
     char lq;
     char faraway;
+    char unicast;
     int channel;
     int enable_timestamps;
     unsigned int rtt_decay;
@@ -68,6 +69,8 @@ struct interface_conf {
 #define IF_LQ (1 << 3)
 /* Nodes on the far end don't interfere with nodes on the near end. */
 #define IF_FARAWAY (1 << 4)
+/* Send most TLVs over unicast. */
+#define IF_UNICAST (1 << 5)
 
 /* Only INTERFERING can appear on the wire. */
 #define IF_CHANNEL_UNKNOWN 0
