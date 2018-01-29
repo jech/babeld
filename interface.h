@@ -45,6 +45,7 @@ struct interface_conf {
     char split_horizon;
     char lq;
     char faraway;
+    char unicast;
     int channel;
     int enable_timestamps;
     int rfc6126;
@@ -69,6 +70,8 @@ struct interface_conf {
 #define IF_LQ (1 << 3)
 /* Nodes on the far end don't interfere with nodes on the near end. */
 #define IF_FARAWAY (1 << 4)
+/* Send most TLVs over unicast. */
+#define IF_UNICAST (1 << 5)
 /* Remain compatible with RFC 6126. */
 #define IF_RFC6126 (1 << 6)
 

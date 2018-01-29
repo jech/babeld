@@ -562,6 +562,12 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if(c < -1)
                 goto error;
             if_conf->faraway = v;
+        } else if(strcmp(token, "unicast") == 0) {
+            int v;
+            c = getbool(c, &v, gnc, closure);
+            if(c < -1)
+                goto error;
+            if_conf->unicast = v;
         } else if(strcmp(token, "link-quality") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
@@ -713,6 +719,7 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(split_horizon);
     MERGE(lq);
     MERGE(faraway);
+    MERGE(unicast);
     MERGE(channel);
     MERGE(enable_timestamps);
     MERGE(rfc6126);
