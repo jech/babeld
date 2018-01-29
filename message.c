@@ -1853,11 +1853,11 @@ send_request(struct interface *ifp,
     int v4, pb, spb, len, is_ss;
 
     if(ifp == NULL) {
-        struct interface *ifp_auxn;
-        FOR_ALL_INTERFACES(ifp_auxn) {
-            if(if_up(ifp_auxn))
+        struct interface *ifp_aux;
+        FOR_ALL_INTERFACES(ifp_aux) {
+            if(!if_up(ifp_aux))
                 continue;
-            send_request(ifp_auxn, prefix, plen, src_prefix, src_plen);
+            send_request(ifp_aux, prefix, plen, src_prefix, src_plen);
         }
         return;
     }
