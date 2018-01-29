@@ -1503,6 +1503,23 @@ send_update_resend(struct interface *ifp,
 }
 
 void
+buffer_wildcard_retraction(struct buffered *buf)
+{
+    start_message(buf, MESSAGE_UPDATE, 10);
+    accumulate_byte(buf, 0);
+    accumulate_byte(buf, 0);
+    accumulate_byte(buf, 0);
+    accumulate_byte(buf, 0);
+    accumulate_short(buf, 0xFFFF);
+    accumulate_short(buf, myseqno);
+    accumulate_short(buf, 0xFFFF);
+    end_message(buf, MESSAGE_UPDATE, 10);
+
+    buf->have_id = 0;
+}
+
+
+void
 send_wildcard_retraction(struct interface *ifp)
 {
     if(ifp == NULL) {
@@ -1515,17 +1532,7 @@ send_wildcard_retraction(struct interface *ifp)
     if(!if_up(ifp))
         return;
 
-    start_message(&ifp->buf, MESSAGE_UPDATE, 10);
-    accumulate_byte(&ifp->buf, 0);
-    accumulate_byte(&ifp->buf, 0);
-    accumulate_byte(&ifp->buf, 0);
-    accumulate_byte(&ifp->buf, 0);
-    accumulate_short(&ifp->buf, 0xFFFF);
-    accumulate_short(&ifp->buf, myseqno);
-    accumulate_short(&ifp->buf, 0xFFFF);
-    end_message(&ifp->buf, MESSAGE_UPDATE, 10);
-
-    ifp->buf.have_id = 0;
+    buffer_wildcard_retraction(&ifp->buf);
 }
 
 void
@@ -1565,12 +1572,39 @@ send_self_update(struct interface *ifp)
 }
 
 void
+buffer_ihu(struct buffered *buf, unsigned short rxcost,
+           unsigned short interval, const unsigned char *address,
+           int rtt_data, unsigned int t1, unsigned int t2)
+{
+    int msglen, ll;
+
+    ll = linklocal(address);
+    msglen = (ll ? 14 : 200) + (rtt_data ? 10 : 0);
+
+    start_message(buf, MESSAGE_IHU, msglen);
+    accumulate_byte(buf, ll ? 3 : 2);
+    accumulate_byte(buf, 0);
+    accumulate_short(buf, rxcost);
+    accumulate_short(buf, interval);
+    if(ll)
+        accumulate_bytes(buf, address + 8, 8);
+    else
+        accumulate_bytes(buf, address, 16);
+    if(rtt_data) {
+        accumulate_byte(buf, SUBTLV_TIMESTAMP);
+        accumulate_byte(buf, 8);
+        accumulate_int(buf, t1);
+        accumulate_int(buf, t2);
+    }
+    end_message(buf, MESSAGE_IHU, msglen);
+}
+
+
+void
 send_ihu(struct neighbour *neigh, struct interface *ifp)
 {
     int rxcost, interval;
-    int ll;
     int send_rtt_data;
-    int msglen;
 
     if(neigh == NULL && ifp == NULL) {
         struct interface *ifp_aux;
@@ -1606,8 +1640,6 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
            neigh->ifp->name,
            format_address(neigh->address));
 
-    ll = linklocal(neigh->address);
-
     if(ifp->buf.enable_timestamps && neigh->hello_send_us &&
        /* Checks whether the RTT data is not too old to be sent. */
        timeval_minus_msec(&now, &neigh->hello_rtt_receive_time) < 1000000) {
@@ -1617,26 +1649,10 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
         send_rtt_data = 0;
     }
 
-    /* The length depends on the format of the address, and then an
-       optional 10-bytes sub-TLV for timestamps (used to compute a RTT). */
-    msglen = (ll ? 14 : 22) + (send_rtt_data ? 10 : 0);
+    buffer_ihu(&ifp->buf, rxcost, interval, neigh->address,
+               send_rtt_data, neigh->hello_send_us,
+               time_us(neigh->hello_rtt_receive_time));
 
-    start_message(&ifp->buf, MESSAGE_IHU, msglen);
-    accumulate_byte(&ifp->buf, ll ? 3 : 2);
-    accumulate_byte(&ifp->buf, 0);
-    accumulate_short(&ifp->buf, rxcost);
-    accumulate_short(&ifp->buf, interval);
-    if(ll)
-        accumulate_bytes(&ifp->buf, neigh->address + 8, 8);
-    else
-        accumulate_bytes(&ifp->buf, neigh->address, 16);
-    if(send_rtt_data) {
-        accumulate_byte(&ifp->buf, SUBTLV_TIMESTAMP);
-        accumulate_byte(&ifp->buf, 8);
-        accumulate_int(&ifp->buf, neigh->hello_send_us);
-        accumulate_int(&ifp->buf, time_us(neigh->hello_rtt_receive_time));
-    }
-    end_message(&ifp->buf, MESSAGE_IHU, msglen);
 }
 
 /* Send IHUs to all marginal neighbours */
