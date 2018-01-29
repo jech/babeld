@@ -679,158 +679,6 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    format_eui64(message + 8), seqno);
             handle_request(neigh, prefix, plen, src_prefix, src_plen,
                            message[6], seqno, message + 8);
-        } else if(type == MESSAGE_UPDATE_SRC_SPECIFIC) {
-            unsigned char prefix[16], src_prefix[16], *nh;
-            unsigned char ae, plen, src_plen, omitted;
-            unsigned char channels[MAX_CHANNEL_HOPS];
-            int channels_len = MAX_CHANNEL_HOPS;
-            unsigned short interval, seqno, metric;
-            const unsigned char *src_prefix_beginning = NULL;
-            int rc, parsed_len = 0;
-            if(len < 10)
-                goto fail;
-            ae = message[2];
-            src_plen = message[3];
-            plen = message[4];
-            omitted = message[5];
-            DO_NTOHS(interval, message + 6);
-            DO_NTOHS(seqno, message + 8);
-            DO_NTOHS(metric, message + 10);
-            if(omitted == 0 || (ae == 1 ? have_v4_prefix : have_v6_prefix))
-                rc = network_prefix(ae, plen, omitted, message + 12,
-                                    ae == 1 ? v4_prefix : v6_prefix,
-                                    len - 10, prefix);
-            else
-                rc = -1;
-            if(rc < 0)
-                goto fail;
-
-            parsed_len = 10 + rc;
-            src_prefix_beginning = message + 2 + parsed_len;
-
-            rc = network_prefix(ae, src_plen, 0, src_prefix_beginning, NULL,
-                                    len - parsed_len, src_prefix);
-            if(rc < 0)
-                goto fail;
-            parsed_len += rc;
-            if(ae == 1) {
-                plen += 96;
-                src_plen += 96;
-            }
-
-            if(!have_router_id) {
-                fprintf(stderr, "Received prefix with no router id.\n");
-                goto fail;
-            }
-            debugf("Received ss-update for (%s from %s) from %s on %s.\n",
-                   format_prefix(prefix, plen),
-                   format_prefix(src_prefix, src_plen),
-                   format_address(from), ifp->name);
-
-            if(ae == 0) {
-                debugf("Received invalid Source-Specific wildcard update.\n");
-                rc = parse_other_subtlv(message + 12, len - 10);
-                if(rc < 0)
-                    goto done;
-                retract_neighbour_routes(neigh);
-                goto done;
-            } else if(ae == 1) {
-                if(!have_v4_nh)
-                    goto fail;
-                nh = v4_nh;
-            } else if(have_v6_nh) {
-                nh = v6_nh;
-            } else {
-                nh = neigh->address;
-            }
-
-            rc = parse_update_subtlv(ifp, metric, message + 2 + parsed_len,
-                                     len - parsed_len, channels, &channels_len);
-            if(rc < 0)
-                goto done;
-
-            if(ae == 1) {
-                if(!ifp->ipv4)
-                    goto done;
-            }
-
-            update_route(router_id, prefix, plen, src_prefix, src_plen,
-                         seqno, metric, interval, neigh, nh,
-                         channels, channels_len);
-        } else if(type == MESSAGE_REQUEST_SRC_SPECIFIC) {
-            unsigned char prefix[16], plen, ae, src_prefix[16], src_plen;
-            int rc, parsed = 5;
-            if(len < 3) goto fail;
-            ae = message[2];
-            plen = message[3];
-            src_plen = message[4];
-            rc = network_prefix(ae, plen, 0, message + parsed,
-                                NULL, len + 2 - parsed, prefix);
-            if(rc < 0) goto fail;
-            if(ae == 1)
-                plen += 96;
-            parsed += rc;
-            rc = network_prefix(ae, src_plen, 0, message + parsed,
-                                NULL, len + 2 - parsed, src_prefix);
-            if(rc < 0) goto fail;
-            if(ae == 1)
-                src_plen += 96;
-            parsed += rc;
-            rc = parse_other_subtlv(message + parsed, len - parsed + 2);
-            if(rc < 0)
-                goto done;
-            if(ae == 0) {
-                debugf("Received request for any source-specific "
-                       "from %s on %s.\n",
-                       format_address(from), ifp->name);
-                /* See comments for std requests. */
-                send_ihu(neigh, NULL);
-                if(neigh->ifp->last_specific_update_time <
-                   now.tv_sec - MAX(neigh->ifp->hello_interval / 100, 1))
-                    send_update(neigh->ifp, 0, zeroes, 0, NULL, 0);
-            } else {
-                debugf("Received request for (%s from %s) from %s on %s.\n",
-                       format_prefix(prefix, plen),
-                       format_prefix(src_prefix, src_plen),
-                       format_address(from), ifp->name);
-                send_update(neigh->ifp, 0, prefix, plen, src_prefix, src_plen);
-            }
-        } else if(type == MESSAGE_MH_REQUEST_SRC_SPECIFIC) {
-            unsigned char prefix[16], plen, ae, src_prefix[16], src_plen, hopc;
-            const unsigned char *router_id;
-            unsigned short seqno;
-            int rc, parsed = 16;
-            if(len < 14) goto fail;
-            ae = message[2];
-            plen = message[3];
-            DO_NTOHS(seqno, message + 4);
-            hopc = message[6];
-            src_plen = message[7];
-            router_id = message + 8;
-            rc = network_prefix(ae, plen, 0, message + parsed,
-                                NULL, len + 2 - parsed, prefix);
-            if(rc < 0) goto fail;
-            if(ae == 1)
-                plen += 96;
-            parsed += rc;
-            rc = network_prefix(ae, src_plen, 0, message + parsed,
-                                NULL, len + 2 - parsed, src_prefix);
-            if(rc < 0) goto fail;
-            parsed += rc;
-            rc = parse_other_subtlv(message + parsed, len - parsed + 2);
-            if(rc < 0)
-                goto done;
-            if(ae == 1)
-                src_plen += 96;
-            debugf("Received request (%d) for (%s, %s)"
-                   " from %s on %s (%s, %d).\n",
-                   message[6],
-                   format_prefix(prefix, plen),
-                   format_prefix(src_prefix, src_plen),
-                   format_address(from), ifp->name,
-                   format_eui64(router_id), seqno);
-            handle_request(neigh, prefix, plen, src_prefix, src_plen,
-                           hopc, seqno, router_id);
         } else {
             debugf("Received unknown packet type %d from %s on %s.\n",
                    type, format_address(from), ifp->name);
@@ -1078,11 +926,13 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
 {
     int add_metric, v4, real_plen, omit = 0;
     const unsigned char *real_prefix;
-    const unsigned char *real_src_prefix = NULL;
-    int real_src_plen = 0;
     unsigned short flags = 0;
     int channels_size;
-    int is_ss = !is_default(src_prefix, src_plen);
+
+    if(!is_default(src_prefix, src_plen)) {
+        debugf("Attempted to send source-specific TLV -- not implemented yet\n");
+        return;
+    }
 
     if(diversity_kind != DIVERSITY_CHANNEL)
         channels_len = -1;
@@ -1119,25 +969,20 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
 
         real_prefix = prefix + 12;
         real_plen = plen - 96;
-        real_src_prefix = src_prefix + 12;
-        real_src_plen = src_plen - 96;
     } else {
         if(buf->have_prefix) {
             while(omit < plen / 8 &&
                   buf->prefix[omit] == prefix[omit])
                 omit++;
         }
-        if(!is_ss && (!buf->have_prefix || plen >= 48))
+        if(!buf->have_prefix || plen >= 48)
             flags |= 0x80;
         real_prefix = prefix;
         real_plen = plen;
-        real_src_prefix = src_prefix;
-        real_src_plen = src_plen;
     }
 
     if(!buf->have_id || memcmp(id, buf->id, 8) != 0) {
-        if(!is_ss && real_plen == 128 &&
-           memcmp(real_prefix + 8, id, 8) == 0) {
+        if(real_plen == 128 && memcmp(real_prefix + 8, id, 8) == 0) {
             flags |= 0x40;
         } else {
             start_message(buf, MESSAGE_ROUTER_ID, 10);
@@ -1149,41 +994,25 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
         buf->have_id = 1;
     }
 
-    if(!is_ss)
-        start_message(buf,
-                      MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
-                      channels_size);
-    else
-        start_message(buf, MESSAGE_UPDATE_SRC_SPECIFIC,
-                      10 + (real_plen + 7) / 8 - omit +
-                      (real_src_plen + 7) / 8 + channels_size);
+    start_message(buf,
+                  MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
+                  channels_size);
     accumulate_byte(buf, v4 ? 1 : 2);
-    if(is_ss)
-        accumulate_byte(buf, real_src_plen);
-    else
-        accumulate_byte(buf, flags);
+    accumulate_byte(buf, flags);
     accumulate_byte(buf, real_plen);
     accumulate_byte(buf, omit);
     accumulate_short(buf, (ifp->update_interval + 5) / 10);
     accumulate_short(buf, seqno);
     accumulate_short(buf, metric);
     accumulate_bytes(buf, real_prefix + omit, (real_plen + 7) / 8 - omit);
-    if(is_ss)
-        accumulate_bytes(buf, real_src_prefix, (real_src_plen + 7) / 8);
     /* Note that an empty channels TLV is different from no such TLV. */
     if(channels_len >= 0) {
         accumulate_byte(buf, 2);
         accumulate_byte(buf, channels_len);
         accumulate_bytes(buf, channels, channels_len);
     }
-    if(!is_ss)
-        end_message(buf, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
-                    channels_size);
-    else
-        end_message(buf, MESSAGE_UPDATE_SRC_SPECIFIC,
-                    10 + (real_plen + 7) / 8 - omit +
-                    (real_src_plen + 7) / 8 + channels_size);
-
+    end_message(buf, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
+                channels_size);
     if(flags & 0x80) {
         memcpy(buf->prefix, prefix, 16);
         buf->have_prefix = 1;
@@ -1514,10 +1343,7 @@ send_update(struct interface *ifp, int urgent,
             fprintf(stderr, "Couldn't allocate route stream.\n");
         }
         set_timeout(&ifp->update_timeout, ifp->update_interval);
-        if(!prefix)
-            ifp->last_update_time = now.tv_sec;
-        else
-            ifp->last_specific_update_time = now.tv_sec;
+        ifp->last_update_time = now.tv_sec;
     } else {
         send_update(ifp, urgent, NULL, 0, zeroes, 0);
         send_update(ifp, urgent, zeroes, 0, NULL, 0);
@@ -1719,63 +1545,38 @@ send_request(struct buffered *buf,
              const unsigned char *prefix, unsigned char plen,
              const unsigned char *src_prefix, unsigned char src_plen)
 {
-    int v4, pb, spb, len, is_ss;
+    int v4, pb, len;
 
-    if(prefix && src_prefix) {
-        debugf("sending request for %s from %s.\n",
-               format_prefix(prefix, plen),
-               format_prefix(src_prefix, src_plen));
-    } else if(prefix) {
-        debugf("sending request for any specific.\n");
-        start_message(buf, MESSAGE_REQUEST_SRC_SPECIFIC, 3);
-        accumulate_byte(buf, 0);
-        accumulate_byte(buf, 0);
-        accumulate_byte(buf, 0);
-        end_message(buf, MESSAGE_REQUEST_SRC_SPECIFIC, 3);
+    if(!is_default(src_prefix, src_plen)) {
+        debugf("Attempted to send source-specific TLV -- not implemented yet\n");
         return;
-    } else if(src_prefix) {
+    }
+
+    if(!prefix) {
+        assert(!src_prefix);
         debugf("sending request for any.\n");
         start_message(buf, MESSAGE_REQUEST, 2);
         accumulate_byte(buf, 0);
         accumulate_byte(buf, 0);
         end_message(buf, MESSAGE_REQUEST, 2);
         return;
-    } else {
-        send_request(buf, NULL, 0, zeroes, 0);
-        send_request(buf, zeroes, 0, NULL, 0);
-        return;
     }
+
+    debugf("sending request for %s from %s.\n",
+           format_prefix(prefix, plen),
+           format_prefix(src_prefix, src_plen));
 
     v4 = plen >= 96 && v4mapped(prefix);
     pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
     len = 2 + pb;
-
-    is_ss = !is_default(src_prefix, src_plen);
-    if(is_ss) {
-        spb = v4 ? ((src_plen - 96) + 7) / 8 : (src_plen + 7) / 8;
-        len += spb + 1;
-        start_message(buf, MESSAGE_REQUEST_SRC_SPECIFIC, len);
-    } else {
-        spb = 0;
-        start_message(buf, MESSAGE_REQUEST, len);
-    }
+    start_message(buf, MESSAGE_REQUEST, len);
     accumulate_byte(buf, v4 ? 1 : 2);
     accumulate_byte(buf, v4 ? plen - 96 : plen);
-    if(is_ss)
-        accumulate_byte(buf, v4 ? src_plen - 96 : src_plen);
     if(v4)
         accumulate_bytes(buf, prefix + 12, pb);
     else
         accumulate_bytes(buf, prefix, pb);
-    if(is_ss) {
-        if(v4)
-            accumulate_bytes(buf, src_prefix + 12, spb);
-        else
-            accumulate_bytes(buf, src_prefix, spb);
-        end_message(buf, MESSAGE_REQUEST_SRC_SPECIFIC, len);
-    } else {
-        end_message(buf, MESSAGE_REQUEST, len);
-    }
+    end_message(buf, MESSAGE_REQUEST, len);
 }
 
 void
@@ -1832,23 +1633,21 @@ send_multihop_request(struct buffered *buf,
                       unsigned short seqno, const unsigned char *id,
                       unsigned short hop_count)
 {
-    int v4, pb, spb, len, is_ss;
-    debugf("Sending request (%d) for %s from %s.\n",
-           hop_count, format_prefix(prefix, plen),
-           format_prefix(src_prefix, src_plen));
+    int v4, pb, len;
+
+    if(!is_default(src_prefix, src_plen)) {
+        debugf("Attempted to send source-specific TLV -- not implemented yet\n");
+        return;
+    }
+
+    debugf("Sending request (%d) for %s.\n",
+           hop_count, format_prefix(prefix, plen));
+
     v4 = plen >= 96 && v4mapped(prefix);
     pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
     len = 6 + 8 + pb;
 
-    is_ss = !is_default(src_prefix, src_plen);
-    if(is_ss) {
-        spb = v4 ? ((src_plen - 96) + 7) / 8 : (src_plen + 7) / 8;
-        len += spb;
-        start_message(buf, MESSAGE_MH_REQUEST_SRC_SPECIFIC, len);
-    } else {
-        spb = 0;
-        start_message(buf, MESSAGE_MH_REQUEST, len);
-    }
+    start_message(buf, MESSAGE_MH_REQUEST, len);
     accumulate_byte(buf, v4 ? 1 : 2);
     accumulate_byte(buf, v4 ? plen - 96 : plen);
     accumulate_short(buf, seqno);
@@ -1861,16 +1660,7 @@ send_multihop_request(struct buffered *buf,
         else
             accumulate_bytes(buf, prefix, pb);
     }
-    if(is_ss) {
-        if(v4)
-            accumulate_bytes(buf, src_prefix + 12, spb);
-        else
-            accumulate_bytes(buf, src_prefix, spb);
-        end_message(buf, MESSAGE_MH_REQUEST_SRC_SPECIFIC, len);
-    } else {
-        end_message(buf, MESSAGE_MH_REQUEST, len);
-    }
-
+    end_message(buf, MESSAGE_MH_REQUEST, len);
 }
 
 void
@@ -1911,7 +1701,6 @@ send_multicast_multihop_request(struct interface *ifp,
                               src_prefix, src_plen,
                               seqno, id, hop_count);
     }
-
 }
 
 void
@@ -1923,7 +1712,6 @@ send_unicast_multihop_request(struct neighbour *neigh,
                               unsigned short hop_count)
 {
     flushupdates(neigh->ifp);
-
     send_multihop_request(&neigh->buf, prefix, plen, src_prefix, src_plen,
                           seqno, id, hop_count);
 }

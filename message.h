@@ -34,9 +34,6 @@ THE SOFTWARE.
 #define MESSAGE_REQUEST 9
 #define MESSAGE_MH_REQUEST 10
 /* 11 and 12 are for authentication */
-#define MESSAGE_UPDATE_SRC_SPECIFIC 13
-#define MESSAGE_REQUEST_SRC_SPECIFIC 14
-#define MESSAGE_MH_REQUEST_SRC_SPECIFIC 15
 
 /* Protocol extension through sub-TLVs. */
 #define SUBTLV_PAD1 0
