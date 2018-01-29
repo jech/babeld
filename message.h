@@ -58,7 +58,7 @@ void flushbuf(struct buffered *buf);
 void flushupdates(struct interface *ifp);
 void send_ack(struct neighbour *neigh, unsigned short nonce,
               unsigned short interval);
-void send_hello_noupdate(struct interface *ifp, unsigned interval);
+void send_hello_noihu(struct interface *ifp, unsigned interval);
 void send_hello(struct interface *ifp);
 void flush_unicast(int dofree);
 void send_update(struct interface *ifp, int urgent,
