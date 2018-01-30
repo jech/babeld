@@ -411,6 +411,11 @@ for tunnel interfaces, and
 .B false
 otherwise.
 .TP
+.BR rfc6126\-compatible " {" true | false }
+Only send TLVs that are defined by RFC 6126, the older version of Babel.
+The default is
+.BR false .
+.TP
 .BI rtt\-decay " decay"
 This specifies the decay factor for the exponential moving average of
 RTT samples, in units of 1/256.  Must be between 1 and 256, inclusive.

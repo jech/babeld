@@ -47,6 +47,7 @@ struct interface_conf {
     char faraway;
     int channel;
     int enable_timestamps;
+    int rfc6126;
     unsigned int rtt_decay;
     unsigned int rtt_min;
     unsigned int rtt_max;
@@ -70,6 +71,8 @@ struct interface_conf {
 #define IF_FARAWAY (1 << 4)
 /* Send timestamps in Hello and IHU. */
 #define IF_TIMESTAMPS (1 << 5)
+/* Remain compatible with RFC 6126. */
+#define IF_RFC6126 (1 << 6)
 
 /* Only INTERFERING can appear on the wire. */
 #define IF_CHANNEL_UNKNOWN 0

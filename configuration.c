@@ -600,6 +600,12 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if(c < -1)
                 goto error;
             if_conf->enable_timestamps = v;
+        } else if(strcmp(token, "rfc6126-compatible") == 0) {
+            int v;
+            c = getbool(c, &v, gnc, closure);
+            if(c < -1)
+                goto error;
+            if_conf->rfc6126 = v;
         } else if(strcmp(token, "rtt-decay") == 0) {
             int decay;
             c = getint(c, &decay, gnc, closure);
@@ -707,6 +713,7 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(faraway);
     MERGE(channel);
     MERGE(enable_timestamps);
+    MERGE(rfc6126);
     MERGE(rtt_decay);
     MERGE(rtt_min);
     MERGE(rtt_max);
