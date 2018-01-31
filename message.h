@@ -38,8 +38,9 @@ THE SOFTWARE.
 /* Protocol extension through sub-TLVs. */
 #define SUBTLV_PAD1 0
 #define SUBTLV_PADN 1
-#define SUBTLV_DIVERSITY 2 /* Also known as babelz. */
-#define SUBTLV_TIMESTAMP 3 /* Used to compute RTT. */
+#define SUBTLV_DIVERSITY 2       /* Also known as babelz. */
+#define SUBTLV_TIMESTAMP 3       /* Used to compute RTT. */
+#define SUBTLV_SOURCE_PREFIX 128 /* Source-specific routing. */
 
 extern unsigned short myseqno;
 extern struct timeval seqno_time;
