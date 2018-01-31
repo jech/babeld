@@ -1054,26 +1054,20 @@ send_hello(struct interface *ifp)
 
 static void
 really_buffer_update(struct buffered *buf, struct interface *ifp,
-                   const unsigned char *id,
-                   const unsigned char *prefix, unsigned char plen,
-                   const unsigned char *src_prefix, unsigned char src_plen,
-                   unsigned short seqno, unsigned short metric,
-                   unsigned char *channels, int channels_len)
+                     const unsigned char *id,
+                     const unsigned char *prefix, unsigned char plen,
+                     const unsigned char *src_prefix, unsigned char src_plen,
+                     unsigned short seqno, unsigned short metric,
+                     unsigned char *channels, int channels_len)
 {
-    int add_metric, v4, real_plen, omit = 0;
+    int add_metric, v4, real_plen, omit, channels_size, len;
     const unsigned char *real_prefix;
     unsigned short flags = 0;
-    int channels_size;
 
     if(!is_default(src_prefix, src_plen)) {
         debugf("Attempted to send source-specific TLV -- not implemented yet\n");
         return;
     }
-
-    if(diversity_kind != DIVERSITY_CHANNEL)
-        channels_len = -1;
-
-    channels_size = channels_len >= 0 ? channels_len + 2 : 0;
 
     if(!if_up(ifp))
         return;
@@ -1092,6 +1086,7 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
     if(v4) {
         if(!ifp->ipv4)
             return;
+        omit = 0;
         if(!buf->have_nh ||
            memcmp(buf->nh, ifp->ipv4, 4) != 0) {
             start_message(buf, MESSAGE_NH, 6);
@@ -1106,6 +1101,7 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
         real_prefix = prefix + 12;
         real_plen = plen - 96;
     } else {
+        omit = 0;
         if(buf->have_prefix) {
             while(omit < plen / 8 &&
                   buf->prefix[omit] == prefix[omit])
@@ -1130,9 +1126,11 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
         buf->have_id = 1;
     }
 
-    start_message(buf,
-                  MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
-                  channels_size);
+    channels_size = diversity_kind == DIVERSITY_CHANNEL && channels_len >= 0 ?
+        channels_len + 2 : 0;
+    len = 10 + (real_plen + 7) / 8 - omit + channels_size;
+
+    start_message(buf, MESSAGE_UPDATE, len);
     accumulate_byte(buf, v4 ? 1 : 2);
     accumulate_byte(buf, flags);
     accumulate_byte(buf, real_plen);
@@ -1142,13 +1140,12 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
     accumulate_short(buf, metric);
     accumulate_bytes(buf, real_prefix + omit, (real_plen + 7) / 8 - omit);
     /* Note that an empty channels TLV is different from no such TLV. */
-    if(channels_len >= 0) {
+    if(channels_size > 0) {
         accumulate_byte(buf, 2);
         accumulate_byte(buf, channels_len);
         accumulate_bytes(buf, channels, channels_len);
     }
-    end_message(buf, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
-                channels_size);
+    end_message(buf, MESSAGE_UPDATE, len);
     if(flags & 0x80) {
         memcpy(buf->prefix, prefix, 16);
         buf->have_prefix = 1;
@@ -1705,6 +1702,7 @@ send_request(struct buffered *buf,
     v4 = plen >= 96 && v4mapped(prefix);
     pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
     len = 2 + pb;
+
     start_message(buf, MESSAGE_REQUEST, len);
     accumulate_byte(buf, v4 ? 1 : 2);
     accumulate_byte(buf, v4 ? plen - 96 : plen);
