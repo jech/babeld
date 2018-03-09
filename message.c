@@ -1790,7 +1790,17 @@ send_multicast_request(struct interface *ifp,
     /* make sure any buffered updates go out before this request. */
     flushupdates(ifp);
 
-    send_request(&ifp->buf, prefix, plen, src_prefix, src_plen);
+    if((ifp->flags & IF_UNICAST) != 0) {
+        struct neighbour *neigh;
+        FOR_ALL_NEIGHBOURS(neigh) {
+            if(neigh->ifp == ifp) {
+                send_request(&neigh->buf, prefix, plen,
+                             src_prefix, src_plen);
+            } else {
+                send_request(&ifp->buf, prefix, plen, src_prefix, src_plen);
+            }
+        }
+    }
 }
 
 void
@@ -1878,8 +1888,20 @@ send_multicast_multihop_request(struct interface *ifp,
     if(!if_up(ifp))
         return;
 
-    send_multihop_request(&ifp->buf, prefix, plen, src_prefix, src_plen,
-                          seqno, id, hop_count);
+    if((ifp->flags & IF_UNICAST) != 0) {
+            struct neighbour *neigh;
+            FOR_ALL_NEIGHBOURS(neigh) {
+                if(neigh->ifp == ifp) {
+                    send_multihop_request(&neigh->buf, prefix, plen,
+                                          src_prefix, src_plen,
+                                          seqno, id, hop_count);
+                }
+            }
+    } else {
+        send_multihop_request(&ifp->buf, prefix, plen,
+                              src_prefix, src_plen,
+                              seqno, id, hop_count);
+    }
 
 }
 
