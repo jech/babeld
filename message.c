@@ -1069,7 +1069,7 @@ send_hello(struct interface *ifp)
 }
 
 static void
-really_send_update(struct interface *ifp,
+really_buffer_update(struct buffered *buf, struct interface *ifp,
                    const unsigned char *id,
                    const unsigned char *prefix, unsigned char plen,
                    const unsigned char *src_prefix, unsigned char src_plen,
@@ -1099,22 +1099,22 @@ really_send_update(struct interface *ifp,
 
     metric = MIN(metric + add_metric, INFINITY);
     /* Worst case */
-    ensure_space(&ifp->buf, 20 + 12 + 28 + 18);
+    ensure_space(buf, 20 + 12 + 28 + 18);
 
     v4 = plen >= 96 && v4mapped(prefix);
 
     if(v4) {
         if(!ifp->ipv4)
             return;
-        if(!ifp->buf.have_nh ||
-           memcmp(ifp->buf.nh, ifp->ipv4, 4) != 0) {
-            start_message(&ifp->buf, MESSAGE_NH, 6);
-            accumulate_byte(&ifp->buf, 1);
-            accumulate_byte(&ifp->buf, 0);
-            accumulate_bytes(&ifp->buf, ifp->ipv4, 4);
-            end_message(&ifp->buf, MESSAGE_NH, 6);
-            memcpy(&ifp->buf.nh, ifp->ipv4, 4);
-            ifp->buf.have_nh = 1;
+        if(!buf->have_nh ||
+           memcmp(buf->nh, ifp->ipv4, 4) != 0) {
+            start_message(buf, MESSAGE_NH, 6);
+            accumulate_byte(buf, 1);
+            accumulate_byte(buf, 0);
+            accumulate_bytes(buf, ifp->ipv4, 4);
+            end_message(buf, MESSAGE_NH, 6);
+            memcpy(&buf->nh, ifp->ipv4, 4);
+            buf->have_nh = 1;
         }
 
         real_prefix = prefix + 12;
@@ -1122,12 +1122,12 @@ really_send_update(struct interface *ifp,
         real_src_prefix = src_prefix + 12;
         real_src_plen = src_plen - 96;
     } else {
-        if(ifp->buf.have_prefix) {
+        if(buf->have_prefix) {
             while(omit < plen / 8 &&
-                  ifp->buf.prefix[omit] == prefix[omit])
+                  buf->prefix[omit] == prefix[omit])
                 omit++;
         }
-        if(!is_ss && (!ifp->buf.have_prefix || plen >= 48))
+        if(!is_ss && (!buf->have_prefix || plen >= 48))
             flags |= 0x80;
         real_prefix = prefix;
         real_plen = plen;
@@ -1135,58 +1135,81 @@ really_send_update(struct interface *ifp,
         real_src_plen = src_plen;
     }
 
-    if(!ifp->buf.have_id || memcmp(id, ifp->buf.id, 8) != 0) {
+    if(!buf->have_id || memcmp(id, buf->id, 8) != 0) {
         if(!is_ss && real_plen == 128 &&
            memcmp(real_prefix + 8, id, 8) == 0) {
             flags |= 0x40;
         } else {
-            start_message(&ifp->buf, MESSAGE_ROUTER_ID, 10);
-            accumulate_short(&ifp->buf, 0);
-            accumulate_bytes(&ifp->buf, id, 8);
-            end_message(&ifp->buf, MESSAGE_ROUTER_ID, 10);
+            start_message(buf, MESSAGE_ROUTER_ID, 10);
+            accumulate_short(buf, 0);
+            accumulate_bytes(buf, id, 8);
+            end_message(buf, MESSAGE_ROUTER_ID, 10);
         }
-        memcpy(ifp->buf.id, id, 8);
-        ifp->buf.have_id = 1;
+        memcpy(buf->id, id, 8);
+        buf->have_id = 1;
     }
 
     if(!is_ss)
-        start_message(&ifp->buf,
+        start_message(buf,
                       MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
                       channels_size);
     else
-        start_message(&ifp->buf, MESSAGE_UPDATE_SRC_SPECIFIC,
+        start_message(buf, MESSAGE_UPDATE_SRC_SPECIFIC,
                       10 + (real_plen + 7) / 8 - omit +
                       (real_src_plen + 7) / 8 + channels_size);
-    accumulate_byte(&ifp->buf, v4 ? 1 : 2);
+    accumulate_byte(buf, v4 ? 1 : 2);
     if(is_ss)
-        accumulate_byte(&ifp->buf, real_src_plen);
+        accumulate_byte(buf, real_src_plen);
     else
-        accumulate_byte(&ifp->buf, flags);
-    accumulate_byte(&ifp->buf, real_plen);
-    accumulate_byte(&ifp->buf, omit);
-    accumulate_short(&ifp->buf, (ifp->update_interval + 5) / 10);
-    accumulate_short(&ifp->buf, seqno);
-    accumulate_short(&ifp->buf, metric);
-    accumulate_bytes(&ifp->buf, real_prefix + omit, (real_plen + 7) / 8 - omit);
+        accumulate_byte(buf, flags);
+    accumulate_byte(buf, real_plen);
+    accumulate_byte(buf, omit);
+    accumulate_short(buf, (ifp->update_interval + 5) / 10);
+    accumulate_short(buf, seqno);
+    accumulate_short(buf, metric);
+    accumulate_bytes(buf, real_prefix + omit, (real_plen + 7) / 8 - omit);
     if(is_ss)
-        accumulate_bytes(&ifp->buf, real_src_prefix, (real_src_plen + 7) / 8);
+        accumulate_bytes(buf, real_src_prefix, (real_src_plen + 7) / 8);
     /* Note that an empty channels TLV is different from no such TLV. */
     if(channels_len >= 0) {
-        accumulate_byte(&ifp->buf, 2);
-        accumulate_byte(&ifp->buf, channels_len);
-        accumulate_bytes(&ifp->buf, channels, channels_len);
+        accumulate_byte(buf, 2);
+        accumulate_byte(buf, channels_len);
+        accumulate_bytes(buf, channels, channels_len);
     }
     if(!is_ss)
-        end_message(&ifp->buf, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
+        end_message(buf, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
                     channels_size);
     else
-        end_message(&ifp->buf, MESSAGE_UPDATE_SRC_SPECIFIC,
+        end_message(buf, MESSAGE_UPDATE_SRC_SPECIFIC,
                     10 + (real_plen + 7) / 8 - omit +
                     (real_src_plen + 7) / 8 + channels_size);
 
     if(flags & 0x80) {
-        memcpy(ifp->buf.prefix, prefix, 16);
-        ifp->buf.have_prefix = 1;
+        memcpy(buf->prefix, prefix, 16);
+        buf->have_prefix = 1;
+    }
+}
+
+static void
+really_send_update(struct interface *ifp, const unsigned char *id,
+                   const unsigned char *prefix, unsigned char plen,
+                   const unsigned char *src_prefix, unsigned char src_plen,
+                   unsigned short seqno, unsigned short metric,
+                   unsigned char *channels, int channels_len)
+{
+    if((ifp->flags & IF_UNICAST) != 0) {
+        struct neighbour *neigh;
+        FOR_ALL_NEIGHBOURS(neigh) {
+            if(neigh->ifp == ifp) {
+                really_buffer_update(&neigh->buf, ifp, id,
+                                     prefix, plen, src_prefix, src_plen,
+                                     seqno, metric, channels, channels_len);
+            }
+        }
+    } else {
+        really_buffer_update(&ifp->buf, ifp, id,
+                             prefix, plen, src_prefix, src_plen,
+                             seqno, metric, channels, channels_len);
     }
 }
 
@@ -1348,7 +1371,8 @@ flushupdates(struct interface *ifp)
 
                 really_send_update(ifp, route->src->id,
                                    route->src->prefix, route->src->plen,
-                                   route->src->src_prefix, route->src->src_plen,
+                                   route->src->src_prefix,
+                                   route->src->src_plen,
                                    seqno, metric,
                                    channels, chlen);
                 update_source(route->src, seqno, metric);
@@ -1359,12 +1383,23 @@ flushupdates(struct interface *ifp)
             } else {
             /* There's no route for this prefix.  This can happen shortly
                after an xroute has been retracted, so send a retraction. */
-                really_send_update(ifp, myid, b[i].prefix, b[i].plen,
+                really_send_update(ifp, myid,
+                                   b[i].prefix, b[i].plen,
                                    b[i].src_prefix, b[i].src_plen,
                                    myseqno, INFINITY, NULL, -1);
             }
         }
-        schedule_flush_now(&ifp->buf);
+
+        if((ifp->flags & IF_UNICAST) != 0) {
+            struct neighbour *neigh;
+            FOR_ALL_NEIGHBOURS(neigh) {
+                if(neigh->ifp == ifp) {
+                    schedule_flush_now(&neigh->buf);
+                }
+            }
+        } else {
+            schedule_flush_now(&ifp->buf);
+        }
     done:
         free(b);
     }
