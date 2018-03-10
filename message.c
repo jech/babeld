@@ -1567,7 +1567,16 @@ send_wildcard_retraction(struct interface *ifp)
     if(!if_up(ifp))
         return;
 
-    buffer_wildcard_retraction(&ifp->buf);
+    if((ifp->flags & IF_UNICAST) != 0) {
+        struct neighbour *neigh;
+        FOR_ALL_NEIGHBOURS(neigh) {
+            if(neigh->ifp == ifp) {
+                buffer_wildcard_retraction(&neigh->buf);
+            }
+        }
+    } else {
+        buffer_wildcard_retraction(&ifp->buf);
+    }
 }
 
 void
