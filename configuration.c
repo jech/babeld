@@ -479,10 +479,14 @@ parse_filter(int c, gnc_t gnc, void *closure, struct filter **filter_return)
            filter->src_plen_le < 128 || filter->src_plen_ge > 0)
             filter->af = AF_INET6;
     } else if(filter->af == AF_INET) {
-        filter->plen_le += 96;
-        filter->plen_ge += 96;
-        filter->src_plen_le += 96;
-        filter->src_plen_ge += 96;
+        if(filter->plen_le < 128)
+            filter->plen_le += 96;
+        if(filter->plen_ge > 0)
+            filter->plen_ge += 96;
+        if(filter->src_plen_le < 128)
+            filter->src_plen_le += 96;
+        if(filter->src_plen_ge > 0)
+            filter->src_plen_ge += 96;
     }
     *filter_return = filter;
     return c;
