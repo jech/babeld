@@ -44,9 +44,11 @@ THE SOFTWARE.
 #include <net/route.h>
 
 #include "babeld.h"
+#include "interface.h"
 #include "neighbour.h"
 #include "kernel.h"
 #include "util.h"
+
 
 
 static int get_sdl(struct sockaddr_dl *sdl, char *ifname);
