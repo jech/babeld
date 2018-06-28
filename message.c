@@ -1946,8 +1946,10 @@ send_request_resend(const unsigned char *prefix, unsigned char plen,
         record_resend(RESEND_REQUEST, prefix, plen, src_prefix, src_plen, seqno,
                       id, neigh->ifp, resend_delay);
     } else {
-        send_multihop_request(NULL, prefix, plen, src_prefix, src_plen,
-                              seqno, id, 127);
+        struct interface *ifp;
+        FOR_ALL_INTERFACES(ifp)
+            send_multihop_request(&ifp->buf, prefix, plen, src_prefix, src_plen,
+                                  seqno, id, 127);
     }
 }
 
