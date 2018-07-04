@@ -357,6 +357,10 @@ This specifies whether link quality estimation should be performed on this
 interface.  The default is to perform link quality estimation on wireless
 interfaces only.
 .TP
+.BR pref-src " {" ipv6-address }
+This specifies the preferred src address to be added to routes on this
+interface.
+.TP
 .BR split\-horizon " {" true | false | auto }
 This specifies whether to perform split-horizon processing on this
 interface.  The default is to perform split-horizon processing on
