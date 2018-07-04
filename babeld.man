@@ -34,9 +34,8 @@ Set the name of the file used for preserving long-term information
 between invocations of the
 .B babeld
 daemon.  If this file is deleted, the daemon will run in passive mode
-for 3 minutes when it is next started (see
-.B -P
-below), and other hosts might initially ignore it.  The default is
+for 3 minutes when it is next started, and other hosts might initially
+ignore it. The default is
 .BR /var/lib/babel-state .
 .TP
 .BI \-h " hello-interval"
