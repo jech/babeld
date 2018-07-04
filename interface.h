@@ -41,17 +41,19 @@ struct interface_conf {
     unsigned hello_interval;
     unsigned update_interval;
     unsigned short cost;
-    char type;
-    char split_horizon;
-    char lq;
-    char faraway;
-    char unicast;
     int channel;
     int enable_timestamps;
     unsigned int rtt_decay;
     unsigned int rtt_min;
     unsigned int rtt_max;
     unsigned int max_rtt_penalty;
+    char type;
+    char split_horizon;
+    char lq;
+    char faraway;
+    char use_prefsrc;
+    char unicast;
+    unsigned char prefsrc[16];
     struct interface_conf *next;
 };
 
@@ -71,6 +73,8 @@ struct interface_conf {
 #define IF_FARAWAY (1 << 4)
 /* Send most TLVs over unicast. */
 #define IF_UNICAST (1 << 5)
+/* use preferred source address on this interface */
+#define IF_PREFSRC (1 << 6)
 
 /* Only INTERFERING can appear on the wire. */
 #define IF_CHANNEL_UNKNOWN 0
