@@ -1071,6 +1071,17 @@ kernel_route(int operation, int table,
             rta->rta_type = RTA_SRC;
             memcpy(RTA_DATA(rta), src, sizeof(struct in6_addr));
         }
+
+        struct interface *ifp;
+
+        FOR_ALL_INTERFACES(ifp) {
+	    if ( (ifp->ifindex == ifindex)  &&  (ifp->conf) && (ifp->conf->prefsrc) ) {
+                rta = RTA_NEXT(rta, len);
+                rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr));
+                rta->rta_type = RTA_PREFSRC;
+                memcpy(RTA_DATA(rta), ifp->conf->prefsrc, sizeof(struct in6_addr));
+            }
+        }
     }
 
     rta = RTA_NEXT(rta, len);

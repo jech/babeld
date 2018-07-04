@@ -574,6 +574,13 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if(c < -1)
                 goto error;
             if_conf->lq = v;
+	} else if(strcmp(token, "pref-src") == 0) {
+            unsigned char *prefsrc = NULL;
+            c = getip(c, &prefsrc, NULL, gnc, closure);
+            if(c < -1)
+                goto error;
+            memcpy(if_conf->prefsrc, prefsrc, 16);
+            free(prefsrc);
         } else if(strcmp(token, "split-horizon") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
