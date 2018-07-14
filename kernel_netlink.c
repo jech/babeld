@@ -390,6 +390,9 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
                     errno = -err->error;
                     return -1;
                 }
+            } else if(nh->nlmsg_type == RTM_NEWLINK || nh->nlmsg_type == RTM_DELLINK ) {
+                kdebugf("detected an interface change via netlink - triggering babeld interface check\n");
+                check_interfaces();
             } else if(skip) {
                 kdebugf("(skip)");
             } if(filter) {
