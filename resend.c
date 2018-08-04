@@ -24,13 +24,15 @@ THE SOFTWARE.
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 #include "babeld.h"
 #include "util.h"
+#include "interface.h"
 #include "neighbour.h"
 #include "resend.h"
 #include "message.h"
-#include "interface.h"
 #include "configuration.h"
 
 struct timeval resend_time = {0, 0};
@@ -304,10 +306,12 @@ do_resend()
             if(timeval_compare(&now, &timeout) >= 0) {
                 switch(resend->kind) {
                 case RESEND_REQUEST:
-                    send_multihop_request(resend->ifp,
-                                          resend->prefix, resend->plen,
-                                          resend->src_prefix, resend->src_plen,
-                                          resend->seqno, resend->id, 127);
+                    send_multicast_multihop_request(resend->ifp,
+                                                    resend->prefix, resend->plen,
+                                                    resend->src_prefix,
+                                                    resend->src_plen,
+                                                    resend->seqno, resend->id,
+                                                    127);
                     break;
                 case RESEND_UPDATE:
                     send_update(resend->ifp, 1,

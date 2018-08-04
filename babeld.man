@@ -34,9 +34,8 @@ Set the name of the file used for preserving long-term information
 between invocations of the
 .B babeld
 daemon.  If this file is deleted, the daemon will run in passive mode
-for 3 minutes when it is next started (see
-.B -P
-below), and other hosts might initially ignore it.  The default is
+for 3 minutes when it is next started, and other hosts might initially
+ignore it. The default is
 .BR /var/lib/babel-state .
 .TP
 .BI \-h " hello-interval"
@@ -357,6 +356,10 @@ command-line flag was specified.
 This specifies whether link quality estimation should be performed on this
 interface.  The default is to perform link quality estimation on wireless
 interfaces only.
+.TP
+.BR pref-src " {" ipv6-address }
+This specifies the preferred src address to be added to routes on this
+interface.
 .TP
 .BR split\-horizon " {" true | false | auto }
 This specifies whether to perform split-horizon processing on this

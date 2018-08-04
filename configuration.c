@@ -24,6 +24,8 @@ THE SOFTWARE.
 #include <string.h>
 #include <stdio.h>
 #include <sys/time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <assert.h>
 
 #ifdef __linux
@@ -560,12 +562,26 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if(c < -1)
                 goto error;
             if_conf->faraway = v;
+        } else if(strcmp(token, "unicast") == 0) {
+            int v;
+            c = getbool(c, &v, gnc, closure);
+            if(c < -1)
+                goto error;
+            if_conf->unicast = v;
         } else if(strcmp(token, "link-quality") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
             if(c < -1)
                 goto error;
             if_conf->lq = v;
+	} else if(strcmp(token, "pref-src") == 0) {
+            unsigned char *prefsrc = NULL;
+            c = getip(c, &prefsrc, NULL, gnc, closure);
+            if(c < -1)
+                goto error;
+            memcpy(if_conf->prefsrc, prefsrc, 16);
+	    if_conf->use_prefsrc = 1;
+            free(prefsrc);
         } else if(strcmp(token, "split-horizon") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
@@ -702,9 +718,11 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(update_interval);
     MERGE(cost);
     MERGE(type);
+    MERGE(use_prefsrc);
     MERGE(split_horizon);
     MERGE(lq);
     MERGE(faraway);
+    MERGE(unicast);
     MERGE(channel);
     MERGE(enable_timestamps);
     MERGE(rtt_decay);

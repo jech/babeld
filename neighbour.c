@@ -24,6 +24,8 @@ THE SOFTWARE.
 #include <string.h>
 #include <stdio.h>
 #include <sys/time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <time.h>
 #include <assert.h>
 
@@ -55,8 +57,6 @@ void
 flush_neighbour(struct neighbour *neigh)
 {
     flush_neighbour_routes(neigh);
-    if(unicast_neighbour == neigh)
-        flush_unicast(1);
     flush_resends(neigh);
 
     if(neighs == neigh) {
@@ -68,6 +68,7 @@ flush_neighbour(struct neighbour *neigh)
         previous->next = neigh->next;
     }
     local_notify_neighbour(neigh, LOCAL_FLUSH);
+    free(neigh->buf.buf);
     free(neigh);
 }
 
@@ -76,6 +77,7 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
 {
     struct neighbour *neigh;
     const struct timeval zero = {0, 0};
+    char *buf;
 
     neigh = find_neighbour_nocreate(address, ifp);
     if(neigh)
@@ -83,6 +85,12 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
 
     debugf("Creating neighbour %s on %s.\n",
            format_address(address), ifp->name);
+
+    buf = malloc(ifp->buf.size);
+    if(buf == NULL) {
+        perror("malloc(neighbour->buf)");
+        return NULL;
+    }
 
     neigh = calloc(1, sizeof(struct neighbour));
     if(neigh == NULL) {
@@ -98,6 +106,13 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
     neigh->hello_rtt_receive_time = zero;
     neigh->rtt_time = zero;
     neigh->ifp = ifp;
+    neigh->buf.buf = buf;
+    neigh->buf.size = ifp->buf.size;
+    neigh->buf.flush_interval = ifp->buf.flush_interval;
+    neigh->buf.sin6.sin6_family = AF_INET6;
+    memcpy(&neigh->buf.sin6.sin6_addr, address, 16);
+    neigh->buf.sin6.sin6_port = htons(protocol_port);
+    neigh->buf.sin6.sin6_scope_id = ifp->ifindex;
     neigh->next = neighs;
     neighs = neigh;
     local_notify_neighbour(neigh, LOCAL_ADD);

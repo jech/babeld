@@ -22,9 +22,6 @@ THE SOFTWARE.
 
 #define MAX_BUFFERED_UPDATES 200
 
-#define BUCKET_TOKENS_MAX 4000
-#define BUCKET_TOKENS_PER_SEC 1000
-
 #define MESSAGE_PAD1 0
 #define MESSAGE_PADN 1
 #define MESSAGE_ACK_REQ 2
@@ -55,16 +52,13 @@ extern int split_horizon;
 
 extern unsigned char packet_header[4];
 
-extern struct neighbour *unicast_neighbour;
-extern struct timeval unicast_flush_timeout;
-
 void parse_packet(const unsigned char *from, struct interface *ifp,
                   const unsigned char *packet, int packetlen);
-void flushbuf(struct interface *ifp);
+void flushbuf(struct buffered *buf);
 void flushupdates(struct interface *ifp);
 void send_ack(struct neighbour *neigh, unsigned short nonce,
               unsigned short interval);
-void send_hello_noupdate(struct interface *ifp, unsigned interval);
+void send_hello_noihu(struct interface *ifp, unsigned interval);
 void send_hello(struct interface *ifp);
 void flush_unicast(int dofree);
 void send_update(struct interface *ifp, int urgent,
@@ -79,19 +73,20 @@ void update_myseqno(void);
 void send_self_update(struct interface *ifp);
 void send_ihu(struct neighbour *neigh, struct interface *ifp);
 void send_marginal_ihu(struct interface *ifp);
-void send_request(struct interface *ifp,
+void send_multicast_request(struct interface *ifp,
                   const unsigned char *prefix, unsigned char plen,
                   const unsigned char *src_prefix, unsigned char src_plen);
 void send_unicast_request(struct neighbour *neigh,
                           const unsigned char *prefix, unsigned char plen,
                           const unsigned char *src_prefix,
                           unsigned char src_plen);
-void send_multihop_request(struct interface *ifp,
-                           const unsigned char *prefix, unsigned char plen,
-                           const unsigned char *src_prefix,
-                           unsigned char src_plen,
-                           unsigned short seqno, const unsigned char *id,
-                           unsigned short hop_count);
+void
+send_multicast_multihop_request(struct interface *ifp,
+                                const unsigned char *prefix, unsigned char plen,
+                                const unsigned char *src_prefix,
+                                unsigned char src_plen,
+                                unsigned short seqno, const unsigned char *id,
+                                unsigned short hop_count);
 void
 send_unicast_multihop_request(struct neighbour *neigh,
                               const unsigned char *prefix, unsigned char plen,
