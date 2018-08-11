@@ -1025,12 +1025,13 @@ kernel_route(int operation, int table,
         rtm->rtm_src_len = src_plen;
     rtm->rtm_table = table;
     rtm->rtm_scope = RT_SCOPE_UNIVERSE;
-    if(metric < KERNEL_INFINITY)
+    if(metric < KERNEL_INFINITY) {
         rtm->rtm_type = RTN_UNICAST;
-    else
+        rtm->rtm_flags |= RTNH_F_ONLINK;
+    } else
         rtm->rtm_type = RTN_UNREACHABLE;
+
     rtm->rtm_protocol = RTPROT_BABEL;
-    rtm->rtm_flags |= RTNH_F_ONLINK;
 
     rta = RTM_RTA(rtm);
 
