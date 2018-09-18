@@ -106,8 +106,8 @@ local_notify_interface_1(struct local_socket *s,
         rc = snprintf(buf, 512,
                       "%s interface %s up true%s%s%s%s\n",
                       local_kind(kind), ifp->name,
-                      ifp->ll ? " ipv6 " : "",
-                      ifp->ll ? format_address(*ifp->ll) : "",
+                      ifp->numll > 0 ? " ipv6 " : "",
+                      ifp->numll > 0 ? format_address(ifp->ll[0]) : "",
                       v4[0] ? " ipv4 " : "", v4);
     else
         rc = snprintf(buf, 512, "%s interface %s up false\n",
