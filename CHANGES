@@ -1,4 +1,4 @@
-babeld-1.8.3 (unreleased)
+24 September 2018: babeld-1.8.3
 
   * Fixed a read-only two byte buffer overflow in the packet parser.
     This is a read-only overflow, and hence most probably not exploitable.
