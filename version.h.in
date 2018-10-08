@@ -1,0 +1,1 @@
+#define BABELD_VERSION "@VCS_TAG@"

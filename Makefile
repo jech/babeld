@@ -29,16 +29,16 @@ kernel.o: kernel_netlink.c kernel_socket.c
 version.h:
 	./generate-version.sh > version.h
 
-.SUFFIXES: .man .html
+.SUFFIXES: .8 .html
 
-.man.html:
+.8.html:
 	mandoc -Thtml $< > $@
 
-babeld.html: babeld.man
+babeld.html: babeld.8
 
 .PHONY: all install install.minimal uninstall clean
 
-all: babeld babeld.man
+all: babeld babeld.8
 
 install.minimal: babeld
 	-rm -f $(TARGET)$(PREFIX)/bin/babeld
@@ -47,7 +47,7 @@ install.minimal: babeld
 
 install: install.minimal all
 	mkdir -p $(TARGET)$(MANDIR)/man8
-	cp -f babeld.man $(TARGET)$(MANDIR)/man8/babeld.8
+	cp -f babeld.8 $(TARGET)$(MANDIR)/man8/babeld.8
 
 uninstall:
 	-rm -f $(TARGET)$(PREFIX)/bin/babeld
