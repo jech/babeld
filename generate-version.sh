@@ -10,4 +10,4 @@ else
     version="unknown"
 fi
 
-echo "#define BABELD_VERSION \"$version\""
+sed "s/@VCS_TAG@/$version/" version.h.in > version.h

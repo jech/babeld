@@ -20,6 +20,10 @@ On Mac OS X, you'll need to do
 
     $ make LDLIBS=''
 
+You can also use Meson and Ninja:
+
+    $ meson build && ninja -C build
+    $ su -c 'ninja -C build install'
 
 Setting up a network for use with Babel
 =======================================
