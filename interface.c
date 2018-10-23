@@ -445,10 +445,7 @@ interface_up(struct interface *ifp, int up)
                     "but timestamps are disabled on interface %s.\n",
                     ifp->name);
 
-        if(IF_CONF(ifp, rfc6126) == CONFIG_YES)
-            ifp->flags |= IF_RFC6126;
-        else
-            ifp->flags &= ~IF_RFC6126;
+        ifp->buf.rfc6126_compatible = (IF_CONF(ifp, rfc6126) == CONFIG_YES);
 
         rc = check_link_local_addresses(ifp);
         if(rc < 0) {
