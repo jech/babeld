@@ -1060,16 +1060,16 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
                      unsigned short seqno, unsigned short metric,
                      unsigned char *channels, int channels_len)
 {
-    int add_metric, v4, real_plen, omit, channels_size, len;
-    const unsigned char *real_prefix;
+    int add_metric, v4, real_plen, real_src_plen;
+    int omit, spb, channels_size, len;
+    const unsigned char *real_prefix, *real_src_prefix;
     unsigned short flags = 0;
-
-    if(!is_default(src_prefix, src_plen)) {
-        debugf("Attempted to send source-specific TLV -- not implemented yet\n");
-        return;
-    }
+    int is_ss = !is_default(src_prefix, src_plen);
 
     if(!if_up(ifp))
+        return;
+
+    if(is_ss && buf->rfc6126_compatible)
         return;
 
     add_metric = output_filter(id, prefix, plen, src_prefix,
@@ -1078,6 +1078,7 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
         return;
 
     metric = MIN(metric + add_metric, INFINITY);
+
     /* Worst case */
     ensure_space(buf, 20 + 12 + 28 + 18);
 
@@ -1097,9 +1098,10 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
             memcpy(&buf->nh, ifp->ipv4, 4);
             buf->have_nh = 1;
         }
-
         real_prefix = prefix + 12;
         real_plen = plen - 96;
+        real_src_prefix = src_prefix + 12;
+        real_src_plen = src_plen - 96;
     } else {
         omit = 0;
         if(buf->have_prefix) {
@@ -1111,6 +1113,8 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
             flags |= 0x80;
         real_prefix = prefix;
         real_plen = plen;
+        real_src_prefix = src_prefix;
+        real_src_plen = src_plen;
     }
 
     if(!buf->have_id || memcmp(id, buf->id, 8) != 0) {
@@ -1129,6 +1133,9 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
     channels_size = diversity_kind == DIVERSITY_CHANNEL && channels_len >= 0 ?
         channels_len + 2 : 0;
     len = 10 + (real_plen + 7) / 8 - omit + channels_size;
+    spb = (real_src_plen + 7) / 8;
+    if(is_ss)
+        len += 3 + spb;
 
     start_message(buf, MESSAGE_UPDATE, len);
     accumulate_byte(buf, v4 ? 1 : 2);
@@ -1139,6 +1146,12 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
     accumulate_short(buf, seqno);
     accumulate_short(buf, metric);
     accumulate_bytes(buf, real_prefix + omit, (real_plen + 7) / 8 - omit);
+    if(is_ss) {
+        accumulate_byte(buf, SUBTLV_SOURCE_PREFIX);
+        accumulate_byte(buf, 1 + spb);
+        accumulate_byte(buf, real_src_plen);
+        accumulate_bytes(buf, real_src_prefix, spb);
+    }
     /* Note that an empty channels TLV is different from no such TLV. */
     if(channels_size > 0) {
         accumulate_byte(buf, 2);
@@ -1678,12 +1691,11 @@ send_request(struct buffered *buf,
              const unsigned char *prefix, unsigned char plen,
              const unsigned char *src_prefix, unsigned char src_plen)
 {
-    int v4, pb, len;
+    int v4, pb, spb, len;
+    int is_ss = !is_default(src_prefix, src_plen);
 
-    if(!is_default(src_prefix, src_plen)) {
-        debugf("Attempted to send source-specific TLV -- not implemented yet\n");
+    if(is_ss && buf->rfc6126_compatible)
         return;
-    }
 
     if(!prefix) {
         assert(!src_prefix);
@@ -1701,7 +1713,8 @@ send_request(struct buffered *buf,
 
     v4 = plen >= 96 && v4mapped(prefix);
     pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
-    len = 2 + pb;
+    spb = v4 ? ((src_plen - 96) + 7) / 8 : (src_plen + 7) / 8;
+    len = 2 + pb + (is_ss ? 3 + spb : 0);
 
     start_message(buf, MESSAGE_REQUEST, len);
     accumulate_byte(buf, v4 ? 1 : 2);
@@ -1710,6 +1723,15 @@ send_request(struct buffered *buf,
         accumulate_bytes(buf, prefix + 12, pb);
     else
         accumulate_bytes(buf, prefix, pb);
+    if(is_ss) {
+        accumulate_byte(buf, SUBTLV_SOURCE_PREFIX);
+        accumulate_byte(buf, 1 + spb);
+        accumulate_byte(buf, v4 ? src_plen - 96 : src_plen);
+        if(v4)
+            accumulate_bytes(buf, src_prefix + 12, spb);
+        else
+            accumulate_bytes(buf, src_prefix, spb);
+    }
     end_message(buf, MESSAGE_REQUEST, len);
 }
 
@@ -1767,19 +1789,19 @@ send_multihop_request(struct buffered *buf,
                       unsigned short seqno, const unsigned char *id,
                       unsigned short hop_count)
 {
-    int v4, pb, len;
+    int v4, pb, spb, len;
+    int is_ss = !is_default(src_prefix, src_plen);
 
-    if(!is_default(src_prefix, src_plen)) {
-        debugf("Attempted to send source-specific TLV -- not implemented yet\n");
+    if(is_ss && buf->rfc6126_compatible)
         return;
-    }
 
     debugf("Sending request (%d) for %s.\n",
            hop_count, format_prefix(prefix, plen));
 
     v4 = plen >= 96 && v4mapped(prefix);
     pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
-    len = 6 + 8 + pb;
+    spb = v4 ? ((src_plen - 96) + 7) / 8 : (src_plen + 7) / 8;
+    len = 6 + 8 + pb + (is_ss ? 3 + spb : 0);
 
     start_message(buf, MESSAGE_MH_REQUEST, len);
     accumulate_byte(buf, v4 ? 1 : 2);
@@ -1793,6 +1815,15 @@ send_multihop_request(struct buffered *buf,
             accumulate_bytes(buf, prefix + 12, pb);
         else
             accumulate_bytes(buf, prefix, pb);
+    }
+    if(is_ss) {
+        accumulate_byte(buf, SUBTLV_SOURCE_PREFIX);
+        accumulate_byte(buf, 1 + spb);
+        accumulate_byte(buf, v4 ? src_plen - 96 : src_plen);
+        if(v4)
+            accumulate_bytes(buf, src_prefix + 12, spb);
+        else
+            accumulate_bytes(buf, src_prefix, spb);
     }
     end_message(buf, MESSAGE_MH_REQUEST, len);
 }
