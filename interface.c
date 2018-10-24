@@ -295,7 +295,7 @@ interface_up(struct interface *ifp, int up)
 
         rc = kernel_setup_interface(1, ifp->name, ifp->ifindex);
         if(rc < 0) {
-            fprintf(stderr, "kernel_setup_interface(%s, %d) failed.\n",
+            fprintf(stderr, "kernel_setup_interface(%s, %u) failed.\n",
                     ifp->name, ifp->ifindex);
             goto fail;
         }
@@ -308,7 +308,7 @@ interface_up(struct interface *ifp, int up)
 
         mtu = kernel_interface_mtu(ifp->name, ifp->ifindex);
         if(mtu < 0) {
-            fprintf(stderr, "Warning: couldn't get MTU of interface %s (%d).\n",
+            fprintf(stderr, "Warning: couldn't get MTU of interface %s (%u).\n",
                     ifp->name, ifp->ifindex);
             mtu = 1280;
         }
@@ -318,7 +318,7 @@ interface_up(struct interface *ifp, int up)
         /* In IPv6, the minimum MTU is 1280, and every host must be able
            to reassemble up to 1500 bytes, but I'd rather not rely on this. */
         if(mtu < 128) {
-            fprintf(stderr, "Suspiciously low MTU %d on interface %s (%d).\n",
+            fprintf(stderr, "Suspiciously low MTU %d on interface %s (%u).\n",
                     mtu, ifp->name, ifp->ifindex);
             mtu = 128;
         }
@@ -338,7 +338,7 @@ interface_up(struct interface *ifp, int up)
         rc = resize_receive_buffer(mtu);
         if(rc < 0)
             fprintf(stderr, "Warning: couldn't resize "
-                    "receive buffer for interface %s (%d) (%d bytes).\n",
+                    "receive buffer for interface %s (%u) (%d bytes).\n",
                     ifp->name, ifp->ifindex, mtu);
 
         type = IF_CONF(ifp, type);
@@ -349,7 +349,7 @@ interface_up(struct interface *ifp, int up)
                 rc = kernel_interface_wireless(ifp->name, ifp->ifindex);
                 if(rc < 0) {
                     fprintf(stderr,
-                            "Warning: couldn't determine whether %s (%d) "
+                            "Warning: couldn't determine whether %s (%u) "
                             "is a wireless interface.\n",
                             ifp->name, ifp->ifindex);
                 } else if(rc) {
@@ -422,8 +422,8 @@ interface_up(struct interface *ifp, int up)
             IF_CONF(ifp, rtt_max) : 120000;
         if(ifp->rtt_max <= ifp->rtt_min) {
             fprintf(stderr,
-                    "Uh, rtt-max is less than or equal to rtt-min (%d <= %d). "
-                    "Setting it to %d.\n", ifp->rtt_max, ifp->rtt_min,
+                    "Uh, rtt-max is less than or equal to rtt-min (%u <= %u). "
+                    "Setting it to %u.\n", ifp->rtt_max, ifp->rtt_min,
                     ifp->rtt_min + 10000);
             ifp->rtt_max = ifp->rtt_min + 10000;
         }

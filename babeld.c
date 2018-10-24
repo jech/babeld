@@ -1122,7 +1122,7 @@ dump_tables(FILE *out)
 
     FOR_ALL_NEIGHBOURS(neigh) {
         fprintf(out, "Neighbour %s dev %s reach %04x ureach %04x "
-                "rxcost %d txcost %d rtt %s rttcost %d chan %d%s.\n",
+                "rxcost %u txcost %d rtt %s rttcost %u chan %d%s.\n",
                 format_address(neigh->address),
                 neigh->ifp->name,
                 neigh->hello.reach,
