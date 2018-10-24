@@ -1590,7 +1590,7 @@ add_rule(int prio, const unsigned char *src_prefix, int src_plen, int table)
 
     message_header->nlmsg_len += current_attribute->rta_len;
     current_attribute = (void*)
-        ((char*)current_attribute) + current_attribute->rta_len;
+        ((char*)current_attribute + current_attribute->rta_len);
 
     /* src */
     current_attribute->rta_len = RTA_LENGTH(addr_size);
@@ -1599,7 +1599,7 @@ add_rule(int prio, const unsigned char *src_prefix, int src_plen, int table)
 
     message_header->nlmsg_len += current_attribute->rta_len;
     current_attribute = (void*)
-        ((char*)current_attribute) + current_attribute->rta_len;
+        ((char*)current_attribute + current_attribute->rta_len);
 
     /* send message */
     if(message_header->nlmsg_len > 64) {
@@ -1652,7 +1652,7 @@ flush_rule(int prio, int family)
 
     message_header->nlmsg_len += current_attribute->rta_len;
     current_attribute = (void*)
-        ((char*)current_attribute) + current_attribute->rta_len;
+        ((char*)current_attribute + current_attribute->rta_len);
 
     /* send message */
     if(message_header->nlmsg_len > 64) {
