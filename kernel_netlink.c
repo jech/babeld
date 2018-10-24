@@ -446,7 +446,7 @@ netlink_talk(struct nlmsghdr *nh)
     nh->nlmsg_seq = ++nl_command.seqno;
 
     kdebugf("Sending seqno %d from address %p (talk)\n",
-            nl_command.seqno, &nl_command.seqno);
+            nl_command.seqno, (void*)&nl_command.seqno);
 
     rc = sendmsg(nl_command.sock, &msg, 0);
     if(rc < 0 && (errno == EAGAIN || errno == EINTR)) {
@@ -514,7 +514,7 @@ netlink_send_dump(int type, void *data, int len) {
     buf.nh.nlmsg_len = NLMSG_LENGTH(len);
 
     kdebugf("Sending seqno %d from address %p (dump)\n",
-            nl_command.seqno, &nl_command.seqno);
+            nl_command.seqno, (void*)&nl_command.seqno);
 
     rc = sendmsg(nl_command.sock, &msg, 0);
     if(rc < buf.nh.nlmsg_len) {
