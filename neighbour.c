@@ -94,6 +94,7 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
 
     neigh = calloc(1, sizeof(struct neighbour));
     if(neigh == NULL) {
+        free(buf);
         perror("malloc(neighbour)");
         return NULL;
     }
