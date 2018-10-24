@@ -145,7 +145,7 @@ local_notify_neighbour_1(struct local_socket *s,
 
     rttbuf[0] = '\0';
     if(valid_rtt(neigh)) {
-        rc = snprintf(rttbuf, 64, " rtt %s rttcost %d",
+        rc = snprintf(rttbuf, 64, " rtt %s rttcost %u",
                       format_thousands(neigh->rtt), neighbour_rttcost(neigh));
         if(rc < 0 || rc >= 64)
             rttbuf[0] = '\0';
@@ -154,7 +154,7 @@ local_notify_neighbour_1(struct local_socket *s,
     rc = snprintf(buf, 512,
                   "%s neighbour %lx address %s "
                   "if %s reach %04x ureach %04x "
-                  "rxcost %d txcost %d%s cost %d\n",
+                  "rxcost %u txcost %u%s cost %u\n",
                   local_kind(kind),
                   /* Neighbours never move around in memory , so we can use the
                      address as a unique identifier. */

@@ -588,7 +588,7 @@ print_kernel_route(int add, struct kernel_route *route)
         memcpy(ifname,"unk",4);
 
     fprintf(stderr,
-            "%s kernel route: dest: %s gw: %s metric: %d if: %s(%d) \n",
+            "%s kernel route: dest: %s gw: %s metric: %d if: %s(%u) \n",
             add == RTM_ADD ? "Add" :
             add == RTM_DELETE ? "Delete" : "Change",
             format_prefix(route->prefix, route->plen),
