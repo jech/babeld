@@ -42,19 +42,118 @@ THE SOFTWARE.
 static struct xroute *xroutes;
 static int numxroutes = 0, maxxroutes = 0;
 
+static int
+xroute_compare(const unsigned char *prefix, unsigned char plen,
+               const unsigned char *src_prefix, unsigned char src_plen,
+               const struct xroute *xroute)
+{
+    int rc;
+
+    if(plen < xroute->plen)
+        return -1;
+    if(plen > xroute->plen)
+        return 1;
+
+    rc = memcmp(prefix, xroute->prefix, 16);
+    if(rc != 0)
+        return rc;
+
+    if(src_plen < xroute->src_plen)
+        return -1;
+    if(src_plen > xroute->src_plen)
+        return 1;
+
+    rc = memcmp(src_prefix, xroute->src_prefix, 16);
+    if(rc != 0)
+        return rc;
+
+    return 0;
+}
+
+static int
+find_xroute_slot(const unsigned char *prefix, unsigned char plen,
+                 const unsigned char *src_prefix, unsigned char src_plen,
+                 int *new_return)
+{
+    int p, m, g, c;
+
+    if(numxroutes < 1) {
+        if(new_return)
+            *new_return = 0;
+        return -1;
+    }
+
+    p = 0; g = numxroutes - 1;
+
+    do {
+        m = (p + g) / 2;
+        c = xroute_compare(prefix, plen, src_prefix, src_plen, &xroutes[m]);
+        if(c == 0)
+            return m;
+        else if(c < 0)
+            g = m - 1;
+        else
+            p = m + 1;
+    } while(p <= g);
+
+    if(new_return)
+        *new_return = p;
+
+    return -1;
+}
+
+
 struct xroute *
 find_xroute(const unsigned char *prefix, unsigned char plen,
             const unsigned char *src_prefix, unsigned char src_plen)
 {
-    int i;
-    for(i = 0; i < numxroutes; i++) {
-        if(xroutes[i].plen == plen &&
-           memcmp(xroutes[i].prefix, prefix, 16) == 0 &&
-           xroutes[i].src_plen == src_plen &&
-           memcmp(xroutes[i].src_prefix, src_prefix, 16) == 0)
-            return &xroutes[i];
-    }
+    int i = find_xroute_slot(prefix, plen, src_prefix, src_plen, NULL);
+    if(i >= 0)
+        return &xroutes[i];
+
     return NULL;
+}
+
+int
+add_xroute(unsigned char prefix[16], unsigned char plen,
+           unsigned char src_prefix[16], unsigned char src_plen,
+           unsigned short metric, unsigned int ifindex, int proto)
+{
+    int n = -1;
+    int i = find_xroute_slot(prefix, plen, src_prefix, src_plen, &n);
+
+    if(i >= 0) {
+        if(xroutes[i].metric <= metric)
+            return 0;
+        xroutes[i].metric = metric;
+        local_notify_xroute(&xroutes[i], LOCAL_CHANGE);
+        return 1;
+    }
+
+    if(numxroutes >= maxxroutes) {
+        struct xroute *new_xroutes;
+        int num = maxxroutes < 1 ? 8 : 2 * maxxroutes;
+        new_xroutes = realloc(xroutes, num * sizeof(struct xroute));
+        if(new_xroutes == NULL)
+            return -1;
+        maxxroutes = num;
+        xroutes = new_xroutes;
+    }
+
+    if(n < numxroutes)
+        memmove(xroutes + n + 1, xroutes + n,
+                (numxroutes - n) * sizeof(struct xroute));
+    numxroutes++;
+
+    memcpy(xroutes[n].prefix, prefix, 16);
+    xroutes[n].plen = plen;
+    memcpy(xroutes[n].src_prefix, src_prefix, 16);
+    xroutes[n].src_plen = src_plen;
+    xroutes[n].metric = metric;
+    xroutes[n].ifindex = ifindex;
+    xroutes[n].proto = proto;
+    local_notify_xroute(&xroutes[n], LOCAL_ADD);
+    return 1;
 }
 
 void
@@ -68,7 +167,8 @@ flush_xroute(struct xroute *xroute)
     local_notify_xroute(xroute, LOCAL_FLUSH);
 
     if(i != numxroutes - 1)
-        memcpy(xroutes + i, xroutes + numxroutes - 1, sizeof(struct xroute));
+        memmove(xroutes + i, xroutes + i + 1,
+                (numxroutes - i - 1) * sizeof(struct xroute));
     numxroutes--;
     VALGRIND_MAKE_MEM_UNDEFINED(xroutes + numxroutes, sizeof(struct xroute));
 
@@ -85,42 +185,6 @@ flush_xroute(struct xroute *xroute)
         xroutes = new_xroutes;
         maxxroutes = n;
     }
-}
-
-int
-add_xroute(unsigned char prefix[16], unsigned char plen,
-           unsigned char src_prefix[16], unsigned char src_plen,
-           unsigned short metric, unsigned int ifindex, int proto)
-{
-    struct xroute *xroute = find_xroute(prefix, plen, src_prefix, src_plen);
-    if(xroute) {
-        if(xroute->metric <= metric)
-            return 0;
-        xroute->metric = metric;
-        local_notify_xroute(xroute, LOCAL_CHANGE);
-        return 1;
-    }
-
-    if(numxroutes >= maxxroutes) {
-        struct xroute *new_xroutes;
-        int n = maxxroutes < 1 ? 8 : 2 * maxxroutes;
-        new_xroutes = realloc(xroutes, n * sizeof(struct xroute));
-        if(new_xroutes == NULL)
-            return -1;
-        maxxroutes = n;
-        xroutes = new_xroutes;
-    }
-
-    memcpy(xroutes[numxroutes].prefix, prefix, 16);
-    xroutes[numxroutes].plen = plen;
-    memcpy(xroutes[numxroutes].src_prefix, src_prefix, 16);
-    xroutes[numxroutes].src_plen = src_plen;
-    xroutes[numxroutes].metric = metric;
-    xroutes[numxroutes].ifindex = ifindex;
-    xroutes[numxroutes].proto = proto;
-    numxroutes++;
-    local_notify_xroute(&xroutes[numxroutes - 1], LOCAL_ADD);
-    return 1;
 }
 
 /* Returns an overestimate of the number of xroutes. */

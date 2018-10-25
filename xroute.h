@@ -34,10 +34,10 @@ struct xroute_stream;
 
 struct xroute *find_xroute(const unsigned char *prefix, unsigned char plen,
                 const unsigned char *src_prefix, unsigned char src_plen);
-void flush_xroute(struct xroute *xroute);
 int add_xroute(unsigned char prefix[16], unsigned char plen,
                unsigned char src_prefix[16], unsigned char src_plen,
                unsigned short metric, unsigned int ifindex, int proto);
+void flush_xroute(struct xroute *xroute);
 int xroutes_estimate(void);
 struct xroute_stream *xroute_stream();
 struct xroute *xroute_stream_next(struct xroute_stream *stream);
