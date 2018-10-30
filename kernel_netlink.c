@@ -683,9 +683,9 @@ kernel_setup_interface(int setup, const char *ifname, int ifindex)
 		return -1;
 	}
     } else {
-        if(i >= 0 && old_if[i].rp_filter >= 0)
+        if(i >= 0 && old_if[i].rp_filter > 0)
             rc = write_proc(buf, old_if[i].rp_filter);
-        else
+        else if (i < 0)
             rc = -1;
 
         if(rc < 0)
