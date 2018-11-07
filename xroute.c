@@ -341,7 +341,7 @@ check_xroutes(int send_updates)
     struct filter_result filter_result;
     int numroutes, numaddresses;
     static int maxroutes = 8;
-    const int maxmaxroutes = 16 * 1024;
+    const int maxmaxroutes = 256 * 1024;
 
     debugf("\nChecking kernel routes.\n");
 
