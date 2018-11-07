@@ -151,6 +151,11 @@ update_neighbour(struct neighbour *neigh, struct hello_history *hist,
                 missed_hellos = 0;
                 rc = 1;
             } else if(missed_hellos < 0) {
+                /* Late hello. Probably due to the link layer buffering
+                   packets during a link outage or a cpu overload. */
+                   fprintf(stderr,
+                        "Late hello: bufferbloated neighbor %s\n",
+                         format_address(neigh->address));
                 hist->reach <<= -missed_hellos;
                 missed_hellos = 0;
                 rc = 1;
