@@ -1,3 +1,17 @@
+babeld-1.9.0 (unreleased)
+
+  * Reworked buffering of unicast packets to use a per-neighbour buffer
+    rather than a single buffer per interface.  This makes unicast as
+    efficient as multicast, at the cost of slightly higher memory usage.
+  * Added option "unicast" that allows sending most TLVs over unicast.
+    This is necessary for the DTLS extension.
+  * Reworked the xroute data structures to use binary search and
+    linear-time comparison.
+  * Don't attempt to modify the rp_filter sysctl if it already has the
+    desired value; this makes it possible to run babeld in an
+    unpriviledged container.  Thanks to Christof Schulze.
+  * Reinstated logging of late hellos.  Thanks to Dave Taht.
+
 9 November 2018: babeld-1.8.4
 
   * Fixed a bug that discarded pipelined commands received on the local
