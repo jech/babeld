@@ -1,3 +1,9 @@
+9 November 2018: babeld-1.8.4
+
+  * Fixed a bug that discarded pipelined commands received on the local
+    configuration interface.
+  * Added the per-interface option rfc6126-compatible.
+
 24 September 2018: babeld-1.8.3
 
   * Fixed a read-only two byte buffer overflow in the packet parser.
