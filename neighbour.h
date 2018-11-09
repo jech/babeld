@@ -44,6 +44,7 @@ struct neighbour {
     unsigned int rtt;
     struct timeval rtt_time;
     struct interface *ifp;
+    struct buffered buf;
 };
 
 extern struct neighbour *neighs;

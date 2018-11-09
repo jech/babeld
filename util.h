@@ -88,7 +88,7 @@ unsigned char *normalize_prefix(unsigned char *restrict ret,
                                 const unsigned char *restrict prefix,
                                 unsigned char plen);
 const char *format_address(const unsigned char *address);
-const char *format_prefix(const unsigned char *address, unsigned char prefix);
+const char *format_prefix(const unsigned char *prefix, unsigned char plen);
 const char *format_eui64(const unsigned char *eui);
 const char *format_thousands(unsigned int value);
 int parse_address(const char *address, unsigned char *addr_r, int *af_r);
@@ -161,4 +161,3 @@ static inline void kdebugf(const char *format, ...) { return; }
 #endif
 
 #endif
-

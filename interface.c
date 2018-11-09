@@ -80,8 +80,6 @@ add_interface(char *ifname, struct interface_conf *if_conf)
 
     strncpy(ifp->name, ifname, IF_NAMESIZE);
     ifp->conf = if_conf ? if_conf : default_interface_conf;
-    ifp->bucket_time = now.tv_sec;
-    ifp->bucket = BUCKET_TOKENS_MAX;
     ifp->hello_seqno = (random() & 0xFFFF);
 
     if(interfaces == NULL)
@@ -132,14 +130,14 @@ flush_interface(char *ifname)
 /* This should be no more than half the hello interval, so that hellos
    aren't sent late.  The result is in milliseconds. */
 unsigned
-jitter(struct interface *ifp, int urgent)
+jitter(struct buffered *buf, int urgent)
 {
-    unsigned interval = ifp->hello_interval;
+    unsigned interval = buf->flush_interval;
     if(urgent)
-        interval = MIN(interval, 100);
+        interval = MIN(interval, 20);
     else
-        interval = MIN(interval, 4000);
-    return roughly(interval) / 4;
+        interval = MIN(interval, 2000);
+    return roughly(interval / 2);
 }
 
 unsigned
@@ -297,14 +295,20 @@ interface_up(struct interface *ifp, int up)
 
         rc = kernel_setup_interface(1, ifp->name, ifp->ifindex);
         if(rc < 0) {
-            fprintf(stderr, "kernel_setup_interface(%s, %d) failed.\n",
+            fprintf(stderr, "kernel_setup_interface(%s, %u) failed.\n",
                     ifp->name, ifp->ifindex);
             goto fail;
         }
 
+        memset(&ifp->buf.sin6, 0, sizeof(ifp->buf.sin6));
+        ifp->buf.sin6.sin6_family = AF_INET6;
+        memcpy(&ifp->buf.sin6.sin6_addr, protocol_group, 16);
+        ifp->buf.sin6.sin6_port = htons(protocol_port);
+        ifp->buf.sin6.sin6_scope_id = ifp->ifindex;
+
         mtu = kernel_interface_mtu(ifp->name, ifp->ifindex);
         if(mtu < 0) {
-            fprintf(stderr, "Warning: couldn't get MTU of interface %s (%d).\n",
+            fprintf(stderr, "Warning: couldn't get MTU of interface %s (%u).\n",
                     ifp->name, ifp->ifindex);
             mtu = 1280;
         }
@@ -314,27 +318,27 @@ interface_up(struct interface *ifp, int up)
         /* In IPv6, the minimum MTU is 1280, and every host must be able
            to reassemble up to 1500 bytes, but I'd rather not rely on this. */
         if(mtu < 128) {
-            fprintf(stderr, "Suspiciously low MTU %d on interface %s (%d).\n",
+            fprintf(stderr, "Suspiciously low MTU %d on interface %s (%u).\n",
                     mtu, ifp->name, ifp->ifindex);
             mtu = 128;
         }
 
-        if(ifp->sendbuf)
-            free(ifp->sendbuf);
+        if(ifp->buf.buf)
+            free(ifp->buf.buf);
 
         /* 40 for IPv6 header, 8 for UDP header, 12 for good luck. */
-        ifp->bufsize = mtu - sizeof(packet_header) - 60;
-        ifp->sendbuf = malloc(ifp->bufsize);
-        if(ifp->sendbuf == NULL) {
+        ifp->buf.size = mtu - sizeof(packet_header) - 60;
+        ifp->buf.buf = malloc(ifp->buf.size);
+        if(ifp->buf.buf == NULL) {
             fprintf(stderr, "Couldn't allocate sendbuf.\n");
-            ifp->bufsize = 0;
+            ifp->buf.size = 0;
             goto fail;
         }
 
         rc = resize_receive_buffer(mtu);
         if(rc < 0)
             fprintf(stderr, "Warning: couldn't resize "
-                    "receive buffer for interface %s (%d) (%d bytes).\n",
+                    "receive buffer for interface %s (%u) (%d bytes).\n",
                     ifp->name, ifp->ifindex, mtu);
 
         type = IF_CONF(ifp, type);
@@ -345,7 +349,7 @@ interface_up(struct interface *ifp, int up)
                 rc = kernel_interface_wireless(ifp->name, ifp->ifindex);
                 if(rc < 0) {
                     fprintf(stderr,
-                            "Warning: couldn't determine whether %s (%d) "
+                            "Warning: couldn't determine whether %s (%u) "
                             "is a wireless interface.\n",
                             ifp->name, ifp->ifindex);
                 } else if(rc) {
@@ -387,6 +391,9 @@ interface_up(struct interface *ifp, int up)
         if(IF_CONF(ifp, faraway) == CONFIG_YES)
             ifp->flags |= IF_FARAWAY;
 
+        if(IF_CONF(ifp, unicast) == CONFIG_YES)
+            ifp->flags |= IF_UNICAST;
+
         if(IF_CONF(ifp, hello_interval) > 0)
             ifp->hello_interval = IF_CONF(ifp, hello_interval);
         else if(type == IF_TYPE_WIRELESS)
@@ -398,6 +405,10 @@ interface_up(struct interface *ifp, int up)
             IF_CONF(ifp, update_interval) > 0 ?
             IF_CONF(ifp, update_interval) :
             ifp->hello_interval * 4;
+
+        /* This must be no more than half the Hello interval, or else
+           Hellos will arrive late. */
+        ifp->buf.flush_interval = ifp->hello_interval / 2;
 
         ifp->rtt_decay =
             IF_CONF(ifp, rtt_decay) > 0 ?
@@ -411,8 +422,8 @@ interface_up(struct interface *ifp, int up)
             IF_CONF(ifp, rtt_max) : 120000;
         if(ifp->rtt_max <= ifp->rtt_min) {
             fprintf(stderr,
-                    "Uh, rtt-max is less than or equal to rtt-min (%d <= %d). "
-                    "Setting it to %d.\n", ifp->rtt_max, ifp->rtt_min,
+                    "Uh, rtt-max is less than or equal to rtt-min (%u <= %u). "
+                    "Setting it to %u.\n", ifp->rtt_max, ifp->rtt_min,
                     ifp->rtt_min + 10000);
             ifp->rtt_max = ifp->rtt_min + 10000;
         }
@@ -421,23 +432,20 @@ interface_up(struct interface *ifp, int up)
             ifp->max_rtt_penalty = 96;
 
         if(IF_CONF(ifp, enable_timestamps) == CONFIG_YES)
-            ifp->flags |= IF_TIMESTAMPS;
+            ifp->buf.enable_timestamps = 1;
         else if(IF_CONF(ifp, enable_timestamps) == CONFIG_NO)
-            ifp->flags &= ~IF_TIMESTAMPS;
+            ifp->buf.enable_timestamps = 0;
         else if(type == IF_TYPE_TUNNEL)
-            ifp->flags |= IF_TIMESTAMPS;
+            ifp->buf.enable_timestamps = 1;
         else
-            ifp->flags &= ~IF_TIMESTAMPS;
-        if(ifp->max_rtt_penalty > 0 && !(ifp->flags & IF_TIMESTAMPS))
+            ifp->buf.enable_timestamps = 0;
+        if(ifp->max_rtt_penalty > 0 && !ifp->buf.enable_timestamps)
             fprintf(stderr,
                     "Warning: max_rtt_penalty is set "
                     "but timestamps are disabled on interface %s.\n",
                     ifp->name);
 
-        if(IF_CONF(ifp, rfc6126) == CONFIG_YES)
-            ifp->flags |= IF_RFC6126;
-        else
-            ifp->flags &= ~IF_RFC6126;
+        ifp->buf.rfc6126_compatible = (IF_CONF(ifp, rfc6126) == CONFIG_YES);
 
         rc = check_link_local_addresses(ifp);
         if(rc < 0) {
@@ -472,17 +480,18 @@ interface_up(struct interface *ifp, int up)
         send_hello(ifp);
         if(rc > 0)
             send_update(ifp, 0, NULL, 0, NULL, 0);
+        send_multicast_request(ifp, NULL, 0, NULL, 0);
     } else {
         flush_interface_routes(ifp, 0);
-        ifp->buffered = 0;
-        ifp->bufsize = 0;
-        free(ifp->sendbuf);
+        ifp->buf.len = 0;
+        ifp->buf.size = 0;
+        free(ifp->buf.buf);
         ifp->num_buffered_updates = 0;
         ifp->update_bufsize = 0;
         if(ifp->buffered_updates)
             free(ifp->buffered_updates);
         ifp->buffered_updates = NULL;
-        ifp->sendbuf = NULL;
+        ifp->buf.buf = NULL;
         if(ifp->ifindex > 0) {
             memset(&mreq, 0, sizeof(mreq));
             memcpy(&mreq.ipv6mr_multiaddr, protocol_group, 16);
@@ -558,6 +567,7 @@ check_interfaces(void)
             check_interface_channel(ifp);
             rc = check_interface_ipv4(ifp);
             if(rc > 0) {
+                send_multicast_request(ifp, NULL, 0, NULL, 0);
                 send_update(ifp, 0, NULL, 0, NULL, 0);
             }
         }

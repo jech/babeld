@@ -48,12 +48,6 @@ int split_horizon = 1;
 unsigned short myseqno = 0;
 struct timeval seqno_time = {0, 0};
 
-#define UNICAST_BUFSIZE 1024
-int unicast_buffered = 0;
-unsigned char *unicast_buffer = NULL;
-struct neighbour *unicast_neighbour = NULL;
-struct timeval unicast_flush_timeout = {0, 0};
-
 extern const unsigned char v4prefix[16];
 
 #define MAX_CHANNEL_HOPS 20
@@ -121,9 +115,10 @@ network_prefix(int ae, int plen, unsigned int omitted,
 }
 
 static int
-parse_update_subtlv(struct interface *ifp, int metric,
+parse_update_subtlv(struct interface *ifp, int metric, int ae,
                     const unsigned char *a, int alen,
-                    unsigned char *channels, int *channels_len_return)
+                    unsigned char *channels, int *channels_len_return,
+                    unsigned char *src_prefix, unsigned char *src_plen)
 {
     int type, len, i = 0;
     int channels_len;
@@ -149,21 +144,28 @@ parse_update_subtlv(struct interface *ifp, int metric,
             continue;
         }
 
-        if(i + 1 > alen) {
-            fprintf(stderr, "Received truncated sub-TLV on Update.\n");
-            return -1;
-        }
+        if(i + 1 > alen)
+            goto fail;
         len = a[i + 1];
-        if(i + len + 2 > alen) {
-            fprintf(stderr, "Received truncated sub-TLV on Update.\n");
-            return -1;
-        }
+        if(i + len + 2 > alen)
+            goto fail;
 
         if(type == SUBTLV_PADN) {
             /* Nothing. */
         } else if(type == SUBTLV_DIVERSITY) {
             memcpy(channels, a + i + 2, MIN(len, *channels_len_return));
             channels_len = MIN(len, *channels_len_return);
+        } else if(type == SUBTLV_SOURCE_PREFIX) {
+            int rc;
+            if(len < 1)
+                goto fail;
+            *src_plen = a[i + 2];
+            rc = network_prefix(ae, *src_plen, 0, a + i + 3, NULL,
+                                len - 1, src_prefix);
+            if(rc < 0)
+                goto fail;
+            if(ae == 1)
+                (*src_plen) += 96;
         } else {
             debugf("Received unknown%s Update sub-TLV %d.\n",
                    (type & 0x80) != 0 ? " mandatory" : "", type);
@@ -175,6 +177,10 @@ parse_update_subtlv(struct interface *ifp, int metric,
     }
     *channels_len_return = channels_len;
     return 1;
+
+ fail:
+    fprintf(stderr, "Received truncated sub-TLV on Update.\n");
+    return -1;
 }
 
 static int
@@ -249,6 +255,7 @@ parse_ihu_subtlv(const unsigned char *a, int alen,
             fprintf(stderr, "Received truncated sub-TLV on IHU.\n");
             return -1;
         }
+
         len = a[i + 1];
         if(i + len + 2 > alen) {
             fprintf(stderr, "Received truncated sub-TLV on IHU.\n");
@@ -287,6 +294,102 @@ parse_ihu_subtlv(const unsigned char *a, int alen,
 }
 
 static int
+parse_request_subtlv(int ae, const unsigned char *a, int alen,
+                     unsigned char *src_prefix, unsigned char *src_plen)
+{
+    int type, len, i = 0;
+
+    while(i < alen) {
+        type = a[0];
+        if(type == SUBTLV_PAD1) {
+            i++;
+            continue;
+        }
+
+        if(i + 1 > alen)
+            goto fail;
+
+        len = a[i + 1];
+        if(i + len > alen)
+            goto fail;
+
+        if(type == SUBTLV_PADN) {
+            /* Nothing to do. */
+        } else if(type == SUBTLV_SOURCE_PREFIX) {
+            int rc;
+            if(len < 1)
+                goto fail;
+            *src_plen = a[i + 2];
+            rc = network_prefix(ae, *src_plen, 0, a + i + 3, NULL,
+                                len - 1, src_prefix);
+            if(rc < 0)
+                goto fail;
+            if(ae == 1)
+                (*src_plen) += 96;
+        } else {
+            debugf("Received unknown%s Route Request sub-TLV %d.\n",
+                   ((type & 0x80) != 0) ? " mandatory" : "", type);
+            if((type & 0x80) != 0)
+                return -1;
+        }
+
+        i += len + 2;
+    }
+    return 1;
+
+ fail:
+    fprintf(stderr, "Received truncated sub-TLV on Route Request.\n");
+    return -1;
+}
+
+static int
+parse_seqno_request_subtlv(int ae, const unsigned char *a, int alen,
+                           unsigned char *src_prefix, unsigned char *src_plen)
+{
+    int type, len, i = 0;
+
+    while(i < alen) {
+        type = a[0];
+        if(type == SUBTLV_PAD1) {
+            i++;
+            continue;
+        }
+
+        if(i + 1 > alen)
+            goto fail;
+        len = a[i + 1];
+        if(i + len + 2 > alen)
+            goto fail;
+
+        if(type == SUBTLV_PADN) {
+            /* Nothing to do. */
+        } else if(type == SUBTLV_SOURCE_PREFIX) {
+            int rc;
+            if(len < 1)
+                goto fail;
+            *src_plen = a[i + 2];
+            rc = network_prefix(ae, *src_plen, 0, a + i + 3, NULL,
+                                len - 1, src_prefix);
+            if(rc < 0)
+                goto fail;
+            if(ae == 1)
+                (*src_plen) += 96;
+        } else {
+            debugf("Received unknown%s Route Request sub-TLV %d.\n",
+                   ((type & 0x80) != 0) ? " mandatory" : "", type);
+            if((type & 0x80) != 0)
+                return -1;
+        }
+
+        i += len + 2;
+    }
+    return 1;
+ fail:
+    fprintf(stderr, "Received truncated sub-TLV on Route Request.\n");
+    return -1;
+}
+
+static int
 parse_other_subtlv(const unsigned char *a, int alen)
 {
     int type, len, i = 0;
@@ -298,15 +401,11 @@ parse_other_subtlv(const unsigned char *a, int alen)
             continue;
         }
 
-        if(i + 1 > alen) {
-            fprintf(stderr, "Received truncated sub-TLV.\n");
-            return -1;
-        }
+        if(i + 1 > alen)
+            goto fail;
         len = a[i + 1];
-        if(i + len + 2 > alen) {
-            fprintf(stderr, "Received truncated sub-TLV.\n");
-            return -1;
-        }
+        if(i + len > alen)
+            goto fail;
 
         if((type & 0x80) != 0) {
             debugf("Received unknown mandatory sub-TLV %d.\n", type);
@@ -316,6 +415,9 @@ parse_other_subtlv(const unsigned char *a, int alen)
         i += len + 2;
     }
     return 1;
+ fail:
+    fprintf(stderr, "Received truncated sub-TLV.\n");
+    return -1;
 }
 
 static int
@@ -342,7 +444,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
     /* Content of the RTT sub-TLV on IHU messages. */
     unsigned int hello_send_us = 0, hello_rtt_receive_time = 0;
 
-    if(ifp->flags & IF_TIMESTAMPS) {
+    if(ifp->buf.enable_timestamps) {
         /* We want to track exactly when we received this packet. */
         gettime(&now);
     }
@@ -528,7 +630,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             unsigned char channels[MAX_CHANNEL_HOPS];
             int channels_len = MAX_CHANNEL_HOPS;
             unsigned short interval, seqno, metric;
-            int rc, parsed_len;
+            int rc, parsed_len, is_ss;
             if(len < 10) {
                 if(len < 2 || message[3] & 0x80)
                     have_v4_prefix = have_v6_prefix = 0;
@@ -588,7 +690,6 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    (message[3] & 0x40) ? "/id" : "",
                    format_prefix(prefix, plen),
                    format_address(from), ifp->name);
-
             if(message[2] == 0) {
                 rc = parse_other_subtlv(message + 12, len - 10);
                 if(rc < 0)
@@ -610,10 +711,20 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 nh = neigh->address;
             }
 
-            rc = parse_update_subtlv(ifp, metric, message + 2 + parsed_len,
-                                     len - parsed_len, channels, &channels_len);
-            if (rc < 0)
+            rc = parse_update_subtlv(ifp, metric, message[2],
+                                     message + 2 + parsed_len,
+                                     len - parsed_len, channels, &channels_len,
+                                     src_prefix, &src_plen);
+            if(rc < 0)
                 goto done;
+            is_ss = !is_default(src_prefix, src_plen);
+            debugf("Received update%s%s for dst %s%s%s from %s on %s.\n",
+                   (message[3] & 0x80) ? "/prefix" : "",
+                   (message[3] & 0x40) ? "/id" : "",
+                   format_prefix(prefix, plen),
+                   is_ss ? " src " : "",
+                   is_ss ? format_prefix(src_prefix, src_plen) : "",
+                   format_address(from), ifp->name);
 
             if(message[2] == 1) {
                 if(!ifp->ipv4)
@@ -625,51 +736,11 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                          channels, channels_len);
         } else if(type == MESSAGE_REQUEST) {
             unsigned char prefix[16], src_prefix[16], plen, src_plen;
-            int rc;
+            int rc, is_ss;
             if(len < 2) goto fail;
             rc = network_prefix(message[2], message[3], 0,
                                 message + 4, NULL, len - 2, prefix);
             if(rc < 0) goto fail;
-            plen = message[3] + (message[2] == 1 ? 96 : 0);
-            debugf("Received request for %s from %s on %s.\n",
-                   message[2] == 0 ? "any" : format_prefix(prefix, plen),
-                   format_address(from), ifp->name);
-            rc = parse_other_subtlv(message + 4 + rc, len - 2 - rc);
-            if(rc < 0)
-                goto done;
-            if(message[2] == 0) {
-                /* If a neighbour is requesting a full route dump from us,
-                   we might as well send it an IHU. */
-                send_ihu(neigh, NULL);
-                /* Since nodes send wildcard requests on boot, booting
-                   a large number of nodes at the same time may cause an
-                   update storm.  Ignore a wildcard request that happens
-                   shortly after we sent a full update. */
-                if(neigh->ifp->last_update_time <
-                   now.tv_sec - MAX(neigh->ifp->hello_interval / 100, 1))
-                    send_update(neigh->ifp, 0, NULL, 0, zeroes, 0);
-            } else {
-                if(message[2] == 1) {
-                    v4tov6(src_prefix, zeroes);
-                    src_plen = 96;
-                } else {
-                    memcpy(src_prefix, zeroes, 16);
-                    src_plen = 0;
-                }
-                send_update(neigh->ifp, 0, prefix, plen, src_prefix, src_plen);
-            }
-        } else if(type == MESSAGE_MH_REQUEST) {
-            unsigned char prefix[16], src_prefix[16], plen, src_plen;
-            unsigned short seqno;
-            int rc;
-            if(len < 14) goto fail;
-            DO_NTOHS(seqno, message + 4);
-            rc = network_prefix(message[2], message[3], 0,
-                                message + 16, NULL, len - 14, prefix);
-            if(rc < 0) goto fail;
-            rc = parse_other_subtlv(message + 16 + rc, len - 14 - rc);
-            if(rc < 0)
-                goto done;
             plen = message[3] + (message[2] == 1 ? 96 : 0);
             if(message[2] == 1) {
                 v4tov6(src_prefix, zeroes);
@@ -678,165 +749,72 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 memcpy(src_prefix, zeroes, 16);
                 src_plen = 0;
             }
-            debugf("Received request (%d) for %s from %s on %s (%s, %d).\n",
+            rc = parse_request_subtlv(message[2], message + 4 + rc,
+                                      len - 2 - rc, src_prefix, &src_plen);
+            if(rc < 0)
+                goto done;
+            is_ss = !is_default(src_prefix, src_plen);
+            if(message[2] == 0) {
+                if(is_ss) {
+                    /* Wildcard requests don't carry a source prefix. */
+                    fprintf(stderr,
+                            "Received source-specific wildcard request.\n");
+                    goto done;
+                }
+                debugf("Received request for any from %s on %s.\n",
+                       format_address(from), ifp->name);
+                /* If a neighbour is requesting a full route dump from us,
+                   we might as well send it an IHU. */
+                send_ihu(neigh, NULL);
+                /* Since nodes send wildcard requests on boot, booting
+                   a large number of nodes at the same time may cause an
+                   update storm.  Ignore a wildcard request that happens
+                   shortly after we sent a full update. */
+                if(neigh->ifp->last_update_time <
+                   now.tv_sec - MAX(neigh->ifp->hello_interval / 100, 1)) {
+                    send_update(neigh->ifp, 0, NULL, 0, NULL, 0);
+                }
+            } else {
+                debugf("Received request for dst %s%s%s from %s on %s.\n",
+                       message[2] == 0 ? "" : format_prefix(prefix, plen),
+                       is_ss ? " src " : "",
+                       is_ss ? format_prefix(src_prefix, src_plen) : "",
+                       format_address(from), ifp->name);
+                send_update(neigh->ifp, 0, prefix, plen, src_prefix, src_plen);
+            }
+        } else if(type == MESSAGE_MH_REQUEST) {
+            unsigned char prefix[16], src_prefix[16], plen, src_plen;
+            unsigned short seqno;
+            int rc, is_ss;
+            if(len < 14) goto fail;
+            DO_NTOHS(seqno, message + 4);
+            rc = network_prefix(message[2], message[3], 0,
+                                message + 16, NULL, len - 14, prefix);
+            if(rc < 0) goto fail;
+            if(message[2] == 1) {
+                v4tov6(src_prefix, zeroes);
+                src_plen = 96;
+            } else {
+                memcpy(src_prefix, zeroes, 16);
+                src_plen = 0;
+            }
+            rc = parse_seqno_request_subtlv(message[2], message + 16 + rc,
+                                            len - 14 - rc, src_prefix,
+                                            &src_plen);
+            if(rc < 0)
+                goto done;
+            is_ss = !is_default(src_prefix, src_plen);
+            plen = message[3] + (message[2] == 1 ? 96 : 0);
+            debugf("Received request (%d) for dst %s%s%s from %s on "
+                   "%s (%s, %d).\n",
                    message[6],
                    format_prefix(prefix, plen),
+                   is_ss ? " src " : "",
+                   is_ss ? format_prefix(src_prefix, src_plen) : "",
                    format_address(from), ifp->name,
                    format_eui64(message + 8), seqno);
             handle_request(neigh, prefix, plen, src_prefix, src_plen,
                            message[6], seqno, message + 8);
-        } else if(type == MESSAGE_UPDATE_SRC_SPECIFIC) {
-            unsigned char prefix[16], src_prefix[16], *nh;
-            unsigned char ae, plen, src_plen, omitted;
-            unsigned char channels[MAX_CHANNEL_HOPS];
-            int channels_len = MAX_CHANNEL_HOPS;
-            unsigned short interval, seqno, metric;
-            const unsigned char *src_prefix_beginning = NULL;
-            int rc, parsed_len = 0;
-            if(len < 10)
-                goto fail;
-            ae = message[2];
-            src_plen = message[3];
-            plen = message[4];
-            omitted = message[5];
-            DO_NTOHS(interval, message + 6);
-            DO_NTOHS(seqno, message + 8);
-            DO_NTOHS(metric, message + 10);
-            if(omitted == 0 || (ae == 1 ? have_v4_prefix : have_v6_prefix))
-                rc = network_prefix(ae, plen, omitted, message + 12,
-                                    ae == 1 ? v4_prefix : v6_prefix,
-                                    len - 10, prefix);
-            else
-                rc = -1;
-            if(rc < 0)
-                goto fail;
-
-            parsed_len = 10 + rc;
-            src_prefix_beginning = message + 2 + parsed_len;
-
-            rc = network_prefix(ae, src_plen, 0, src_prefix_beginning, NULL,
-                                    len - parsed_len, src_prefix);
-            if(rc < 0)
-                goto fail;
-            parsed_len += rc;
-            if(ae == 1) {
-                plen += 96;
-                src_plen += 96;
-            }
-
-            if(!have_router_id) {
-                fprintf(stderr, "Received prefix with no router id.\n");
-                goto fail;
-            }
-            debugf("Received ss-update for (%s from %s) from %s on %s.\n",
-                   format_prefix(prefix, plen),
-                   format_prefix(src_prefix, src_plen),
-                   format_address(from), ifp->name);
-
-            if(ae == 0) {
-                debugf("Received invalid Source-Specific wildcard update.\n");
-                rc = parse_other_subtlv(message + 12, len - 10);
-                if(rc < 0)
-                    goto done;
-                retract_neighbour_routes(neigh);
-                goto done;
-            } else if(ae == 1) {
-                if(!have_v4_nh)
-                    goto fail;
-                nh = v4_nh;
-            } else if(have_v6_nh) {
-                nh = v6_nh;
-            } else {
-                nh = neigh->address;
-            }
-
-            rc = parse_update_subtlv(ifp, metric, message + 2 + parsed_len,
-                                     len - parsed_len, channels, &channels_len);
-            if(rc < 0)
-                goto done;
-
-            if(ae == 1) {
-                if(!ifp->ipv4)
-                    goto done;
-            }
-
-            update_route(router_id, prefix, plen, src_prefix, src_plen,
-                         seqno, metric, interval, neigh, nh,
-                         channels, channels_len);
-        } else if(type == MESSAGE_REQUEST_SRC_SPECIFIC) {
-            unsigned char prefix[16], plen, ae, src_prefix[16], src_plen;
-            int rc, parsed = 5;
-            if(len < 3) goto fail;
-            ae = message[2];
-            plen = message[3];
-            src_plen = message[4];
-            rc = network_prefix(ae, plen, 0, message + parsed,
-                                NULL, len + 2 - parsed, prefix);
-            if(rc < 0) goto fail;
-            if(ae == 1)
-                plen += 96;
-            parsed += rc;
-            rc = network_prefix(ae, src_plen, 0, message + parsed,
-                                NULL, len + 2 - parsed, src_prefix);
-            if(rc < 0) goto fail;
-            if(ae == 1)
-                src_plen += 96;
-            parsed += rc;
-            rc = parse_other_subtlv(message + parsed, len - parsed + 2);
-            if(rc < 0)
-                goto done;
-            if(ae == 0) {
-                debugf("Received request for any source-specific "
-                       "from %s on %s.\n",
-                       format_address(from), ifp->name);
-                /* See comments for std requests. */
-                send_ihu(neigh, NULL);
-                if(neigh->ifp->last_specific_update_time <
-                   now.tv_sec - MAX(neigh->ifp->hello_interval / 100, 1))
-                    send_update(neigh->ifp, 0, zeroes, 0, NULL, 0);
-            } else {
-                debugf("Received request for (%s from %s) from %s on %s.\n",
-                       format_prefix(prefix, plen),
-                       format_prefix(src_prefix, src_plen),
-                       format_address(from), ifp->name);
-                send_update(neigh->ifp, 0, prefix, plen, src_prefix, src_plen);
-            }
-        } else if(type == MESSAGE_MH_REQUEST_SRC_SPECIFIC) {
-            unsigned char prefix[16], plen, ae, src_prefix[16], src_plen, hopc;
-            const unsigned char *router_id;
-            unsigned short seqno;
-            int rc, parsed = 16;
-            if(len < 14) goto fail;
-            ae = message[2];
-            plen = message[3];
-            DO_NTOHS(seqno, message + 4);
-            hopc = message[6];
-            src_plen = message[7];
-            router_id = message + 8;
-            rc = network_prefix(ae, plen, 0, message + parsed,
-                                NULL, len + 2 - parsed, prefix);
-            if(rc < 0) goto fail;
-            if(ae == 1)
-                plen += 96;
-            parsed += rc;
-            rc = network_prefix(ae, src_plen, 0, message + parsed,
-                                NULL, len + 2 - parsed, src_prefix);
-            if(rc < 0) goto fail;
-            parsed += rc;
-            rc = parse_other_subtlv(message + parsed, len - parsed + 2);
-            if(rc < 0)
-                goto done;
-            if(ae == 1)
-                src_plen += 96;
-            debugf("Received request (%d) for (%s, %s)"
-                   " from %s on %s (%s, %d).\n",
-                   message[6],
-                   format_prefix(prefix, plen),
-                   format_prefix(src_prefix, src_plen),
-                   format_address(from), ifp->name,
-                   format_eui64(router_id), seqno);
-            handle_request(neigh, prefix, plen, src_prefix, src_plen,
-                           hopc, seqno, router_id);
         } else {
             debugf("Received unknown packet type %d from %s on %s.\n",
                    type, format_address(from), ifp->name);
@@ -891,43 +869,18 @@ parse_packet(const unsigned char *from, struct interface *ifp,
     return;
 }
 
-/* Under normal circumstances, there are enough moderation mechanisms
-   elsewhere in the protocol to make sure that this last-ditch check
-   should never trigger.  But I'm superstitious. */
-
 static int
-check_bucket(struct interface *ifp)
+fill_rtt_message(struct buffered *buf)
 {
-    if(ifp->bucket <= 0) {
-        int seconds = now.tv_sec - ifp->bucket_time;
-        if(seconds > 0) {
-            ifp->bucket = MIN(BUCKET_TOKENS_MAX,
-                              seconds * BUCKET_TOKENS_PER_SEC);
-        }
-        /* Reset bucket time unconditionally, in case clock is stepped. */
-        ifp->bucket_time = now.tv_sec;
-    }
-
-    if(ifp->bucket > 0) {
-        ifp->bucket--;
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
-static int
-fill_rtt_message(struct interface *ifp)
-{
-    if((ifp->flags & IF_TIMESTAMPS) && (ifp->buffered_hello >= 0)) {
-        if(ifp->sendbuf[ifp->buffered_hello + 8] == SUBTLV_PADN &&
-           ifp->sendbuf[ifp->buffered_hello + 9] == 4) {
+    if(buf->enable_timestamps && (buf->hello >= 0)) {
+        if(buf->buf[buf->hello + 8] == SUBTLV_PADN &&
+           buf->buf[buf->hello + 9] == 4) {
             unsigned int time;
             /* Change the type of sub-TLV. */
-            ifp->sendbuf[ifp->buffered_hello + 8] = SUBTLV_TIMESTAMP;
+            buf->buf[buf->hello + 8] = SUBTLV_TIMESTAMP;
             gettime(&now);
             time = time_us(now);
-            DO_HTONL(ifp->sendbuf + ifp->buffered_hello + 10, time);
+            DO_HTONL(buf->buf + buf->hello + 10, time);
             return 1;
         } else {
             fprintf(stderr,
@@ -940,214 +893,129 @@ fill_rtt_message(struct interface *ifp)
 }
 
 void
-flushbuf(struct interface *ifp)
+flushbuf(struct buffered *buf)
 {
     int rc;
-    struct sockaddr_in6 sin6;
 
-    assert(ifp->buffered <= ifp->bufsize);
+    assert(buf->len <= buf->size);
 
-    flushupdates(ifp);
-
-    if(ifp->buffered > 0) {
-        debugf("  (flushing %d buffered bytes on %s)\n",
-               ifp->buffered, ifp->name);
-        if(check_bucket(ifp)) {
-            memset(&sin6, 0, sizeof(sin6));
-            sin6.sin6_family = AF_INET6;
-            memcpy(&sin6.sin6_addr, protocol_group, 16);
-            sin6.sin6_port = htons(protocol_port);
-            sin6.sin6_scope_id = ifp->ifindex;
-            DO_HTONS(packet_header + 2, ifp->buffered);
-            fill_rtt_message(ifp);
-            rc = babel_send(protocol_socket,
-                            packet_header, sizeof(packet_header),
-                            ifp->sendbuf, ifp->buffered,
-                            (struct sockaddr*)&sin6, sizeof(sin6));
-            if(rc < 0)
-                perror("send");
-        } else {
-            fprintf(stderr, "Warning: bucket full, dropping packet to %s.\n",
-                    ifp->name);
-        }
+    if(buf->len > 0) {
+        debugf("  (flushing %d buffered bytes)\n", buf->len);
+        DO_HTONS(packet_header + 2, buf->len);
+        fill_rtt_message(buf);
+        rc = babel_send(protocol_socket,
+                        packet_header, sizeof(packet_header),
+                        buf->buf, buf->len,
+                        (struct sockaddr*)&buf->sin6,
+                        sizeof(buf->sin6));
+        if(rc < 0)
+            perror("send");
     }
-    VALGRIND_MAKE_MEM_UNDEFINED(ifp->sendbuf, ifp->bufsize);
-    ifp->buffered = 0;
-    ifp->buffered_hello = -1;
-    ifp->have_buffered_id = 0;
-    ifp->have_buffered_nh = 0;
-    ifp->have_buffered_prefix = 0;
-    ifp->flush_timeout.tv_sec = 0;
-    ifp->flush_timeout.tv_usec = 0;
+    VALGRIND_MAKE_MEM_UNDEFINED(buf->buf, buf->size);
+    buf->len = 0;
+    buf->hello = -1;
+    buf->have_id = 0;
+    buf->have_nh = 0;
+    buf->have_prefix = 0;
+    buf->timeout.tv_sec = 0;
+    buf->timeout.tv_usec = 0;
 }
 
 static void
-schedule_flush(struct interface *ifp)
+schedule_flush_ms(struct buffered *buf, int msecs)
 {
-    unsigned msecs = jitter(ifp, 0);
-    if(ifp->flush_timeout.tv_sec != 0 &&
-       timeval_minus_msec(&ifp->flush_timeout, &now) < msecs)
+    if(buf->timeout.tv_sec != 0 &&
+       timeval_minus_msec(&buf->timeout, &now) < msecs)
         return;
-    set_timeout(&ifp->flush_timeout, msecs);
+    set_timeout(&buf->timeout, msecs);
 }
 
 static void
-schedule_flush_now(struct interface *ifp)
+schedule_flush(struct buffered *buf)
 {
-    /* Almost now */
-    unsigned msecs = roughly(10);
-    if(ifp->flush_timeout.tv_sec != 0 &&
-       timeval_minus_msec(&ifp->flush_timeout, &now) < msecs)
-        return;
-    set_timeout(&ifp->flush_timeout, msecs);
+    schedule_flush_ms(buf, jitter(buf, 0));
 }
 
 static void
-schedule_unicast_flush(unsigned msecs)
+schedule_flush_now(struct buffered *buf)
 {
-    if(!unicast_neighbour)
-        return;
-    if(unicast_flush_timeout.tv_sec != 0 &&
-       timeval_minus_msec(&unicast_flush_timeout, &now) < msecs)
-        return;
-    unicast_flush_timeout.tv_usec = (now.tv_usec + msecs * 1000) % 1000000;
-    unicast_flush_timeout.tv_sec =
-        now.tv_sec + (now.tv_usec / 1000 + msecs) / 1000;
+    schedule_flush_ms(buf, roughly(10));
 }
 
 static void
-ensure_space(struct interface *ifp, int space)
+ensure_space(struct buffered *buf, int space)
 {
-    if(ifp->bufsize - ifp->buffered < space)
-        flushbuf(ifp);
+    if(buf->size - buf->len < space)
+        flushbuf(buf);
 }
 
 static void
-start_message(struct interface *ifp, int type, int len)
+start_message(struct buffered *buf, int type, int len)
 {
-    if(ifp->bufsize - ifp->buffered < len + 2)
-        flushbuf(ifp);
-    ifp->sendbuf[ifp->buffered++] = type;
-    ifp->sendbuf[ifp->buffered++] = len;
+    if(buf->size - buf->len < len + 2)
+        flushbuf(buf);
+    buf->buf[buf->len++] = type;
+    buf->buf[buf->len++] = len;
 }
 
 static void
-end_message(struct interface *ifp, int type, int bytes)
+end_message(struct buffered *buf, int type, int bytes)
 {
-    assert(ifp->buffered >= bytes + 2 &&
-           ifp->sendbuf[ifp->buffered - bytes - 2] == type &&
-           ifp->sendbuf[ifp->buffered - bytes - 1] == bytes);
-    schedule_flush(ifp);
+    assert(buf->len >= bytes + 2 &&
+           buf->buf[buf->len - bytes - 2] == type &&
+           buf->buf[buf->len - bytes - 1] == bytes);
+    schedule_flush(buf);
 }
 
 static void
-accumulate_byte(struct interface *ifp, unsigned char value)
+accumulate_byte(struct buffered *buf, unsigned char value)
 {
-    ifp->sendbuf[ifp->buffered++] = value;
+    buf->buf[buf->len++] = value;
 }
 
 static void
-accumulate_short(struct interface *ifp, unsigned short value)
+accumulate_short(struct buffered *buf, unsigned short value)
 {
-    DO_HTONS(ifp->sendbuf + ifp->buffered, value);
-    ifp->buffered += 2;
+    DO_HTONS(buf->buf + buf->len, value);
+    buf->len += 2;
 }
 
 static void
-accumulate_int(struct interface *ifp, unsigned int value)
+accumulate_int(struct buffered *buf, unsigned int value)
 {
-    DO_HTONL(ifp->sendbuf + ifp->buffered, value);
-    ifp->buffered += 4;
+    DO_HTONL(buf->buf + buf->len, value);
+    buf->len += 4;
 }
 
 static void
-accumulate_bytes(struct interface *ifp,
+accumulate_bytes(struct buffered *buf,
                  const unsigned char *value, unsigned len)
 {
-    memcpy(ifp->sendbuf + ifp->buffered, value, len);
-    ifp->buffered += len;
-}
-
-static int
-start_unicast_message(struct neighbour *neigh, int type, int len)
-{
-    if(unicast_neighbour) {
-        if(neigh != unicast_neighbour ||
-           unicast_buffered + len + 2 >=
-           MIN(UNICAST_BUFSIZE, neigh->ifp->bufsize))
-            flush_unicast(0);
-    }
-    if(!unicast_buffer)
-        unicast_buffer = malloc(UNICAST_BUFSIZE);
-    if(!unicast_buffer) {
-        perror("malloc(unicast_buffer)");
-        return -1;
-    }
-
-    unicast_neighbour = neigh;
-
-    unicast_buffer[unicast_buffered++] = type;
-    unicast_buffer[unicast_buffered++] = len;
-    return 1;
-}
-
-static void
-end_unicast_message(struct neighbour *neigh, int type, int bytes)
-{
-    assert(unicast_neighbour == neigh && unicast_buffered >= bytes + 2 &&
-           unicast_buffer[unicast_buffered - bytes - 2] == type &&
-           unicast_buffer[unicast_buffered - bytes - 1] == bytes);
-    schedule_unicast_flush(jitter(neigh->ifp, 0));
-}
-
-static void
-accumulate_unicast_byte(struct neighbour *neigh, unsigned char value)
-{
-    unicast_buffer[unicast_buffered++] = value;
-}
-
-static void
-accumulate_unicast_short(struct neighbour *neigh, unsigned short value)
-{
-    DO_HTONS(unicast_buffer + unicast_buffered, value);
-    unicast_buffered += 2;
-}
-
-static void
-accumulate_unicast_int(struct neighbour *neigh, unsigned int value)
-{
-    DO_HTONL(unicast_buffer + unicast_buffered, value);
-    unicast_buffered += 4;
-}
-
-static void
-accumulate_unicast_bytes(struct neighbour *neigh,
-                         const unsigned char *value, unsigned len)
-{
-    memcpy(unicast_buffer + unicast_buffered, value, len);
-    unicast_buffered += len;
+    memcpy(buf->buf + buf->len, value, len);
+    buf->len += len;
 }
 
 void
 send_ack(struct neighbour *neigh, unsigned short nonce, unsigned short interval)
 {
-    int rc;
     debugf("Sending ack (%04x) to %s on %s.\n",
            nonce, format_address(neigh->address), neigh->ifp->name);
-    rc = start_unicast_message(neigh, MESSAGE_ACK, 2); if(rc < 0) return;
-    accumulate_unicast_short(neigh, nonce);
-    end_unicast_message(neigh, MESSAGE_ACK, 2);
+    start_message(&neigh->buf, MESSAGE_ACK, 2);
+    accumulate_short(&neigh->buf, nonce);
+    end_message(&neigh->buf, MESSAGE_ACK, 2);
     /* Roughly yields a value no larger than 3/2, so this meets the deadline */
-    schedule_unicast_flush(roughly(interval * 6));
+    schedule_flush_ms(&neigh->buf, roughly(interval * 6));
 }
 
 void
-send_hello_noupdate(struct interface *ifp, unsigned interval)
+send_hello_noihu(struct interface *ifp, unsigned interval)
 {
     /* This avoids sending multiple hellos in a single packet, which breaks
        link quality estimation. */
-    if(ifp->buffered_hello >= 0)
-        flushbuf(ifp);
+    if(ifp->buf.hello >= 0) {
+        flushupdates(ifp);
+        flushbuf(&ifp->buf);
+    }
 
     ifp->hello_seqno = seqno_plus(ifp->hello_seqno, 1);
     set_timeout(&ifp->hello_timeout, ifp->hello_interval);
@@ -1158,25 +1026,25 @@ send_hello_noupdate(struct interface *ifp, unsigned interval)
     debugf("Sending hello %d (%d) to %s.\n",
            ifp->hello_seqno, interval, ifp->name);
 
-    start_message(ifp, MESSAGE_HELLO, (ifp->flags & IF_TIMESTAMPS) ? 12 : 6);
-    ifp->buffered_hello = ifp->buffered - 2;
-    accumulate_short(ifp, 0);
-    accumulate_short(ifp, ifp->hello_seqno);
-    accumulate_short(ifp, interval > 0xFFFF ? 0xFFFF : interval);
-    if(ifp->flags & IF_TIMESTAMPS) {
+    start_message(&ifp->buf, MESSAGE_HELLO, ifp->buf.enable_timestamps ? 12 : 6);
+    ifp->buf.hello = ifp->buf.len - 2;
+    accumulate_short(&ifp->buf, 0);
+    accumulate_short(&ifp->buf, ifp->hello_seqno);
+    accumulate_short(&ifp->buf, interval > 0xFFFF ? 0xFFFF : interval);
+    if(ifp->buf.enable_timestamps) {
         /* Sub-TLV containing the local time of emission. We use a
            Pad4 sub-TLV, which we'll fill just before sending. */
-        accumulate_byte(ifp, SUBTLV_PADN);
-        accumulate_byte(ifp, 4);
-        accumulate_int(ifp, 0);
+        accumulate_byte(&ifp->buf, SUBTLV_PADN);
+        accumulate_byte(&ifp->buf, 4);
+        accumulate_int(&ifp->buf, 0);
     }
-    end_message(ifp, MESSAGE_HELLO, (ifp->flags & IF_TIMESTAMPS) ? 12 : 6);
+    end_message(&ifp->buf, MESSAGE_HELLO, ifp->buf.enable_timestamps ? 12 : 6);
 }
 
 void
 send_hello(struct interface *ifp)
 {
-    send_hello_noupdate(ifp, (ifp->hello_interval + 9) / 10);
+    send_hello_noihu(ifp, (ifp->hello_interval + 9) / 10);
     /* Send full IHU every 3 hellos, and marginal IHU each time */
     if(ifp->hello_seqno % 3 == 0)
         send_ihu(NULL, ifp);
@@ -1184,77 +1052,24 @@ send_hello(struct interface *ifp)
         send_marginal_ihu(ifp);
 }
 
-void
-flush_unicast(int dofree)
-{
-    struct sockaddr_in6 sin6;
-    int rc;
-
-    if(unicast_buffered == 0)
-        goto done;
-
-    if(!if_up(unicast_neighbour->ifp))
-        goto done;
-
-    /* Preserve ordering of messages */
-    flushbuf(unicast_neighbour->ifp);
-
-    if(check_bucket(unicast_neighbour->ifp)) {
-        memset(&sin6, 0, sizeof(sin6));
-        sin6.sin6_family = AF_INET6;
-        memcpy(&sin6.sin6_addr, unicast_neighbour->address, 16);
-        sin6.sin6_port = htons(protocol_port);
-        sin6.sin6_scope_id = unicast_neighbour->ifp->ifindex;
-        DO_HTONS(packet_header + 2, unicast_buffered);
-        fill_rtt_message(unicast_neighbour->ifp);
-        rc = babel_send(protocol_socket,
-                        packet_header, sizeof(packet_header),
-                        unicast_buffer, unicast_buffered,
-                        (struct sockaddr*)&sin6, sizeof(sin6));
-        if(rc < 0)
-            perror("send(unicast)");
-    } else {
-        fprintf(stderr,
-                "Warning: bucket full, dropping unicast packet "
-                "to %s if %s.\n",
-                format_address(unicast_neighbour->address),
-                unicast_neighbour->ifp->name);
-    }
-
- done:
-    VALGRIND_MAKE_MEM_UNDEFINED(unicast_buffer, UNICAST_BUFSIZE);
-    unicast_buffered = 0;
-    if(dofree && unicast_buffer) {
-        free(unicast_buffer);
-        unicast_buffer = NULL;
-    }
-    unicast_neighbour = NULL;
-    unicast_flush_timeout.tv_sec = 0;
-    unicast_flush_timeout.tv_usec = 0;
-}
-
 static void
-really_send_update(struct interface *ifp,
-                   const unsigned char *id,
-                   const unsigned char *prefix, unsigned char plen,
-                   const unsigned char *src_prefix, unsigned char src_plen,
-                   unsigned short seqno, unsigned short metric,
-                   unsigned char *channels, int channels_len)
+really_buffer_update(struct buffered *buf, struct interface *ifp,
+                     const unsigned char *id,
+                     const unsigned char *prefix, unsigned char plen,
+                     const unsigned char *src_prefix, unsigned char src_plen,
+                     unsigned short seqno, unsigned short metric,
+                     unsigned char *channels, int channels_len)
 {
-    int add_metric, v4, real_plen, omit = 0;
-    const unsigned char *real_prefix;
-    const unsigned char *real_src_prefix = NULL;
-    int real_src_plen = 0;
+    int add_metric, v4, real_plen, real_src_plen;
+    int omit, spb, channels_size, len;
+    const unsigned char *real_prefix, *real_src_prefix;
     unsigned short flags = 0;
-    int channels_size;
     int is_ss = !is_default(src_prefix, src_plen);
 
-    if(diversity_kind != DIVERSITY_CHANNEL)
-        channels_len = -1;
-
-    channels_size = channels_len >= 0 ? channels_len + 2 : 0;
-
     if(!if_up(ifp))
+        return;
+
+    if(is_ss && buf->rfc6126_compatible)
         return;
 
     add_metric = output_filter(id, prefix, plen, src_prefix,
@@ -1263,36 +1078,38 @@ really_send_update(struct interface *ifp,
         return;
 
     metric = MIN(metric + add_metric, INFINITY);
+
     /* Worst case */
-    ensure_space(ifp, 20 + 12 + 28 + 18);
+    ensure_space(buf, 20 + 12 + 28 + 18);
 
     v4 = plen >= 96 && v4mapped(prefix);
 
     if(v4) {
         if(!ifp->ipv4)
             return;
-        if(!ifp->have_buffered_nh ||
-           memcmp(ifp->buffered_nh, ifp->ipv4, 4) != 0) {
-            start_message(ifp, MESSAGE_NH, 6);
-            accumulate_byte(ifp, 1);
-            accumulate_byte(ifp, 0);
-            accumulate_bytes(ifp, ifp->ipv4, 4);
-            end_message(ifp, MESSAGE_NH, 6);
-            memcpy(ifp->buffered_nh, ifp->ipv4, 4);
-            ifp->have_buffered_nh = 1;
+        omit = 0;
+        if(!buf->have_nh ||
+           memcmp(buf->nh, ifp->ipv4, 4) != 0) {
+            start_message(buf, MESSAGE_NH, 6);
+            accumulate_byte(buf, 1);
+            accumulate_byte(buf, 0);
+            accumulate_bytes(buf, ifp->ipv4, 4);
+            end_message(buf, MESSAGE_NH, 6);
+            memcpy(&buf->nh, ifp->ipv4, 4);
+            buf->have_nh = 1;
         }
-
         real_prefix = prefix + 12;
         real_plen = plen - 96;
         real_src_prefix = src_prefix + 12;
         real_src_plen = src_plen - 96;
     } else {
-        if(ifp->have_buffered_prefix) {
+        omit = 0;
+        if(buf->have_prefix) {
             while(omit < plen / 8 &&
-                  ifp->buffered_prefix[omit] == prefix[omit])
+                  buf->prefix[omit] == prefix[omit])
                 omit++;
         }
-        if(!is_ss && (!ifp->have_buffered_prefix || plen >= 48))
+        if(!buf->have_prefix || plen >= 48)
             flags |= 0x80;
         real_prefix = prefix;
         real_plen = plen;
@@ -1300,57 +1117,77 @@ really_send_update(struct interface *ifp,
         real_src_plen = src_plen;
     }
 
-    if(!ifp->have_buffered_id || memcmp(id, ifp->buffered_id, 8) != 0) {
-        if(!is_ss && real_plen == 128 &&
-           memcmp(real_prefix + 8, id, 8) == 0) {
+    if(!buf->have_id || memcmp(id, buf->id, 8) != 0) {
+        if(real_plen == 128 && memcmp(real_prefix + 8, id, 8) == 0) {
             flags |= 0x40;
         } else {
-            start_message(ifp, MESSAGE_ROUTER_ID, 10);
-            accumulate_short(ifp, 0);
-            accumulate_bytes(ifp, id, 8);
-            end_message(ifp, MESSAGE_ROUTER_ID, 10);
+            start_message(buf, MESSAGE_ROUTER_ID, 10);
+            accumulate_short(buf, 0);
+            accumulate_bytes(buf, id, 8);
+            end_message(buf, MESSAGE_ROUTER_ID, 10);
         }
-        memcpy(ifp->buffered_id, id, 8);
-        ifp->have_buffered_id = 1;
+        memcpy(buf->id, id, 8);
+        buf->have_id = 1;
     }
 
-    if(!is_ss)
-        start_message(ifp, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
-                      channels_size);
-    else
-        start_message(ifp, MESSAGE_UPDATE_SRC_SPECIFIC,
-                      10 + (real_plen + 7) / 8 - omit +
-                      (real_src_plen + 7) / 8 + channels_size);
-    accumulate_byte(ifp, v4 ? 1 : 2);
+    channels_size = diversity_kind == DIVERSITY_CHANNEL && channels_len >= 0 ?
+        channels_len + 2 : 0;
+    len = 10 + (real_plen + 7) / 8 - omit + channels_size;
+    spb = (real_src_plen + 7) / 8;
     if(is_ss)
-        accumulate_byte(ifp, real_src_plen);
-    else
-        accumulate_byte(ifp, flags);
-    accumulate_byte(ifp, real_plen);
-    accumulate_byte(ifp, omit);
-    accumulate_short(ifp, (ifp->update_interval + 5) / 10);
-    accumulate_short(ifp, seqno);
-    accumulate_short(ifp, metric);
-    accumulate_bytes(ifp, real_prefix + omit, (real_plen + 7) / 8 - omit);
-    if(is_ss)
-        accumulate_bytes(ifp, real_src_prefix, (real_src_plen + 7) / 8);
+        len += 3 + spb;
+
+    start_message(buf, MESSAGE_UPDATE, len);
+    accumulate_byte(buf, v4 ? 1 : 2);
+    accumulate_byte(buf, flags);
+    accumulate_byte(buf, real_plen);
+    accumulate_byte(buf, omit);
+    accumulate_short(buf, (ifp->update_interval + 5) / 10);
+    accumulate_short(buf, seqno);
+    accumulate_short(buf, metric);
+    accumulate_bytes(buf, real_prefix + omit, (real_plen + 7) / 8 - omit);
+    if(is_ss) {
+        accumulate_byte(buf, SUBTLV_SOURCE_PREFIX);
+        accumulate_byte(buf, 1 + spb);
+        accumulate_byte(buf, real_src_plen);
+        accumulate_bytes(buf, real_src_prefix, spb);
+    }
     /* Note that an empty channels TLV is different from no such TLV. */
-    if(channels_len >= 0) {
-        accumulate_byte(ifp, 2);
-        accumulate_byte(ifp, channels_len);
-        accumulate_bytes(ifp, channels, channels_len);
+    if(channels_size > 0) {
+        accumulate_byte(buf, 2);
+        accumulate_byte(buf, channels_len);
+        accumulate_bytes(buf, channels, channels_len);
     }
-    if(!is_ss)
-        end_message(ifp, MESSAGE_UPDATE, 10 + (real_plen + 7) / 8 - omit +
-                    channels_size);
-    else
-        end_message(ifp, MESSAGE_UPDATE_SRC_SPECIFIC,
-                    10 + (real_plen + 7) / 8 - omit +
-                    (real_src_plen + 7) / 8 + channels_size);
-
+    end_message(buf, MESSAGE_UPDATE, len);
     if(flags & 0x80) {
-        memcpy(ifp->buffered_prefix, prefix, 16);
-        ifp->have_buffered_prefix = 1;
+        memcpy(buf->prefix, prefix, 16);
+        buf->have_prefix = 1;
+    }
+}
+
+static void
+really_send_update(struct interface *ifp, const unsigned char *id,
+                   const unsigned char *prefix, unsigned char plen,
+                   const unsigned char *src_prefix, unsigned char src_plen,
+                   unsigned short seqno, unsigned short metric,
+                   unsigned char *channels, int channels_len)
+{
+    if(!if_up(ifp))
+        return;
+
+    if((ifp->flags & IF_UNICAST) != 0) {
+        struct neighbour *neigh;
+        FOR_ALL_NEIGHBOURS(neigh) {
+            if(neigh->ifp == ifp) {
+                really_buffer_update(&neigh->buf, ifp, id,
+                                     prefix, plen, src_prefix, src_plen,
+                                     seqno, metric, channels, channels_len);
+            }
+        }
+    } else {
+        really_buffer_update(&ifp->buf, ifp, id,
+                             prefix, plen, src_prefix, src_plen,
+                             seqno, metric, channels, channels_len);
     }
 }
 
@@ -1512,7 +1349,8 @@ flushupdates(struct interface *ifp)
 
                 really_send_update(ifp, route->src->id,
                                    route->src->prefix, route->src->plen,
-                                   route->src->src_prefix, route->src->src_plen,
+                                   route->src->src_prefix,
+                                   route->src->src_plen,
                                    seqno, metric,
                                    channels, chlen);
                 update_source(route->src, seqno, metric);
@@ -1523,12 +1361,23 @@ flushupdates(struct interface *ifp)
             } else {
             /* There's no route for this prefix.  This can happen shortly
                after an xroute has been retracted, so send a retraction. */
-                really_send_update(ifp, myid, b[i].prefix, b[i].plen,
+                really_send_update(ifp, myid,
+                                   b[i].prefix, b[i].plen,
                                    b[i].src_prefix, b[i].src_plen,
                                    myseqno, INFINITY, NULL, -1);
             }
         }
-        schedule_flush_now(ifp);
+
+        if((ifp->flags & IF_UNICAST) != 0) {
+            struct neighbour *neigh;
+            FOR_ALL_NEIGHBOURS(neigh) {
+                if(neigh->ifp == ifp) {
+                    schedule_flush_now(&neigh->buf);
+                }
+            }
+        } else {
+            schedule_flush_now(&ifp->buf);
+        }
     done:
         free(b);
     }
@@ -1563,7 +1412,7 @@ buffer_update(struct interface *ifp,
            number of installed routes will grow over time, make sure we
            have enough space to send a full-ish frame. */
         n = installed_routes_estimate() + xroutes_estimate() + 4;
-        n = MAX(n, ifp->bufsize / 16);
+        n = MAX(n, ifp->buf.size / 16);
     again:
         ifp->buffered_updates = malloc(n * sizeof(struct buffered_update));
         if(ifp->buffered_updates == NULL) {
@@ -1643,10 +1492,7 @@ send_update(struct interface *ifp, int urgent,
             fprintf(stderr, "Couldn't allocate route stream.\n");
         }
         set_timeout(&ifp->update_timeout, ifp->update_interval);
-        if(!prefix)
-            ifp->last_update_time = now.tv_sec;
-        else
-            ifp->last_specific_update_time = now.tv_sec;
+        ifp->last_update_time = now.tv_sec;
     } else {
         send_update(ifp, urgent, NULL, 0, zeroes, 0);
         send_update(ifp, urgent, zeroes, 0, NULL, 0);
@@ -1667,6 +1513,23 @@ send_update_resend(struct interface *ifp,
 }
 
 void
+buffer_wildcard_retraction(struct buffered *buf)
+{
+    start_message(buf, MESSAGE_UPDATE, 10);
+    accumulate_byte(buf, 0);
+    accumulate_byte(buf, 0);
+    accumulate_byte(buf, 0);
+    accumulate_byte(buf, 0);
+    accumulate_short(buf, 0xFFFF);
+    accumulate_short(buf, myseqno);
+    accumulate_short(buf, 0xFFFF);
+    end_message(buf, MESSAGE_UPDATE, 10);
+
+    buf->have_id = 0;
+}
+
+
+void
 send_wildcard_retraction(struct interface *ifp)
 {
     if(ifp == NULL) {
@@ -1679,17 +1542,16 @@ send_wildcard_retraction(struct interface *ifp)
     if(!if_up(ifp))
         return;
 
-    start_message(ifp, MESSAGE_UPDATE, 10);
-    accumulate_byte(ifp, 0);
-    accumulate_byte(ifp, 0);
-    accumulate_byte(ifp, 0);
-    accumulate_byte(ifp, 0);
-    accumulate_short(ifp, 0xFFFF);
-    accumulate_short(ifp, myseqno);
-    accumulate_short(ifp, 0xFFFF);
-    end_message(ifp, MESSAGE_UPDATE, 10);
-
-    ifp->have_buffered_id = 0;
+    if((ifp->flags & IF_UNICAST) != 0) {
+        struct neighbour *neigh;
+        FOR_ALL_NEIGHBOURS(neigh) {
+            if(neigh->ifp == ifp) {
+                buffer_wildcard_retraction(&neigh->buf);
+            }
+        }
+    } else {
+        buffer_wildcard_retraction(&ifp->buf);
+    }
 }
 
 void
@@ -1729,12 +1591,39 @@ send_self_update(struct interface *ifp)
 }
 
 void
+buffer_ihu(struct buffered *buf, unsigned short rxcost,
+           unsigned short interval, const unsigned char *address,
+           int rtt_data, unsigned int t1, unsigned int t2)
+{
+    int msglen, ll;
+
+    ll = linklocal(address);
+    msglen = (ll ? 14 : 200) + (rtt_data ? 10 : 0);
+
+    start_message(buf, MESSAGE_IHU, msglen);
+    accumulate_byte(buf, ll ? 3 : 2);
+    accumulate_byte(buf, 0);
+    accumulate_short(buf, rxcost);
+    accumulate_short(buf, interval);
+    if(ll)
+        accumulate_bytes(buf, address + 8, 8);
+    else
+        accumulate_bytes(buf, address, 16);
+    if(rtt_data) {
+        accumulate_byte(buf, SUBTLV_TIMESTAMP);
+        accumulate_byte(buf, 8);
+        accumulate_int(buf, t1);
+        accumulate_int(buf, t2);
+    }
+    end_message(buf, MESSAGE_IHU, msglen);
+}
+
+
+void
 send_ihu(struct neighbour *neigh, struct interface *ifp)
 {
     int rxcost, interval;
-    int ll;
     int send_rtt_data;
-    int msglen;
 
     if(neigh == NULL && ifp == NULL) {
         struct interface *ifp_aux;
@@ -1765,19 +1654,12 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
     rxcost = neighbour_rxcost(neigh);
     interval = (ifp->hello_interval * 3 + 9) / 10;
 
-    /* Conceptually, an IHU is a unicast message.  We usually send them as
-       multicast, since this allows aggregation into a single packet and
-       avoids an ARP exchange.  If we already have a unicast message queued
-       for this neighbour, however, we might as well piggyback the IHU. */
-    debugf("Sending %sihu %d on %s to %s.\n",
-           unicast_neighbour == neigh ? "unicast " : "",
+    debugf("Sending ihu %d on %s to %s.\n",
            rxcost,
            neigh->ifp->name,
            format_address(neigh->address));
 
-    ll = linklocal(neigh->address);
-
-    if((ifp->flags & IF_TIMESTAMPS) && neigh->hello_send_us &&
+    if(ifp->buf.enable_timestamps && neigh->hello_send_us &&
        /* Checks whether the RTT data is not too old to be sent. */
        timeval_minus_msec(&now, &neigh->hello_rtt_receive_time) < 1000000) {
         send_rtt_data = 1;
@@ -1786,48 +1668,10 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
         send_rtt_data = 0;
     }
 
-    /* The length depends on the format of the address, and then an
-       optional 10-bytes sub-TLV for timestamps (used to compute a RTT). */
-    msglen = (ll ? 14 : 22) + (send_rtt_data ? 10 : 0);
+    buffer_ihu(&ifp->buf, rxcost, interval, neigh->address,
+               send_rtt_data, neigh->hello_send_us,
+               time_us(neigh->hello_rtt_receive_time));
 
-    if(unicast_neighbour != neigh) {
-        start_message(ifp, MESSAGE_IHU, msglen);
-        accumulate_byte(ifp, ll ? 3 : 2);
-        accumulate_byte(ifp, 0);
-        accumulate_short(ifp, rxcost);
-        accumulate_short(ifp, interval);
-        if(ll)
-            accumulate_bytes(ifp, neigh->address + 8, 8);
-        else
-            accumulate_bytes(ifp, neigh->address, 16);
-        if(send_rtt_data) {
-            accumulate_byte(ifp, SUBTLV_TIMESTAMP);
-            accumulate_byte(ifp, 8);
-            accumulate_int(ifp, neigh->hello_send_us);
-            accumulate_int(ifp, time_us(neigh->hello_rtt_receive_time));
-        }
-        end_message(ifp, MESSAGE_IHU, msglen);
-    } else {
-        int rc;
-        rc = start_unicast_message(neigh, MESSAGE_IHU, msglen);
-        if(rc < 0) return;
-        accumulate_unicast_byte(neigh, ll ? 3 : 2);
-        accumulate_unicast_byte(neigh, 0);
-        accumulate_unicast_short(neigh, rxcost);
-        accumulate_unicast_short(neigh, interval);
-        if(ll)
-            accumulate_unicast_bytes(neigh, neigh->address + 8, 8);
-        else
-            accumulate_unicast_bytes(neigh, neigh->address, 16);
-        if(send_rtt_data) {
-            accumulate_unicast_byte(neigh, SUBTLV_TIMESTAMP);
-            accumulate_unicast_byte(neigh, 8);
-            accumulate_unicast_int(neigh, neigh->hello_send_us);
-            accumulate_unicast_int(neigh,
-                                   time_us(neigh->hello_rtt_receive_time));
-        }
-        end_unicast_message(neigh, MESSAGE_IHU, msglen);
-    }
 }
 
 /* Send IHUs to all marginal neighbours */
@@ -1845,83 +1689,86 @@ send_marginal_ihu(struct interface *ifp)
 
 /* Standard wildcard request with prefix == NULL && src_prefix == zeroes,
    Specific wildcard request with prefix == zeroes && src_prefix == NULL. */
-void
-send_request(struct interface *ifp,
+static void
+send_request(struct buffered *buf,
              const unsigned char *prefix, unsigned char plen,
              const unsigned char *src_prefix, unsigned char src_plen)
 {
-    int v4, pb, spb, len, is_ss;
+    int v4, pb, spb, len;
+    int is_ss = !is_default(src_prefix, src_plen);
 
+    if(is_ss && buf->rfc6126_compatible)
+        return;
+
+    if(!prefix) {
+        assert(!src_prefix);
+        debugf("sending request for any.\n");
+        start_message(buf, MESSAGE_REQUEST, 2);
+        accumulate_byte(buf, 0);
+        accumulate_byte(buf, 0);
+        end_message(buf, MESSAGE_REQUEST, 2);
+        return;
+    }
+
+    debugf("sending request for %s from %s.\n",
+           format_prefix(prefix, plen),
+           format_prefix(src_prefix, src_plen));
+
+    v4 = plen >= 96 && v4mapped(prefix);
+    pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
+    spb = v4 ? ((src_plen - 96) + 7) / 8 : (src_plen + 7) / 8;
+    len = 2 + pb + (is_ss ? 3 + spb : 0);
+
+    start_message(buf, MESSAGE_REQUEST, len);
+    accumulate_byte(buf, v4 ? 1 : 2);
+    accumulate_byte(buf, v4 ? plen - 96 : plen);
+    if(v4)
+        accumulate_bytes(buf, prefix + 12, pb);
+    else
+        accumulate_bytes(buf, prefix, pb);
+    if(is_ss) {
+        accumulate_byte(buf, SUBTLV_SOURCE_PREFIX);
+        accumulate_byte(buf, 1 + spb);
+        accumulate_byte(buf, v4 ? src_plen - 96 : src_plen);
+        if(v4)
+            accumulate_bytes(buf, src_prefix + 12, spb);
+        else
+            accumulate_bytes(buf, src_prefix, spb);
+    }
+    end_message(buf, MESSAGE_REQUEST, len);
+}
+
+void
+send_multicast_request(struct interface *ifp,
+                       const unsigned char *prefix, unsigned char plen,
+                       const unsigned char *src_prefix, unsigned char src_plen)
+{
     if(ifp == NULL) {
-        struct interface *ifp_aux;
-        FOR_ALL_INTERFACES(ifp_aux) {
-            if(!if_up(ifp_aux))
+        struct interface *ifp_auxn;
+        FOR_ALL_INTERFACES(ifp_auxn) {
+            if(if_up(ifp_auxn))
                 continue;
-            send_request(ifp_aux, prefix, plen, src_prefix, src_plen);
+            send_multicast_request(ifp_auxn, prefix, plen, src_prefix, src_plen);
         }
         return;
     }
 
-    /* make sure any buffered updates go out before this request. */
-    flushupdates(ifp);
-
     if(!if_up(ifp))
         return;
 
-    if(prefix && src_prefix) {
-        debugf("sending request to %s for %s from %s.\n", ifp->name,
-               format_prefix(prefix, plen),
-               format_prefix(src_prefix, src_plen));
-    } else if(prefix) {
-        debugf("sending request to %s for any specific.\n", ifp->name);
-        start_message(ifp, MESSAGE_REQUEST_SRC_SPECIFIC, 3);
-        accumulate_byte(ifp, 0);
-        accumulate_byte(ifp, 0);
-        accumulate_byte(ifp, 0);
-        end_message(ifp, MESSAGE_REQUEST_SRC_SPECIFIC, 3);
-        return;
-    } else if(src_prefix) {
-        debugf("sending request to %s for any.\n", ifp->name);
-        start_message(ifp, MESSAGE_REQUEST, 2);
-        accumulate_byte(ifp, 0);
-        accumulate_byte(ifp, 0);
-        end_message(ifp, MESSAGE_REQUEST, 2);
-        return;
-    } else {
-        send_request(ifp, NULL, 0, zeroes, 0);
-        send_request(ifp, zeroes, 0, NULL, 0);
-        return;
-    }
+    /* make sure any buffered updates go out before this request. */
+    flushupdates(ifp);
 
-    v4 = plen >= 96 && v4mapped(prefix);
-    pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
-    len = 2 + pb;
-
-    is_ss = !is_default(src_prefix, src_plen);
-    if(is_ss) {
-        spb = v4 ? ((src_plen - 96) + 7) / 8 : (src_plen + 7) / 8;
-        len += spb + 1;
-        start_message(ifp, MESSAGE_REQUEST_SRC_SPECIFIC, len);
-    } else {
-        spb = 0;
-        start_message(ifp, MESSAGE_REQUEST, len);
-    }
-    accumulate_byte(ifp, v4 ? 1 : 2);
-    accumulate_byte(ifp, v4 ? plen - 96 : plen);
-    if(is_ss)
-        accumulate_byte(ifp, v4 ? src_plen - 96 : src_plen);
-    if(v4)
-        accumulate_bytes(ifp, prefix + 12, pb);
-    else
-        accumulate_bytes(ifp, prefix, pb);
-    if(is_ss) {
-        if(v4)
-            accumulate_bytes(ifp, src_prefix + 12, spb);
-        else
-            accumulate_bytes(ifp, src_prefix, spb);
-        end_message(ifp, MESSAGE_REQUEST_SRC_SPECIFIC, len);
-    } else {
-        end_message(ifp, MESSAGE_REQUEST, len);
+    if((ifp->flags & IF_UNICAST) != 0) {
+        struct neighbour *neigh;
+        FOR_ALL_NEIGHBOURS(neigh) {
+            if(neigh->ifp == ifp) {
+                send_request(&neigh->buf, prefix, plen,
+                             src_prefix, src_plen);
+            } else {
+                send_request(&ifp->buf, prefix, plen, src_prefix, src_plen);
+            }
+        }
     }
 }
 
@@ -1930,136 +1777,97 @@ send_unicast_request(struct neighbour *neigh,
                      const unsigned char *prefix, unsigned char plen,
                      const unsigned char *src_prefix, unsigned char src_plen)
 {
-    int rc, v4, pb, spb, len, is_ss;
+    if(!if_up(neigh->ifp))
+        return;
 
-    /* make sure any buffered updates go out before this request. */
     flushupdates(neigh->ifp);
 
-    if(prefix && src_prefix) {
-        debugf("sending unicast request to %s for %s from %s.\n",
-               format_address(neigh->address),
-               format_prefix(prefix, plen),
-               format_prefix(src_prefix, src_plen));
-    } else if(prefix) {
-        debugf("sending unicast request to %s for any specific.\n",
-               format_address(neigh->address));
-        rc = start_unicast_message(neigh, MESSAGE_REQUEST_SRC_SPECIFIC, 3);
-        if(rc < 0) return;
-        accumulate_unicast_byte(neigh, 0);
-        accumulate_unicast_byte(neigh, 0);
-        accumulate_unicast_byte(neigh, 0);
-        end_unicast_message(neigh, MESSAGE_REQUEST_SRC_SPECIFIC, 3);
-        return;
-    } else if(src_prefix) {
-        debugf("sending unicast request to %s for any.\n",
-               format_address(neigh->address));
-        rc = start_unicast_message(neigh, MESSAGE_REQUEST, 2);
-        if(rc < 0) return;
-        accumulate_unicast_byte(neigh, 0);
-        accumulate_unicast_byte(neigh, 0);
-        end_unicast_message(neigh, MESSAGE_REQUEST, 2);
-        return;
-    } else {
-        send_unicast_request(neigh, NULL, 0, zeroes, 0);
-        send_unicast_request(neigh, zeroes, 0, NULL, 0);
-        return;
-    }
-
-    v4 = plen >= 96 && v4mapped(prefix);
-    pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
-    len = 2 + pb;
-
-    is_ss = !is_default(src_prefix, src_plen);
-    if(is_ss) {
-        spb = v4 ? ((src_plen - 96) + 7) / 8 : (src_plen + 7) / 8;
-        len += spb + 1;
-        rc = start_unicast_message(neigh, MESSAGE_REQUEST_SRC_SPECIFIC, len);
-    } else {
-        spb = 0;
-        rc = start_unicast_message(neigh, MESSAGE_REQUEST, len);
-    }
-    if(rc < 0) return;
-    accumulate_unicast_byte(neigh, v4 ? 1 : 2);
-    accumulate_unicast_byte(neigh, v4 ? plen - 96 : plen);
-    if(is_ss)
-        accumulate_unicast_byte(neigh, v4 ? src_plen - 96 : src_plen);
-    if(v4)
-        accumulate_unicast_bytes(neigh, prefix + 12, pb);
-    else
-        accumulate_unicast_bytes(neigh, prefix, pb);
-    if(is_ss) {
-        if(v4)
-            accumulate_unicast_bytes(neigh, src_prefix + 12, spb);
-        else
-            accumulate_unicast_bytes(neigh, src_prefix, spb);
-        end_unicast_message(neigh, MESSAGE_REQUEST_SRC_SPECIFIC, len);
-    } else {
-        end_unicast_message(neigh, MESSAGE_REQUEST, len);
-    }
+    send_request(&neigh->buf, prefix, plen, src_prefix, src_plen);
 }
 
-void
-send_multihop_request(struct interface *ifp,
+static void
+send_multihop_request(struct buffered *buf,
                       const unsigned char *prefix, unsigned char plen,
                       const unsigned char *src_prefix, unsigned char src_plen,
                       unsigned short seqno, const unsigned char *id,
                       unsigned short hop_count)
 {
-    int v4, pb, spb, len, is_ss;
+    int v4, pb, spb, len;
+    int is_ss = !is_default(src_prefix, src_plen);
 
-    /* Make sure any buffered updates go out before this request. */
-    flushupdates(ifp);
+    if(is_ss && buf->rfc6126_compatible)
+        return;
 
+    debugf("Sending request (%d) for %s.\n",
+           hop_count, format_prefix(prefix, plen));
+
+    v4 = plen >= 96 && v4mapped(prefix);
+    pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
+    spb = v4 ? ((src_plen - 96) + 7) / 8 : (src_plen + 7) / 8;
+    len = 6 + 8 + pb + (is_ss ? 3 + spb : 0);
+
+    start_message(buf, MESSAGE_MH_REQUEST, len);
+    accumulate_byte(buf, v4 ? 1 : 2);
+    accumulate_byte(buf, v4 ? plen - 96 : plen);
+    accumulate_short(buf, seqno);
+    accumulate_byte(buf, hop_count);
+    accumulate_byte(buf, v4 ? src_plen - 96 : src_plen);
+    accumulate_bytes(buf, id, 8);
+    if(prefix) {
+        if(v4)
+            accumulate_bytes(buf, prefix + 12, pb);
+        else
+            accumulate_bytes(buf, prefix, pb);
+    }
+    if(is_ss) {
+        accumulate_byte(buf, SUBTLV_SOURCE_PREFIX);
+        accumulate_byte(buf, 1 + spb);
+        accumulate_byte(buf, v4 ? src_plen - 96 : src_plen);
+        if(v4)
+            accumulate_bytes(buf, src_prefix + 12, spb);
+        else
+            accumulate_bytes(buf, src_prefix, spb);
+    }
+    end_message(buf, MESSAGE_MH_REQUEST, len);
+}
+
+void
+send_multicast_multihop_request(struct interface *ifp,
+                      const unsigned char *prefix, unsigned char plen,
+                      const unsigned char *src_prefix, unsigned char src_plen,
+                      unsigned short seqno, const unsigned char *id,
+                      unsigned short hop_count)
+{
     if(ifp == NULL) {
         struct interface *ifp_aux;
         FOR_ALL_INTERFACES(ifp_aux) {
             if(!if_up(ifp_aux))
                 continue;
-            send_multihop_request(ifp_aux, prefix, plen, src_prefix, src_plen,
-                                  seqno, id, hop_count);
+            send_multicast_multihop_request(ifp_aux,
+                                            prefix, plen, src_prefix, src_plen,
+                                            seqno, id, hop_count);
         }
         return;
     }
 
+    flushupdates(ifp);
+
     if(!if_up(ifp))
         return;
 
-    debugf("Sending request (%d) on %s for %s from %s.\n",
-           hop_count, ifp->name, format_prefix(prefix, plen),
-           format_prefix(src_prefix, src_plen));
-    v4 = plen >= 96 && v4mapped(prefix);
-    pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
-    len = 6 + 8 + pb;
-
-    is_ss = !is_default(src_prefix, src_plen);
-    if(is_ss) {
-        spb = v4 ? ((src_plen - 96) + 7) / 8 : (src_plen + 7) / 8;
-        len += spb;
-        start_message(ifp, MESSAGE_MH_REQUEST_SRC_SPECIFIC, len);
+    if((ifp->flags & IF_UNICAST) != 0) {
+            struct neighbour *neigh;
+            FOR_ALL_NEIGHBOURS(neigh) {
+                if(neigh->ifp == ifp) {
+                    send_multihop_request(&neigh->buf, prefix, plen,
+                                          src_prefix, src_plen,
+                                          seqno, id, hop_count);
+                }
+            }
     } else {
-        spb = 0;
-        start_message(ifp, MESSAGE_MH_REQUEST, len);
-    }
-    accumulate_byte(ifp, v4 ? 1 : 2);
-    accumulate_byte(ifp, v4 ? plen - 96 : plen);
-    accumulate_short(ifp, seqno);
-    accumulate_byte(ifp, hop_count);
-    accumulate_byte(ifp, v4 ? src_plen - 96 : src_plen);
-    accumulate_bytes(ifp, id, 8);
-    if(prefix) {
-        if(v4)
-            accumulate_bytes(ifp, prefix + 12, pb);
-        else
-            accumulate_bytes(ifp, prefix, pb);
-    }
-    if(is_ss) {
-        if(v4)
-            accumulate_bytes(ifp, src_prefix + 12, spb);
-        else
-            accumulate_bytes(ifp, src_prefix, spb);
-        end_message(ifp, MESSAGE_MH_REQUEST_SRC_SPECIFIC, len);
-    } else {
-        end_message(ifp, MESSAGE_MH_REQUEST, len);
+        send_multihop_request(&ifp->buf, prefix, plen,
+                              src_prefix, src_plen,
+                              seqno, id, hop_count);
     }
 }
 
@@ -2071,50 +1879,9 @@ send_unicast_multihop_request(struct neighbour *neigh,
                               unsigned short seqno, const unsigned char *id,
                               unsigned short hop_count)
 {
-    int rc, v4, pb, spb, len, is_ss;
-
-    /* Make sure any buffered updates go out before this request. */
     flushupdates(neigh->ifp);
-
-    debugf("Sending multi-hop request to %s for %s from %s (%d hops).\n",
-           format_address(neigh->address),
-           format_prefix(prefix, plen),
-           format_prefix(src_prefix, src_plen), hop_count);
-    v4 = plen >= 96 && v4mapped(prefix);
-    pb = v4 ? ((plen - 96) + 7) / 8 : (plen + 7) / 8;
-    len = 6 + 8 + pb;
-
-    is_ss = !is_default(src_prefix, src_plen);
-    if(is_ss) {
-        spb = v4 ? ((src_plen - 96) + 7) / 8 : (src_plen + 7) / 8;
-        len += spb;
-        rc = start_unicast_message(neigh, MESSAGE_MH_REQUEST_SRC_SPECIFIC, len);
-    } else {
-        spb = 0;
-        rc = start_unicast_message(neigh, MESSAGE_MH_REQUEST, len);
-    }
-    if(rc < 0) return;
-    accumulate_unicast_byte(neigh, v4 ? 1 : 2);
-    accumulate_unicast_byte(neigh, v4 ? plen - 96 : plen);
-    accumulate_unicast_short(neigh, seqno);
-    accumulate_unicast_byte(neigh, hop_count);
-    accumulate_unicast_byte(neigh, v4 ? src_plen - 96 : src_plen);
-    accumulate_unicast_bytes(neigh, id, 8);
-    if(prefix) {
-        if(v4)
-            accumulate_unicast_bytes(neigh, prefix + 12, pb);
-        else
-            accumulate_unicast_bytes(neigh, prefix, pb);
-    }
-    if(is_ss) {
-        if(v4)
-            accumulate_unicast_bytes(neigh, src_prefix + 12, spb);
-        else
-            accumulate_unicast_bytes(neigh, src_prefix, spb);
-        end_unicast_message(neigh, MESSAGE_MH_REQUEST_SRC_SPECIFIC, len);
-    } else {
-        end_unicast_message(neigh, MESSAGE_MH_REQUEST, len);
-    }
+    send_multihop_request(&neigh->buf, prefix, plen, src_prefix, src_plen,
+                          seqno, id, hop_count);
 }
 
 /* Send a request to a well-chosen neighbour and resend.  If there is no
@@ -2135,8 +1902,12 @@ send_request_resend(const unsigned char *prefix, unsigned char plen,
         record_resend(RESEND_REQUEST, prefix, plen, src_prefix, src_plen, seqno,
                       id, neigh->ifp, resend_delay);
     } else {
-        send_multihop_request(NULL, prefix, plen, src_prefix, src_plen,
-                              seqno, id, 127);
+        struct interface *ifp;
+        FOR_ALL_INTERFACES(ifp) {
+	    if(!if_up(ifp)) continue;
+            send_multihop_request(&ifp->buf, prefix, plen, src_prefix, src_plen,
+                                  seqno, id, 127);
+	}
     }
 }
 

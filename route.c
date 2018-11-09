@@ -1139,8 +1139,8 @@ send_triggered_update(struct babel_route *route, struct source *oldsrc,
 
     if(oldmetric < INFINITY) {
         if(newmetric >= oldmetric + 288) {
-            send_request(NULL, route->src->prefix, route->src->plen,
-                         route->src->src_prefix, route->src->src_plen);
+            send_multicast_request(NULL, route->src->prefix, route->src->plen,
+                                   route->src->src_prefix, route->src->src_plen);
         }
     }
 }

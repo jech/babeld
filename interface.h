@@ -45,6 +45,7 @@ struct interface_conf {
     char split_horizon;
     char lq;
     char faraway;
+    char unicast;
     int channel;
     int enable_timestamps;
     int rfc6126;
@@ -69,15 +70,33 @@ struct interface_conf {
 #define IF_LQ (1 << 3)
 /* Nodes on the far end don't interfere with nodes on the near end. */
 #define IF_FARAWAY (1 << 4)
-/* Send timestamps in Hello and IHU. */
-#define IF_TIMESTAMPS (1 << 5)
-/* Remain compatible with RFC 6126. */
-#define IF_RFC6126 (1 << 6)
+/* Send most TLVs over unicast. */
+#define IF_UNICAST (1 << 5)
 
 /* Only INTERFERING can appear on the wire. */
 #define IF_CHANNEL_UNKNOWN 0
 #define IF_CHANNEL_INTERFERING 255
 #define IF_CHANNEL_NONINTERFERING -2
+
+struct buffered {
+    struct sockaddr_in6 sin6;
+    char *buf;
+    int len;
+    int size;
+    int flush_interval;
+    struct timeval timeout;
+    char enable_timestamps;
+    char rfc6126_compatible;
+    char have_id;
+    char have_nh;
+    char have_prefix;
+    unsigned char id[8];
+    unsigned char nh[4];
+    unsigned char prefix[16];
+    /* Relative position of the Hello message in the send buffer, or
+       (-1) if there is none. */
+    int hello;
+};
 
 struct interface {
     struct interface *next;
@@ -88,31 +107,16 @@ struct interface {
     int channel;
     struct timeval hello_timeout;
     struct timeval update_timeout;
-    struct timeval flush_timeout;
     struct timeval update_flush_timeout;
     char name[IF_NAMESIZE];
     unsigned char *ipv4;
     int numll;
     unsigned char (*ll)[16];
-    int buffered;
-    int bufsize;
-    /* Relative position of the Hello message in the send buffer, or
-       (-1) if there is none. */
-    int buffered_hello;
-    char have_buffered_id;
-    char have_buffered_nh;
-    char have_buffered_prefix;
-    unsigned char buffered_id[8];
-    unsigned char buffered_nh[4];
-    unsigned char buffered_prefix[16];
-    unsigned char *sendbuf;
+    struct buffered buf;
     struct buffered_update *buffered_updates;
     int num_buffered_updates;
     int update_bufsize;
-    time_t bucket_time;
-    unsigned int bucket;
     time_t last_update_time;
-    time_t last_specific_update_time;
     unsigned short hello_seqno;
     unsigned hello_interval;
     unsigned update_interval;
@@ -140,7 +144,7 @@ if_up(struct interface *ifp)
 
 struct interface *add_interface(char *ifname, struct interface_conf *if_conf);
 int flush_interface(char *ifname);
-unsigned jitter(struct interface *ifp, int urgent);
+unsigned jitter(struct buffered *buf, int urgent);
 unsigned update_jitter(struct interface *ifp, int urgent);
 void set_timeout(struct timeval *timeout, int msecs);
 int interface_up(struct interface *ifp, int up);
