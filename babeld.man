@@ -415,6 +415,9 @@ otherwise.
 Only send TLVs that are defined by RFC 6126, the older version of Babel.
 The default is
 .BR false .
+This option does nothing in this version of
+.BR babeld ,
+it is provided for compatiblity with future versions.
 .TP
 .BI rtt\-decay " decay"
 This specifies the decay factor for the exponential moving average of
