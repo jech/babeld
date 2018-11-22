@@ -58,7 +58,7 @@ THE SOFTWARE.
 #include "configuration.h"
 
 #ifndef MAX_INTERFACES
-#define MAX_INTERFACES 20
+#define MAX_INTERFACES 256
 #endif
 
 #define GET_PLEN(p, v4) (v4) ? (p) + 96 : (p)
