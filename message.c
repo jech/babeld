@@ -1746,7 +1746,7 @@ send_multicast_request(struct interface *ifp,
     if(ifp == NULL) {
         struct interface *ifp_auxn;
         FOR_ALL_INTERFACES(ifp_auxn) {
-            if(if_up(ifp_auxn))
+            if(!if_up(ifp_auxn))
                 continue;
             send_multicast_request(ifp_auxn, prefix, plen, src_prefix, src_plen);
         }
@@ -1765,10 +1765,10 @@ send_multicast_request(struct interface *ifp,
             if(neigh->ifp == ifp) {
                 send_request(&neigh->buf, prefix, plen,
                              src_prefix, src_plen);
-            } else {
-                send_request(&ifp->buf, prefix, plen, src_prefix, src_plen);
             }
         }
+    } else {
+        send_request(&ifp->buf, prefix, plen, src_prefix, src_plen);
     }
 }
 
