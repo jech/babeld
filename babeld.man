@@ -594,20 +594,15 @@ replies with one or more lines of data terminated by one of
 or
 .BR bad .
 
-The following requests are currently defined:
+All configuration file directives are valid socket requests, including:
 .IP \(bu 2
-any configuration file directive, including
-.BR interface ;
+.BR "[flush] interface"
 .IP \(bu
-.BR "flush interface" ;
+.BR "dump [neighbour|route|xroute|interface]"
 .IP \(bu
-.BR dump ;
+.BR "[un]monitor [neighbour|route|xroute|interface]"
 .IP \(bu
-.B monitor
-and
-.BR unmonitor ;
-.IP \(bu
-.BR quit .
+.BR quit
 .SH EXAMPLES
 You can participate in a Babel network by simply running
 .IP

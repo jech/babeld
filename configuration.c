@@ -1127,20 +1127,65 @@ parse_config_line(int c, gnc_t gnc, void *closure,
             goto fail;
         *action_return = CONFIG_ACTION_QUIT;
     } else if(strcmp(token, "dump") == 0) {
-        c = skip_eol(c, gnc, closure);
-        if(c < -1 || !action_return)
-            goto fail;
         *action_return = CONFIG_ACTION_DUMP;
+        char *token2 = NULL;
+        c = skip_whitespace(c, gnc, closure);
+        c = getword(c, &token2, gnc, closure);
+        if (token2)
+        {
+            if (strcmp(token2, "route") == 0)
+                *action_return = CONFIG_ACTION_DUMP_ROUTE;
+            else if (strcmp(token2, "interface") == 0)
+                *action_return = CONFIG_ACTION_DUMP_INTERFACE;
+            else if (strcmp(token2, "xroute") == 0)
+                *action_return = CONFIG_ACTION_DUMP_XROUTE;
+            else if (strcmp(token2, "neighbour") == 0)
+                *action_return = CONFIG_ACTION_DUMP_NEIGHBOUR;
+            free(token2);
+            c = skip_eol(c, gnc, closure);
+        }
+        else
+            c = -1;
     } else if(strcmp(token, "monitor") == 0) {
-        c = skip_eol(c, gnc, closure);
-        if(c < -1 || !action_return)
-            goto fail;
-        *action_return = CONFIG_ACTION_MONITOR;
+	*action_return = CONFIG_ACTION_MONITOR;
+	char *token2 = NULL;
+	c = skip_whitespace(c, gnc, closure);
+	c = getword(c, &token2, gnc, closure);
+	if (token2)
+	{
+	    if (strcmp(token2, "route") == 0)
+		*action_return = CONFIG_ACTION_MONITOR_ROUTE;
+	    else if (strcmp(token2, "interface") == 0)
+		*action_return = CONFIG_ACTION_MONITOR_INTERFACE;
+	    else if (strcmp(token2, "xroute") == 0)
+		*action_return = CONFIG_ACTION_MONITOR_XROUTE;
+	    else if (strcmp(token2, "neighbour") == 0)
+		*action_return = CONFIG_ACTION_MONITOR_NEIGHBOUR;
+	    free(token2);
+	    c = skip_eol(c, gnc, closure);
+	}
+	else
+	    c = -1;
     } else if(strcmp(token, "unmonitor") == 0) {
-        c = skip_eol(c, gnc, closure);
-        if(c < -1 || !action_return)
-            goto fail;
         *action_return = CONFIG_ACTION_UNMONITOR;
+	char *token2 = NULL;
+	c = skip_whitespace(c, gnc, closure);
+	c = getword(c, &token2, gnc, closure);
+	if (token2)
+	{
+	    if (strcmp(token2, "route") == 0)
+		*action_return = CONFIG_ACTION_UNMONITOR_ROUTE;
+	    else if (strcmp(token2, "interface") == 0)
+		*action_return = CONFIG_ACTION_UNMONITOR_INTERFACE;
+	    else if (strcmp(token2, "xroute") == 0)
+		*action_return = CONFIG_ACTION_UNMONITOR_XROUTE;
+	    else if (strcmp(token2, "neighbour") == 0)
+		*action_return = CONFIG_ACTION_UNMONITOR_NEIGHBOUR;
+	    free(token2);
+	    c = skip_eol(c, gnc, closure);
+	}
+	else // ummonitor was detected but none of the specialties - unmonitoring everything.
+	    c = -1;
     } else if(config_finalised && !local_server_write) {
         /* The remaining directives are only allowed in read-write mode. */
         c = skip_to_eol(c, gnc, closure);
