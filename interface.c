@@ -115,8 +115,6 @@ flush_interface(char *ifname)
     else
         interfaces = ifp->next;
 
-    local_notify_interface(ifp, LOCAL_FLUSH);
-
     if(ifp->conf != NULL && ifp->conf != default_interface_conf)
         flush_ifconf(ifp->conf);
 
