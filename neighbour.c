@@ -201,12 +201,6 @@ update_neighbour(struct neighbour *neigh, struct hello_history *hist,
         }
     }
 
-    if((hist->reach & 0xFC00) == 0xC000) {
-        /* This is a newish neighbour, let's request a full route dump.
-           We ought to avoid this when the network is dense */
-        send_unicast_request(neigh, NULL, 0, NULL, 0);
-        send_ihu(neigh, NULL);
-    }
     return rc;
 }
 
