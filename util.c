@@ -439,6 +439,7 @@ wait_for_fd(int direction, int fd, int msecs)
 int
 martian_prefix(const unsigned char *prefix, int plen)
 {
+    static const unsigned char ones[4] = {0xFF, 0xFF, 0xFF, 0xFF};
     return
         (plen >= 8 && prefix[0] == 0xFF) ||
         (plen >= 10 && prefix[0] == 0xFE && (prefix[1] & 0xC0) == 0x80) ||
@@ -446,7 +447,8 @@ martian_prefix(const unsigned char *prefix, int plen)
          (prefix[15] == 0 || prefix[15] == 1)) ||
         (plen >= 96 && v4mapped(prefix) &&
          ((plen >= 104 && (prefix[12] == 127 || prefix[12] == 0)) ||
-          (plen >= 100 && (prefix[12] & 0xE0) == 0xE0)));
+          (plen >= 100 && (prefix[12] & 0xF0) == 0xE0) ||
+          (plen >= 128 && memcmp(prefix + 12, ones, 4) == 0)));
 }
 
 int
