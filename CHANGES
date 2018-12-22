@@ -14,6 +14,7 @@ babeld-1.9.0 (unreleased)
   * Don't send wildcard requests to newish nodes.  Thanks to Teco Boot.
   * Remove an arbitrary limit on the number of interfaces.  Thanks to
     Christon Schulze.
+  * Removed class E from martian filter.  Thanks to Dave Taht.
 
 9 November 2018: babeld-1.8.4
 
