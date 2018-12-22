@@ -12,6 +12,8 @@ babeld-1.9.0 (unreleased)
     unpriviledged container.  Thanks to Christof Schulze.
   * Reinstated logging of late hellos.  Thanks to Dave Taht.
   * Don't send wildcard requests to newish nodes.  Thanks to Teco Boot.
+  * Remove an arbitrary limit on the number of interfaces.  Thanks to
+    Christon Schulze.
 
 9 November 2018: babeld-1.8.4
 
