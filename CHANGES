@@ -11,6 +11,7 @@ babeld-1.9.0 (unreleased)
     desired value; this makes it possible to run babeld in an
     unpriviledged container.  Thanks to Christof Schulze.
   * Reinstated logging of late hellos.  Thanks to Dave Taht.
+  * Don't send wildcard requests to newish nodes.  Thanks to Teco Boot.
 
 9 November 2018: babeld-1.8.4
 
