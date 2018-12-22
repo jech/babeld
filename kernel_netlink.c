@@ -58,7 +58,7 @@ THE SOFTWARE.
 #include "configuration.h"
 
 #ifndef MAX_INTERFACES
-#define MAX_INTERFACES 20
+#define MAX_INTERFACES 1024
 #endif
 
 #define GET_PLEN(p, v4) (v4) ? (p) + 96 : (p)
@@ -95,8 +95,9 @@ struct old_if {
     int rp_filter;
 };
 
-struct old_if old_if[MAX_INTERFACES];
+struct old_if *old_if = NULL;
 int num_old_if = 0;
+int max_old_if = 0;
 
 static int dgram_socket = -1;
 
@@ -649,6 +650,18 @@ get_old_if(const char *ifname)
             return i;
     if(num_old_if >= MAX_INTERFACES)
         return -1;
+    if(num_old_if >= max_old_if) {
+            int n = max_old_if = 0 ? 4 : 2 * max_old_if;
+            struct old_if *new =
+                realloc(old_if, max_old_if * sizeof(struct old_if));
+            if(new != NULL) {
+                old_if = new;
+                max_old_if = n;
+            }
+    }
+    if(num_old_if >= max_old_if)
+        return -1;
+
     old_if[num_old_if].ifname = strdup(ifname);
     if(old_if[num_old_if].ifname == NULL)
         return -1;
