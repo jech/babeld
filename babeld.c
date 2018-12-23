@@ -572,6 +572,8 @@ main(int argc, char **argv)
         gettime(&now);
         send_hello(ifp);
         send_wildcard_retraction(ifp);
+        flushupdates(ifp);
+        flushbuf(&ifp->buf);
     }
 
     FOR_ALL_INTERFACES(ifp) {
