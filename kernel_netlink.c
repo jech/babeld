@@ -1102,6 +1102,7 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
         v4tov6(route->prefix, zeroes);
         v4tov6(route->src_prefix, zeroes);
         route->plen = 96;
+        route->src_plen = 96;
     }
     route->proto = rtm->rtm_protocol;
 
