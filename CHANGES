@@ -15,6 +15,7 @@ babeld-1.9.0 (unreleased)
   * Remove an arbitrary limit on the number of interfaces.  Thanks to
     Christon Schulze.
   * Removed class E from martian filter.  Thanks to Dave Taht.
+  * Don't send Hellos upon encountering a new neighbour.  Thanks to Teco Boot.
 
 9 November 2018: babeld-1.8.4
 
