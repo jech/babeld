@@ -117,7 +117,6 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
     neigh->next = neighs;
     neighs = neigh;
     local_notify_neighbour(neigh, LOCAL_ADD);
-    send_hello(ifp);
     return neigh;
 }
 
