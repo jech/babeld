@@ -1069,7 +1069,7 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
     if(!if_up(ifp))
         return;
 
-    if(is_ss && buf->rfc6126_compatible)
+    if(is_ss && (ifp->flags & IF_RFC6126) != 0)
         return;
 
     add_metric = output_filter(id, prefix, plen, src_prefix,
@@ -1690,14 +1690,14 @@ send_marginal_ihu(struct interface *ifp)
 /* Standard wildcard request with prefix == NULL && src_prefix == zeroes,
    Specific wildcard request with prefix == zeroes && src_prefix == NULL. */
 static void
-send_request(struct buffered *buf,
+send_request(struct buffered *buf, struct interface *ifp,
              const unsigned char *prefix, unsigned char plen,
              const unsigned char *src_prefix, unsigned char src_plen)
 {
     int v4, pb, spb, len;
     int is_ss = !is_default(src_prefix, src_plen);
 
-    if(is_ss && buf->rfc6126_compatible)
+    if(is_ss && (ifp->flags & IF_RFC6126) != 0)
         return;
 
     if(!prefix) {
@@ -1763,12 +1763,12 @@ send_multicast_request(struct interface *ifp,
         struct neighbour *neigh;
         FOR_ALL_NEIGHBOURS(neigh) {
             if(neigh->ifp == ifp) {
-                send_request(&neigh->buf, prefix, plen,
+                send_request(&neigh->buf, ifp, prefix, plen,
                              src_prefix, src_plen);
             }
         }
     } else {
-        send_request(&ifp->buf, prefix, plen, src_prefix, src_plen);
+        send_request(&ifp->buf, ifp, prefix, plen, src_prefix, src_plen);
     }
 }
 
@@ -1782,11 +1782,11 @@ send_unicast_request(struct neighbour *neigh,
 
     flushupdates(neigh->ifp);
 
-    send_request(&neigh->buf, prefix, plen, src_prefix, src_plen);
+    send_request(&neigh->buf, neigh->ifp, prefix, plen, src_prefix, src_plen);
 }
 
 static void
-send_multihop_request(struct buffered *buf,
+send_multihop_request(struct buffered *buf, struct interface *ifp,
                       const unsigned char *prefix, unsigned char plen,
                       const unsigned char *src_prefix, unsigned char src_plen,
                       unsigned short seqno, const unsigned char *id,
@@ -1795,7 +1795,7 @@ send_multihop_request(struct buffered *buf,
     int v4, pb, spb, len;
     int is_ss = !is_default(src_prefix, src_plen);
 
-    if(is_ss && buf->rfc6126_compatible)
+    if(is_ss && (ifp->flags & IF_RFC6126) != 0)
         return;
 
     debugf("Sending request (%d) for %s.\n",
@@ -1859,13 +1859,15 @@ send_multicast_multihop_request(struct interface *ifp,
             struct neighbour *neigh;
             FOR_ALL_NEIGHBOURS(neigh) {
                 if(neigh->ifp == ifp) {
-                    send_multihop_request(&neigh->buf, prefix, plen,
+                    send_multihop_request(&neigh->buf, neigh->ifp,
+                                          prefix, plen,
                                           src_prefix, src_plen,
                                           seqno, id, hop_count);
                 }
             }
     } else {
-        send_multihop_request(&ifp->buf, prefix, plen,
+        send_multihop_request(&ifp->buf, ifp,
+                              prefix, plen,
                               src_prefix, src_plen,
                               seqno, id, hop_count);
     }
@@ -1880,7 +1882,8 @@ send_unicast_multihop_request(struct neighbour *neigh,
                               unsigned short hop_count)
 {
     flushupdates(neigh->ifp);
-    send_multihop_request(&neigh->buf, prefix, plen, src_prefix, src_plen,
+    send_multihop_request(&neigh->buf, neigh->ifp,
+                          prefix, plen, src_prefix, src_plen,
                           seqno, id, hop_count);
 }
 
@@ -1905,7 +1908,8 @@ send_request_resend(const unsigned char *prefix, unsigned char plen,
         struct interface *ifp;
         FOR_ALL_INTERFACES(ifp) {
 	    if(!if_up(ifp)) continue;
-            send_multihop_request(&ifp->buf, prefix, plen, src_prefix, src_plen,
+            send_multihop_request(&ifp->buf, ifp,
+                                  prefix, plen, src_prefix, src_plen,
                                   seqno, id, 127);
 	}
     }
