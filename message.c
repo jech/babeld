@@ -27,6 +27,7 @@ THE SOFTWARE.
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <time.h>
 
 #include "babeld.h"
 #include "util.h"
@@ -40,6 +41,7 @@ THE SOFTWARE.
 #include "resend.h"
 #include "message.h"
 #include "configuration.h"
+#include "hmac.h"
 
 unsigned char packet_header[4] = {42, 2};
 
@@ -254,7 +256,7 @@ parse_ihu_subtlv(const unsigned char *a, int alen,
 {
     int type, len, i = 0;
     int have_timestamp = 0;
-    unsigned int timestamp1, timestamp2;
+    unsigned int timestamp1 = 0, timestamp2 = 0;
 
     while(i < alen) {
         type = a[0];
@@ -299,9 +301,8 @@ parse_ihu_subtlv(const unsigned char *a, int alen,
         *timestamp1_return = timestamp1;
         *timestamp2_return = timestamp2;
     }
-    if(have_timestamp_return) {
+    if(have_timestamp_return)
         *have_timestamp_return = have_timestamp;
-    }
     return 1;
 }
 
@@ -446,9 +447,100 @@ network_address(int ae, const unsigned char *a, unsigned int len,
     return network_prefix(ae, -1, 0, a, NULL, len, a_r);
 }
 
+static int
+preparse_packet(const unsigned char *packet, int bodylen,
+                struct neighbour *neigh, struct interface *ifp)
+{
+    int i;
+    const unsigned char *message;
+    unsigned char type, len;
+    int challenge_success = 0;
+    int have_index = 0, index_len;
+    unsigned char pc[4], index[256];
+
+    i = 0;
+    while(i < bodylen) {
+	message = packet + 4 + i;
+	type = message[0];
+	if(type == MESSAGE_PAD1) {
+	    i++;
+	    continue;
+	}
+	if(i + 1 > bodylen) {
+            fprintf(stderr, "Received truncated message.\n");
+            break;
+        }
+	len = message[1];
+	if(i + len > bodylen) {
+            fprintf(stderr, "Received truncated message.\n");
+            break;
+        }
+	if(type == MESSAGE_CRYPTO_SEQNO) {
+            if(len < 4) {
+                fprintf(stderr, "Received truncated PC TLV.\n");
+                break;
+            }
+            if(len > 4 + 32) {
+                fprintf(stderr, "Overlong PC TLV.\n");
+                break;
+            }
+            debugf("Received PC from %s.\n",
+                   format_address(neigh->address));
+            memcpy(pc, message + 2, 4);
+            index_len = len - 4;
+            memcpy(index, message + 6, len - 4);
+            have_index = 1;
+        } else if(type == MESSAGE_CHALLENGE_RESPONSE) {
+            debugf("Received challenge response from %s.\n",
+                   format_address(neigh->address));
+	    gettime(&now);
+	    if(len == sizeof(neigh->nonce) &&
+               memcmp(neigh->nonce, message + 2, len) == 0 &&
+	       timeval_compare(&now, &neigh->challenge_deadline) <= 0) {
+                challenge_success = 1;
+            } else {
+                debugf("Challenge failed.\n");
+            }
+	} else if(type == MESSAGE_CHALLENGE_REQUEST) {
+	    unsigned char nonce[len];
+            debugf("Received challenge request from %s.\n",
+                   format_address(neigh->address));
+	    memcpy(nonce, message + 2, len);
+	    send_challenge_reply(neigh, nonce, len);
+	}
+	i += len + 2;
+    }
+
+    if(!have_index) {
+        debugf("No PC in packet.\n");
+        return 0;
+    }
+
+    if(neigh->have_index && neigh->index_len == index_len &&
+       memcmp(index, neigh->index, index_len) == 0) {
+        if(memcmp(neigh->pc, pc, 4) < 0) {
+            memcpy(neigh->pc, pc, 4);
+            return 1;
+        } else {
+            debugf("Out of order PC.\n");
+            return 0;
+        }
+    } else if(challenge_success) {
+        neigh->index_len = index_len;
+        memcpy(neigh->index, index, index_len);
+        memcpy(neigh->pc, pc, 4);
+        neigh->have_index = 1;
+        return 1;
+    } else {
+        send_challenge_req(neigh);
+        return 0;
+    }
+}
+
 void
 parse_packet(const unsigned char *from, struct interface *ifp,
-             const unsigned char *packet, int packetlen)
+             const unsigned char *packet, int packetlen,
+	     const unsigned char *to)
 {
     int i;
     const unsigned char *message;
@@ -501,6 +593,19 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         return;
     }
 
+    if(ifp->key != NULL) {
+	if(check_hmac(packet, packetlen, bodylen, neigh->address,
+		      to) != 1) {
+	    fprintf(stderr, "Received wrong hmac.\n");
+	    return;
+	}
+
+	if(preparse_packet(packet, bodylen, neigh, ifp) == 0) {
+	    fprintf(stderr, "Received wrong PC or failed the challenge.\n");
+	    return;
+	}
+    }
+
     i = 0;
     while(i < bodylen) {
         message = packet + 4 + i;
@@ -544,7 +649,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             if(rc < 0)
                 goto done;
             /* Nothing right now */
-        } else if(type == MESSAGE_HELLO) {
+	} else if(type == MESSAGE_HELLO) {
             unsigned short seqno, interval;
             int unicast, changed, have_timestamp, rc;
             unsigned int timestamp;
@@ -867,6 +972,10 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    format_eui64(message + 8), seqno);
             handle_request(neigh, prefix, plen, src_prefix, src_plen,
                            message[6], seqno, message + 8);
+        } else if(type == MESSAGE_CRYPTO_SEQNO ||
+		  type == MESSAGE_CHALLENGE_REQUEST ||
+		  type == MESSAGE_CHALLENGE_RESPONSE) {
+            /* We're dealing with these in preparse_packet. */
         } else {
             debugf("Received unknown packet type %d from %s on %s.\n",
                    type, format_address(from), ifp->name);
@@ -948,16 +1057,26 @@ void
 flushbuf(struct buffered *buf, struct interface *ifp)
 {
     int rc;
+    int end = buf->len;
 
     assert(buf->len <= buf->size);
 
     if(buf->len > 0) {
+        if(ifp->key != NULL && ifp->key->type != 0)
+            send_crypto_seqno(buf, ifp);
         debugf("  (flushing %d buffered bytes)\n", buf->len);
         DO_HTONS(packet_header + 2, buf->len);
         fill_rtt_message(buf, ifp);
+        if(ifp->key != NULL && ifp->key->type != 0) {
+            end = add_hmac(buf, ifp, packet_header);
+            if(end < 0) {
+                fprintf(stderr, "Couldn't add HMAC.\n");
+                return;
+            }
+        }
         rc = babel_send(protocol_socket,
                         packet_header, sizeof(packet_header),
-                        buf->buf, buf->len,
+                        buf->buf, end,
                         (struct sockaddr*)&buf->sin6,
                         sizeof(buf->sin6));
         if(rc < 0)
@@ -997,6 +1116,8 @@ schedule_flush_now(struct buffered *buf)
 static void
 ensure_space(struct buffered *buf, struct interface *ifp, int space)
 {
+    if(ifp->key != NULL)
+        space += MAX_HMAC_SPACE + 6 + NONCE_LEN;
     if(buf->size - buf->len < space)
         flushbuf(buf, ifp);
 }
@@ -1004,7 +1125,9 @@ ensure_space(struct buffered *buf, struct interface *ifp, int space)
 static void
 start_message(struct buffered *buf, struct interface *ifp, int type, int len)
 {
-    if(buf->size - buf->len < len + 2)
+    int space =
+        ifp->key == NULL ? len + 2 : len + 2 + MAX_HMAC_SPACE + 6 + NONCE_LEN;
+    if(buf->size - buf->len < space)
         flushbuf(buf, ifp);
     buf->buf[buf->len++] = type;
     buf->buf[buf->len++] = len;
@@ -1047,6 +1170,23 @@ accumulate_bytes(struct buffered *buf,
     buf->len += len;
 }
 
+int
+send_crypto_seqno(struct buffered *buf, struct interface *ifp)
+{
+    if(ifp->pc == 0) {
+        int rc;
+	rc = read_random_bytes(ifp->index, INDEX_LEN);
+        if(rc < INDEX_LEN)
+            return -1;
+    }
+    start_message(buf, ifp, MESSAGE_CRYPTO_SEQNO, 4 + INDEX_LEN);
+    accumulate_int(buf, ifp->pc);
+    accumulate_bytes(buf, ifp->index, INDEX_LEN);
+    end_message(buf, MESSAGE_CRYPTO_SEQNO, 4 + INDEX_LEN);
+    ifp->pc++;
+    return 1;
+}
+
 void
 send_ack(struct neighbour *neigh, unsigned short nonce, unsigned short interval)
 {
@@ -1057,6 +1197,36 @@ send_ack(struct neighbour *neigh, unsigned short nonce, unsigned short interval)
     end_message(&neigh->buf, MESSAGE_ACK, 2);
     /* Roughly yields a value no larger than 3/2, so this meets the deadline */
     schedule_flush_ms(&neigh->buf, roughly(interval * 6));
+}
+
+int
+send_challenge_req(struct neighbour *neigh)
+{
+    int rc;
+    debugf("Sending challenge request to %s on %s.\n",
+	   format_address(neigh->address), neigh->ifp->name);
+    rc = read_random_bytes(neigh->nonce, NONCE_LEN);
+    if(rc < NONCE_LEN)
+        return -1;
+    start_message(&neigh->buf, neigh->ifp, MESSAGE_CHALLENGE_REQUEST, NONCE_LEN);
+    accumulate_bytes(&neigh->buf, neigh->nonce, NONCE_LEN);
+    end_message(&neigh->buf, MESSAGE_CHALLENGE_REQUEST, NONCE_LEN);
+    gettime(&now);
+    timeval_add_msec(&neigh->challenge_deadline, &now, 300);
+    schedule_flush_now(&neigh->buf);
+    return 1;
+}
+
+void
+send_challenge_reply(struct neighbour *neigh, unsigned char *crypto_nonce,
+		     int len)
+{
+    debugf("Sending challenge reply to %s on %s.\n",
+	   format_address(neigh->address), neigh->ifp->name);
+    start_message(&neigh->buf, neigh->ifp, MESSAGE_CHALLENGE_RESPONSE, len);
+    accumulate_bytes(&neigh->buf, crypto_nonce, len);
+    end_message(&neigh->buf, MESSAGE_CHALLENGE_RESPONSE, len);
+    schedule_flush_now(&neigh->buf);
 }
 
 static void
@@ -1738,7 +1908,6 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
         return;
     }
 
-
     if(ifp && neigh->ifp != ifp)
         return;
 
@@ -1983,6 +2152,7 @@ send_multicast_multihop_request(struct interface *ifp,
                               src_prefix, src_plen,
                               seqno, id, hop_count);
     }
+
 }
 
 void

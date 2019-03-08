@@ -197,6 +197,38 @@ parse_thousands(const char *string)
     return -1;
 }
 
+int
+h2i(char c)
+{
+    if(c >= '0' && c <= '9')
+	return c - '0';
+    else if(c >= 'a' && c <= 'f')
+	return c - 'a' + 10;
+    else if(c >= 'A' && c <= 'F')
+	return c - 'A' + 10;
+    else
+	return -1;
+}
+
+int
+fromhex(unsigned char *dest, char *src, int n)
+{
+    int i;
+    if(n % 2 != 0)
+	return -1;
+    for(i = 0; i < n/2; i++) {
+	int a, b;
+	a = h2i(src[i*2]);
+	if(a < 0)
+	    return -1;
+	b = h2i(src[i*2 + 1]);
+	if(b < 0)
+	    return -1;
+	dest[i] = a*16 + b;
+    }
+    return n/2;
+}
+
 void
 do_debugf(int level, const char *format, ...)
 {

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2007, 2008 by Juliusz Chroboczek
+Copyright (c) 2018 by Clara Dô and Weronika Kolodziejak
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -20,11 +20,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-int babel_socket(int port);
-int babel_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen,
-	   unsigned char *src_return);
-int babel_send(int s,
-               const void *buf1, int buflen1, const void *buf2, int buflen2,
-               const struct sockaddr *sin, int slen);
-int tcp_server_socket(int port, int local);
-int unix_server_socket(const char *path);
+#define DIGEST_LEN 20
+#define SHA1_BLOCK_SIZE 64
+#define RIPEMD160_BLOCK_SIZE 64
+
+struct key *find_key(const char *id);
+struct key *retain_key(struct key *key);
+void release_key(struct key *key);
+struct key *add_key(char *id, int type, int len, unsigned char *value);
+int add_hmac(struct buffered *buf, struct interface *ifp,
+             unsigned char *packet_header);
+int check_hmac(const unsigned char *packet, int packetlen, int bodylen,
+	       const unsigned char *src, const unsigned char *dst);
