@@ -1,0 +1,6 @@
+[submodule "rfc6234"]
+	path = rfc6234
+	url = https://github.com/massar/rfc6234
+[submodule "BLAKE2"]
+	path = BLAKE2
+	url = https://github.com/BLAKE2/BLAKE2
