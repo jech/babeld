@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include <sys/uio.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#define __USE_GNU
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
@@ -84,6 +85,10 @@ babel_socket(int port)
     if(rc < 0)
         perror("Couldn't set traffic class");
 
+    rc = setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
+    if(rc < 0)
+	goto fail;
+
     rc = fcntl(s, F_GETFL, 0);
     if(rc < 0)
         goto fail;
@@ -117,11 +122,15 @@ babel_socket(int port)
 }
 
 int
-babel_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen)
+babel_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen,
+	   unsigned char *src_return)
 {
     struct iovec iovec;
     struct msghdr msg;
-    int rc;
+    unsigned char cmsgbuf[128];
+    struct cmsghdr *cmsg;
+    int rc, found;
+    unsigned char src[16] = {0};
 
     memset(&msg, 0, sizeof(msg));
     iovec.iov_base = buf;
@@ -130,8 +139,33 @@ babel_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen)
     msg.msg_namelen = slen;
     msg.msg_iov = &iovec;
     msg.msg_iovlen = 1;
+    msg.msg_control = cmsgbuf;
+    msg.msg_controllen = sizeof(cmsgbuf);
 
     rc = recvmsg(s, &msg, 0);
+    if(rc < 0)
+	return rc;
+
+    found = 0;
+    memset(src, 0, 16);
+    cmsg = CMSG_FIRSTHDR(&msg);
+    while(cmsg != NULL) {
+	if(cmsg->cmsg_level == IPPROTO_IPV6 &&
+	   cmsg->cmsg_type == IPV6_PKTINFO) {
+	    struct in6_pktinfo *info =(struct in6_pktinfo*)CMSG_DATA(cmsg);
+	    memcpy(src, info->ipi6_addr.s6_addr, 16);
+	    found = 1;
+	    break;
+	}
+	cmsg = CMSG_NXTHDR(&msg, cmsg);
+    }
+
+    if(!found) {
+	errno = EDESTADDRREQ;
+	return -1;
+    }
+    if(src_return != NULL)
+	memcpy(src_return, src, 16);
     return rc;
 }
 
