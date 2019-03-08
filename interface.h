@@ -72,8 +72,10 @@ struct interface_conf {
 #define IF_FARAWAY (1 << 4)
 /* Send most TLVs over unicast. */
 #define IF_UNICAST (1 << 5)
+/* Send timestamps in Hello and IHU. */
+#define IF_TIMESTAMPS (1 << 6)
 /* Remain compatible with RFC 6126. */
-#define IF_RFC6126 (1 << 6)
+#define IF_RFC6126 (1 << 7)
 
 /* Only INTERFERING can appear on the wire. */
 #define IF_CHANNEL_UNKNOWN 0
@@ -87,7 +89,6 @@ struct buffered {
     int size;
     int flush_interval;
     struct timeval timeout;
-    char enable_timestamps;
     char have_id;
     char have_nh;
     char have_prefix;

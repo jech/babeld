@@ -430,14 +430,14 @@ interface_up(struct interface *ifp, int up)
             ifp->max_rtt_penalty = 96;
 
         if(IF_CONF(ifp, enable_timestamps) == CONFIG_YES)
-            ifp->buf.enable_timestamps = 1;
+            ifp->flags |= IF_TIMESTAMPS;
         else if(IF_CONF(ifp, enable_timestamps) == CONFIG_NO)
-            ifp->buf.enable_timestamps = 0;
+            ifp->flags &= ~IF_TIMESTAMPS;
         else if(type == IF_TYPE_TUNNEL)
-            ifp->buf.enable_timestamps = 1;
+            ifp->flags |= IF_TIMESTAMPS;
         else
-            ifp->buf.enable_timestamps = 0;
-        if(ifp->max_rtt_penalty > 0 && !ifp->buf.enable_timestamps)
+            ifp->flags &= ~IF_TIMESTAMPS;
+        if(ifp->max_rtt_penalty > 0 && !(ifp->flags & IF_TIMESTAMPS))
             fprintf(stderr,
                     "Warning: max_rtt_penalty is set "
                     "but timestamps are disabled on interface %s.\n",
