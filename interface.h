@@ -84,7 +84,7 @@ struct interface_conf {
 
 struct buffered {
     struct sockaddr_in6 sin6;
-    char *buf;
+    unsigned char *buf;
     int len;
     int size;
     int flush_interval;

@@ -77,7 +77,7 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
 {
     struct neighbour *neigh;
     const struct timeval zero = {0, 0};
-    char *buf;
+    unsigned char *buf;
 
     neigh = find_neighbour_nocreate(address, ifp);
     if(neigh)
