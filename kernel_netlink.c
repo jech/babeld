@@ -653,7 +653,7 @@ get_old_if(const char *ifname)
     if(num_old_if >= max_old_if) {
             int n = max_old_if == 0 ? 4 : 2 * max_old_if;
             struct old_if *new =
-                realloc(old_if, max_old_if * sizeof(struct old_if));
+                realloc(old_if, n * sizeof(struct old_if));
             if(new != NULL) {
                 old_if = new;
                 max_old_if = n;
