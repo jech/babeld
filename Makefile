@@ -11,11 +11,11 @@ LDLIBS = -lrt
 
 SRCS = babeld.c net.c kernel.c util.c interface.c source.c neighbour.c \
        route.c xroute.c message.c resend.c configuration.c local.c \
-       disambiguation.c rule.c
+       disambiguation.c rule.c rfc6234/sha224-256.c BLAKE2/ref/blake2s-ref.c
 
 OBJS = babeld.o net.o kernel.o util.o interface.o source.o neighbour.o \
        route.o xroute.o message.o resend.o configuration.o local.o \
-       disambiguation.o rule.o
+       disambiguation.o rule.o rfc6234/sha224-256.o BLAKE2/ref/blake2s-ref.o
 
 babeld: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o babeld $(OBJS) $(LDLIBS)
@@ -54,4 +54,4 @@ uninstall:
 	-rm -f $(TARGET)$(MANDIR)/man8/babeld.8
 
 clean:
-	-rm -f babeld babeld.html version.h *.o *~ core TAGS gmon.out
+	-rm -f babeld babeld.html version.h *.o */*.o */*/*.o *~ core TAGS gmon.out
