@@ -11,11 +11,11 @@ LDLIBS = -lrt
 
 SRCS = babeld.c net.c kernel.c util.c interface.c source.c neighbour.c \
        route.c xroute.c message.c resend.c configuration.c local.c \
-       rfc6234/sha224-256.c BLAKE2/ref/blake2s-ref.c
+       hmac.c rfc6234/sha224-256.c BLAKE2/ref/blake2s-ref.c
 
 OBJS = babeld.o net.o kernel.o util.o interface.o source.o neighbour.o \
        route.o xroute.o message.o resend.o configuration.o local.o \
-       rfc6234/sha224-256.o BLAKE2/ref/blake2s-ref.o
+       hmac.o rfc6234/sha224-256.o BLAKE2/ref/blake2s-ref.o
 
 babeld: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o babeld $(OBJS) $(LDLIBS)
