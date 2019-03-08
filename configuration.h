@@ -29,6 +29,10 @@ THE SOFTWARE.
 #define CONFIG_ACTION_UNMONITOR 4
 #define CONFIG_ACTION_NO 5
 
+#define AUTH_TYPE_NONE 0
+#define AUTH_TYPE_SHA256 1
+#define AUTH_TYPE_BLAKE2S 2
+
 struct filter_result {
     unsigned int add_metric; /* allow = 0, deny = INF, metric = <0..INF> */
     unsigned char *src_prefix;
