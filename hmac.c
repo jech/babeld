@@ -138,13 +138,13 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
         if(rc < 0)
             return -1;
 
-        rc = SHA256Input(&inner, dst, 16);
+        rc = SHA256Input(&inner, src, 16);
         if(rc != 0)
             return -1;
         rc = SHA256Input(&inner, port, 2);
         if(rc != 0)
             return -1;
-        rc = SHA256Input(&inner, src, 16);
+        rc = SHA256Input(&inner, dst, 16);
         if(rc != 0)
             return -1;
         rc = SHA256Input(&inner, port, 2);
@@ -187,13 +187,13 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
         rc = blake2s_init_key(&s, 16, key->value, key->len);
         if(rc < 0)
             return -1;
-        rc = blake2s_update(&s, dst, 16);
+        rc = blake2s_update(&s, src, 16);
         if(rc < 0)
             return -1;
         rc = blake2s_update(&s, port, 2);
         if(rc < 0)
             return -1;
-        rc = blake2s_update(&s, src, 16);
+        rc = blake2s_update(&s, dst, 16);
         if(rc < 0)
             return -1;
         rc = blake2s_update(&s, port, 2);
