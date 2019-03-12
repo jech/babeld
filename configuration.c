@@ -689,7 +689,7 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
     return c;
 
  error:
-    if(if_conf->ifname)
+    if(if_conf != NULL)
         free(if_conf->ifname);
     free(if_conf);
     return -2;
