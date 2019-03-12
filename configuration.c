@@ -326,20 +326,24 @@ get_interface_type(int c, int *type_r, gnc_t gnc, void *closure)
 static int
 gethex(int c, unsigned char **value_r, int *len_r, gnc_t gnc, void *closure)
 {
-    char *t;
+    char *t = NULL;
     unsigned char *value;
     int len, rc;
     c = getword(c, &t, gnc, closure);
-    if(c < -1)
+    if(c < -1) {
+        free(t);
         return c;
+    }
     len = strlen(t);
     if(len % 2 != 0) {
         free(t);
         return -2;
     }
     value = malloc(len / 2);
-    if(value == NULL)
+    if(value == NULL) {
+        free(t);
         return -2;
+    }
 
     rc = fromhex(value, t, len);
     free(t);
@@ -714,7 +718,7 @@ static int
 parse_ifconf(int c, gnc_t gnc, void *closure,
              struct interface_conf **if_conf_return)
 {
-    char *token;
+    char *token = NULL;
     struct interface_conf *if_conf;
 
     if_conf = calloc(1, sizeof(struct interface_conf));
@@ -734,6 +738,7 @@ parse_ifconf(int c, gnc_t gnc, void *closure,
     return parse_anonymous_ifconf(c, gnc, closure, if_conf, if_conf_return);
 
  error:
+    free(token);
     free(if_conf);
     return -2;
 }
@@ -763,10 +768,12 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
                 goto error;
             }
         } else if(strcmp(token, "type") == 0) {
-            char *auth_type;
+            char *auth_type = NULL;
             c = getword(c, &auth_type, gnc, closure);
-            if(c < -1 || auth_type == NULL)
+            if(c < -1 || auth_type == NULL) {
+                free(auth_type);
                 goto error;
+            }
             if(strcmp(auth_type, "none") == 0) {
                 key->type = AUTH_TYPE_NONE;
             } else if(strcmp(auth_type, "sha256") == 0) {
@@ -1078,7 +1085,7 @@ static int
 parse_config_line(int c, gnc_t gnc, void *closure,
                   int *action_return, const char **message_return)
 {
-    char *token;
+    char *token = NULL;
     if(action_return)
         *action_return = CONFIG_ACTION_DONE;
     if(message_return)
@@ -1089,8 +1096,10 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         return skip_to_eol(c, gnc, closure);
 
     c = getword(c, &token, gnc, closure);
-    if(c < -1)
+    if(c < -1) {
+        free(token);
         return c;
+    }
 
     /* Directives allowed in read-only mode */
     if(strcmp(token, "quit") == 0) {
@@ -1172,17 +1181,20 @@ parse_config_line(int c, gnc_t gnc, void *closure,
             free(if_conf);
         }
     } else if(strcmp(token, "flush") == 0) {
-        char *token2;
+        char *token2 = NULL;
         c = skip_whitespace(c, gnc, closure);
         c = getword(c, &token2, gnc, closure);
-        if(c < -1)
+        if(c < -1) {
+            free(token2);
             goto fail;
+        }
         if(strcmp(token2, "interface") == 0) {
-            char *ifname;
+            char *ifname = NULL;
             int rc;
             c = getword(c, &ifname, gnc, closure);
             c = skip_eol(c, gnc, closure);
             if(c < -1) {
+                free(ifname);
                 free(token2);
                 goto fail;
             }
@@ -1211,10 +1223,10 @@ parse_config_line(int c, gnc_t gnc, void *closure,
     } else if(strcmp(token, "key") == 0) {
         struct key *key = NULL;
         c = parse_key(c, gnc, closure, &key);
-        if(c < -1)
+        if(c < -1 || key == NULL || key->id == NULL) {
+            free(key);
             goto fail;
-        if(key->id == NULL)
-            goto fail;
+        }
         switch(key->type) {
         case AUTH_TYPE_SHA256:
             if(key->len != 32) {
