@@ -1035,6 +1035,7 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         c = parse_filter(c, gnc, closure, &filter);
         if(c < -1)
             goto fail;
+        add_filter(filter, &install_filters);
     } else if(strcmp(token, "interface") == 0) {
         struct interface_conf *if_conf;
         c = parse_ifconf(c, gnc, closure, &if_conf);
