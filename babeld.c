@@ -661,7 +661,7 @@ main(int argc, char **argv)
         }
 
         if(FD_ISSET(protocol_socket, &readfds)) {
-	    unsigned char to[16];
+            unsigned char to[16];
             rc = babel_recv(protocol_socket,
                             receive_buffer, receive_buffer_size,
                             (struct sockaddr*)&sin6, sizeof(sin6), to);

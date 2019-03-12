@@ -87,7 +87,7 @@ babel_socket(int port)
 
     rc = setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
     if(rc < 0)
-	goto fail;
+        goto fail;
 
     rc = fcntl(s, F_GETFL, 0);
     if(rc < 0)
@@ -123,7 +123,7 @@ babel_socket(int port)
 
 int
 babel_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen,
-	   unsigned char *src_return)
+           unsigned char *src_return)
 {
     struct iovec iovec;
     struct msghdr msg;
@@ -144,28 +144,28 @@ babel_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen,
 
     rc = recvmsg(s, &msg, 0);
     if(rc < 0)
-	return rc;
+        return rc;
 
     found = 0;
     memset(src, 0, 16);
     cmsg = CMSG_FIRSTHDR(&msg);
     while(cmsg != NULL) {
-	if(cmsg->cmsg_level == IPPROTO_IPV6 &&
-	   cmsg->cmsg_type == IPV6_PKTINFO) {
-	    struct in6_pktinfo *info =(struct in6_pktinfo*)CMSG_DATA(cmsg);
-	    memcpy(src, info->ipi6_addr.s6_addr, 16);
-	    found = 1;
-	    break;
-	}
-	cmsg = CMSG_NXTHDR(&msg, cmsg);
+        if(cmsg->cmsg_level == IPPROTO_IPV6 &&
+           cmsg->cmsg_type == IPV6_PKTINFO) {
+            struct in6_pktinfo *info =(struct in6_pktinfo*)CMSG_DATA(cmsg);
+            memcpy(src, info->ipi6_addr.s6_addr, 16);
+            found = 1;
+            break;
+        }
+        cmsg = CMSG_NXTHDR(&msg, cmsg);
     }
 
     if(!found) {
-	errno = EDESTADDRREQ;
-	return -1;
+        errno = EDESTADDRREQ;
+        return -1;
     }
     if(src_return != NULL)
-	memcpy(src_return, src, 16);
+        memcpy(src_return, src, 16);
     return rc;
 }
 

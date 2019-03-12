@@ -441,22 +441,22 @@ preparse_packet(const unsigned char *packet, int bodylen,
 
     i = 0;
     while(i < bodylen) {
-	message = packet + 4 + i;
-	type = message[0];
-	if(type == MESSAGE_PAD1) {
-	    i++;
-	    continue;
-	}
-	if(i + 1 > bodylen) {
+        message = packet + 4 + i;
+        type = message[0];
+        if(type == MESSAGE_PAD1) {
+            i++;
+            continue;
+        }
+        if(i + 1 > bodylen) {
             fprintf(stderr, "Received truncated message.\n");
             break;
         }
-	len = message[1];
-	if(i + len > bodylen) {
+        len = message[1];
+        if(i + len > bodylen) {
             fprintf(stderr, "Received truncated message.\n");
             break;
         }
-	if(type == MESSAGE_CRYPTO_SEQNO) {
+        if(type == MESSAGE_CRYPTO_SEQNO) {
             if(len < 4) {
                 fprintf(stderr, "Received truncated PC TLV.\n");
                 break;
@@ -474,22 +474,22 @@ preparse_packet(const unsigned char *packet, int bodylen,
         } else if(type == MESSAGE_CHALLENGE_RESPONSE) {
             debugf("Received challenge response from %s.\n",
                    format_address(neigh->address));
-	    gettime(&now);
-	    if(len == sizeof(neigh->nonce) &&
+            gettime(&now);
+            if(len == sizeof(neigh->nonce) &&
                memcmp(neigh->nonce, message + 2, len) == 0 &&
-	       timeval_compare(&now, &neigh->challenge_deadline) <= 0) {
+               timeval_compare(&now, &neigh->challenge_deadline) <= 0) {
                 challenge_success = 1;
             } else {
                 debugf("Challenge failed.\n");
             }
-	} else if(type == MESSAGE_CHALLENGE_REQUEST) {
-	    unsigned char nonce[len];
+        } else if(type == MESSAGE_CHALLENGE_REQUEST) {
+            unsigned char nonce[len];
             debugf("Received challenge request from %s.\n",
                    format_address(neigh->address));
-	    memcpy(nonce, message + 2, len);
-	    send_challenge_reply(neigh, nonce, len);
-	}
-	i += len + 2;
+            memcpy(nonce, message + 2, len);
+            send_challenge_reply(neigh, nonce, len);
+        }
+        i += len + 2;
     }
 
     if(!have_index) {
@@ -521,7 +521,7 @@ preparse_packet(const unsigned char *packet, int bodylen,
 void
 parse_packet(const unsigned char *from, struct interface *ifp,
              const unsigned char *packet, int packetlen,
-	     const unsigned char *to)
+             const unsigned char *to)
 {
     int i;
     const unsigned char *message;
@@ -575,16 +575,15 @@ parse_packet(const unsigned char *from, struct interface *ifp,
     }
 
     if(ifp->key != NULL) {
-	if(check_hmac(packet, packetlen, bodylen, neigh->address,
-		      to) != 1) {
-	    fprintf(stderr, "Received wrong hmac.\n");
-	    return;
-	}
+        if(check_hmac(packet, packetlen, bodylen, neigh->address, to) != 1) {
+            fprintf(stderr, "Received wrong hmac.\n");
+            return;
+        }
 
-	if(preparse_packet(packet, bodylen, neigh, ifp) == 0) {
-	    fprintf(stderr, "Received wrong PC or failed the challenge.\n");
-	    return;
-	}
+        if(preparse_packet(packet, bodylen, neigh, ifp) == 0) {
+            fprintf(stderr, "Received wrong PC or failed the challenge.\n");
+            return;
+        }
     }
 
     i = 0;
@@ -630,7 +629,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             if(rc < 0)
                 goto done;
             /* Nothing right now */
-	} else if(type == MESSAGE_HELLO) {
+        } else if(type == MESSAGE_HELLO) {
             unsigned short seqno, interval;
             int unicast, changed, have_timestamp, rc;
             unsigned int timestamp;
@@ -921,8 +920,8 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             handle_request(neigh, prefix, plen, src_prefix, src_plen,
                            message[6], seqno, message + 8);
         } else if(type == MESSAGE_CRYPTO_SEQNO ||
-		  type == MESSAGE_CHALLENGE_REQUEST ||
-		  type == MESSAGE_CHALLENGE_RESPONSE) {
+                  type == MESSAGE_CHALLENGE_REQUEST ||
+                  type == MESSAGE_CHALLENGE_RESPONSE) {
             /* We're dealing with these in preparse_packet. */
         } else {
             debugf("Received unknown packet type %d from %s on %s.\n",
@@ -1123,7 +1122,7 @@ send_crypto_seqno(struct buffered *buf, struct interface *ifp)
 {
     if(ifp->pc == 0) {
         int rc;
-	rc = read_random_bytes(ifp->index, INDEX_LEN);
+        rc = read_random_bytes(ifp->index, INDEX_LEN);
         if(rc < INDEX_LEN)
             return -1;
     }
@@ -1152,7 +1151,7 @@ send_challenge_req(struct neighbour *neigh)
 {
     int rc;
     debugf("Sending challenge request to %s on %s.\n",
-	   format_address(neigh->address), neigh->ifp->name);
+           format_address(neigh->address), neigh->ifp->name);
     rc = read_random_bytes(neigh->nonce, NONCE_LEN);
     if(rc < NONCE_LEN)
         return -1;
@@ -1167,10 +1166,10 @@ send_challenge_req(struct neighbour *neigh)
 
 void
 send_challenge_reply(struct neighbour *neigh, unsigned char *crypto_nonce,
-		     int len)
+                     int len)
 {
     debugf("Sending challenge reply to %s on %s.\n",
-	   format_address(neigh->address), neigh->ifp->name);
+           format_address(neigh->address), neigh->ifp->name);
     start_message(&neigh->buf, neigh->ifp, MESSAGE_CHALLENGE_RESPONSE, len);
     accumulate_bytes(&neigh->buf, crypto_nonce, len);
     end_message(&neigh->buf, MESSAGE_CHALLENGE_RESPONSE, len);
@@ -2078,11 +2077,11 @@ send_request_resend(const unsigned char *prefix, unsigned char plen,
     } else {
         struct interface *ifp;
         FOR_ALL_INTERFACES(ifp) {
-	    if(!if_up(ifp)) continue;
+            if(!if_up(ifp)) continue;
             send_multihop_request(&ifp->buf, ifp,
                                   prefix, plen, src_prefix, src_plen,
                                   seqno, id, 127);
-	}
+        }
     }
 }
 
