@@ -1669,7 +1669,8 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
         send_rtt_data = 0;
     }
 
-    buffer_ihu(&ifp->buf, ifp, rxcost, interval, neigh->address,
+    buffer_ihu((ifp->flags & IF_UNICAST) != 0 ? &neigh->buf : &ifp->buf,
+               ifp, rxcost, interval, neigh->address,
                send_rtt_data, neigh->hello_send_us,
                time_us(neigh->hello_rtt_receive_time));
 
