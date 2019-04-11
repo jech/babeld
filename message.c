@@ -137,6 +137,8 @@ parse_update_subtlv(struct interface *ifp, int metric, int ae,
         }
     }
 
+    *src_plen = 0;
+
     while(i < alen) {
         type = a[i];
         if(type == SUBTLV_PAD1) {
@@ -158,6 +160,10 @@ parse_update_subtlv(struct interface *ifp, int metric, int ae,
         } else if(type == SUBTLV_SOURCE_PREFIX) {
             int rc;
             if(len < 1)
+                goto fail;
+            if(a[i + 2] == 0)   /* source prefix cannot be default */
+                goto fail;
+            if(*src_plen != 0)  /* source prefix can only be specified once */
                 goto fail;
             *src_plen = a[i + 2];
             rc = network_prefix(ae, *src_plen, 0, a + i + 3, NULL,
@@ -299,6 +305,8 @@ parse_request_subtlv(int ae, const unsigned char *a, int alen,
 {
     int type, len, i = 0;
 
+    *src_plen = 0;
+
     while(i < alen) {
         type = a[0];
         if(type == SUBTLV_PAD1) {
@@ -318,6 +326,10 @@ parse_request_subtlv(int ae, const unsigned char *a, int alen,
         } else if(type == SUBTLV_SOURCE_PREFIX) {
             int rc;
             if(len < 1)
+                goto fail;
+            if(a[i + 2] == 0)
+                goto fail;
+            if(*src_plen != 0)
                 goto fail;
             *src_plen = a[i + 2];
             rc = network_prefix(ae, *src_plen, 0, a + i + 3, NULL,
