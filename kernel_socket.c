@@ -408,6 +408,7 @@ int
 kernel_route(int operation, int table,
              const unsigned char *dest, unsigned short plen,
              const unsigned char *src, unsigned short src_plen,
+             const unsigned char *pref_src,
              const unsigned char *gate, int ifindex, unsigned int metric,
              const unsigned char *newgate, int newifindex,
              unsigned int newmetric, int newtable)
@@ -424,8 +425,9 @@ kernel_route(int operation, int table,
         {{{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x7f, 0x00, 0x00, 0x01 }}};
 
-    /* Source-specific routes are not implemented yet for BSD. */
-    if(!is_default(src, src_plen)) {
+    /* Source-specific routes & preferred source IPs
+     * are not implemented yet for BSD. */
+    if((!is_default(src, src_plen)) || pref_src) {
         errno = ENOSYS;
         return -1;
     }

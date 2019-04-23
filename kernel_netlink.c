@@ -944,6 +944,7 @@ int
 kernel_route(int operation, int table,
              const unsigned char *dest, unsigned short plen,
              const unsigned char *src, unsigned short src_plen,
+             const unsigned char *pref_src,
              const unsigned char *gate, int ifindex, unsigned int metric,
              const unsigned char *newgate, int newifindex,
              unsigned int newmetric, int newtable)
@@ -997,11 +998,11 @@ kernel_route(int operation, int table,
            stick with the naive approach, and hope that the window is
            small enough to be negligible. */
         kernel_route(ROUTE_FLUSH, table, dest, plen,
-                     src, src_plen,
+                     src, src_plen, pref_src,
                      gate, ifindex, metric,
                      NULL, 0, 0, 0);
         rc = kernel_route(ROUTE_ADD, newtable, dest, plen,
-                          src, src_plen,
+                          src, src_plen, pref_src,
                           newgate, newifindex, newmetric,
                           NULL, 0, 0, 0);
         if(rc < 0) {
@@ -1084,17 +1085,24 @@ kernel_route(int operation, int table,
         rta->rta_type = RTA_OIF;
         *(int*)RTA_DATA(rta) = ifindex;
 
-        if(ipv4) {
-            rta = RTA_NEXT(rta, len);
-            rta->rta_len = RTA_LENGTH(sizeof(struct in_addr));
-            rta->rta_type = RTA_GATEWAY;
-            memcpy(RTA_DATA(rta), gate + 12, sizeof(struct in_addr));
-        } else {
-            rta = RTA_NEXT(rta, len);
-            rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr));
-            rta->rta_type = RTA_GATEWAY;
-            memcpy(RTA_DATA(rta), gate, sizeof(struct in6_addr));
-        }
+#define ADD_IPARG(type, addr) \
+        do if(ipv4) { \
+            rta = RTA_NEXT(rta, len); \
+            rta->rta_len = RTA_LENGTH(sizeof(struct in_addr)); \
+            rta->rta_type = type; \
+            memcpy(RTA_DATA(rta), addr + 12, sizeof(struct in_addr)); \
+        } else { \
+            rta = RTA_NEXT(rta, len); \
+            rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr)); \
+            rta->rta_type = type; \
+            memcpy(RTA_DATA(rta), addr, sizeof(struct in6_addr)); \
+        } while (0)
+
+        ADD_IPARG(RTA_GATEWAY, gate);
+        if(pref_src)
+            ADD_IPARG(RTA_PREFSRC, pref_src);
+
+#undef ADD_IPARG
     } else {
         *(int*)RTA_DATA(rta) = -1;
     }
