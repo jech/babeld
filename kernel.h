@@ -94,6 +94,7 @@ int kernel_disambiguate(int v4);
 int kernel_route(int operation, int table,
                  const unsigned char *dest, unsigned short plen,
                  const unsigned char *src, unsigned short src_plen,
+                 const unsigned char *pref_src,
                  const unsigned char *gate, int ifindex, unsigned int metric,
                  const unsigned char *newgate, int newifindex,
                  unsigned int newmetric, int newtable);

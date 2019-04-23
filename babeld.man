@@ -562,6 +562,11 @@ filter, specify the kernel routing table to use.  For source-specific
 routes, this only works reliably for IPv6, and only when
 .B ipv6-subtrees
 is true.
+.TP
+.BI pref-src " ip"
+In an
+.B install
+filter, specify the preferred source to use ('src' field in ip-route).
 .PP
 If
 .I action

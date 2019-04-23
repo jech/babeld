@@ -471,6 +471,15 @@ parse_filter(int c, gnc_t gnc, void *closure, struct filter **filter_return)
             if(table <= 0 || table > INFINITY)
                 goto error;
             filter->action.table = table;
+        } else if(strcmp(token, "pref-src") == 0) {
+            int af;
+            c = getip(c, &filter->action.pref_src, &af, gnc, closure);
+            if(c < -1)
+                goto error;
+            if(filter->af == AF_UNSPEC)
+                filter->af = af;
+            else if(filter->af != af)
+                goto error;
         } else {
             goto error;
         }
@@ -1337,11 +1346,12 @@ redistribute_filter(const unsigned char *prefix, unsigned short plen,
 int
 install_filter(const unsigned char *prefix, unsigned short plen,
                const unsigned char *src_prefix, unsigned short src_plen,
+               unsigned int ifindex,
                struct filter_result *result)
 {
     int res;
     res = do_filter(install_filters, NULL, prefix, plen,
-                    src_prefix, src_plen, NULL, 0, 0, result);
+                    src_prefix, src_plen, NULL, ifindex, 0, result);
     if(res < 0)
         res = INFINITY;
     return res;
