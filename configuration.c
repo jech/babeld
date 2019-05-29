@@ -1227,6 +1227,8 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         }
         add_key(key->id, key->type, key->len, key->value);
         free(key);
+    } else if(strcmp(token, "ignore_no_hmac") == 0) {
+        ignore_no_hmac = 1;
     } else {
         c = parse_option(c, gnc, closure, token);
         if(c < -1)

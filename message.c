@@ -587,15 +587,18 @@ parse_packet(const unsigned char *from, struct interface *ifp,
     }
 
     if(ifp->key != NULL) {
-	if(check_hmac(packet, packetlen, bodylen, neigh->address,
-		      to) != 1) {
-	    fprintf(stderr, "Received wrong hmac.\n");
-	    return;
-	}
-
-	if(preparse_packet(packet, bodylen, neigh, ifp) == 0) {
-	    fprintf(stderr, "Received wrong PC or failed the challenge.\n");
-	    return;
+	switch(check_hmac(packet, packetlen, bodylen, neigh->address, to)) {
+	    case 0:
+		fprintf(stderr, "Received wrong hmac.\n");
+		return;
+	    case 1:
+		if(preparse_packet(packet, bodylen, neigh, ifp) == 0) {
+		    fprintf(stderr, "Received wrong PC or failed the challenge.\n");
+		    return;
+		}
+		break;
+	    case 2: /* missing key ignored */
+		;
 	}
     }
 

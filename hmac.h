@@ -24,6 +24,8 @@ THE SOFTWARE.
 #define SHA1_BLOCK_SIZE 64
 #define RIPEMD160_BLOCK_SIZE 64
 
+extern int ignore_no_hmac;
+
 struct key *find_key(const char *id);
 struct key *retain_key(struct key *key);
 void release_key(struct key *key);

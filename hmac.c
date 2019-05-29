@@ -39,6 +39,7 @@ THE SOFTWARE.
 
 struct key **keys = NULL;
 int numkeys = 0, maxkeys = 0;
+int ignore_no_hmac = 0;
 
 struct key *
 find_key(const char *id)
@@ -270,6 +271,7 @@ check_hmac(const unsigned char *packet, int packetlen, int bodylen,
 {
     int i = bodylen + 4;
     int len;
+    int rc = ignore_no_hmac ? 2 : 0;
 
     debugf("check_hmac %s -> %s\n",
 	   format_address(src), format_address(dst));
@@ -288,8 +290,9 @@ check_hmac(const unsigned char *packet, int packetlen, int bodylen,
 			    packet + i + 2 , len) == 1) {
 		return 1;
 	    }
+	    rc = 0;
 	}
 	i += len + 2;
     }
-    return 0;
+    return rc;
 }
