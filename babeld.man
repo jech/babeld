@@ -414,6 +414,11 @@ otherwise.
 Send multiple copies of TLVs other than Hellos to all neighbours rather
 than sending a single multicast packet.  The default is false.
 .TP
+.BR no_hmac_verify " {" true | false }
+Do not check packet signatures, accept unsigned or incorrectly signed packets
+even if one or more keys are configured on the interface.  The default is
+.BR false .
+.TP
 .BR rfc6126\-compatible " {" true | false }
 Disable some features that are incompatible with RFC 6126 (the older
 version of the Babel protocol), such as source-specific routing and RTT
