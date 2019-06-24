@@ -55,6 +55,7 @@ struct interface_conf {
     char unicast;
     char enable_timestamps;
     char rfc6126;
+    char no_hmac_verify;
     int channel;
     unsigned int rtt_decay;
     unsigned int rtt_min;
@@ -84,6 +85,8 @@ struct interface_conf {
 #define IF_TIMESTAMPS (1 << 6)
 /* Remain compatible with RFC 6126. */
 #define IF_RFC6126 (1 << 7)
+/* Packets with a wrong or empty packet trailer are accepted */
+#define IF_NO_HMAC_VERIFY (1 << 8)
 /* Use Babel over DTLS on this interface. */
 #define IF_DTLS (1 << 9)
 

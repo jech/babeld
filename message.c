@@ -593,9 +593,8 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         return;
     }
 
-    if(ifp->key != NULL) {
-        if(check_hmac(packet, packetlen, bodylen, neigh->address,
-                      to) != 1) {
+    if(ifp->key != NULL && !(ifp->flags & IF_NO_HMAC_VERIFY)) {
+        if(check_hmac(packet, packetlen, bodylen, neigh->address, to) != 1) {
             fprintf(stderr, "Received wrong hmac.\n");
             return;
         }
