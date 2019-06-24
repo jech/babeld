@@ -414,6 +414,11 @@ otherwise.
 Send multiple copies of TLVs (except Hellos and IHUs) to all neighbours
 rather than sending a single multicast packet.  The default is false.
 .TP
+.BR no_hmac_verify " {" true | false }
+Do not check packet signatures, accept unsigned or incorrectly signed packets
+even if one or more keys are configured on the interface.  The default is
+.BR false .
+.TP
 .BR rfc6126\-compatible " {" true | false }
 Only send TLVs that are defined by RFC 6126, the older version of Babel.
 The default is
