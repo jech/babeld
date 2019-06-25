@@ -183,23 +183,6 @@ update_neighbour(struct neighbour *neigh, struct hello_history *hist,
             rc = 1;
     }
 
-    if(unicast)
-        return rc;
-
-    /* Make sure to give neighbours some feedback early after association */
-    if((hist->reach & 0xBF00) == 0x8000) {
-        /* A new neighbour */
-        send_hello(neigh->ifp);
-    } else {
-        /* Don't send hellos, in order to avoid a positive feedback loop. */
-        int a = (hist->reach & 0xC000);
-        int b = (hist->reach & 0x3000);
-        if((a == 0xC000 && b == 0) || (a == 0 && b == 0x3000)) {
-            /* Reachability is either 1100 or 0011 */
-            send_self_update(neigh->ifp);
-        }
-    }
-
     return rc;
 }
 
