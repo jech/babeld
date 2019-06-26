@@ -480,18 +480,18 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         return;
     }
 
-    neigh = find_neighbour(from, ifp);
-    if(neigh == NULL) {
-        fprintf(stderr, "Couldn't allocate neighbour.\n");
-        return;
-    }
-
     DO_NTOHS(bodylen, packet + 2);
 
     if(bodylen + 4 > packetlen) {
         fprintf(stderr, "Received truncated packet (%d + 4 > %d).\n",
                 bodylen, packetlen);
         bodylen = packetlen - 4;
+    }
+
+    neigh = find_neighbour(from, ifp);
+    if(neigh == NULL) {
+        fprintf(stderr, "Couldn't allocate neighbour.\n");
+        return;
     }
 
     i = 0;
