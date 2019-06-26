@@ -702,18 +702,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    (message[3] & 0x40) ? "/id" : "",
                    format_prefix(prefix, plen),
                    format_address(from), ifp->name);
-            if(message[2] == 0) {
-                rc = parse_other_subtlv(message + 12, len - 10);
-                if(rc < 0)
-                    goto done;
-                if(metric < 0xFFFF) {
-                    fprintf(stderr,
-                            "Received wildcard update with finite metric.\n");
-                    goto done;
-                }
-                retract_neighbour_routes(neigh);
-                goto done;
-            } else if(message[2] == 1) {
+            if(message[2] == 1) {
                 if(!have_v4_nh)
                     goto fail;
                 nh = v4_nh;
@@ -729,6 +718,22 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                                      src_prefix, &src_plen);
             if(rc < 0)
                 goto done;
+
+            if(message[2] == 0) {
+                if(metric < 0xFFFF) {
+                    fprintf(stderr,
+                            "Received wildcard update with finite metric.\n");
+                    goto done;
+                }
+                if(src_plen > 0) {
+                    fprintf(stderr,
+                            "Received wildcard update with source prefix.\n");
+                    goto done;
+                }
+                retract_neighbour_routes(neigh);
+                goto done;
+            }
+
             is_ss = !is_default(src_prefix, src_plen);
             debugf("Received update%s%s for dst %s%s%s from %s on %s.\n",
                    (message[3] & 0x80) ? "/prefix" : "",
