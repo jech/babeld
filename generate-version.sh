@@ -2,7 +2,7 @@
 
 set -e
 
-if [ -d .git ] ; then
+if [ -d .git ] && [ "$(git tag)" ] ; then
     version="$(git describe --dirty)"
 elif [ -f version ] ; then
     version="$(cat version)"
