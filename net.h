@@ -22,7 +22,7 @@ THE SOFTWARE.
 
 int babel_socket(int port);
 int babel_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen,
-	   unsigned char *src_return);
+               unsigned char *src_return);
 int babel_send(int s,
                const void *buf1, int buflen1, const void *buf2, int buflen2,
                const struct sockaddr *sin, int slen);

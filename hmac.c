@@ -107,7 +107,7 @@ add_key(char *id, int type, int len, unsigned char *value)
 
 static int
 compute_hmac(const unsigned char *src, const unsigned char *dst,
-	     const unsigned char *packet_header,
+             const unsigned char *packet_header,
              const unsigned char *body, int bodylen, struct key *key,
              unsigned char *hmac_return)
 {
@@ -172,7 +172,7 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
         rc = SHA256Result(&outer, hmac_return);
         if(rc < 0)
             return -1;
-	return 32;
+        return 32;
     }
     case 2: {
         blake2s_state s;
@@ -203,7 +203,7 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
         if(rc < 0)
             return -1;
 
-	return 16;
+        return 16;
     }
     default:
         return -1;
@@ -244,21 +244,21 @@ add_hmac(struct buffered *buf, struct interface *ifp,
 
 static int
 compare_hmac(const unsigned char *src, const unsigned char *dst,
-	     const unsigned char *packet, int bodylen,
-	     const unsigned char *hmac, int hmaclen)
+             const unsigned char *packet, int bodylen,
+             const unsigned char *hmac, int hmaclen)
 {
     unsigned char true_hmac[DIGEST_LEN];
     int true_hmaclen;
     int i;
     for(i = 0; i < numkeys; i++) {
-	true_hmaclen = compute_hmac(src, dst, packet,
-				    packet + 4, bodylen, keys[i],
+        true_hmaclen = compute_hmac(src, dst, packet,
+                                    packet + 4, bodylen, keys[i],
                                     true_hmac);
-	if(true_hmaclen != hmaclen) {
+        if(true_hmaclen != hmaclen) {
             debugf("Bad hmac length (%d != %d).\n", true_hmaclen, hmaclen);
-	    return -1;
-	}
-	if(memcmp(true_hmac, hmac, hmaclen) == 0)
+            return -1;
+        }
+        if(memcmp(true_hmac, hmac, hmaclen) == 0)
             return 1;
     }
     return 0;
@@ -266,30 +266,30 @@ compare_hmac(const unsigned char *src, const unsigned char *dst,
 
 int
 check_hmac(const unsigned char *packet, int packetlen, int bodylen,
-	   const unsigned char *src, const unsigned char *dst)
+           const unsigned char *src, const unsigned char *dst)
 {
     int i = bodylen + 4;
     int len;
 
     debugf("check_hmac %s -> %s\n",
-	   format_address(src), format_address(dst));
+           format_address(src), format_address(dst));
     while(i < packetlen) {
-	if(i + 1 > packetlen) {
+        if(i + 1 > packetlen) {
             fprintf(stderr, "Received truncated message.\n");
             break;
         }
         len = packet[i+1];
         if(packet[i] == MESSAGE_HMAC) {
-	    if(i + len > packetlen) {
-	        fprintf(stderr, "Received truncated message.\n");
-		return -1;
-	    }
-	    if(compare_hmac(src, dst, packet, bodylen,
-			    packet + i + 2 , len) == 1) {
-		return 1;
-	    }
-	}
-	i += len + 2;
+            if(i + len > packetlen) {
+                fprintf(stderr, "Received truncated message.\n");
+                return -1;
+            }
+            if(compare_hmac(src, dst, packet, bodylen,
+                            packet + i + 2 , len) == 1) {
+                return 1;
+            }
+        }
+        i += len + 2;
     }
     return 0;
 }
