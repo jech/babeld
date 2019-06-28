@@ -533,13 +533,13 @@ preparse_packet(const unsigned char *packet, int bodylen,
 void
 parse_packet(const unsigned char *from, struct interface *ifp,
              const unsigned char *packet, int packetlen,
-	     const unsigned char *to)
+             const unsigned char *to)
 {
     int i;
     const unsigned char *message;
     unsigned char type, len;
     int bodylen;
-    struct neighbour *neigh;
+    struct neighbour *neigh = NULL;
     int have_router_id = 0, have_v4_prefix = 0, have_v6_prefix = 0,
         have_v4_nh = 0, have_v6_nh = 0;
     unsigned char router_id[8], v4_prefix[16], v6_prefix[16],
@@ -580,20 +580,28 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         bodylen = packetlen - 4;
     }
 
-    neigh = find_neighbour(from, ifp);
-    if(neigh == NULL) {
-        fprintf(stderr, "Couldn't allocate neighbour.\n");
-        return;
-    }
-
     if(ifp->key != NULL && !(ifp->flags & IF_NO_HMAC_VERIFY)) {
-        if(check_hmac(packet, packetlen, bodylen, neigh->address, to) != 1) {
+        if(check_hmac(packet, packetlen, bodylen, from, to) != 1) {
             fprintf(stderr, "Received wrong hmac.\n");
+            return;
+        }
+
+        neigh = find_neighbour(from, ifp);
+        if(neigh == NULL) {
+            fprintf(stderr, "Couldn't allocate neighbour.\n");
             return;
         }
 
         if(preparse_packet(packet, bodylen, neigh, ifp) == 0) {
             fprintf(stderr, "Received wrong PC or failed the challenge.\n");
+            return;
+        }
+    }
+
+    if(neigh == NULL) {
+        neigh = find_neighbour(from, ifp);
+        if(neigh == NULL ) {
+            fprintf(stderr, "Couldn't allocate neighbour.\n");
             return;
         }
     }
