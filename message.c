@@ -146,7 +146,7 @@ parse_update_subtlv(struct interface *ifp, int metric, int ae,
             continue;
         }
 
-        if(i + 1 > alen)
+        if(i + 2 > alen)
             goto fail;
         len = a[i + 1];
         if(i + len + 2 > alen)
@@ -203,7 +203,7 @@ parse_hello_subtlv(const unsigned char *a, int alen,
             continue;
         }
 
-        if(i + 1 > alen) {
+        if(i + 2 > alen) {
             fprintf(stderr, "Received truncated sub-TLV on Hello.\n");
             return -1;
         }
@@ -257,7 +257,7 @@ parse_ihu_subtlv(const unsigned char *a, int alen,
             continue;
         }
 
-        if(i + 1 > alen) {
+        if(i + 2 > alen) {
             fprintf(stderr, "Received truncated sub-TLV on IHU.\n");
             return -1;
         }
@@ -314,11 +314,11 @@ parse_request_subtlv(int ae, const unsigned char *a, int alen,
             continue;
         }
 
-        if(i + 1 > alen)
+        if(i + 2 > alen)
             goto fail;
 
         len = a[i + 1];
-        if(i + len > alen)
+        if(i + 2 + len > alen)
             goto fail;
 
         if(type == SUBTLV_PADN) {
@@ -367,7 +367,7 @@ parse_seqno_request_subtlv(int ae, const unsigned char *a, int alen,
             continue;
         }
 
-        if(i + 1 > alen)
+        if(i + 2 > alen)
             goto fail;
         len = a[i + 1];
         if(i + len + 2 > alen)
@@ -413,10 +413,10 @@ parse_other_subtlv(const unsigned char *a, int alen)
             continue;
         }
 
-        if(i + 1 > alen)
+        if(i + 2 > alen)
             goto fail;
         len = a[i + 1];
-        if(i + len > alen)
+        if(i + 2 + len > alen)
             goto fail;
 
         if((type & 0x80) != 0) {
@@ -504,7 +504,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             i++;
             continue;
         }
-        if(i + 1 > bodylen) {
+        if(i + 2 > bodylen) {
             fprintf(stderr, "Received truncated message.\n");
             break;
         }
