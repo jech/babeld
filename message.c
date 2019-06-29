@@ -114,6 +114,59 @@ network_prefix(int ae, int plen, unsigned int omitted,
     return ret;
 }
 
+#ifdef _BABELD_LIBFUZZ
+
+// External functions
+#define debugf(...)
+#define fprintf(...)
+#define babel_send(...) (0)
+#define time_us(...) (1)
+#define update_neighbour_metric(...)
+#define update_neighbour(...) (1)
+#define retract_neighbour_routes(...)
+#define update_route(...)
+#define neightbour_rttcost(...) (1)
+
+// Functions defined in this file
+#define handle_request(...)
+#define send_unicast_multihop_request(...)
+#define send_request_resend(...)
+#define send_multihop_request(...)
+#define send_unicast_request(...)
+#define send_multicast_request(...)
+#define send_request(...)
+#define send_marginal_ihu(...)
+#define send_ihu(...)
+#define buffer_ihu(...)
+#define send_self_update(...)
+#define send_wildcard_retraction(...)
+#define buffer_wildcard_retraction(...)
+#define send_update_resend(...)
+#define send_update(...)
+#define buffer_update(...)
+#define fill_rtt_message(...) (0)
+#define send_hello(...)
+#define send_hello_noihu(...)
+#define send_ack(...)
+#define flushbuf(...)
+#define schedule_flush_ms(...)
+
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+    struct interface ifp = {};
+    unsigned char from[16] = {0xFE, 0x80};
+
+    if (size < 4)
+        return 0;
+
+    ifp.buf.size = 1000;
+    parse_packet(from, &ifp, data, size);
+
+    return 0;
+}
+
+
+#endif
+
 static int
 parse_update_subtlv(struct interface *ifp, int metric, int ae,
                     const unsigned char *a, int alen,
@@ -885,6 +938,33 @@ parse_packet(const unsigned char *from, struct interface *ifp,
     }
     return;
 }
+
+#ifdef _BABELD_LIBFUZZ
+
+#undef handle_request
+#undef send_unicast_multihop_request
+#undef send_request_resend
+#undef send_multihop_request
+#undef send_unicast_request
+#undef send_multicast_request
+#undef send_request
+#undef send_marginal_ihu
+#undef send_ihu
+#undef buffer_ihu
+#undef send_self_update
+#undef send_wildcard_retraction
+#undef buffer_wildcard_retraction
+#undef send_update_resend
+#undef send_update
+#undef buffer_update
+#undef fill_rtt_message
+#undef send_hello
+#undef send_hello_noihu
+#undef send_ack
+#undef flushbuf
+#undef schedule_flush_ms
+
+#endif
 
 static int
 fill_rtt_message(struct buffered *buf, struct interface *ifp)

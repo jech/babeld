@@ -142,6 +142,8 @@ kernel_rule_notify(struct kernel_rule *rule, void *closure)
     return -1;
 }
 
+#ifndef _BABELD_LIBFUZZ
+
 int
 main(int argc, char **argv)
 {
@@ -894,6 +896,8 @@ main(int argc, char **argv)
         unlink(pidfile);
     exit(1);
 }
+
+#endif // _BABELD_LIBFUZZ
 
 static int
 accept_local_connections()

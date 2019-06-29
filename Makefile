@@ -55,3 +55,8 @@ uninstall:
 
 clean:
 	-rm -f babeld babeld.html version.h *.o *~ core TAGS gmon.out
+
+
+libfuzz: CDEBUGFLAGS = -O2 -g -fsanitize=fuzzer,address -D_BABELD_LIBFUZZ
+libfuzz: $(OBJS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o fuzz_babeld $(OBJS) $(LDLIBS)
