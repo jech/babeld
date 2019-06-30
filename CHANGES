@@ -15,7 +15,7 @@ babeld-1.9.0 (unreleased)
     acquisition of new neighbours slower, but drastically reduces noise at
     startup.  Thanks to Teco Boot.
   * Remove an arbitrary limit on the number of interfaces.  Thanks to
-    Christon Schulze.
+    Christof Schulze.
   * Removed class E from martian filter.  Thanks to Dave Taht.
   * Added the ability to set the preferred source address in install filters.
     Thanks to Killian Lufau.
