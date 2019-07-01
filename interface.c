@@ -546,7 +546,6 @@ check_interfaces(void)
         ifindex = if_nametoindex(ifp->name);
         if(ifindex != ifp->ifindex) {
             debugf("Noticed ifindex change for %s.\n", ifp->name);
-            ifp->ifindex = 0;
             interface_up(ifp, 0);
             ifp->ifindex = ifindex;
             ifindex_changed = 1;
