@@ -125,34 +125,16 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
             ipad[i] = key->value[i] ^ 0x36;
         for(int i = 32; i < 64; i++)
             ipad[i] = 0x36;
-        rc = SHA256Reset(&inner);
-        if(rc < 0)
-            return -1;
-        rc = SHA256Input(&inner, ipad, 64);
-        if(rc < 0)
-            return -1;
-
-        rc = SHA256Input(&inner, src, 16);
-        if(rc != 0)
-            return -1;
-        rc = SHA256Input(&inner, port, 2);
-        if(rc != 0)
-            return -1;
-        rc = SHA256Input(&inner, dst, 16);
-        if(rc != 0)
-            return -1;
-        rc = SHA256Input(&inner, port, 2);
-        if(rc != 0)
-            return -1;
-        rc = SHA256Input(&inner, packet_header, 4);
-        if(rc != 0)
-            return -1;
-        rc = SHA256Input(&inner, body, bodylen);
-        if(rc != 0)
-            return -1;
-
-        rc = SHA256Result(&inner, ihash);
-        if(rc != 0)
+        rc = SHA256Reset(&inner) < 0 ||
+             SHA256Input(&inner, ipad, 64) < 0 ||
+             SHA256Input(&inner, src, 16) ||
+             SHA256Input(&inner, port, 2) ||
+             SHA256Input(&inner, dst, 16) ||
+             SHA256Input(&inner, port, 2) ||
+             SHA256Input(&inner, packet_header, 4) ||
+             SHA256Input(&inner, body, bodylen) ||
+             SHA256Result(&inner, ihash);
+        if(rc)
             return -1;
 
         for(int i = 0; i < 32; i++)
@@ -160,17 +142,11 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
         for(int i = 32; i < 64; i++)
             opad[i] = 0x5c;
 
-        rc = SHA256Reset(&outer);
-        if(rc != 0)
-            return -1;
-        rc = SHA256Input(&outer, opad, 64);
-        if(rc != 0)
-            return -1;
-        rc = SHA256Input(&outer, ihash, 32);
-        if(rc != 0)
-            return -1;
-        rc = SHA256Result(&outer, hmac_return);
-        if(rc < 0)
+        rc = SHA256Reset(&outer) ||
+             SHA256Input(&outer, opad, 64) ||
+             SHA256Input(&outer, ihash, 32) ||
+             SHA256Result(&outer, hmac_return) < 0;
+        if(rc)
             return -1;
         return 32;
     }
@@ -178,29 +154,15 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
         blake2s_state s;
         if(key->len != 16)
             return -1;
-        rc = blake2s_init_key(&s, 16, key->value, key->len);
-        if(rc < 0)
-            return -1;
-        rc = blake2s_update(&s, src, 16);
-        if(rc < 0)
-            return -1;
-        rc = blake2s_update(&s, port, 2);
-        if(rc < 0)
-            return -1;
-        rc = blake2s_update(&s, dst, 16);
-        if(rc < 0)
-            return -1;
-        rc = blake2s_update(&s, port, 2);
-        if(rc < 0)
-            return -1;
-        rc = blake2s_update(&s, packet_header, 4);
-        if(rc < 0)
-            return -1;
-        rc = blake2s_update(&s, body, bodylen);
-        if(rc < 0)
-            return -1;
-        rc = blake2s_final(&s, hmac_return, 16);
-        if(rc < 0)
+        rc = blake2s_init_key(&s, 16, key->value, key->len) < 0 ||
+             blake2s_update(&s, src, 16) < 0 ||
+             blake2s_update(&s, port, 2) < 0 ||
+             blake2s_update(&s, dst, 16) < 0 ||
+             blake2s_update(&s, port, 2) < 0 ||
+             blake2s_update(&s, packet_header, 4) < 0 ||
+             blake2s_update(&s, body, bodylen) < 0 ||
+             blake2s_final(&s, hmac_return, 16) < 0;
+        if(rc)
             return -1;
 
         return 16;
