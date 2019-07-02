@@ -116,7 +116,7 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
 
     DO_HTONS(port, (unsigned short)protocol_port);
     switch(key->type) {
-    case 1: {
+    case AUTH_TYPE_SHA256: {
         SHA256Context inner, outer;
         unsigned char ipad[64], ihash[32], opad[64];
         if(key->len != 32)
@@ -150,7 +150,7 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
             return -1;
         return 32;
     }
-    case 2: {
+    case AUTH_TYPE_BLAKE2S: {
         blake2s_state s;
         if(key->len != 16)
             return -1;
