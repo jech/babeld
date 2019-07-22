@@ -775,28 +775,28 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
 	    c = getword(c, &auth_type, gnc, closure);
 	    if(c < -1 || auth_type == NULL) {
                 free(auth_type);
-		goto error;
+                goto error;
             }
-	    if(strcmp(auth_type, "none") == 0) {
-		key->type = AUTH_TYPE_NONE;
-	    } else if(strcmp(auth_type, "sha256") == 0) {
-		key->type = AUTH_TYPE_SHA256;
-	    } else if(strcmp(auth_type, "blake2s") == 0) {
-		key->type = AUTH_TYPE_BLAKE2S;
-	    } else {
-		key->type = 0;
-		free(auth_type);
-		goto error;
-	    }
-	    free(auth_type);
-	} else if(strcmp(token, "value") == 0) {
-	    c = gethex(c, &key->value, &key->len, gnc, closure);
-	    if(c < -1 || key->value == NULL)
-		goto error;
-	} else {
-	    goto error;
-	}
-	free(token);
+            if(strcmp(auth_type, "none") == 0) {
+                key->type = AUTH_TYPE_NONE;
+            } else if(strcmp(auth_type, "sha256") == 0) {
+                key->type = AUTH_TYPE_SHA256;
+            } else if(strcmp(auth_type, "blake2s") == 0) {
+                key->type = AUTH_TYPE_BLAKE2S;
+            } else {
+                key->type = 0;
+                free(auth_type);
+                goto error;
+            }
+            free(auth_type);
+        } else if(strcmp(token, "value") == 0) {
+            c = gethex(c, &key->value, &key->len, gnc, closure);
+            if(c < -1 || key->value == NULL)
+                goto error;
+        } else {
+            goto error;
+        }
+        free(token);
     }
     *key_return = key;
     return c;
@@ -1228,7 +1228,7 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         c = parse_key(c, gnc, closure, &key);
         if(c < -1 || key == NULL || key->id == NULL) {
             free(key);
-	    goto fail;
+            goto fail;
         }
         switch(key->type) {
         case AUTH_TYPE_SHA256:
