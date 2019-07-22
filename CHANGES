@@ -1,3 +1,10 @@
+22 July 2019: babeld-1.8.5
+
+  * Fixed a bug that caused confustion between learned routes and
+    imported routes (thanks to Fabian Bläse).
+  * Fixed a bug that prevented install filters from being evaluated
+    (thanks to Killian Lufau).
+
 9 November 2018: babeld-1.8.4
 
   * Fixed a bug that discarded pipelined commands received on the local
