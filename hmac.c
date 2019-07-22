@@ -274,13 +274,13 @@ check_hmac(const unsigned char *packet, int packetlen, int bodylen,
     debugf("check_hmac %s -> %s\n",
 	   format_address(src), format_address(dst));
     while(i < packetlen) {
-	if(i + 1 > packetlen) {
+	if(i + 2 > packetlen) {
             fprintf(stderr, "Received truncated message.\n");
             break;
         }
-        len = packet[i+1];
+        len = packet[i + 1];
         if(packet[i] == MESSAGE_HMAC) {
-	    if(i + len > packetlen) {
+	    if(i + len + 2 > packetlen) {
 	        fprintf(stderr, "Received truncated message.\n");
 		return -1;
 	    }
