@@ -459,12 +459,12 @@ preparse_packet(const unsigned char *packet, int bodylen,
 	    i++;
 	    continue;
 	}
-	if(i + 1 > bodylen) {
+	if(i + 2 > bodylen) {
             fprintf(stderr, "Received truncated message.\n");
             break;
         }
 	len = message[1];
-	if(i + len > bodylen) {
+	if(i + len + 2 > bodylen) {
             fprintf(stderr, "Received truncated message.\n");
             break;
         }
