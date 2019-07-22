@@ -11,11 +11,15 @@ babeld-1.9.0 (unreleased)
     desired value; this makes it possible to run babeld in an
     unpriviledged container.  Thanks to Christof Schulze.
   * Reinstated logging of late hellos.  Thanks to Dave Taht.
-  * Don't send wildcard requests to newish nodes.  Thanks to Teco Boot.
+  * Don't send wildcard requests or Hellos to newish nodes.  This makes
+    acquisition of new neighbours slower, but drastically reduces noise at
+    startup.  Thanks to Teco Boot.
   * Remove an arbitrary limit on the number of interfaces.  Thanks to
     Christon Schulze.
   * Removed class E from martian filter.  Thanks to Dave Taht.
-  * Don't send Hellos upon encountering a new neighbour.  Thanks to Teco Boot.
+  * Added the ability to set the preferred source address in install filters.
+    Thanks to Killian Lufau.
+  * Fixed a number of read-only buffer overflows.  Thanks to Leo Stefanesco.
 
 22 July 2019: babeld-1.8.5
 
