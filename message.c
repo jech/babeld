@@ -1683,6 +1683,7 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
 {
     int rxcost, interval;
     int send_rtt_data;
+    int unicast;
 
     if(neigh == NULL && ifp == NULL) {
         struct interface *ifp_aux;
@@ -1718,7 +1719,9 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
            neigh->ifp->name,
            format_address(neigh->address));
 
-    if((ifp->flags & IF_TIMESTAMPS) != 0 && neigh->hello_send_us &&
+    unicast = !!(ifp->flags & IF_UNICAST);
+
+    if(!!(ifp->flags & IF_TIMESTAMPS) != 0 && neigh->hello_send_us &&
        /* Checks whether the RTT data is not too old to be sent. */
        timeval_minus_msec(&now, &neigh->hello_rtt_receive_time) < 1000000) {
         send_rtt_data = 1;
@@ -1727,7 +1730,16 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
         send_rtt_data = 0;
     }
 
-    buffer_ihu((ifp->flags & IF_UNICAST) != 0 ? &neigh->buf : &ifp->buf,
+    if(send_rtt_data) {
+        /* Ensure that there is a Hello in the same packet. */
+        ensure_space(unicast ? &neigh->buf : &ifp->buf, ifp, 14 + 16);
+        if(unicast)
+            send_unicast_hello(neigh, 0, 0);
+        else
+            send_multicast_hello(ifp, 0, 0);
+    }
+
+    buffer_ihu(unicast ? &neigh->buf : &ifp->buf,
                ifp, rxcost, interval, neigh->address,
                send_rtt_data, neigh->hello_send_us,
                time_us(neigh->hello_rtt_receive_time));
