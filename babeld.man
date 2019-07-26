@@ -411,12 +411,13 @@ for tunnel interfaces, and
 otherwise.
 .TP
 .BR unicast " {" true | false }
-Send multiple copies of TLVs (except Hellos and IHUs) to all neighbours
-rather than sending a single multicast packet.  The default is false.
+Send multiple copies of TLVs other than Hellos to all neighbours rather
+than sending a single multicast packet.  The default is false.
 .TP
 .BR rfc6126\-compatible " {" true | false }
-Only send TLVs that are defined by RFC 6126, the older version of Babel.
-The default is
+Disable some features that are incompatible with RFC 6126 (the older
+version of the Babel protocol), such as source-specific routing and RTT
+estimation over unicast.  The default is
 .BR false .
 .TP
 .BI rtt\-decay " decay"
