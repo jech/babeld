@@ -814,7 +814,7 @@ main(int argc, char **argv)
         send_wildcard_retraction(ifp);
         /* Make sure that we expire quickly from our neighbours'
            association caches. */
-        send_hello_noihu(ifp, 10);
+        send_multicast_hello(ifp, 10, 1);
         flushbuf(&ifp->buf, ifp);
         usleep(roughly(1000));
         gettime(&now);
@@ -824,7 +824,7 @@ main(int argc, char **argv)
             continue;
         /* Make sure they got it. */
         send_wildcard_retraction(ifp);
-        send_hello_noihu(ifp, 1);
+        send_multicast_hello(ifp, 1, 1);
         flushbuf(&ifp->buf, ifp);
         usleep(roughly(10000));
         gettime(&now);

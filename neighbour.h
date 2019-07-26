@@ -32,8 +32,9 @@ struct neighbour {
     /* This is -1 when unknown, so don't make it unsigned */
     unsigned char address[16];
     struct hello_history hello;
-    struct hello_history uhello; /* for Unicast hellos */
+    struct hello_history uhello; /* for Unicast Hellos */
     unsigned short txcost;
+    unsigned short hello_seqno; /* for Unicast Hellos */
     struct timeval ihu_time;
     unsigned short ihu_interval;   /* in centiseconds */
     /* Used for RTT estimation. */
