@@ -1719,7 +1719,12 @@ send_ihu(struct neighbour *neigh, struct interface *ifp)
            neigh->ifp->name,
            format_address(neigh->address));
 
-    unicast = !!(ifp->flags & IF_UNICAST);
+    /* If we already have unicast data buffered for this peer, piggyback
+       the IHU.  Only do that if RFC 6126 compatibility is disabled, since
+       doing that might require sending an unscheduled unicast Hello. */
+    unicast = !!(ifp->flags & IF_UNICAST) ||
+        (neigh->buf.len > 0 && !(ifp->flags & IF_RFC6126));
+
 
     if(!!(ifp->flags & IF_TIMESTAMPS) != 0 && neigh->hello_send_us &&
        /* Checks whether the RTT data is not too old to be sent. */
