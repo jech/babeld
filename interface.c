@@ -311,14 +311,17 @@ interface_up(struct interface *ifp, int up)
             mtu = 1280;
         }
 
-        /* We need to be able to fit at least two messages into a packet,
-           so MTUs below 116 require lower layer fragmentation. */
-        /* In IPv6, the minimum MTU is 1280, and every host must be able
-           to reassemble up to 1500 bytes, but I'd rather not rely on this. */
-        if(mtu < 128) {
-            fprintf(stderr, "Suspiciously low MTU %d on interface %s (%u).\n",
+        /* We need to be able to fit at least a router-ID and an update,
+           up to 116 bytes, and that's not counting sub-TLVs or crypto keys.
+           In IPv6, the minimum MTU is 1280, and every host must be able
+           to reassemble up to 1500 bytes.  In IPv4, every host must be
+           able to reassemble up to 576 bytes.  At any rate, the Babel spec
+           says that every node must be able to parse packets of size 512. */
+        if(mtu < 512) {
+            fprintf(stderr,
+                    "Suspiciously low MTU %d on interface %s (%u), using 512.\n",
                     mtu, ifp->name, ifp->ifindex);
-            mtu = 128;
+            mtu = 512;
         }
 
         if(ifp->buf.buf)
