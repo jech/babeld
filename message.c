@@ -1616,7 +1616,7 @@ buffer_ihu(struct buffered *buf, struct interface *ifp, unsigned short rxcost,
     int msglen, ll;
 
     ll = linklocal(address);
-    msglen = (ll ? 14 : 200) + (rtt_data ? 10 : 0);
+    msglen = (ll ? 14 : 22) + (rtt_data ? 10 : 0);
 
     start_message(buf, ifp, MESSAGE_IHU, msglen);
     accumulate_byte(buf, ll ? 3 : 2);
