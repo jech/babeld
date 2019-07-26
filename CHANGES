@@ -5,6 +5,11 @@ babeld-1.9.0 (unreleased)
     efficient as multicast, at the cost of slightly higher memory usage.
   * Added option "unicast" that allows sending most TLVs over unicast.
     This is necessary for the DTLS extension.
+  * Implemented parsing of unicast Hellos.  This makes it possible to
+    interoperate with neighbours that only speak unicast (e.g. over some
+    kinds of tunnels that only do unicast).
+  * Implemented sending of unscheduled unicast Hellos.  This makes the
+    RTT extension work over unicast too.
   * Reworked the xroute data structures to use binary search and
     linear-time comparison.
   * Don't attempt to modify the rp_filter sysctl if it already has the
