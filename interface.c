@@ -335,6 +335,7 @@ interface_up(struct interface *ifp, int up)
             ifp->buf.size = 0;
             goto fail;
         }
+        ifp->buf.hello = -1;
 
         rc = resize_receive_buffer(mtu);
         if(rc < 0)

@@ -109,6 +109,7 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
     neigh->ifp = ifp;
     neigh->buf.buf = buf;
     neigh->buf.size = ifp->buf.size;
+    neigh->buf.hello = -1;
     neigh->buf.flush_interval = ifp->buf.flush_interval;
     neigh->buf.sin6.sin6_family = AF_INET6;
     memcpy(&neigh->buf.sin6.sin6_addr, address, 16);
