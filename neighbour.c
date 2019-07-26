@@ -131,12 +131,13 @@ update_neighbour(struct neighbour *neigh, struct hello_history *hist,
     int rc = 0;
 
     if(hello < 0) {
-        if(hist->interval <= 0)
-            return rc;
-        missed_hellos =
-            ((int)timeval_minus_msec(&now, &hist->time) -
-             hist->interval * 7) /
-            (hist->interval * 10);
+        if(hist->interval > 0)
+            missed_hellos =
+                ((int)timeval_minus_msec(&now, &hist->time) -
+                 hist->interval * 7) /
+                (hist->interval * 10);
+        else
+            missed_hellos = 16; /* infinity */
         if(missed_hellos <= 0)
             return rc;
         timeval_add_msec(&hist->time, &hist->time,
