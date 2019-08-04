@@ -151,6 +151,6 @@ int flush_interface(char *ifname);
 unsigned jitter(struct buffered *buf, int urgent);
 unsigned update_jitter(struct interface *ifp, int urgent);
 void set_timeout(struct timeval *timeout, int msecs);
-int interface_up(struct interface *ifp, int up);
+int interface_updown(struct interface *ifp, int up);
 int interface_ll_address(struct interface *ifp, const unsigned char *address);
 void check_interfaces(void);

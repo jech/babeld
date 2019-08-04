@@ -805,7 +805,7 @@ main(int argc, char **argv)
     usleep(roughly(10000));
     gettime(&now);
 
-    /* We need to flush so interface_up won't try to reinstall. */
+    /* We need to flush so interface_updown won't try to reinstall. */
     flush_all_routes();
 
     FOR_ALL_INTERFACES(ifp) {
@@ -828,7 +828,7 @@ main(int argc, char **argv)
         flushbuf(&ifp->buf, ifp);
         usleep(roughly(10000));
         gettime(&now);
-        interface_up(ifp, 0);
+        interface_updown(ifp, 0);
     }
     release_tables();
     kernel_setup_socket(0);
@@ -885,7 +885,7 @@ main(int argc, char **argv)
     FOR_ALL_INTERFACES(ifp) {
         if(!if_up(ifp))
             continue;
-        interface_up(ifp, 0);
+        interface_updown(ifp, 0);
     }
     kernel_setup_socket(0);
     kernel_setup(0);

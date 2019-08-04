@@ -109,7 +109,7 @@ flush_interface(char *ifname)
     if(ifp == NULL)
         return 0;
 
-    interface_up(ifp, 0);
+    interface_updown(ifp, 0);
     if(prev)
         prev->next = ifp->next;
     else
@@ -271,7 +271,7 @@ check_link_local_addresses(struct interface *ifp)
 }
 
 int
-interface_up(struct interface *ifp, int up)
+interface_updown(struct interface *ifp, int up)
 {
     int mtu, rc, type;
     struct ipv6_mreq mreq;
@@ -519,7 +519,7 @@ interface_up(struct interface *ifp, int up)
 
  fail:
     assert(up);
-    interface_up(ifp, 0);
+    interface_updown(ifp, 0);
     local_notify_interface(ifp, LOCAL_CHANGE);
     return -1;
 }
@@ -550,7 +550,7 @@ check_interfaces(void)
         ifindex = if_nametoindex(ifp->name);
         if(ifindex != ifp->ifindex) {
             debugf("Noticed ifindex change for %s.\n", ifp->name);
-            interface_up(ifp, 0);
+            interface_updown(ifp, 0);
             ifp->ifindex = ifindex;
             ifindex_changed = 1;
         }
@@ -561,7 +561,7 @@ check_interfaces(void)
             rc = 0;
         if((rc > 0) != if_up(ifp)) {
             debugf("Noticed status change for %s.\n", ifp->name);
-            interface_up(ifp, rc > 0);
+            interface_updown(ifp, rc > 0);
         }
 
         if(if_up(ifp)) {
