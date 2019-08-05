@@ -46,7 +46,7 @@ On every node, run something like:
 You will find the generate-ipv6-address utility, which can generate random
 IPv6 addresses according to RFC 4193, on
 
-      https://www.irif.univ-paris-diderot.fr/~jch/software/files/
+      https://www.irif.fr/~jch/software/files/
 
 
 A note about tunnels and VPNs
@@ -60,7 +60,7 @@ that it ``couldn't allocate requested address''.
 The solution is to manually add the link-local address to the
 interface.  This can be done by running e.g.
 
-    # ip -6 addr add $(ahcp-generate-address fe80::) dev gre0
+    # ip -6 addr add $(generate-ipv6-address fe80::) dev gre0
 
 
 3. Start the routing daemon
