@@ -1,4 +1,4 @@
-babeld-1.9.0 (unreleased)
+4 August 2019: babeld-1.9.0
 
   * Reworked buffering of unicast packets to use a per-neighbour buffer
     rather than a single buffer per interface.  This makes unicast as
