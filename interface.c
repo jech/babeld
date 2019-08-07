@@ -43,6 +43,8 @@ THE SOFTWARE.
 #include "local.h"
 #include "xroute.h"
 
+#define MIN_MTU 512
+
 struct interface *interfaces = NULL;
 
 static struct interface *
@@ -279,12 +281,8 @@ interface_updown(struct interface *ifp, int up)
     if((!!up) == if_up(ifp))
         return 0;
 
-    if(up)
-        ifp->flags |= IF_UP;
-    else
-        ifp->flags &= ~IF_UP;
-
     if(up) {
+        ifp->flags |= IF_UP;
         if(ifp->ifindex <= 0) {
             fprintf(stderr,
                     "Upping unknown interface %s.\n", ifp->name);
@@ -306,7 +304,9 @@ interface_updown(struct interface *ifp, int up)
 
         mtu = kernel_interface_mtu(ifp->name, ifp->ifindex);
         if(mtu < 0) {
-            fprintf(stderr, "Warning: couldn't get MTU of interface %s (%u).\n",
+            fprintf(stderr,
+                    "Warning: couldn't get MTU of interface %s (%u), "
+                    "using 1280\n",
                     ifp->name, ifp->ifindex);
             mtu = 1280;
         }
@@ -317,10 +317,10 @@ interface_updown(struct interface *ifp, int up)
            to reassemble up to 1500 bytes.  In IPv4, every host must be
            able to reassemble up to 576 bytes.  At any rate, the Babel spec
            says that every node must be able to parse packets of size 512. */
-        if(mtu < 512) {
+        if(mtu < MIN_MTU) {
             fprintf(stderr,
-                    "Suspiciously low MTU %d on interface %s (%u), using 512.\n",
-                    mtu, ifp->name, ifp->ifindex);
+                    "Suspiciously low MTU %d on interface %s (%u), using %d.\n",
+                    mtu, ifp->name, ifp->ifindex, MIN_MTU);
             mtu = 512;
         }
 
@@ -487,6 +487,7 @@ interface_updown(struct interface *ifp, int up)
             send_update(ifp, 0, NULL, 0, NULL, 0);
         send_multicast_request(ifp, NULL, 0, NULL, 0);
     } else {
+        ifp->flags &= ~IF_UP;
         flush_interface_routes(ifp, 0);
         ifp->buf.len = 0;
         ifp->buf.size = 0;
