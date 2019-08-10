@@ -120,12 +120,10 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
     case AUTH_TYPE_SHA256: {
         SHA256Context inner, outer;
         unsigned char ipad[64], ihash[32], opad[64];
-        if(key->len != 32)
+        if(key->len != 64)
             return -1;
-        for(int i = 0; i < 32; i++)
+        for(int i = 0; i < 64; i++)
             ipad[i] = key->value[i] ^ 0x36;
-        for(int i = 32; i < 64; i++)
-            ipad[i] = 0x36;
         rc = SHA256Reset(&inner);
         if(rc < 0)
             return -1;
@@ -156,10 +154,8 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
         if(rc != 0)
             return -1;
 
-        for(int i = 0; i < 32; i++)
-            opad[i] = ihash[i] ^ 0x5c;
-        for(int i = 32; i < 64; i++)
-            opad[i] = 0x5c;
+        for(int i = 0; i < 64; i++)
+            opad[i] = key->value[i] ^ 0x5c;
 
         rc = SHA256Reset(&outer);
         if(rc != 0)
