@@ -322,6 +322,22 @@ source-specific routes.  The default is 10.
 .BI first-rule-priority " priority"
 This specifies smallest (highest) rule priority used with source-specific
 routes.  The default is 100.
+.TP
+.BI "key id" " id" " type" " type" " value" " value"
+Configure a key for use with the
+.B hmac
+interface option.  The
+.B type
+is one of
+.B hmac-sha256
+or
+.BR blake2s .
+The
+.B value
+is a hexadecimal string (up to 64 bytes for
+.BR hmac-sha256 ,
+exactly 16 bytes for
+.BR blake2s ).
 .SS Interface configuration
 An interface is configured by a line with the following format:
 .IP
@@ -414,11 +430,6 @@ otherwise.
 Send multiple copies of TLVs other than Hellos to all neighbours rather
 than sending a single multicast packet.  The default is false.
 .TP
-.BR no_hmac_verify " {" true | false }
-Do not check packet signatures, accept unsigned or incorrectly signed packets
-even if one or more keys are configured on the interface.  The default is
-.BR false .
-.TP
 .BR rfc6126\-compatible " {" true | false }
 Disable some features that are incompatible with RFC 6126 (the older
 version of the Babel protocol), such as source-specific routing and RTT
@@ -457,6 +468,16 @@ if the interface is of type
 and
 .BR 0 
 otherwise.
+.TP
+.BI hmac " id"
+Enable HMAC security on this interface, and use the key
+.IR id .
+.TP
+.BR no_hmac_verify " {" true | false }
+Do not check packet signatures, accept unsigned or incorrectly signed packets
+even if one or more keys are configured on the interface.  The default is
+.BR false .
+.TP
 .SS Filtering rules
 A filtering rule is defined by a single line with the following format:
 .IP
