@@ -242,26 +242,20 @@ add_hmac(struct buffered *buf, struct interface *ifp,
 static int
 compare_hmac(const unsigned char *src, const unsigned char *dst,
 	     const unsigned char *packet, int bodylen,
-	     const unsigned char *hmac, int hmaclen)
+	     const unsigned char *hmac, int hmaclen,
+             struct key *key)
 {
-    unsigned char true_hmac[MAX_DIGEST_LEN];
-    int true_hmaclen;
-    int i;
-    for(i = 0; i < numkeys; i++) {
-	true_hmaclen = compute_hmac(src, dst, packet,
-				    packet + 4, bodylen, keys[i],
-                                    true_hmac);
-	if(true_hmaclen != hmaclen)
-            continue;
-	if(memcmp(true_hmac, hmac, hmaclen) == 0)
-            return 1;
-    }
-    return 0;
+    unsigned char buf[MAX_DIGEST_LEN];
+    int len;
+
+    len = compute_hmac(src, dst, packet, packet + 4, bodylen, key, buf);
+    return len == hmaclen && (memcmp(buf, hmac, hmaclen) == 0);
 }
 
 int
 check_hmac(const unsigned char *packet, int packetlen, int bodylen,
-	   const unsigned char *src, const unsigned char *dst)
+	   const unsigned char *src, const unsigned char *dst,
+           struct interface *ifp)
 {
     int i = bodylen + 4;
     int len;
@@ -275,14 +269,15 @@ check_hmac(const unsigned char *packet, int packetlen, int bodylen,
         }
         len = packet[i + 1];
         if(packet[i] == MESSAGE_HMAC) {
+            int ok;
 	    if(i + len + 2 > packetlen) {
 	        fprintf(stderr, "Received truncated message.\n");
 		return -1;
 	    }
-	    if(compare_hmac(src, dst, packet, bodylen,
-			    packet + i + 2 , len) == 1) {
+            ok = compare_hmac(src, dst, packet, bodylen,
+                              packet + i + 2, len, ifp->key);
+	    if(ok)
 		return 1;
-	    }
 	}
 	i += len + 2;
     }
