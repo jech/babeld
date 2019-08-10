@@ -251,10 +251,8 @@ compare_hmac(const unsigned char *src, const unsigned char *dst,
 	true_hmaclen = compute_hmac(src, dst, packet,
 				    packet + 4, bodylen, keys[i],
                                     true_hmac);
-	if(true_hmaclen != hmaclen) {
-            debugf("Bad hmac length (%d != %d).\n", true_hmaclen, hmaclen);
-	    return -1;
-	}
+	if(true_hmaclen != hmaclen)
+            continue;
 	if(memcmp(true_hmac, hmac, hmaclen) == 0)
             return 1;
     }
