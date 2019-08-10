@@ -1221,10 +1221,21 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         }
         switch(key->type) {
         case AUTH_TYPE_SHA256:
-            if(key->len != 32) {
+            if(key->len > 64) {
                 free(key->value);
                 free(key);
                 goto fail;
+            }
+            if(key->len < 64) {
+                unsigned char *v = realloc(key->value, 64);
+                if(v == NULL) {
+                    free(key->value);
+                    free(key);
+                    goto fail;
+                }
+                memset(v + key->len, 0, 64 - key->len);
+                key->value = v;
+                key->len = 64;
             }
             break;
         case AUTH_TYPE_BLAKE2S:
