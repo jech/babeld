@@ -226,7 +226,7 @@ add_hmac(struct buffered *buf, struct interface *ifp,
     }
     src = ifp->ll[0];
 
-    if(buf->len + 2 + DIGEST_LEN > buf->size) {
+    if(buf->len + 2 + MAX_DIGEST_LEN > buf->size) {
         fprintf(stderr, "Buffer overflow in add_hmac.\n");
         return -1;
     }
@@ -248,7 +248,7 @@ compare_hmac(const unsigned char *src, const unsigned char *dst,
              const unsigned char *packet, int bodylen,
              const unsigned char *hmac, int hmaclen)
 {
-    unsigned char true_hmac[DIGEST_LEN];
+    unsigned char true_hmac[MAX_DIGEST_LEN];
     int true_hmaclen;
     int i;
     for(i = 0; i < numkeys; i++) {
