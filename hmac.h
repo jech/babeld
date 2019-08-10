@@ -20,9 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#define DIGEST_LEN 20
-#define SHA1_BLOCK_SIZE 64
-#define RIPEMD160_BLOCK_SIZE 64
+#define MAX_DIGEST_LEN 32
 
 struct key *find_key(const char *id);
 struct key *retain_key(struct key *key);
