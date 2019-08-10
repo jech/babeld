@@ -1227,23 +1227,28 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         struct key *key = NULL;
         c = parse_key(c, gnc, closure, &key);
         if(c < -1 || key == NULL || key->id == NULL) {
+            if(key != NULL)
+                free(key->value);
             free(key);
             goto fail;
         }
         switch(key->type) {
         case AUTH_TYPE_SHA256:
             if(key->len != 32) {
+                free(key->value);
                 free(key);
                 goto fail;
             }
             break;
         case AUTH_TYPE_BLAKE2S:
             if(key->len != 16) {
+                free(key->value);
                 free(key);
                 goto fail;
             }
             break;
         default:
+            free(key->value);
             free(key);
             goto fail;
         }
