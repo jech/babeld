@@ -24,6 +24,7 @@ THE SOFTWARE.
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 
 #include "rfc6234/sha.h"
