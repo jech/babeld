@@ -1041,7 +1041,7 @@ buffer_hello(struct buffered *buf, struct interface *ifp,
         accumulate_byte(buf, 4);
         accumulate_int(buf, 0);
     }
-    end_message(&ifp->buf, MESSAGE_HELLO, timestamp ? 12 : 6);
+    end_message(buf, MESSAGE_HELLO, timestamp ? 12 : 6);
 }
 
 void
