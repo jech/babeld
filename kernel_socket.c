@@ -456,11 +456,11 @@ kernel_route(int operation, int table,
 
         /* Avoid atomic route changes that is buggy on OS X. */
         kernel_route(ROUTE_FLUSH, table, dest, plen,
-                     src, src_plen,
+                     src, src_plen, NULL,
                      gate, ifindex, metric,
                      NULL, 0, 0, 0);
         return kernel_route(ROUTE_ADD, table, dest, plen,
-                            src, src_plen,
+                            src, src_plen, NULL,
                             newgate, newifindex, newmetric,
                             NULL, 0, 0, 0);
 
