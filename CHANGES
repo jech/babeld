@@ -1,3 +1,9 @@
+20 August 2019: babeld-1.9.1
+
+  * Fixed a crash that could happen when unicast and RTT estimation are
+    both enabled on an interface.  Thanks to Dave Taht.
+  * Fixed compilation under BSD.  Thanks to Dave Taht.
+
 4 August 2019: babeld-1.9.0
 
   * Reworked buffering of unicast packets to use a per-neighbour buffer
