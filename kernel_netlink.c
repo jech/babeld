@@ -1240,10 +1240,8 @@ filter_kernel_routes(struct nlmsghdr *nh, struct kernel_route *route)
         return 0;
 
     if(debug >= 2) {
-        if(rc >= 0) {
-            print_kernel_route(nh->nlmsg_type, rtm->rtm_protocol,
-                               rtm->rtm_type, route);
-        }
+        print_kernel_route(nh->nlmsg_type, rtm->rtm_protocol,
+                           rtm->rtm_type, route);
     }
 
     return 1;

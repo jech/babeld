@@ -911,7 +911,6 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         } else {
             /* We prefer to be conservative with new neighbours
                (higher RTT) */
-            assert(rtt <= 0x7FFFFFFF);
             neigh->rtt = 2*rtt;
         }
         changed = (neighbour_rttcost(neigh) == old_rttcost ? 0 : 1);
