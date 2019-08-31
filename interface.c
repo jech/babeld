@@ -47,24 +47,10 @@ THE SOFTWARE.
 
 struct interface *interfaces = NULL;
 
-static struct interface *
-last_interface(void)
-{
-    struct interface *ifp = interfaces;
-
-    if(!ifp)
-        return NULL;
-
-    while(ifp->next)
-        ifp = ifp->next;
-
-    return ifp;
-}
-
 struct interface *
 add_interface(char *ifname, struct interface_conf *if_conf)
 {
-    struct interface *ifp;
+    struct interface **last_interface = &interfaces, *ifp;
 
     FOR_ALL_INTERFACES(ifp) {
         if(strcmp(ifp->name, ifname) == 0) {
@@ -84,10 +70,9 @@ add_interface(char *ifname, struct interface_conf *if_conf)
     ifp->conf = if_conf ? if_conf : default_interface_conf;
     ifp->hello_seqno = (random() & 0xFFFF);
 
-    if(interfaces == NULL)
-        interfaces = ifp;
-    else
-        last_interface()->next = ifp;
+    while(*last_interface != NULL)
+        last_interface = &(*last_interface)->next;
+    *last_interface = ifp;
 
     local_notify_interface(ifp, LOCAL_ADD);
 
