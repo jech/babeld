@@ -315,7 +315,7 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
     int done = 0;
     int skip = 0;
 
-    char buf[8192];
+    struct nlmsghdr buf[8192/sizeof(struct nlmsghdr)];
 
     memset(&nladdr, 0, sizeof(nladdr));
     nladdr.nl_family = AF_NETLINK;
