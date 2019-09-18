@@ -137,8 +137,6 @@ parse_update_subtlv(struct interface *ifp, int metric, int ae,
         }
     }
 
-    *src_plen = 0;
-
     while(i < alen) {
         type = a[i];
         if(type == SUBTLV_PAD1) {
@@ -170,8 +168,6 @@ parse_update_subtlv(struct interface *ifp, int metric, int ae,
                                 len - 1, src_prefix);
             if(rc < 0)
                 goto fail;
-            if(ae == 1)
-                (*src_plen) += 96;
         } else {
             debugf("Received unknown%s Update sub-TLV %d.\n",
                    (type & 0x80) != 0 ? " mandatory" : "", type);
@@ -305,8 +301,6 @@ parse_request_subtlv(int ae, const unsigned char *a, int alen,
 {
     int type, len, i = 0;
 
-    *src_plen = 0;
-
     while(i < alen) {
         type = a[0];
         if(type == SUBTLV_PAD1) {
@@ -336,8 +330,6 @@ parse_request_subtlv(int ae, const unsigned char *a, int alen,
                                 len - 1, src_prefix);
             if(rc < 0)
                 goto fail;
-            if(ae == 1)
-                (*src_plen) += 96;
         } else {
             debugf("Received unknown%s Route Request sub-TLV %d.\n",
                    ((type & 0x80) != 0) ? " mandatory" : "", type);
