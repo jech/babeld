@@ -969,6 +969,40 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
 
 }
 
+int
+parse_monitor_dump_filter(char *token, int *action_return, int c, gnc_t *gnc, void *closure)
+{
+    char *token2 = NULL;
+    c = skip_whitespace(c, *gnc, closure);
+
+    c = getword(c, &token2, *gnc, closure);
+
+    int filter = 0;
+    if(token2) {
+        if(strcmp(token2, "route") == 0)
+            filter = FILTER_ROUTE;
+        else if(strcmp(token2, "interface") == 0)
+            filter = FILTER_INTERFACE;
+        else if(strcmp(token2, "xroute") == 0)
+            filter = FILTER_XROUTE;
+        else if(strcmp(token2, "neighbour") == 0)
+            filter = FILTER_NEIGHBOUR;
+        else
+            filter = FILTER_INVALID;
+        free(token2);
+    }
+
+    c = skip_eol(c, *gnc, closure);
+    if(filter < FILTER_INVALID) {
+        *action_return += filter;
+        if(!filter) // no (invalid) filters detected, show everything
+            c = -1;
+    } else {
+        c = -2;
+    }
+    return c;
+}
+
 static int
 parse_config_line(int c, gnc_t gnc, void *closure,
                   int *action_return, const char **message_return)
@@ -996,20 +1030,14 @@ parse_config_line(int c, gnc_t gnc, void *closure,
             goto fail;
         *action_return = CONFIG_ACTION_QUIT;
     } else if(strcmp(token, "dump") == 0) {
-        c = skip_eol(c, gnc, closure);
-        if(c < -1 || !action_return)
-            goto fail;
         *action_return = CONFIG_ACTION_DUMP;
+        c = parse_monitor_dump_filter(token, action_return, c, &gnc, closure);
     } else if(strcmp(token, "monitor") == 0) {
-        c = skip_eol(c, gnc, closure);
-        if(c < -1 || !action_return)
-            goto fail;
         *action_return = CONFIG_ACTION_MONITOR;
+        c = parse_monitor_dump_filter(token, action_return, c, &gnc, closure);
     } else if(strcmp(token, "unmonitor") == 0) {
-        c = skip_eol(c, gnc, closure);
-        if(c < -1 || !action_return)
-            goto fail;
         *action_return = CONFIG_ACTION_UNMONITOR;
+        c = parse_monitor_dump_filter(token, action_return, c, &gnc, closure);
     } else if(config_finalised && !local_server_write) {
         /* The remaining directives are only allowed in read-write mode. */
         c = skip_to_eol(c, gnc, closure);
