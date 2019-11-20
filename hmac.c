@@ -72,7 +72,7 @@ add_key(char *id, int type, int len, unsigned char *value)
 {
     struct key *key;
 
-    assert(value != NULL && type != 0);
+    assert(value != NULL && type != AUTH_TYPE_NONE);
 
     key = find_key(id);
     if(key) {

@@ -1069,12 +1069,12 @@ flushbuf(struct buffered *buf, struct interface *ifp)
     assert(buf->len <= buf->size);
 
     if(buf->len > 0) {
-        if(ifp->key != NULL && ifp->key->type != 0)
+        if(ifp->key != NULL && ifp->key->type != AUTH_TYPE_NONE)
             send_crypto_seqno(buf, ifp);
         debugf("  (flushing %d buffered bytes)\n", buf->len);
         DO_HTONS(packet_header + 2, buf->len);
         fill_rtt_message(buf, ifp);
-        if(ifp->key != NULL && ifp->key->type != 0) {
+        if(ifp->key != NULL && ifp->key->type != AUTH_TYPE_NONE) {
             end = add_hmac(buf, ifp, packet_header);
             if(end < 0) {
                 fprintf(stderr, "Couldn't add HMAC.\n");

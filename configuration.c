@@ -784,7 +784,6 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
             } else if(strcmp(auth_type, "blake2s") == 0) {
                 key->type = AUTH_TYPE_BLAKE2S;
             } else {
-                key->type = 0;
                 free(auth_type);
                 goto error;
             }
