@@ -29,5 +29,5 @@ struct key *add_key(char *id, int type, int len, unsigned char *value);
 int add_hmac(struct buffered *buf, struct interface *ifp,
              unsigned char *packet_header);
 int check_hmac(const unsigned char *packet, int packetlen, int bodylen,
-	       const unsigned char *src, const unsigned char *dst,
+               const unsigned char *src, const unsigned char *dst,
                struct interface *ifp);

@@ -336,8 +336,8 @@ gethex(int c, unsigned char **value_r, int *len_r, gnc_t gnc, void *closure)
     }
     len = strlen(t);
     if(len % 2 != 0) {
-	free(t);
-	return -2;
+        free(t);
+        return -2;
     }
     value = malloc(len / 2);
     if(value == NULL) {
@@ -348,8 +348,8 @@ gethex(int c, unsigned char **value_r, int *len_r, gnc_t gnc, void *closure)
     rc = fromhex(value, t, len);
     free(t);
     if(rc < 0) {
-	free(value);
-	return -2;
+        free(value);
+        return -2;
     }
     *value_r = value;
     *len_r = len / 2;
@@ -611,7 +611,7 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if(c < -1)
                 goto error;
             if_conf->unicast = v;
-        } else if(strcmp(token, "no_hmac_verify") == 0) { 
+        } else if(strcmp(token, "no_hmac_verify") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
             if(c < -1)
@@ -688,17 +688,17 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
                 goto error;
             if_conf->max_rtt_penalty = penalty;
         } else if(strcmp(token, "hmac") == 0) {
-	    char *key_id;
-	    struct key *key;
-	    c = getword(c, &key_id, gnc, closure);
-	    if(c < -1) {
+            char *key_id;
+            struct key *key;
+            c = getword(c, &key_id, gnc, closure);
+            if(c < -1) {
                 free(key_id);
                 goto error;
             }
-	    key = find_key(key_id);
+            key = find_key(key_id);
             if_conf->key = key;
             free(key_id);
-	} else {
+        } else {
             goto error;
         }
         free(token);
@@ -754,26 +754,26 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
 
     key = calloc(1, sizeof(struct key));
     if(key == NULL)
-	goto error;
+        goto error;
     while(1) {
-	c = skip_whitespace(c, gnc, closure);
-	if(c < 0 || c == '\n' || c == '#') {
-	    c = skip_to_eol(c, gnc, closure);
-	    break;
-	}
-	c = getword(c, &token, gnc, closure);
-	if(c < -1) {
-	    goto error;
-	}
-	if(strcmp(token, "id") == 0) {
-	    c = getword(c, &key->id, gnc, closure);
-	    if(c < -1 || key->id == NULL) {
-		goto error;
-	    }
-	} else if(strcmp(token, "type") == 0) {
-	    char *auth_type = NULL;
-	    c = getword(c, &auth_type, gnc, closure);
-	    if(c < -1 || auth_type == NULL) {
+        c = skip_whitespace(c, gnc, closure);
+        if(c < 0 || c == '\n' || c == '#') {
+            c = skip_to_eol(c, gnc, closure);
+            break;
+        }
+        c = getword(c, &token, gnc, closure);
+        if(c < -1) {
+            goto error;
+        }
+        if(strcmp(token, "id") == 0) {
+            c = getword(c, &key->id, gnc, closure);
+            if(c < -1 || key->id == NULL) {
+                goto error;
+            }
+        } else if(strcmp(token, "type") == 0) {
+            char *auth_type = NULL;
+            c = getword(c, &auth_type, gnc, closure);
+            if(c < -1 || auth_type == NULL) {
                 free(auth_type);
                 goto error;
             }
