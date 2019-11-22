@@ -514,7 +514,7 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
                        struct interface_conf **if_conf_return)
 {
 
-    char *token;
+    char *token = NULL;
 
     if(if_conf == NULL) {
         if_conf = calloc(1, sizeof(struct interface_conf));
@@ -657,6 +657,7 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
     return c;
 
  error:
+    free(token);
     if(if_conf)
         free(if_conf->ifname);
     free(if_conf);
@@ -679,8 +680,10 @@ parse_ifconf(int c, gnc_t gnc, void *closure,
         goto error;
 
     c = getstring(c, &token, gnc, closure);
-    if(c < -1 || token == NULL)
+    if(c < -1 || token == NULL) {
+        free(token);
         goto error;
+    }
 
     if_conf->ifname = token;
 
@@ -970,7 +973,7 @@ static int
 parse_config_line(int c, gnc_t gnc, void *closure,
                   int *action_return, const char **message_return)
 {
-    char *token;
+    char *token = NULL;
     if(action_return)
         *action_return = CONFIG_ACTION_DONE;
     if(message_return)
@@ -981,8 +984,10 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         return skip_to_eol(c, gnc, closure);
 
     c = getword(c, &token, gnc, closure);
-    if(c < -1)
+    if(c < -1) {
+        free(token);
         return c;
+    }
 
     /* Directives allowed in read-only mode */
     if(strcmp(token, "quit") == 0) {
@@ -1070,11 +1075,12 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         if(c < -1)
             goto fail;
         if(strcmp(token2, "interface") == 0) {
-            char *ifname;
+            char *ifname = NULL;
             int rc;
             c = getword(c, &ifname, gnc, closure);
             c = skip_eol(c, gnc, closure);
             if(c < -1) {
+                free(ifname);
                 free(token2);
                 goto fail;
             }
