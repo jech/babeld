@@ -34,6 +34,9 @@ THE SOFTWARE.
 #define RTPROT_BOOT 3 /* Route installed during boot */
 #endif
 
+#include "rfc6234/sha.h"
+#include "BLAKE2/ref/blake2.h"
+
 #include "babeld.h"
 #include "util.h"
 #include "interface.h"
@@ -1232,26 +1235,29 @@ parse_config_line(int c, gnc_t gnc, void *closure,
             goto fail;
         }
         switch(key->type) {
-        case AUTH_TYPE_SHA256:
-            if(key->len > 64) {
+        case AUTH_TYPE_SHA256: {
+            int blocksize = SHA256_Message_Block_Size;
+            if(key->len > blocksize) {
                 free(key->value);
                 free(key);
                 goto fail;
             }
-            if(key->len < 64) {
-                unsigned char *v = realloc(key->value, 64);
+            if(key->len < blocksize) {
+                unsigned char *v;
+                v = realloc(key->value, blocksize);
                 if(v == NULL) {
                     free(key->value);
                     free(key);
                     goto fail;
                 }
-                memset(v + key->len, 0, 64 - key->len);
+                memset(v + key->len, 0, blocksize - key->len);
                 key->value = v;
-                key->len = 64;
+                key->len = blocksize;
             }
             break;
+        }
         case AUTH_TYPE_BLAKE2S:
-            if(key->len != 16) {
+            if(key->len != BLAKE2S_KEYBYTES) {
                 free(key->value);
                 free(key);
                 goto fail;

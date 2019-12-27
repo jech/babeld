@@ -20,8 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#define MAX_DIGEST_LEN 32
-
 struct key *find_key(const char *id);
 struct key *retain_key(struct key *key);
 void release_key(struct key *key);

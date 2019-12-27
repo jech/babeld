@@ -38,6 +38,9 @@ THE SOFTWARE.
 #include "configuration.h"
 #include "message.h"
 
+#define MAX_DIGEST_LEN ((int)SHA256HashSize > (int)BLAKE2S_OUTBYTES ?   \
+                        (int)SHA256HashSize : (int)BLAKE2S_OUTBYTES)
+
 struct key **keys = NULL;
 int numkeys = 0, maxkeys = 0;
 
@@ -118,64 +121,69 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
     DO_HTONS(port, (unsigned short)protocol_port);
     switch(key->type) {
     case AUTH_TYPE_SHA256: {
-        SHA256Context inner, outer;
-        unsigned char ipad[64], ihash[32], opad[64];
-        if(key->len != 64)
+        /* Reference hmac-sha functions weigth up babeld by 32Kb-36Kb,
+         * so we roll our own! */
+        unsigned char pad[SHA256_Message_Block_Size], ihash[SHA256HashSize];
+        SHA256Context c;
+        unsigned i;
+
+        if(key->len != sizeof(pad))
             return -1;
-        for(int i = 0; i < 64; i++)
-            ipad[i] = key->value[i] ^ 0x36;
-        rc = SHA256Reset(&inner);
+
+        for(i = 0; i < sizeof(pad); i++)
+            pad[i] = key->value[i] ^ 0x36;
+        rc = SHA256Reset(&c);
         if(rc < 0)
             return -1;
-        rc = SHA256Input(&inner, ipad, 64);
+
+        rc = SHA256Input(&c, pad, sizeof(pad));
+        if(rc < 0)
+            return -1;
+        rc = SHA256Input(&c, src, 16);
+        if(rc != 0)
+            return -1;
+        rc = SHA256Input(&c, port, 2);
+        if(rc != 0)
+            return -1;
+        rc = SHA256Input(&c, dst, 16);
+        if(rc != 0)
+            return -1;
+        rc = SHA256Input(&c, port, 2);
+        if(rc != 0)
+            return -1;
+        rc = SHA256Input(&c, packet_header, 4);
+        if(rc != 0)
+            return -1;
+        rc = SHA256Input(&c, body, bodylen);
+        if(rc != 0)
+            return -1;
+        rc = SHA256Result(&c, ihash);
+        if(rc != 0)
+            return -1;
+
+        for(i = 0; i < sizeof(pad); i++)
+            pad[i] = key->value[i] ^ 0x5c;
+        rc = SHA256Reset(&c);
+        if(rc != 0)
+            return -1;
+
+        rc = SHA256Input(&c, pad, sizeof(pad));
+        if(rc != 0)
+            return -1;
+        rc = SHA256Input(&c, ihash, sizeof(ihash));
+        if(rc != 0)
+            return -1;
+        rc = SHA256Result(&c, hmac_return);
         if(rc < 0)
             return -1;
 
-        rc = SHA256Input(&inner, src, 16);
-        if(rc != 0)
-            return -1;
-        rc = SHA256Input(&inner, port, 2);
-        if(rc != 0)
-            return -1;
-        rc = SHA256Input(&inner, dst, 16);
-        if(rc != 0)
-            return -1;
-        rc = SHA256Input(&inner, port, 2);
-        if(rc != 0)
-            return -1;
-        rc = SHA256Input(&inner, packet_header, 4);
-        if(rc != 0)
-            return -1;
-        rc = SHA256Input(&inner, body, bodylen);
-        if(rc != 0)
-            return -1;
-
-        rc = SHA256Result(&inner, ihash);
-        if(rc != 0)
-            return -1;
-
-        for(int i = 0; i < 64; i++)
-            opad[i] = key->value[i] ^ 0x5c;
-
-        rc = SHA256Reset(&outer);
-        if(rc != 0)
-            return -1;
-        rc = SHA256Input(&outer, opad, 64);
-        if(rc != 0)
-            return -1;
-        rc = SHA256Input(&outer, ihash, 32);
-        if(rc != 0)
-            return -1;
-        rc = SHA256Result(&outer, hmac_return);
-        if(rc < 0)
-            return -1;
-        return 32;
+        return SHA256HashSize;
     }
     case AUTH_TYPE_BLAKE2S: {
         blake2s_state s;
-        if(key->len != 16)
+        if(key->len != BLAKE2S_KEYBYTES)
             return -1;
-        rc = blake2s_init_key(&s, 16, key->value, key->len);
+        rc = blake2s_init_key(&s, BLAKE2S_OUTBYTES, key->value, key->len);
         if(rc < 0)
             return -1;
         rc = blake2s_update(&s, src, 16);
@@ -196,11 +204,11 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
         rc = blake2s_update(&s, body, bodylen);
         if(rc < 0)
             return -1;
-        rc = blake2s_final(&s, hmac_return, 16);
+        rc = blake2s_final(&s, hmac_return, BLAKE2S_OUTBYTES);
         if(rc < 0)
             return -1;
 
-        return 16;
+        return BLAKE2S_OUTBYTES;
     }
     default:
         return -1;
