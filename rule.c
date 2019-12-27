@@ -43,7 +43,7 @@ struct rule {
     unsigned char table;
 };
 
-/* rules contains informations about the rules we installed. It is an array
+/* rules contains information about the rules we installed. It is an array
    indexed by: <table priority> - src_table_prio.
    (First entries are the most specific, since they have priority.) */
 static struct rule rules[SRC_TABLE_NUM];
