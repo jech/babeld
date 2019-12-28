@@ -197,7 +197,7 @@ parse_thousands(const char *string)
     return -1;
 }
 
-int
+static int
 h2i(char c)
 {
     if(c >= '0' && c <= '9')
@@ -211,7 +211,7 @@ h2i(char c)
 }
 
 int
-fromhex(unsigned char *dest, char *src, int n)
+fromhex(unsigned char *dst, const char *src, int n)
 {
     int i;
     if(n % 2 != 0)
@@ -224,7 +224,7 @@ fromhex(unsigned char *dest, char *src, int n)
         b = h2i(src[i*2 + 1]);
         if(b < 0)
             return -1;
-        dest[i] = a*16 + b;
+        dst[i] = a*16 + b;
     }
     return n/2;
 }
