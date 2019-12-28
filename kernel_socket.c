@@ -49,8 +49,6 @@ THE SOFTWARE.
 #include "kernel.h"
 #include "util.h"
 
-
-
 static int get_sdl(struct sockaddr_dl *sdl, char *ifname);
 
 int export_table = -1, import_table_count = 0, import_tables[MAX_IMPORT_TABLES];
@@ -499,32 +497,35 @@ kernel_route(int operation, int table,
     msg.m_rtm.rtm_addrs = RTA_DST | RTA_GATEWAY;
     if(plen != 128) msg.m_rtm.rtm_addrs |= RTA_NETMASK;
 
-#define PUSHEUI(ifindex) \
-    do { char ifname[IFNAMSIZ]; \
-         struct sockaddr_dl *sdl = (struct sockaddr_dl*) data; \
-         if(!if_indextoname((ifindex), ifname))  \
-             return -1; \
-         if(get_sdl(sdl, ifname) < 0)   \
-             return -1; \
-         data = data + ROUNDUP(sdl->sdl_len); \
+#define PUSHEUI(ifindex)                                        \
+    do {                                                        \
+        char ifname[IFNAMSIZ];                                  \
+        struct sockaddr_dl *sdl = (struct sockaddr_dl*) data;   \
+        if(!if_indextoname((ifindex), ifname))                  \
+            return -1;                                          \
+        if(get_sdl(sdl, ifname) < 0)                            \
+            return -1;                                          \
+        data = data + ROUNDUP(sdl->sdl_len);                    \
     } while(0)
 
-#define PUSHADDR(src) \
-    do { struct sockaddr_in *sin = (struct sockaddr_in*) data; \
-         sin->sin_len = sizeof(struct sockaddr_in);  \
-         sin->sin_family = AF_INET; \
-         memcpy(&sin->sin_addr, (src) + 12, 4); \
-         data = data + ROUNDUP(sin->sin_len); \
+#define PUSHADDR(src)                                           \
+    do {                                                        \
+        struct sockaddr_in *sin = (struct sockaddr_in*) data;   \
+        sin->sin_len = sizeof(struct sockaddr_in);              \
+        sin->sin_family = AF_INET;                              \
+        memcpy(&sin->sin_addr, (src) + 12, 4);                  \
+        data = data + ROUNDUP(sin->sin_len);                    \
     } while(0)
 
-#define PUSHADDR6(src) \
-    do { struct sockaddr_in6 *sin6 = (struct sockaddr_in6*) data; \
-         sin6->sin6_len = sizeof(struct sockaddr_in6); \
-         sin6->sin6_family = AF_INET6; \
-         memcpy(&sin6->sin6_addr, (src), 16); \
-         if(IN6_IS_ADDR_LINKLOCAL (&sin6->sin6_addr)) \
-             SET_IN6_LINKLOCAL_IFINDEX (sin6->sin6_addr, ifindex); \
-         data = data + ROUNDUP(sin6->sin6_len); \
+#define PUSHADDR6(src)                                                  \
+    do {                                                                \
+        struct sockaddr_in6 *sin6 = (struct sockaddr_in6*) data;        \
+        sin6->sin6_len = sizeof(struct sockaddr_in6);                   \
+        sin6->sin6_family = AF_INET6;                                   \
+        memcpy(&sin6->sin6_addr, (src), 16);                            \
+        if(IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr))                     \
+            SET_IN6_LINKLOCAL_IFINDEX (sin6->sin6_addr, ifindex);       \
+        data = data + ROUNDUP(sin6->sin6_len);                          \
     } while(0)
 
     /* KAME ipv6 stack does not support IPv4 mapped IPv6, so we have to
@@ -584,7 +585,7 @@ print_kernel_route(int add, struct kernel_route *route)
     char ifname[IFNAMSIZ];
 
     if(!if_indextoname(route->ifindex, ifname))
-        memcpy(ifname,"unk",4);
+        memcpy(ifname, "unk", 4);
 
     fprintf(stderr,
             "%s kernel route: dest: %s gw: %s metric: %d if: %s(%u) \n",
@@ -593,8 +594,7 @@ print_kernel_route(int add, struct kernel_route *route)
             format_prefix(route->prefix, route->plen),
             format_address(route->gw),
             route->metric,
-            ifname, route->ifindex
-            );
+            ifname, route->ifindex);
 }
 
 static int
@@ -778,7 +778,7 @@ socket_read(int sock, struct kernel_filter *filter)
             return 0;
         filter->route(&route, filter->route_closure);
         if(debug > 2)
-            print_kernel_route(1,&route);
+            print_kernel_route(1, &route);
         return 1;
 
     }
@@ -873,9 +873,3 @@ change_rule(int new_prio, int old_prio,
     errno = ENOSYS;
     return -1;
 }
-
-
-/* Local Variables:      */
-/* c-basic-offset: 4     */
-/* indent-tabs-mode: nil */
-/* End:                  */
