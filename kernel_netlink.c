@@ -580,6 +580,14 @@ kernel_setup(int setup)
         nl_command.sock = -1;
         nl_setup = 0;
 
+        if(old_if != NULL) {
+            for(i = 0; i < num_old_if; i++)
+                free(old_if[i].ifname);
+            free(old_if);
+            old_if = NULL;
+            num_old_if = max_old_if = 0;
+        }
+
         if(skip_kernel_setup) return 1;
 
         for(i=0; i<NUM_SYSCTLS; i++) {
