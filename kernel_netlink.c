@@ -651,13 +651,13 @@ get_old_if(const char *ifname)
     if(num_old_if >= MAX_INTERFACES)
         return -1;
     if(num_old_if >= max_old_if) {
-            int n = max_old_if == 0 ? 4 : 2 * max_old_if;
-            struct old_if *new =
-                realloc(old_if, n * sizeof(struct old_if));
-            if(new != NULL) {
-                old_if = new;
-                max_old_if = n;
-            }
+        int n = max_old_if == 0 ? 4 : 2 * max_old_if;
+        struct old_if *new =
+            realloc(old_if, n * sizeof(struct old_if));
+        if(new != NULL) {
+            old_if = new;
+            max_old_if = n;
+        }
     }
     if(num_old_if >= max_old_if)
         return -1;
@@ -690,11 +690,11 @@ kernel_setup_interface(int setup, const char *ifname, int ifindex)
             fprintf(stderr,
                     "Warning: cannot save old configuration for %s.\n",
                     ifname);
-	if(old_if[i].rp_filter) {
-	    rc = write_proc(buf, 0);
-	    if(rc < 0)
-		return -1;
-	}
+        if(old_if[i].rp_filter) {
+            rc = write_proc(buf, 0);
+            if(rc < 0)
+                return -1;
+        }
     } else {
         if(i >= 0 && old_if[i].rp_filter > 0)
             rc = write_proc(buf, old_if[i].rp_filter);
@@ -1085,17 +1085,17 @@ kernel_route(int operation, int table,
         rta->rta_type = RTA_OIF;
         *(int*)RTA_DATA(rta) = ifindex;
 
-#define ADD_IPARG(type, addr) \
-        do if(ipv4) { \
-            rta = RTA_NEXT(rta, len); \
-            rta->rta_len = RTA_LENGTH(sizeof(struct in_addr)); \
-            rta->rta_type = type; \
-            memcpy(RTA_DATA(rta), addr + 12, sizeof(struct in_addr)); \
-        } else { \
-            rta = RTA_NEXT(rta, len); \
-            rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr)); \
-            rta->rta_type = type; \
-            memcpy(RTA_DATA(rta), addr, sizeof(struct in6_addr)); \
+#define ADD_IPARG(type, addr)                                           \
+        do if(ipv4) {                                                   \
+            rta = RTA_NEXT(rta, len);                                   \
+            rta->rta_len = RTA_LENGTH(sizeof(struct in_addr));          \
+            rta->rta_type = type;                                       \
+            memcpy(RTA_DATA(rta), addr + 12, sizeof(struct in_addr));   \
+        } else {                                                        \
+            rta = RTA_NEXT(rta, len);                                   \
+            rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr));         \
+            rta->rta_type = type;                                       \
+            memcpy(RTA_DATA(rta), addr, sizeof(struct in6_addr));       \
         } while (0)
 
         ADD_IPARG(RTA_GATEWAY, gate);
@@ -1203,10 +1203,10 @@ print_kernel_route(int add, int protocol, int type,
     }
 
     kdebugf("%s kernel route: dest: %s/%d gw: %s metric: %d if: %s "
-           "(proto: %d, type: %d)",
-           add == RTM_NEWROUTE ? "Add" : "Delete",
-           addr_prefix, route->plen, addr_gw, route->metric, ifname,
-           protocol, type);
+            "(proto: %d, type: %d)",
+            add == RTM_NEWROUTE ? "Add" : "Delete",
+            addr_prefix, route->plen, addr_gw, route->metric, ifname,
+            protocol, type);
 }
 
 static int
