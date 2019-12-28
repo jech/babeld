@@ -833,7 +833,8 @@ main(int argc, char **argv)
     release_tables();
     kernel_setup_socket(0);
     kernel_setup(0);
-    release_filters();
+    release_interfaces();
+    release_configurations();
     free(receive_buffer);
 
     fd = open(state_file, O_WRONLY | O_TRUNC | O_CREAT, 0644);

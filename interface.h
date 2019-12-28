@@ -154,3 +154,4 @@ void set_timeout(struct timeval *timeout, int msecs);
 int interface_updown(struct interface *ifp, int up);
 int interface_ll_address(struct interface *ifp, const unsigned char *address);
 void check_interfaces(void);
+void release_interfaces(void);

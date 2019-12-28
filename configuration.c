@@ -335,9 +335,10 @@ free_filter(struct filter *f)
 }
 
 void
-release_filters(void)
+release_configurations(void)
 {
     struct filter *f;
+    struct interface_conf *if_conf = interface_confs;
 #define free_list(l)                            \
     do {                                        \
         f = l;                                  \
@@ -352,6 +353,17 @@ release_filters(void)
     free_list(redistribute_filters);
     free_list(install_filters);
 #undef free_list
+
+    while(if_conf != NULL) {
+        struct interface_conf *ifc = if_conf->next;
+        free(if_conf->ifname);
+        free(if_conf);
+        if_conf = ifc;
+    }
+    if(default_interface_conf != NULL) {
+        free(default_interface_conf->ifname);
+        free(default_interface_conf);
+    }
 }
 
 static int
@@ -793,27 +805,29 @@ add_ifconf(struct interface_conf *if_conf, struct interface_conf **if_confs)
         add_interface(if_conf->ifname, if_conf);
 }
 
-void
+int
 flush_ifconf(struct interface_conf *if_conf)
 {
     if(if_conf == interface_confs) {
         interface_confs = if_conf->next;
-        free(if_conf->ifname);
-        free(if_conf);
-        return;
+        goto flush;
     } else {
         struct interface_conf *prev = interface_confs;
         while(prev) {
             if(prev->next == if_conf) {
                 prev->next = if_conf->next;
-                free(if_conf->ifname);
-                free(if_conf);
-                return;
+                goto flush;
             }
             prev = prev->next;
         }
     }
     fprintf(stderr, "Warning: attempting to free nonexistent ifconf.\n");
+    return -1;
+
+flush:
+    free(if_conf->ifname);
+    free(if_conf);
+    return 0;
 }
 
 static int

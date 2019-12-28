@@ -102,14 +102,36 @@ flush_interface(char *ifname)
     else
         interfaces = ifp->next;
 
-    if(ifp->conf != NULL && ifp->conf != default_interface_conf)
-        flush_ifconf(ifp->conf);
+    free(ifp->ipv4);
+    if(ifp->conf != NULL && ifp->conf != default_interface_conf) {
+        int rc = flush_ifconf(ifp->conf);
+        if(rc) {
+            free(ifp->conf->ifname);
+            free(ifp->conf);
+        }
+    }
 
     local_notify_interface(ifp, LOCAL_FLUSH);
 
     free(ifp);
 
     return 1;
+}
+
+void
+release_interfaces(void)
+{
+    struct interface *ifp = interfaces, *next;
+    while(ifp) {
+        next = ifp->next;
+        free(ifp->ipv4);
+        if(ifp->conf != NULL && ifp->conf != default_interface_conf) {
+            free(ifp->conf->ifname);
+            free(ifp->conf);
+        }
+        free(ifp);
+        ifp = next;
+    }
 }
 
 /* This should be no more than half the hello interval, so that hellos

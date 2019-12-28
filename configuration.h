@@ -56,7 +56,7 @@ struct filter {
 
 extern struct interface_conf *default_interface_conf;
 
-void flush_ifconf(struct interface_conf *if_conf);
+int flush_ifconf(struct interface_conf *if_conf);
 
 int parse_config_from_file(const char *filename, int *line_return);
 int parse_config_from_string(char *string, int n, const char **message_return);
@@ -79,4 +79,4 @@ int install_filter(const unsigned char *prefix, unsigned short plen,
                    unsigned int ifindex, struct filter_result *result);
 int finalise_config(void);
 
-void release_filters(void);
+void release_configurations(void);
