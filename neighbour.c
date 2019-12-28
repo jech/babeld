@@ -72,6 +72,18 @@ flush_neighbour(struct neighbour *neigh)
     free(neigh);
 }
 
+void
+release_neighbours(void)
+{
+    struct neighbour *neigh = neighs, *next;
+    while(neigh != NULL) {
+        next = neigh->next;
+        free(neigh->buf.buf);
+        free(neigh);
+        neigh = next;
+    }
+}
+
 struct neighbour *
 find_neighbour(const unsigned char *address, struct interface *ifp)
 {
