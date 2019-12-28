@@ -48,8 +48,6 @@ int split_horizon = 1;
 unsigned short myseqno = 0;
 struct timeval seqno_time = {0, 0};
 
-extern const unsigned char v4prefix[16];
-
 #define MAX_CHANNEL_HOPS 20
 
 /* Parse a network prefix, encoded in the somewhat baroque compressed

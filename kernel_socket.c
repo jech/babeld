@@ -53,9 +53,6 @@ THE SOFTWARE.
 
 static int get_sdl(struct sockaddr_dl *sdl, char *ifname);
 
-static const unsigned char v4prefix[16] =
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0 };
-
 int export_table = -1, import_table_count = 0, import_tables[MAX_IMPORT_TABLES];
 
 int
