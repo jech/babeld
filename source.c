@@ -109,14 +109,9 @@ resize_source_table(int new_slots)
     struct source **new_sources;
     assert(new_slots >= source_slots);
 
-    if(new_slots == 0) {
-        new_sources = NULL;
-        free(sources);
-    } else {
-        new_sources = realloc(sources, new_slots * sizeof(struct source*));
-        if(new_sources == NULL)
-            return -1;
-    }
+    new_sources = realloc(sources, new_slots * sizeof(struct source*));
+    if(new_sources == NULL)
+        return -1;
 
     max_source_slots = new_slots;
     sources = new_sources;
@@ -245,4 +240,13 @@ check_sources_released(void)
                     format_prefix(src->prefix, src->plen),
                     (int)src->route_count);
     }
+}
+
+void
+release_sources(void)
+{
+    int i;
+    for(i = 0; i < source_slots; i++)
+        free(sources[i]);
+    free(sources);
 }
