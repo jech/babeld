@@ -836,6 +836,7 @@ main(int argc, char **argv)
     release_interfaces();
     release_configurations();
     release_neighbours();
+    release_xroutes();
     free(receive_buffer);
 
     fd = open(state_file, O_WRONLY | O_TRUNC | O_CREAT, 0644);

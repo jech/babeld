@@ -183,6 +183,12 @@ flush_xroute(struct xroute *xroute)
     }
 }
 
+void
+release_xroutes(void)
+{
+    free(xroutes);
+}
+
 /* Returns an overestimate of the number of xroutes. */
 int
 xroutes_estimate(void)
@@ -197,11 +203,7 @@ struct xroute_stream {
 struct xroute_stream *
 xroute_stream(void)
 {
-    struct xroute_stream *stream = calloc(1, sizeof(struct xroute_stream));
-    if(stream == NULL)
-        return NULL;
-
-    return stream;
+    return calloc(1, sizeof(struct xroute_stream));
 }
 
 
