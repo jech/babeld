@@ -223,16 +223,23 @@ change_route(int operation, const struct zone *zone,
     struct filter_result filter_result;
     unsigned char *pref_src = NULL;
     unsigned int ifindex = route->neigh->ifp->ifindex;
-
+    unsigned table;
     int m = install_filter(zone->dst_prefix, zone->dst_plen,
                            zone->src_prefix, zone->src_plen,
                            ifindex, &filter_result);
     if (m < INFINITY)
         pref_src = filter_result.pref_src;
 
-    int table = filter_result.table ? filter_result.table :
-        find_table(zone->dst_prefix, zone->dst_plen,
-                   zone->src_prefix, zone->src_plen);
+    if(filter_result.table) {
+        table = filter_result.table;
+    } else {
+        int rc = find_table(zone->dst_prefix, zone->dst_plen,
+                            zone->src_prefix, zone->src_plen);
+        if(rc >= 0)
+            table = rc;
+        else
+            return -1;
+    }
 
     return kernel_route(operation, table, zone->dst_prefix, zone->dst_plen,
                         zone->src_prefix, zone->src_plen, pref_src,
