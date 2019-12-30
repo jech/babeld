@@ -753,7 +753,7 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
 
     key = calloc(1, sizeof(struct key));
     if(key == NULL)
-        goto error;
+        return -2;
     while(1) {
         c = skip_whitespace(c, gnc, closure);
         if(c < 0 || c == '\n' || c == '#') {
@@ -761,7 +761,7 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
             break;
         }
         c = getword(c, &token, gnc, closure);
-        if(c < -1) {
+        if(c < -1 || token == NULL) {
             goto error;
         }
         if(strcmp(token, "id") == 0) {
@@ -795,12 +795,41 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
             goto error;
         }
         free(token);
+        token = NULL;
     }
+
+    if(key->id == NULL)
+        goto error;
+
+    switch(key->type) {
+    case AUTH_TYPE_SHA256: {
+        if(key->len > 64)
+            goto error;
+        if(key->len < 64) {
+            unsigned char *v = realloc(key->value, 64);
+            if(v == NULL)
+                goto error;
+            memset(v + key->len, 0, 64 - key->len);
+            key->value = v;
+            key->len = 64;
+        }
+        break;
+    }
+    case AUTH_TYPE_BLAKE2S:
+        if(key->len != 16)
+            goto error;
+        break;
+    default:
+        goto error;
+    }
+
     *key_return = key;
     return c;
 
  error:
     free(token);
+    free(key->value);
+    free(key->id);
     free(key);
     return -2;
 }
@@ -1212,43 +1241,8 @@ parse_config_line(int c, gnc_t gnc, void *closure,
     } else if(strcmp(token, "key") == 0) {
         struct key *key = NULL;
         c = parse_key(c, gnc, closure, &key);
-        if(c < -1 || key == NULL || key->id == NULL) {
-            if(key != NULL)
-                free(key->value);
-            free(key);
+        if(c < -1)
             goto fail;
-        }
-        switch(key->type) {
-        case AUTH_TYPE_SHA256:
-            if(key->len > 64) {
-                free(key->value);
-                free(key);
-                goto fail;
-            }
-            if(key->len < 64) {
-                unsigned char *v = realloc(key->value, 64);
-                if(v == NULL) {
-                    free(key->value);
-                    free(key);
-                    goto fail;
-                }
-                memset(v + key->len, 0, 64 - key->len);
-                key->value = v;
-                key->len = 64;
-            }
-            break;
-        case AUTH_TYPE_BLAKE2S:
-            if(key->len != 16) {
-                free(key->value);
-                free(key);
-                goto fail;
-            }
-            break;
-        default:
-            free(key->value);
-            free(key);
-            goto fail;
-        }
         add_key(key->id, key->type, key->len, key->value);
         free(key);
     } else {
