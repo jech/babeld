@@ -39,6 +39,16 @@ THE SOFTWARE.
 #include "util.h"
 
 int
+siesta(int usec)
+{
+    struct timespec ts = {
+        .tv_sec = 0,
+        .tv_nsec = usec * 1000
+    };
+    return nanosleep(&ts, NULL);
+}
+
+int
 roughly(int value)
 {
     if(value < 0)

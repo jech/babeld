@@ -568,7 +568,7 @@ main(int argc, char **argv)
         if(!if_up(ifp))
             continue;
         /* Apply jitter before we send the first message. */
-        usleep(roughly(10000));
+        siesta(roughly(10000));
         gettime(&now);
         send_hello(ifp);
         send_wildcard_retraction(ifp);
@@ -579,7 +579,7 @@ main(int argc, char **argv)
     FOR_ALL_INTERFACES(ifp) {
         if(!if_up(ifp))
             continue;
-        usleep(roughly(10000));
+        siesta(roughly(10000));
         gettime(&now);
         send_hello(ifp);
         send_wildcard_retraction(ifp);
@@ -802,7 +802,7 @@ main(int argc, char **argv)
     }
 
     debugf("Exiting...\n");
-    usleep(roughly(10000));
+    siesta(roughly(10000));
     gettime(&now);
 
     /* We need to flush so interface_updown won't try to reinstall. */
@@ -816,7 +816,7 @@ main(int argc, char **argv)
            association caches. */
         send_multicast_hello(ifp, 10, 1);
         flushbuf(&ifp->buf, ifp);
-        usleep(roughly(1000));
+        siesta(roughly(1000));
         gettime(&now);
     }
     FOR_ALL_INTERFACES(ifp) {
@@ -826,7 +826,7 @@ main(int argc, char **argv)
         send_wildcard_retraction(ifp);
         send_multicast_hello(ifp, 1, 1);
         flushbuf(&ifp->buf, ifp);
-        usleep(roughly(10000));
+        siesta(roughly(10000));
         gettime(&now);
         interface_updown(ifp, 0);
     }
