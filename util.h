@@ -66,6 +66,7 @@ time_us(const struct timeval t)
     return (unsigned int) (t.tv_sec * 1000000 + t.tv_usec);
 }
 
+int nap(int usec);
 int roughly(int value);
 void timeval_minus(struct timeval *d,
                    const struct timeval *s1, const struct timeval *s2);
