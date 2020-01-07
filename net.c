@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#define _GNU_SOURCE
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -29,7 +30,6 @@ THE SOFTWARE.
 #include <sys/uio.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#define __USE_GNU
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
