@@ -64,7 +64,8 @@ int send_crypto_seqno(struct buffered *buf, struct interface *ifp);
 void send_ack(struct neighbour *neigh, unsigned short nonce,
               unsigned short interval);
 int send_challenge_req(struct neighbour *neigh);
-void send_challenge_reply(struct neighbour *neigh, unsigned char *crypto_nonce, int len);
+void send_challenge_reply(struct neighbour *neigh,
+                          const unsigned char *crypto_nonce, int len);
 void send_multicast_hello(struct interface *ifp, unsigned interval, int force);
 void send_unicast_hello(struct neighbour *neigh, unsigned interval, int force);
 void send_hello(struct interface *ifp);

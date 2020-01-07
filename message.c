@@ -502,11 +502,9 @@ preparse_packet(const unsigned char *packet, int bodylen,
                 debugf("Challenge failed.\n");
             }
         } else if(type == MESSAGE_CHALLENGE_REQUEST) {
-            unsigned char nonce[len];
             debugf("Received challenge request from %s.\n",
                    format_address(neigh->address));
-            memcpy(nonce, message + 2, len);
-            send_challenge_reply(neigh, nonce, len);
+            send_challenge_reply(neigh, message + 2, len);
         }
         i += len + 2;
     }
@@ -1230,7 +1228,7 @@ send_challenge_req(struct neighbour *neigh)
 }
 
 void
-send_challenge_reply(struct neighbour *neigh, unsigned char *crypto_nonce,
+send_challenge_reply(struct neighbour *neigh, const unsigned char *crypto_nonce,
                      int len)
 {
     debugf("Sending challenge reply to %s on %s.\n",
