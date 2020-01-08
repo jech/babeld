@@ -21,6 +21,7 @@ THE SOFTWARE.
 */
 
 #define _GNU_SOURCE
+#define __APPLE_USE_RFC_3542
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
