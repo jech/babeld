@@ -1,2 +1,5 @@
 .gitignore export-ignore
 .gitattributes export-ignore
+.gitmodules export-ignore
+*.c diff=cpp
+*.h diff=cpp
