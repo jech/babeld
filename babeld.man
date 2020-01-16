@@ -152,6 +152,15 @@ Specify a file to write our process id to, use no pidfile if set to the
 empty string.  The default is
 .BR /var/run/babeld/babeld.pid .
 .TP
+.BI \-U " uid" \c
+.RI : gid
+Change the user ID to
+.IR uid ,
+an unprivileged user, and the group ID to
+.IR gid ,
+an unprivileged group; while using Linux capabilities to retain just
+required privileges.  Only supported on Linux.
+.TP
 .IR interface ...
 The list of interfaces on which the protocol should operate.
 .SH CONFIGURATION FILE FORMAT

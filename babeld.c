@@ -21,6 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#define _GNU_SOURCE
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -38,6 +39,13 @@ THE SOFTWARE.
 #include <netinet/in.h>
 #include <net/if.h>
 #include <arpa/inet.h>
+
+#ifdef __linux
+#include <sys/prctl.h>
+#include <linux/capability.h>
+#include <grp.h>
+extern int capset(cap_user_header_t header, const cap_user_data_t data);
+#endif
 
 #include "babeld.h"
 #include "util.h"
@@ -142,6 +150,60 @@ kernel_rule_notify(struct kernel_rule *rule, void *closure)
     return -1;
 }
 
+#ifdef __linux
+/* Inspired by BIRD, see sysdep/{unix/main.c,linux/syspriv.h}. */
+static void
+night_1789_08_04(uid_t uid, gid_t gid)
+{
+    struct __user_cap_header_struct header;
+    struct __user_cap_data_struct data[_LINUX_CAPABILITY_U32S_3];
+    header.version = _LINUX_CAPABILITY_VERSION_3;
+    header.pid = 0;
+    memset(data, 0, sizeof(data));
+    data[0].effective = data[0].permitted = CAP_TO_MASK(CAP_NET_ADMIN);
+
+    if(setresgid(gid, gid, gid) < 0) {
+        perror("setresgid");
+        goto error;
+    }
+
+    if(setgroups(0, NULL) < 0) {
+        perror("setgroups");
+        goto error;
+    }
+
+    /* change effective user ID to be able to switch to that
+       user ID completely after dropping CAP_SETUID */
+    if(seteuid(uid) < 0) {
+        perror("seteuid");
+        goto error;
+    }
+
+    /* restrict the capabilities */
+    if(capset(&header, data) < 0) {
+        perror("capset(CAP_NET_ADMIN)");
+        goto error;
+    }
+
+    /* keep the capabilities after dropping root ID */
+    if(prctl(PR_SET_KEEPCAPS, 1) < 0) {
+        perror("prctl(PR_SET_KEEPCAPS)");
+        goto error;
+    }
+
+    /* completely switch to the unprivileged user ID */
+    if(setresuid(uid, uid, uid) < 0) {
+        perror("setresuid");
+        goto error;
+    }
+
+    return;
+ error:
+    fprintf(stderr, "Could not drop privileges.\n");
+    exit(1);
+}
+#endif
+
 int
 main(int argc, char **argv)
 {
@@ -153,6 +215,8 @@ main(int argc, char **argv)
     void *vrc;
     unsigned int seed;
     struct interface *ifp;
+    uid_t uid = -1;
+    gid_t gid = -1;
 
     gettime(&now);
 
@@ -172,7 +236,7 @@ main(int argc, char **argv)
 
     while(1) {
         opt = getopt(argc, argv,
-                     "m:p:h:H:i:k:A:srS:d:g:G:lwz:M:t:T:c:C:DL:I:V");
+                     "m:p:h:H:i:k:A:srS:d:g:G:lwz:M:t:T:c:C:DL:I:U:V");
         if(opt < 0)
             break;
 
@@ -313,6 +377,26 @@ main(int argc, char **argv)
         case 'I':
             pidfile = optarg;
             break;
+        case 'U': {
+#ifdef __linux
+            char *sep = strchr(optarg, ':');
+            if(sep == NULL) {
+                fprintf(stderr, "Couldn't parse uid or gid.\n");
+                goto usage;
+            }
+            *sep = '\0';
+            uid = parse_nat(optarg);
+            gid = parse_nat(sep + 1);
+            if(uid < 1 || gid < 1) {
+                fprintf(stderr, "Couldn't parse uid or gid.\n");
+                goto usage;
+            }
+            break;
+#else
+            fprintf(stderr, "Option -U has no effect on this system.\n");
+            goto usage;
+#endif
+        }
         case 'V':
             fprintf(stderr, "%s\n", BABELD_VERSION);
             exit(0);
@@ -321,6 +405,11 @@ main(int argc, char **argv)
             goto usage;
         }
     }
+
+#ifdef __linux
+    if(uid > 0)
+        night_1789_08_04(uid, gid);
+#endif
 
     if(num_config_files == 0) {
         if(access("/etc/babeld.conf", F_OK) >= 0) {
@@ -873,7 +962,7 @@ main(int argc, char **argv)
             "               "
             "[-g port] [-G port] [-k metric] [-A metric] [-s] [-l] [-w] [-r]\n"
             "               "
-            "[-t table] [-T table] [-c file] [-C statement]\n"
+            "[-U uid:gid] [-t table] [-T table] [-c file] [-C statement]\n"
             "               "
             "[-d level] [-D] [-L logfile] [-I pidfile]\n"
             "               "
