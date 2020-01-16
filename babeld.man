@@ -96,11 +96,6 @@ derived from the MAC address of the first interface, which is easier
 to debug and more reliably prevents routing loops but may sometimes
 cause a node to be unreachable for 120 seconds just after boot.
 .TP
-.B \-u
-Do not flush unfeasible (useless) routes.  This is useful in order to
-announce more information to a front-end (see
-.BR \-g ).
-.TP
 .BI \-d " level"
 Debug level.  A value of 1 requests a routing table dump at every
 iteration through the daemon's main loop.  A value of 2 additionally
@@ -450,7 +445,7 @@ The default is
 if the interface is of type
 .B tunnel,
 and
-.BR 0 
+.BR 0
 otherwise.
 .SS Filtering rules
 A filtering rule is defined by a single line with the following format:

@@ -873,7 +873,7 @@ main(int argc, char **argv)
             "               "
             "[-g port] [-G port] [-k metric] [-A metric] [-s] [-l] [-w] [-r]\n"
             "               "
-            "[-u] [-t table] [-T table] [-c file] [-C statement]\n"
+            "[-t table] [-T table] [-c file] [-C statement]\n"
             "               "
             "[-d level] [-D] [-L logfile] [-I pidfile]\n"
             "               "
