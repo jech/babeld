@@ -71,8 +71,8 @@ int random_id = 0;
 int do_daemonise = 0;
 int skip_kernel_setup = 0;
 const char *logfile = NULL,
-    *pidfile = "/var/run/babeld.pid",
-    *state_file = "/var/lib/babel-state";
+    *pidfile = "/var/run/babeld/babeld.pid",
+    *state_file = "/var/lib/babeld/babel-state";
 
 unsigned char *receive_buffer = NULL;
 int receive_buffer_size = 0;
@@ -362,7 +362,7 @@ main(int argc, char **argv)
 
     if(do_daemonise) {
         if(logfile == NULL)
-            logfile = "/var/log/babeld.log";
+            logfile = "/var/log/babeld/babeld.log";
     }
 
     rc = reopen_logfile();

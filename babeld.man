@@ -36,7 +36,7 @@ between invocations of the
 daemon.  If this file is deleted, the daemon will run in passive mode
 for 3 minutes when it is next started, and other hosts might initially
 ignore it. The default is
-.BR /var/lib/babel-state .
+.BR /var/lib/babeld/babel-state .
 .TP
 .BI \-h " hello-interval"
 Specify the interval in seconds at which scheduled hello packets are
@@ -144,13 +144,13 @@ Daemonise at startup.
 .BI \-L " logfile"
 Specify a file to log random ``how do you do?'' messages to.  This
 defaults to standard error if not daemonising, and to
-.B /var/log/babeld.log
+.B /var/log/babeld/babeld.log
 otherwise.
 .TP
 .BI \-I " pidfile"
 Specify a file to write our process id to, use no pidfile if set to the
 empty string.  The default is
-.BR /var/run/babeld.pid .
+.BR /var/run/babeld/babeld.pid .
 .TP
 .IR interface ...
 The list of interfaces on which the protocol should operate.
@@ -668,13 +668,13 @@ http://arxiv.org/pdf/1403.0445v4.pdf
 .B /etc/babeld.conf
 The default location of the configuration file.
 .TP
-.B /var/lib/babel\-state
+.B /var/lib/babeld/babel\-state
 The default location of the file storing long-term state.
 .TP
-.B /var/run/babeld.pid
+.B /var/run/babeld/babeld.pid
 The default location of the pid file.
 .TP
-.B /var/log/babeld.log
+.B /var/log/babeld/babeld.log
 The default location of the log file.
 .SH SIGNALS
 .TP
