@@ -313,7 +313,13 @@ This specifies the name of the file to which
 writes out its process id, and is equivalent to the command-line option
 .BR \-I .
 .TP
-.BI "key id" " id" " type" " type" " value" " value"
+.BI first-rule-priority " priority"
+This specifies smallest (highest) rule priority used with source-specific
+routes.  The default is 100.
+.TP
+.BI "key id" " id" " type " \c
+.RB { hmac-sha256 | blake2s } \c
+.BI " value" " value"
 Configure a key for use with the
 .B hmac
 interface option.  The
