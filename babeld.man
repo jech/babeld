@@ -318,7 +318,9 @@ source-specific routes.  The default is 10.
 This specifies smallest (highest) rule priority used with source-specific
 routes.  The default is 100.
 .TP
-.BI "key id" " id" " type" " type" " value" " value"
+.BI "key id" " id" " type " \c
+.RB { hmac-sha256 | blake2s } \c
+.BI " value" " value"
 Configure a key for use with the
 .B hmac
 interface option.  The

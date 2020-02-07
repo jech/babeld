@@ -787,7 +787,7 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
             }
             if(strcmp(auth_type, "none") == 0) {
                 key->type = AUTH_TYPE_NONE;
-            } else if(strcmp(auth_type, "sha256") == 0) {
+            } else if(strcmp(auth_type, "hmac-sha256") == 0) {
                 key->type = AUTH_TYPE_SHA256;
             } else if(strcmp(auth_type, "blake2s") == 0) {
                 key->type = AUTH_TYPE_BLAKE2S;
