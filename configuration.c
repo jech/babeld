@@ -690,11 +690,14 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             char *key_id;
             struct key *key;
             c = getword(c, &key_id, gnc, closure);
-            if(c < -1) {
+            if(c < -1)
+                goto error;
+            key = find_key(key_id);
+            if(key == NULL) {
+                fprintf(stderr, "Couldn't find key %s.\n", key_id);
                 free(key_id);
                 goto error;
             }
-            key = find_key(key_id);
             if_conf->key = key;
             free(key_id);
         } else {
