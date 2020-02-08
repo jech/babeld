@@ -759,8 +759,10 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
     struct key *key;
 
     key = calloc(1, sizeof(struct key));
-    if(key == NULL)
+    if(key == NULL) {
+        perror("calloc(key)");
         return -2;
+    }
     while(1) {
         c = skip_whitespace(c, gnc, closure);
         if(c < 0 || c == '\n' || c == '#') {
@@ -790,33 +792,44 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
             } else if(strcmp(auth_type, "blake2s") == 0) {
                 key->type = AUTH_TYPE_BLAKE2S;
             } else {
+                fprintf(stderr, "Key type '%s' isn't supported.\n", auth_type);
                 free(auth_type);
                 goto error;
             }
             free(auth_type);
         } else if(strcmp(token, "value") == 0) {
             c = gethex(c, &key->value, &key->len, gnc, closure);
-            if(c < -1 || key->value == NULL)
+            if(c < -1 || key->value == NULL) {
+                fprintf(stderr, "Couldn't parse key value.\n");
                 goto error;
+            }
         } else {
+            fprintf(stderr, "Unrecognized keyword '%s'.\n", token);
             goto error;
         }
         free(token);
         token = NULL;
     }
 
-    if(key->id == NULL)
+    if(key->id == NULL) {
+        fprintf(stderr, "No key id was given.\n");
         goto error;
+    }
 
     switch(key->type) {
     case AUTH_TYPE_SHA256: {
         int blocksize = SHA256_Message_Block_Size;
-        if(key->len > blocksize)
+        if(key->len > blocksize) {
+            fprintf(stderr, "Key length is %d, expected at most %d.\n",
+                    key->len, blocksize);
             goto error;
+        }
         if(key->len < blocksize) {
             unsigned char *v = realloc(key->value, blocksize);
-            if(v == NULL)
+            if(v == NULL) {
+                perror("realloc(key->value)");
                 goto error;
+            }
             memset(v + key->len, 0, blocksize - key->len);
             key->value = v;
             key->len = blocksize;
@@ -824,10 +837,14 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
         break;
     }
     case AUTH_TYPE_BLAKE2S:
-        if(key->len != BLAKE2S_KEYBYTES)
+        if(key->len != BLAKE2S_KEYBYTES) {
+            fprintf(stderr, "Key length is %d, expected %d.\n",
+                    key->len, BLAKE2S_KEYBYTES);
             goto error;
+        }
         break;
     case AUTH_TYPE_NONE:
+        fprintf(stderr, "Key type 'none' isn't supported.\n");
         goto error;
     }
 
