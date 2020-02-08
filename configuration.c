@@ -755,8 +755,10 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
     struct key *key;
 
     key = calloc(1, sizeof(struct key));
-    if(key == NULL)
+    if(key == NULL) {
+        perror("calloc(key)");
         return -2;
+    }
     while(1) {
         c = skip_whitespace(c, gnc, closure);
         if(c < 0 || c == '\n' || c == '#') {
@@ -786,32 +788,43 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
             } else if(strcmp(auth_type, "blake2s") == 0) {
                 key->type = AUTH_TYPE_BLAKE2S;
             } else {
+                fprintf(stderr, "Key type '%s' isn't supported.\n", auth_type);
                 free(auth_type);
                 goto error;
             }
             free(auth_type);
         } else if(strcmp(token, "value") == 0) {
             c = gethex(c, &key->value, &key->len, gnc, closure);
-            if(c < -1 || key->value == NULL)
+            if(c < -1 || key->value == NULL) {
+                fprintf(stderr, "Couldn't parse key value.\n");
                 goto error;
+            }
         } else {
+            fprintf(stderr, "Unrecognized keyword '%s'.\n", token);
             goto error;
         }
         free(token);
         token = NULL;
     }
 
-    if(key->id == NULL)
+    if(key->id == NULL) {
+        fprintf(stderr, "No key id was given.\n");
         goto error;
+    }
 
     switch(key->type) {
     case AUTH_TYPE_SHA256: {
-        if(key->len > 64)
+        if(key->len > 64) {
+            fprintf(stderr, "Key length is %d, expected at most %d.\n",
+                    key->len, 64);
             goto error;
+        }
         if(key->len < 64) {
             unsigned char *v = realloc(key->value, 64);
-            if(v == NULL)
+            if(v == NULL) {
+                perror("realloc(key->value)");
                 goto error;
+            }
             memset(v + key->len, 0, 64 - key->len);
             key->value = v;
             key->len = 64;
@@ -819,10 +832,14 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
         break;
     }
     case AUTH_TYPE_BLAKE2S:
-        if(key->len != 16)
+        if(key->len != 16) {
+            fprintf(stderr, "Key length is %d, expected %d.\n",
+                    key->len, 16);
             goto error;
+        }
         break;
     default:
+        fprintf(stderr, "Key type 'none' isn't supported.\n");
         goto error;
     }
 
