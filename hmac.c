@@ -232,7 +232,7 @@ add_hmac(struct buffered *buf, struct interface *ifp,
                            buf->buf + i + 2);
     if(hmaclen < 0)
         return -1;
-    buf->buf[i++] = MESSAGE_HMAC;
+    buf->buf[i++] = MESSAGE_MAC;
     buf->buf[i++] = hmaclen;
     i += hmaclen;
     return i;
@@ -268,7 +268,7 @@ check_hmac(const unsigned char *packet, int packetlen, int bodylen,
             break;
         }
         len = packet[i + 1];
-        if(packet[i] == MESSAGE_HMAC) {
+        if(packet[i] == MESSAGE_MAC) {
             int ok;
             if(i + len + 2 > packetlen) {
                 fprintf(stderr, "Received truncated message.\n");
