@@ -267,6 +267,7 @@ check_hmac(const unsigned char *packet, int packetlen, int bodylen,
 {
     int i = bodylen + 4;
     int len;
+    int rc = -1;
 
     debugf("check_hmac %s -> %s\n",
            format_address(src), format_address(dst));
@@ -286,8 +287,9 @@ check_hmac(const unsigned char *packet, int packetlen, int bodylen,
                               packet + i + 2, len, ifp->key);
             if(ok)
                 return 1;
+            rc = 0;
         }
         i += len + 2;
     }
-    return 0;
+    return rc;
 }
