@@ -611,7 +611,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
     if(ifp->key != NULL) {
         switch(check_hmac(packet, packetlen, bodylen, from, to, ifp)) {
         case -1: /* no mac trailer */
-            if(ifp->flags & IF_NO_HMAC_VERIFY)
+            if(!(ifp->flags & IF_HMAC_VERIFY))
                 break;
             /* fallthrough */
         case 0:

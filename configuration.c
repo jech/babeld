@@ -614,12 +614,6 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if(c < -1)
                 goto error;
             if_conf->unicast = v;
-        } else if(strcmp(token, "no_hmac_verify") == 0) {
-            int v;
-            c = getbool(c, &v, gnc, closure);
-            if(c < -1)
-                goto error;
-            if_conf->no_hmac_verify = v;
         } else if(strcmp(token, "link-quality") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
@@ -704,6 +698,12 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             }
             if_conf->key = key;
             free(key_id);
+        } else if(strcmp(token, "hmac-verify") == 0) {
+            int v;
+            c = getbool(c, &v, gnc, closure);
+            if(c < -1)
+                goto error;
+            if_conf->hmac_verify = v;
         } else {
             goto error;
         }
@@ -897,7 +897,7 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(lq);
     MERGE(faraway);
     MERGE(unicast);
-    MERGE(no_hmac_verify);
+    MERGE(hmac_verify);
     MERGE(channel);
     MERGE(enable_timestamps);
     MERGE(rfc6126);
