@@ -608,16 +608,21 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         bodylen = packetlen - 4;
     }
 
-    if(ifp->key != NULL && !(ifp->flags & IF_NO_HMAC_VERIFY)) {
-        if(check_hmac(packet, packetlen, bodylen, from, to, ifp) != 1) {
-            fprintf(stderr, "Received wrong hmac.\n");
+    if(ifp->key != NULL) {
+        switch(check_hmac(packet, packetlen, bodylen, from, to, ifp)) {
+        case -1: /* no mac trailer */
+            if(ifp->flags & IF_NO_HMAC_VERIFY)
+                break;
+            /* fallthrough */
+        case 0:
+            fputs("Received wrong hmac.\n", stderr);
             return;
-        }
-
-        neigh = preparse_packet(packet, bodylen, from, ifp);
-        if(neigh == NULL) {
-            fputs("Received wrong PC or failed the challenge.\n", stderr);
-            return;
+        case 1:
+            neigh = preparse_packet(packet, bodylen, from, ifp);
+            if(neigh == NULL) {
+                fputs("Received wrong PC or failed the challenge.\n", stderr);
+                return;
+            }
         }
     }
 
