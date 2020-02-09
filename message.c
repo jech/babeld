@@ -475,7 +475,7 @@ preparse_packet(const unsigned char *packet, int bodylen,
             fprintf(stderr, "Received truncated message.\n");
             break;
         }
-        if(type == MESSAGE_CRYPTO_SEQNO) {
+        if(type == MESSAGE_PC) {
             if(len < 4) {
                 fprintf(stderr, "Received truncated PC TLV.\n");
                 break;
@@ -490,8 +490,8 @@ preparse_packet(const unsigned char *packet, int bodylen,
             index_len = len - 4;
             memcpy(index, message + 6, len - 4);
             have_index = 1;
-        } else if(type == MESSAGE_CHALLENGE_RESPONSE) {
-            debugf("Received challenge response from %s.\n",
+        } else if(type == MESSAGE_CHALLENGE_REPLY) {
+            debugf("Received challenge reply from %s.\n",
                    format_address(neigh->address));
             gettime(&now);
             if(len == sizeof(neigh->nonce) &&
@@ -530,7 +530,7 @@ preparse_packet(const unsigned char *packet, int bodylen,
         neigh->have_index = 1;
         return 1;
     } else {
-        send_challenge_req(neigh);
+        send_challenge_request(neigh);
         return 0;
     }
 }
@@ -977,9 +977,9 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    format_eui64(message + 8), seqno);
             handle_request(neigh, prefix, plen, src_prefix, src_plen,
                            message[6], seqno, message + 8);
-        } else if(type == MESSAGE_CRYPTO_SEQNO ||
+        } else if(type == MESSAGE_PC ||
                   type == MESSAGE_CHALLENGE_REQUEST ||
-                  type == MESSAGE_CHALLENGE_RESPONSE) {
+                  type == MESSAGE_CHALLENGE_REPLY) {
             /* We're dealing with these in preparse_packet. */
         } else {
             debugf("Received unknown packet type %d from %s on %s.\n",
@@ -1068,7 +1068,7 @@ flushbuf(struct buffered *buf, struct interface *ifp)
 
     if(buf->len > 0) {
         if(ifp->key != NULL && ifp->key->type != AUTH_TYPE_NONE)
-            send_crypto_seqno(buf, ifp);
+            send_pc(buf, ifp);
         debugf("  (flushing %d buffered bytes)\n", buf->len);
         DO_HTONS(packet_header + 2, buf->len);
         fill_rtt_message(buf, ifp);
@@ -1176,7 +1176,7 @@ accumulate_bytes(struct buffered *buf,
 }
 
 int
-send_crypto_seqno(struct buffered *buf, struct interface *ifp)
+send_pc(struct buffered *buf, struct interface *ifp)
 {
     if(ifp->pc == 0) {
         int rc;
@@ -1184,10 +1184,10 @@ send_crypto_seqno(struct buffered *buf, struct interface *ifp)
         if(rc < INDEX_LEN)
             return -1;
     }
-    start_message(buf, ifp, MESSAGE_CRYPTO_SEQNO, 4 + INDEX_LEN);
+    start_message(buf, ifp, MESSAGE_PC, 4 + INDEX_LEN);
     accumulate_int(buf, ifp->pc);
     accumulate_bytes(buf, ifp->index, INDEX_LEN);
-    end_message(buf, MESSAGE_CRYPTO_SEQNO, 4 + INDEX_LEN);
+    end_message(buf, MESSAGE_PC, 4 + INDEX_LEN);
     ifp->pc++;
     return 1;
 }
@@ -1205,7 +1205,7 @@ send_ack(struct neighbour *neigh, unsigned short nonce, unsigned short interval)
 }
 
 int
-send_challenge_req(struct neighbour *neigh)
+send_challenge_request(struct neighbour *neigh)
 {
     int rc;
     debugf("Sending challenge request to %s on %s.\n",
@@ -1228,9 +1228,9 @@ send_challenge_reply(struct neighbour *neigh, const unsigned char *crypto_nonce,
 {
     debugf("Sending challenge reply to %s on %s.\n",
            format_address(neigh->address), neigh->ifp->name);
-    start_message(&neigh->buf, neigh->ifp, MESSAGE_CHALLENGE_RESPONSE, len);
+    start_message(&neigh->buf, neigh->ifp, MESSAGE_CHALLENGE_REPLY, len);
     accumulate_bytes(&neigh->buf, crypto_nonce, len);
-    end_message(&neigh->buf, MESSAGE_CHALLENGE_RESPONSE, len);
+    end_message(&neigh->buf, MESSAGE_CHALLENGE_REPLY, len);
     schedule_flush_now(&neigh->buf);
 }
 
