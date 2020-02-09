@@ -469,10 +469,10 @@ otherwise.
 Enable HMAC security on this interface, and use the key
 .IR id .
 .TP
-.BR no_hmac_verify " {" true | false }
-Do not check packet signatures, accept unsigned or incorrectly signed packets
-even if one or more keys are configured on the interface.  The default is
-.BR false .
+.BR hmac-verify " {" true | false }
+Check packet signatures, reject unsigned or incorrectly signed
+packets.  The default is
+.BR true .
 .TP
 .SS Filtering rules
 A filtering rule is defined by a single line with the following format:
