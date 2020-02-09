@@ -43,7 +43,7 @@ THE SOFTWARE.
 #include "configuration.h"
 #include "local.h"
 #include "xroute.h"
-#include "hmac.h"
+#include "mac.h"
 
 #define MIN_MTU 512
 
@@ -397,11 +397,11 @@ interface_updown(struct interface *ifp, int up)
 
         if(IF_CONF(ifp, unicast) == CONFIG_YES)
             ifp->flags |= IF_UNICAST;
-        if(IF_CONF(ifp, hmac_verify) == CONFIG_YES ||
-           IF_CONF(ifp, hmac_verify) == CONFIG_DEFAULT)
-            ifp->flags |= IF_HMAC_VERIFY;
-        else if(IF_CONF(ifp, hmac_verify) == CONFIG_NO)
-            ifp->flags &= ~IF_HMAC_VERIFY;
+        if(IF_CONF(ifp, mac_verify) == CONFIG_YES ||
+           IF_CONF(ifp, mac_verify) == CONFIG_DEFAULT)
+            ifp->flags |= IF_MAC_VERIFY;
+        else if(IF_CONF(ifp, mac_verify) == CONFIG_NO)
+            ifp->flags &= ~IF_MAC_VERIFY;
         if(IF_CONF(ifp, hello_interval) > 0)
             ifp->hello_interval = IF_CONF(ifp, hello_interval);
         else if(type == IF_TYPE_WIRELESS)

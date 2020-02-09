@@ -34,7 +34,7 @@ THE SOFTWARE.
 #include "interface.h"
 #include "neighbour.h"
 #include "util.h"
-#include "hmac.h"
+#include "mac.h"
 #include "configuration.h"
 #include "message.h"
 
@@ -110,10 +110,10 @@ add_key(char *id, int type, int len, unsigned char *value)
 }
 
 static int
-compute_hmac(const unsigned char *src, const unsigned char *dst,
-             const unsigned char *packet_header,
-             const unsigned char *body, int bodylen, struct key *key,
-             unsigned char *hmac_return)
+compute_mac(const unsigned char *src, const unsigned char *dst,
+            const unsigned char *packet_header,
+            const unsigned char *body, int bodylen, struct key *key,
+            unsigned char *mac_return)
 {
     unsigned char port[2];
     int rc;
@@ -173,7 +173,7 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
         rc = SHA256Input(&c, ihash, sizeof(ihash));
         if(rc != 0)
             return -1;
-        rc = SHA256Result(&c, hmac_return);
+        rc = SHA256Result(&c, mac_return);
         if(rc < 0)
             return -1;
 
@@ -204,7 +204,7 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
         rc = blake2s_update(&s, body, bodylen);
         if(rc < 0)
             return -1;
-        rc = blake2s_final(&s, hmac_return, BLAKE2S_OUTBYTES);
+        rc = blake2s_final(&s, mac_return, BLAKE2S_OUTBYTES);
         if(rc < 0)
             return -1;
 
@@ -216,60 +216,60 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
 }
 
 int
-add_hmac(struct buffered *buf, struct interface *ifp,
-         unsigned char *packet_header)
+sign_packet(struct buffered *buf, struct interface *ifp,
+            unsigned char *packet_header)
 {
-    int hmaclen;
+    int maclen;
     int i = buf->len;
     unsigned char *dst = buf->sin6.sin6_addr.s6_addr;
     unsigned char *src;
 
     if(ifp->numll < 1) {
-        fprintf(stderr, "add_hmac: no link-local address.\n");
+        fprintf(stderr, "sign_packet: no link-local address.\n");
         return -1;
     }
     src = ifp->ll[0];
 
     if(buf->len + 2 + MAX_DIGEST_LEN > buf->size) {
-        fprintf(stderr, "Buffer overflow in add_hmac.\n");
+        fprintf(stderr, "sign_packet: buffer overflow.\n");
         return -1;
     }
 
-    hmaclen = compute_hmac(src, dst, packet_header,
-                           buf->buf, buf->len, ifp->key,
-                           buf->buf + i + 2);
-    if(hmaclen < 0)
+    maclen = compute_mac(src, dst, packet_header,
+                         buf->buf, buf->len, ifp->key,
+                         buf->buf + i + 2);
+    if(maclen < 0)
         return -1;
-    buf->buf[i++] = MESSAGE_HMAC;
-    buf->buf[i++] = hmaclen;
-    i += hmaclen;
+    buf->buf[i++] = MESSAGE_MAC;
+    buf->buf[i++] = maclen;
+    i += maclen;
     return i;
 }
 
 
 static int
-compare_hmac(const unsigned char *src, const unsigned char *dst,
+compare_macs(const unsigned char *src, const unsigned char *dst,
              const unsigned char *packet, int bodylen,
-             const unsigned char *hmac, int hmaclen,
+             const unsigned char *mac, int maclen,
              struct key *key)
 {
     unsigned char buf[MAX_DIGEST_LEN];
     int len;
 
-    len = compute_hmac(src, dst, packet, packet + 4, bodylen, key, buf);
-    return len == hmaclen && (memcmp(buf, hmac, hmaclen) == 0);
+    len = compute_mac(src, dst, packet, packet + 4, bodylen, key, buf);
+    return len == maclen && (memcmp(buf, mac, maclen) == 0);
 }
 
 int
-check_hmac(const unsigned char *packet, int packetlen, int bodylen,
-           const unsigned char *src, const unsigned char *dst,
-           struct interface *ifp)
+verify_packet(const unsigned char *packet, int packetlen, int bodylen,
+              const unsigned char *src, const unsigned char *dst,
+              struct interface *ifp)
 {
     int i = bodylen + 4;
     int len;
     int rc = -1;
 
-    debugf("check_hmac %s -> %s\n",
+    debugf("verify_packet %s -> %s\n",
            format_address(src), format_address(dst));
     while(i < packetlen) {
         if(i + 2 > packetlen) {
@@ -277,13 +277,13 @@ check_hmac(const unsigned char *packet, int packetlen, int bodylen,
             break;
         }
         len = packet[i + 1];
-        if(packet[i] == MESSAGE_HMAC) {
+        if(packet[i] == MESSAGE_MAC) {
             int ok;
             if(i + len + 2 > packetlen) {
                 fprintf(stderr, "Received truncated message.\n");
                 return -1;
             }
-            ok = compare_hmac(src, dst, packet, bodylen,
+            ok = compare_macs(src, dst, packet, bodylen,
                               packet + i + 2, len, ifp->key);
             if(ok)
                 return 1;

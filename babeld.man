@@ -322,7 +322,7 @@ routes.  The default is 100.
 .RB { hmac-sha256 | blake2s } \c
 .BI " value" " value"
 Configure a key for use with the
-.B hmac
+.B mac
 interface option.  The
 .B type
 is one of
@@ -466,11 +466,11 @@ and
 .BR 0
 otherwise.
 .TP
-.BI hmac " id"
-Enable HMAC security on this interface, and use the key
+.BI mac " id"
+Enable MAC security on this interface, and use the key
 .IR id .
 .TP
-.BR hmac-verify " {" true | false }
+.BR mac-verify " {" true | false }
 Check packet signatures, reject unsigned or incorrectly signed
 packets.  The default is
 .BR true .

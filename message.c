@@ -41,7 +41,7 @@ THE SOFTWARE.
 #include "resend.h"
 #include "message.h"
 #include "configuration.h"
-#include "hmac.h"
+#include "mac.h"
 
 unsigned char packet_header[4] = {42, 2};
 
@@ -609,13 +609,13 @@ parse_packet(const unsigned char *from, struct interface *ifp,
     }
 
     if(ifp->key != NULL) {
-        switch(check_hmac(packet, packetlen, bodylen, from, to, ifp)) {
+        switch(verify_packet(packet, packetlen, bodylen, from, to, ifp)) {
         case -1: /* no mac trailer */
-            if(!(ifp->flags & IF_HMAC_VERIFY))
+            if(!(ifp->flags & IF_MAC_VERIFY))
                 break;
             /* fallthrough */
         case 0:
-            fputs("Received wrong hmac.\n", stderr);
+            fputs("Received wrong MAC.\n", stderr);
             return;
         case 1:
             neigh = preparse_packet(packet, bodylen, from, ifp);
@@ -1094,9 +1094,9 @@ flushbuf(struct buffered *buf, struct interface *ifp)
         DO_HTONS(packet_header + 2, buf->len);
         fill_rtt_message(buf, ifp);
         if(ifp->key != NULL && ifp->key->type != AUTH_TYPE_NONE) {
-            end = add_hmac(buf, ifp, packet_header);
+            end = sign_packet(buf, ifp, packet_header);
             if(end < 0) {
-                fprintf(stderr, "Couldn't add HMAC.\n");
+                fprintf(stderr, "Couldn't sign the packet.\n");
                 return;
             }
         }
@@ -1143,7 +1143,7 @@ static void
 ensure_space(struct buffered *buf, struct interface *ifp, int space)
 {
     if(ifp->key != NULL)
-        space += MAX_HMAC_SPACE + 6 + NONCE_LEN;
+        space += MAX_MAC_SPACE + 6 + NONCE_LEN;
     if(buf->size - buf->len < space)
         flushbuf(buf, ifp);
 }
@@ -1152,7 +1152,7 @@ static void
 start_message(struct buffered *buf, struct interface *ifp, int type, int len)
 {
     int space =
-        ifp->key == NULL ? len + 2 : len + 2 + MAX_HMAC_SPACE + 6 + NONCE_LEN;
+        ifp->key == NULL ? len + 2 : len + 2 + MAX_MAC_SPACE + 6 + NONCE_LEN;
     if(buf->size - buf->len < space)
         flushbuf(buf, ifp);
     buf->buf[buf->len++] = type;
@@ -1199,7 +1199,7 @@ accumulate_bytes(struct buffered *buf,
 int
 send_pc(struct buffered *buf, struct interface *ifp)
 {
-    int space = 2 + MAX_HMAC_SPACE + 6 + NONCE_LEN;
+    int space = 2 + MAX_MAC_SPACE + 6 + NONCE_LEN;
     if(buf->size - buf->len < space) {
         fputs("send_pc: no space left to accumulate pc.\n", stderr);
         return -1;

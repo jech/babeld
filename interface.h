@@ -53,7 +53,7 @@ struct interface_conf {
     char lq;
     char faraway;
     char unicast;
-    char hmac_verify;
+    char mac_verify;
     int channel;
     int enable_timestamps;
     int rfc6126;
@@ -86,7 +86,7 @@ struct interface_conf {
 /* Remain compatible with RFC 6126. */
 #define IF_RFC6126 (1 << 7)
 /* Incoming packets are required to have a valid MAC hash. */
-#define IF_HMAC_VERIFY (1 << 8)
+#define IF_MAC_VERIFY (1 << 8)
 /* Use Babel over DTLS on this interface. */
 #define IF_DTLS (1 << 9)
 

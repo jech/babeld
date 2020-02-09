@@ -42,7 +42,7 @@ THE SOFTWARE.
 #include "interface.h"
 #include "route.h"
 #include "kernel.h"
-#include "hmac.h"
+#include "mac.h"
 #include "configuration.h"
 #include "rule.h"
 
@@ -684,7 +684,7 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if(c < -1 || penalty <= 0 || penalty > 0xFFFF)
                 goto error;
             if_conf->max_rtt_penalty = penalty;
-        } else if(strcmp(token, "hmac") == 0) {
+        } else if(strcmp(token, "mac") == 0) {
             char *key_id;
             struct key *key;
             c = getword(c, &key_id, gnc, closure);
@@ -698,12 +698,12 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             }
             if_conf->key = key;
             free(key_id);
-        } else if(strcmp(token, "hmac-verify") == 0) {
+        } else if(strcmp(token, "mac-verify") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
             if(c < -1)
                 goto error;
-            if_conf->hmac_verify = v;
+            if_conf->mac_verify = v;
         } else {
             goto error;
         }
@@ -897,7 +897,7 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(lq);
     MERGE(faraway);
     MERGE(unicast);
-    MERGE(hmac_verify);
+    MERGE(mac_verify);
     MERGE(channel);
     MERGE(enable_timestamps);
     MERGE(rfc6126);
