@@ -1,6 +1,9 @@
 PREFIX = /usr/local
 MANDIR = $(PREFIX)/share/man
 
+DEPFLAGS = -MMD -MP
+CPPFLAGS += $(DEPFLAGS)
+
 CDEBUGFLAGS = -Os -g -Wall -Wextra -Wvla -Wno-unused-parameter
 
 DEFINES = $(PLATFORM_DEFINES)
@@ -14,15 +17,16 @@ SRCS = babeld.c net.c kernel.c util.c interface.c source.c neighbour.c \
        disambiguation.c rule.c
 
 OBJS = $(SRCS:%.c=%.o)
+DEPS = $(SRCS:%.c=%.d)
 
 babeld: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
-babeld.o: babeld.c version.h
+babeld.o: version.h
 
-local.o: local.c version.h
+local.o: version.h
 
-kernel.o: kernel_netlink.c kernel_socket.c
+-include $(DEPS)
 
 version.h:
 	./$(VPATH)/generate-version.sh > $@
@@ -57,4 +61,4 @@ uninstall:
 	-rm -f $(TARGET)$(MANDIR)/man8/babeld.8
 
 clean:
-	-rm -f babeld babeld.html version.h *.o *~ core TAGS gmon.out
+	-rm -f babeld babeld.html version.h *.d* *.o *~ core TAGS gmon.out

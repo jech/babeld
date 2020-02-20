@@ -1,4 +1,5 @@
 *.o
+*.d*
 babeld
 babeld.html
 version.h
