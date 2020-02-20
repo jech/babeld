@@ -5,7 +5,7 @@ CDEBUGFLAGS = -Os -g -Wall -Wextra -Wvla -Wno-unused-parameter
 
 DEFINES = $(PLATFORM_DEFINES)
 
-CFLAGS = $(CDEBUGFLAGS) $(DEFINES) $(EXTRA_DEFINES)
+CFLAGS = -I. $(CDEBUGFLAGS) $(DEFINES) $(EXTRA_DEFINES)
 
 LDLIBS = -lrt
 
@@ -25,7 +25,12 @@ local.o: local.c version.h
 kernel.o: kernel_netlink.c kernel_socket.c
 
 version.h:
-	./generate-version.sh > $@
+	./$(VPATH)/generate-version.sh > $@
+
+.SUFFIXES: .c .o
+.c.o:
+	@mkdir -p "$(@D)"
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ -c $<
 
 .SUFFIXES: .man .html
 
