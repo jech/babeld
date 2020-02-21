@@ -447,21 +447,20 @@ network_address(int ae, const unsigned char *a, unsigned int len,
     return network_prefix(ae, -1, 0, a, NULL, len, a_r);
 }
 
-static int
-preparse_packet(const unsigned char *packet, int bodylen,
-                struct neighbour *neigh, struct interface *ifp)
+static struct neighbour *
+preparse_packet(const unsigned char *body, int bodylen,
+                const unsigned char *address, struct interface *ifp)
 {
-    int i;
-    const unsigned char *message;
-    unsigned char type, len;
-    int challenge_success = 0;
-    int have_index = 0, index_len;
-    unsigned char pc[4], index[256];
+    int rc, i;
+    struct neighbour *neigh = NULL;
+    int challenge_success = 0, accept_packet = 0;
+    const unsigned char *pc = NULL, *index = NULL, *nonce = NULL;
+    int index_len, nonce_len;
 
     i = 0;
     while(i < bodylen) {
-        message = packet + 4 + i;
-        type = message[0];
+        const unsigned char *message = body + 4 + i;
+        unsigned char len, type = message[0];
         if(type == MESSAGE_PAD1) {
             i++;
             continue;
@@ -484,15 +483,25 @@ preparse_packet(const unsigned char *packet, int bodylen,
                 fprintf(stderr, "Overlong PC TLV.\n");
                 break;
             }
-            debugf("Received PC from %s.\n",
-                   format_address(neigh->address));
-            memcpy(pc, message + 2, 4);
+            if(index != NULL)
+                goto done;
+            debugf("Received PC from %s.\n", format_address(address));
+            pc = message + 2;
+            index = message + 6;
             index_len = len - 4;
-            memcpy(index, message + 6, len - 4);
-            have_index = 1;
+        } else if(type == MESSAGE_CHALLENGE_REQUEST) {
+            debugf("Received challenge request from %s.\n",
+                   format_address(address));
+            nonce = message + 2;
+            nonce_len = len;
         } else if(type == MESSAGE_CHALLENGE_REPLY) {
             debugf("Received challenge reply from %s.\n",
-                   format_address(neigh->address));
+                   format_address(address));
+
+            neigh = neigh != NULL ? neigh : find_neighbour(address, ifp);
+            if(neigh == NULL)
+                goto done;
+
             gettime(&now);
             if(len == sizeof(neigh->nonce) &&
                memcmp(neigh->nonce, message + 2, len) == 0 &&
@@ -501,38 +510,52 @@ preparse_packet(const unsigned char *packet, int bodylen,
             } else {
                 debugf("Challenge failed.\n");
             }
-        } else if(type == MESSAGE_CHALLENGE_REQUEST) {
-            debugf("Received challenge request from %s.\n",
-                   format_address(neigh->address));
-            send_challenge_reply(neigh, message + 2, len);
         }
+    done:
         i += len + 2;
     }
 
-    if(!have_index) {
+    if(index == NULL) {
         debugf("No PC in packet.\n");
-        return 0;
+        goto maybe_send_challenge_reply;
     }
 
-    if(neigh->have_index && neigh->index_len == index_len &&
-       memcmp(index, neigh->index, index_len) == 0) {
-        if(memcmp(neigh->pc, pc, 4) < 0) {
-            memcpy(neigh->pc, pc, 4);
-            return 1;
-        } else {
-            debugf("Out of order PC.\n");
-            return 0;
-        }
-    } else if(challenge_success) {
+    if(challenge_success) {
         neigh->index_len = index_len;
         memcpy(neigh->index, index, index_len);
         memcpy(neigh->pc, pc, 4);
         neigh->have_index = 1;
-        return 1;
-    } else {
-        send_challenge_request(neigh);
-        return 0;
+        accept_packet = 1;
+        goto maybe_send_challenge_reply;
     }
+
+    if(neigh == NULL || !neigh->have_index || neigh->index_len != index_len ||
+       memcmp(index, neigh->index, index_len) != 0) {
+        neigh = neigh != NULL ? neigh : find_neighbour(address, ifp);
+        if(neigh == NULL)
+            return NULL;
+        rc = send_challenge_request(neigh);
+        if(rc)
+            fputs("Could not send challenge request.\n", stderr);
+        goto maybe_send_challenge_reply;
+    }
+
+    if(memcmp(pc, neigh->pc, 4) <= 0) {
+        debugf("Out of order PC.\n");
+        return NULL;
+    }
+
+    memcpy(neigh->pc, pc, 4);
+    return neigh;
+
+ maybe_send_challenge_reply:
+    if(nonce != NULL) { /* a challenge request was received */
+        neigh = neigh != NULL ? neigh : find_neighbour(address, ifp);
+        if(neigh == NULL)
+            return NULL;
+        send_challenge_reply(neigh, nonce, nonce_len);
+    }
+    return accept_packet ? neigh : NULL;
 }
 
 void
@@ -591,24 +614,17 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             return;
         }
 
-        neigh = find_neighbour(from, ifp);
+        neigh = preparse_packet(packet, bodylen, from, ifp);
         if(neigh == NULL) {
-            fprintf(stderr, "Couldn't allocate neighbour.\n");
-            return;
-        }
-
-        if(preparse_packet(packet, bodylen, neigh, ifp) == 0) {
-            fprintf(stderr, "Received wrong PC or failed the challenge.\n");
+            fputs("Received wrong PC or failed the challenge.\n", stderr);
             return;
         }
     }
 
+    neigh = neigh != NULL ? neigh : find_neighbour(from, ifp);
     if(neigh == NULL) {
-        neigh = find_neighbour(from, ifp);
-        if(neigh == NULL ) {
-            fprintf(stderr, "Couldn't allocate neighbour.\n");
-            return;
-        }
+        fputs("Couldn't allocate neighbour.\n", stderr);
+        return;
     }
 
     i = 0;
@@ -1211,15 +1227,17 @@ send_challenge_request(struct neighbour *neigh)
     debugf("Sending challenge request to %s on %s.\n",
            format_address(neigh->address), neigh->ifp->name);
     rc = read_random_bytes(neigh->nonce, NONCE_LEN);
-    if(rc < NONCE_LEN)
+    if(rc < NONCE_LEN) {
+        perror("read_random_bytes");
         return -1;
+    }
     start_message(&neigh->buf, neigh->ifp, MESSAGE_CHALLENGE_REQUEST, NONCE_LEN);
     accumulate_bytes(&neigh->buf, neigh->nonce, NONCE_LEN);
     end_message(&neigh->buf, MESSAGE_CHALLENGE_REQUEST, NONCE_LEN);
     gettime(&now);
     timeval_add_msec(&neigh->challenge_deadline, &now, 300);
     schedule_flush_now(&neigh->buf);
-    return 1;
+    return 0;
 }
 
 void
