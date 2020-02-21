@@ -1115,7 +1115,7 @@ static int
 parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
 {
     int table = rtm->rtm_table;
-    struct rtattr *rta= RTM_RTA(rtm);;
+    struct rtattr *rta = RTM_RTA(rtm);
     int i, is_v4;
 
     len -= NLMSG_ALIGN(sizeof(*rtm));
@@ -1340,9 +1340,9 @@ static int
 parse_addr_rta(struct ifaddrmsg *addr, int len, struct in6_addr *res)
 {
     struct rtattr *rta;
+    int is_local = 0;
     len -= NLMSG_ALIGN(sizeof(*addr));
     rta = IFA_RTA(addr);
-    int is_local = 0;
 
     while(RTA_OK(rta, len)) {
         switch(rta->rta_type) {
