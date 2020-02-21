@@ -481,7 +481,7 @@ v4tov6(unsigned char *dst, const unsigned char *src)
 }
 
 int
-daemonise()
+daemonise(void)
 {
     int rc;
 

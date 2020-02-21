@@ -219,7 +219,7 @@ neighbour_txcost(struct neighbour *neigh)
 }
 
 unsigned
-check_neighbours()
+check_neighbours(void)
 {
     struct neighbour *neigh;
     unsigned msecs = 50000;

@@ -205,7 +205,7 @@ update_source(struct source *src,
 }
 
 void
-expire_sources()
+expire_sources(void)
 {
     int i = 0, j = 0;
     while(i < source_slots) {

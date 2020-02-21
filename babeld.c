@@ -896,7 +896,7 @@ main(int argc, char **argv)
 }
 
 static int
-accept_local_connections()
+accept_local_connections(void)
 {
     int rc, s;
     struct local_socket *ls;
@@ -1157,7 +1157,7 @@ dump_tables(FILE *out)
 }
 
 int
-reopen_logfile()
+reopen_logfile(void)
 {
     int lfd, rc;
 

@@ -1648,7 +1648,7 @@ send_wildcard_retraction(struct interface *ifp)
 }
 
 void
-update_myseqno()
+update_myseqno(void)
 {
     myseqno = seqno_plus(myseqno, 1);
     seqno_time = now;

@@ -1210,7 +1210,7 @@ renumber_filter(struct filter *filter)
 }
 
 void
-renumber_filters()
+renumber_filters(void)
 {
     renumber_filter(input_filters);
     renumber_filter(output_filters);
@@ -1364,7 +1364,7 @@ install_filter(const unsigned char *prefix, unsigned short plen,
 }
 
 int
-finalise_config()
+finalise_config(void)
 {
     struct filter *filter = calloc(1, sizeof(struct filter));
     if(filter == NULL)
