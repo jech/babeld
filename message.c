@@ -1199,18 +1199,23 @@ accumulate_bytes(struct buffered *buf,
 int
 send_pc(struct buffered *buf, struct interface *ifp)
 {
+    int space = 2 + MAX_HMAC_SPACE + 6 + NONCE_LEN;
+    if(buf->size - buf->len < space) {
+        fputs("send_pc: no space left to accumulate pc.\n", stderr);
+        return -1;
+    }
     if(ifp->pc == 0) {
         int rc;
         rc = read_random_bytes(ifp->index, INDEX_LEN);
         if(rc < INDEX_LEN)
             return -1;
     }
-    start_message(buf, ifp, MESSAGE_PC, 4 + INDEX_LEN);
+    accumulate_byte(buf, MESSAGE_PC);
+    accumulate_byte(buf, 4 + INDEX_LEN);
     accumulate_int(buf, ifp->pc);
     accumulate_bytes(buf, ifp->index, INDEX_LEN);
-    end_message(buf, MESSAGE_PC, 4 + INDEX_LEN);
     ifp->pc++;
-    return 1;
+    return 0;
 }
 
 void
