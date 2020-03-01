@@ -171,9 +171,11 @@ update_neighbour(struct neighbour *neigh, struct hello_history *hist,
     }
 
     if(missed_hellos > 0) {
-        hist->reach >>= missed_hellos;
+        if((unsigned)missed_hellos >= sizeof(hist->reach) * 8)
+            hist->reach = 0;
+        else
+            hist->reach >>= missed_hellos;
         hist->seqno = seqno_plus(hist->seqno, missed_hellos);
-        missed_hellos = 0;
         rc = 1;
     }
 
