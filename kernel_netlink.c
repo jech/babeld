@@ -953,7 +953,7 @@ kernel_route(int operation, int table,
     struct rtmsg *rtm;
     struct rtattr *rta;
     int len = sizeof(buf.raw);
-    int rc, ipv4, use_src = 0;
+    int rc, ipv4, is_v4_over_v6, use_src = 0;
 
     if(!nl_setup) {
         fprintf(stderr,"kernel_route: netlink not initialized.\n");
@@ -975,8 +975,7 @@ kernel_route(int operation, int table,
 
     /* Check that the protocol family is consistent. */
     if(plen >= 96 && v4mapped(dest)) {
-        if(!v4mapped(gate) ||
-           !v4mapped(src)) {
+        if(!v4mapped(src)) {
             errno = EINVAL;
             return -1;
         }
@@ -1015,7 +1014,8 @@ kernel_route(int operation, int table,
     }
 
 
-    ipv4 = v4mapped(gate);
+    ipv4 = v4mapped(dest);
+    is_v4_over_v6 = ipv4 && !v4mapped(gate);
     use_src = (!is_default(src, src_plen) && kernel_disambiguate(ipv4));
 
     kdebugf("kernel_route: %s %s from %s "
@@ -1086,22 +1086,31 @@ kernel_route(int operation, int table,
         *(int*)RTA_DATA(rta) = ifindex;
 
 #define ADD_IPARG(type, addr) \
-        do if(ipv4) { \
+        do { \
             rta = RTA_NEXT(rta, len); \
-            rta->rta_len = RTA_LENGTH(sizeof(struct in_addr)); \
             rta->rta_type = type; \
-            memcpy(RTA_DATA(rta), addr + 12, sizeof(struct in_addr)); \
-        } else { \
-            rta = RTA_NEXT(rta, len); \
-            rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr)); \
-            rta->rta_type = type; \
-            memcpy(RTA_DATA(rta), addr, sizeof(struct in6_addr)); \
+            if(v4mapped(addr)) { \
+                rta->rta_len = RTA_LENGTH(sizeof(struct in_addr)); \
+                memcpy(RTA_DATA(rta), addr + 12, sizeof(struct in_addr)); \
+            } else { \
+                if(type == RTA_VIA) { \
+                    rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr) + 2); \
+                    *((sa_family_t*) RTA_DATA(rta)) = AF_INET6; \
+                    memcpy(RTA_DATA(rta) + 2, addr, sizeof(struct in6_addr)); \
+                } else { \
+                    rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr)); \
+                    memcpy(RTA_DATA(rta), addr, sizeof(struct in6_addr)); \
+                } \
+            } \
         } while (0)
 
-        ADD_IPARG(RTA_GATEWAY, gate);
+        if(is_v4_over_v6)
+            ADD_IPARG(RTA_VIA, gate);
+        else
+            ADD_IPARG(RTA_GATEWAY, gate);
+
         if(pref_src)
             ADD_IPARG(RTA_PREFSRC, pref_src);
-
 #undef ADD_IPARG
     } else {
         *(int*)RTA_DATA(rta) = -1;
