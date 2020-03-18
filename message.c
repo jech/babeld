@@ -116,7 +116,7 @@ network_prefix(int ae, int plen, unsigned int omitted,
     }
 
     normalize_prefix(p_r, prefix,
-                     plen < 0 ? 128 : ae == AE_IPV4 ? plen + 96 : plen);
+                     plen < 0 ? 128 : ae_is_v4(ae) ? plen + 96 : plen);
     return ret;
 }
 
@@ -174,7 +174,7 @@ parse_update_subtlv(struct interface *ifp, int metric, int ae,
                                 len - 1, src_prefix);
             if(rc < 0)
                 goto fail;
-            if(ae == 1)
+            if(ae_is_v4(ae))
                 *src_plen = a[i + 2] + 96;
             else
                 *src_plen = a[i + 2];
@@ -341,7 +341,7 @@ parse_request_subtlv(int ae, const unsigned char *a, int alen,
                                 len - 1, src_prefix);
             if(rc < 0)
                 goto fail;
-            if(ae == 1)
+            if(ae_is_v4(ae))
                 *src_plen = a[i + 2] + 96;
             else
                 *src_plen = a[i + 2];
@@ -392,7 +392,7 @@ parse_seqno_request_subtlv(int ae, const unsigned char *a, int alen,
                                 len - 1, src_prefix);
             if(rc < 0)
                 goto fail;
-            if(ae == 1)
+            if(ae_is_v4(ae))
                 (*src_plen) += 96;
         } else {
             debugf("Received unknown%s Route Request sub-TLV %d.\n",
@@ -687,7 +687,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                                     len - 10, prefix);
             else
                 rc = -1;
-            if(message[2] == 1) {
+            if(ae_is_v4(message[2])) {
                 v4tov6(src_prefix, zeroes);
                 src_plen = 96;
             } else {
@@ -701,7 +701,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             }
             parsed_len = 10 + rc;
 
-            plen = message[4] + (message[2] == 1 ? 96 : 0);
+            plen = message[4] + (ae_is_v4(message[2]) ? 96 : 0);
 
             if(message[3] & 0x80) {
                 if(message[2] == AE_IPV4) {
@@ -713,7 +713,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 }
             }
             if(message[3] & 0x40) {
-                if(message[2] == 1) {
+                if(ae_is_v4(message[2])) {
                     memset(router_id, 0, 4);
                     memcpy(router_id + 4, prefix + 12, 4);
                 } else {
@@ -791,8 +791,8 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             rc = network_prefix(message[2], message[3], 0,
                                 message + 4, NULL, len - 2, prefix);
             if(rc < 0) goto fail;
-            plen = message[3] + (message[2] == 1 ? 96 : 0);
-            if(message[2] == 1) {
+            plen = message[3] + (ae_is_v4(message[2]) ? 96 : 0);
+            if(ae_is_v4(message[2])) {
                 v4tov6(src_prefix, zeroes);
                 src_plen = 96;
             } else {
@@ -847,7 +847,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             rc = network_prefix(message[2], message[3], 0,
                                 message + 16, NULL, len - 14, prefix);
             if(rc < 0) goto fail;
-            if(message[2] == 1) {
+            if(ae_is_v4(message[2])) {
                 v4tov6(src_prefix, zeroes);
                 src_plen = 96;
             } else {
@@ -860,7 +860,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             if(rc < 0)
                 goto done;
             is_ss = !is_default(src_prefix, src_plen);
-            plen = message[3] + (message[2] == 1 ? 96 : 0);
+            plen = message[3] + (ae_is_v4(message[2]) ? 96 : 0);
             debugf("Received request (%d) for dst %s%s%s from %s on "
                    "%s (%s, %d).\n",
                    message[6],
