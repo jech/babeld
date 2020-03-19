@@ -2,7 +2,7 @@
 
 set -e
 
-if [ -d .git ] && [ "$(git tag)" ] ; then
+if [ "$(git rev-parse --is-inside-work-tree 2> /dev/null)" ] ; then
     version="$(git describe --dirty)"
 elif [ -f version ] ; then
     version="$(cat version)"
