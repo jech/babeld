@@ -50,6 +50,13 @@ struct timeval seqno_time = {0, 0};
 
 #define MAX_CHANNEL_HOPS 20
 
+/* Checks whether an AE exists or must be silently ignored */
+static int
+known_ae(int ae)
+{
+    return ae <= 3;
+}
+
 /* Parse a network prefix, encoded in the somewhat baroque compressed
    representation used by Babel.  Return the number of bytes parsed. */
 static int
@@ -569,6 +576,11 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             unsigned char address[16];
             int rc;
             if(len < 6) goto fail;
+            if(!known_ae(message[2])) {
+                debugf("Received IHU with unknown AE %d. Ignoring.\n",
+                       message[2]);
+                goto done;
+            }
             DO_NTOHS(txcost, message + 4);
             DO_NTOHS(interval, message + 6);
             rc = network_address(message[2], message + 8, len - 6, address);
@@ -614,8 +626,16 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 have_v6_nh = 0;
                 goto fail;
             }
-            rc = network_address(message[2], message + 4, len - 2,
-                                 nh);
+            rc = network_address(message[2], message + 4, len - 2, nh);
+            if(!known_ae(message[2])) {
+                debugf("Received NH with unknown AE %d. Ignoring.\n",
+                       message[2]);
+                goto done;
+            }
+            if(message[2] == 0) {
+                debugf("Received NH with bad AE 0. Error.\n");
+                goto fail;
+            }
             if(rc < 0) {
                 have_v4_nh = 0;
                 have_v6_nh = 0;
@@ -645,6 +665,11 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 if(len < 2 || message[3] & 0x80)
                     have_v4_prefix = have_v6_prefix = 0;
                 goto fail;
+            }
+            if(!known_ae(message[2])) {
+                debugf("Received update with unknown AE %d. Ignoring.\n",
+                       message[2]);
+                goto done;
             }
             DO_NTOHS(interval, message + 6);
             DO_NTOHS(seqno, message + 8);
@@ -753,6 +778,11 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             unsigned char prefix[16], src_prefix[16], plen, src_plen;
             int rc, is_ss;
             if(len < 2) goto fail;
+            if(!known_ae(message[2])) {
+                debugf("Received request with unknown AE %d. Ignoring.\n",
+                       message[2]);
+                goto done;
+            }
             rc = network_prefix(message[2], message[3], 0,
                                 message + 4, NULL, len - 2, prefix);
             if(rc < 0) goto fail;
@@ -802,6 +832,11 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             unsigned short seqno;
             int rc, is_ss;
             if(len < 14) goto fail;
+            if(!known_ae(message[2])) {
+                debugf("Received mh_request with unknown AE %d. Ignoring.\n",
+                       message[2]);
+                goto done;
+            }
             DO_NTOHS(seqno, message + 4);
             rc = network_prefix(message[2], message[3], 0,
                                 message + 16, NULL, len - 14, prefix);
