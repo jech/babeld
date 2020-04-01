@@ -54,7 +54,7 @@ struct timeval seqno_time = {0, 0};
 static int
 known_ae(int ae)
 {
-    return ae <= 3;
+    return ae <= AE_IPV6_LOCAL;
 }
 
 /* Parse a network prefix, encoded in the somewhat baroque compressed
@@ -81,10 +81,10 @@ network_prefix(int ae, int plen, unsigned int omitted,
     memset(prefix, 0, 16);
 
     switch(ae) {
-    case 0:
+    case AE_WILDCARD:
         ret = 0;
         break;
-    case 1:
+    case AE_IPV4:
         if(omitted > 4 || pb > 4 || (pb > omitted && len < pb - omitted))
             return -1;
         memcpy(prefix, v4prefix, 12);
@@ -95,7 +95,7 @@ network_prefix(int ae, int plen, unsigned int omitted,
         if(pb > omitted) memcpy(prefix + 12 + omitted, p, pb - omitted);
         ret = pb - omitted;
         break;
-    case 2:
+    case AE_IPV6:
         if(omitted > 16 || (pb > omitted && len < pb - omitted)) return -1;
         if(omitted) {
             if(dp == NULL || v4mapped(dp)) return -1;
@@ -104,7 +104,7 @@ network_prefix(int ae, int plen, unsigned int omitted,
         if(pb > omitted) memcpy(prefix + omitted, p, pb - omitted);
         ret = pb - omitted;
         break;
-    case 3:
+    case AE_IPV6_LOCAL:
         if(pb > 8 && len < pb - 8) return -1;
         prefix[0] = 0xfe;
         prefix[1] = 0x80;
@@ -115,7 +115,8 @@ network_prefix(int ae, int plen, unsigned int omitted,
         return -1;
     }
 
-    normalize_prefix(p_r, prefix, plen < 0 ? 128 : ae == 1 ? plen + 96 : plen);
+    normalize_prefix(p_r, prefix,
+                     plen < 0 ? 128 : ae == AE_IPV4 ? plen + 96 : plen);
     return ret;
 }
 
@@ -591,7 +592,8 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    txcost, interval,
                    format_address(from), ifp->name,
                    format_address(address));
-            if(message[2] == 0 || interface_ll_address(ifp, address)) {
+            if(message[2] == AE_WILDCARD ||
+                    interface_ll_address(ifp, address)) {
                 int changed;
                 rc = parse_ihu_subtlv(message + 8 + rc, len - 6 - rc,
                                       &hello_send_us, &hello_rtt_receive_time,
@@ -646,7 +648,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             debugf("Received nh %s (%d) from %s on %s.\n",
                    format_address(nh), message[2],
                    format_address(from), ifp->name);
-            if(message[2] == 1) {
+            if(message[2] == AE_IPV4) {
                 memcpy(v4_nh, nh, 16);
                 have_v4_nh = 1;
             } else {
@@ -677,10 +679,11 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             DO_NTOHS(seqno, message + 8);
             DO_NTOHS(metric, message + 10);
             if(message[5] == 0 ||
-               (message[2] == 1 ? have_v4_prefix : have_v6_prefix))
+               (message[2] == AE_IPV4 ? have_v4_prefix : have_v6_prefix))
                 rc = network_prefix(message[2], message[4], message[5],
                                     message + 12,
-                                    message[2] == 1 ? v4_prefix : v6_prefix,
+                                    message[2] == AE_IPV4 ?
+                                                  v4_prefix : v6_prefix,
                                     len - 10, prefix);
             else
                 rc = -1;
@@ -701,7 +704,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             plen = message[4] + (message[2] == 1 ? 96 : 0);
 
             if(message[3] & 0x80) {
-                if(message[2] == 1) {
+                if(message[2] == AE_IPV4) {
                     memcpy(v4_prefix, prefix, 16);
                     have_v4_prefix = 1;
                 } else {
@@ -718,7 +721,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 }
                 have_router_id = 1;
             }
-            if(!have_router_id && message[2] != 0) {
+            if(!have_router_id && message[2] != AE_WILDCARD) {
                 fprintf(stderr, "Received prefix with no router id.\n");
                 goto fail;
             }
@@ -727,7 +730,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    (message[3] & 0x40) ? "/id" : "",
                    format_prefix(prefix, plen),
                    format_address(from), ifp->name);
-            if(message[2] == 1) {
+            if(message[2] == AE_IPV4) {
                 if(!have_v4_nh)
                     goto fail;
                 nh = v4_nh;
@@ -744,7 +747,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             if(rc < 0)
                 goto done;
 
-            if(message[2] == 0) {
+            if(message[2] == AE_WILDCARD) {
                 if(metric < 0xFFFF) {
                     fprintf(stderr,
                             "Received wildcard update with finite metric.\n");
@@ -768,7 +771,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    is_ss ? format_prefix(src_prefix, src_plen) : "",
                    format_address(from), ifp->name);
 
-            if(message[2] == 1) {
+            if(message[2] == AE_IPV4) {
                 if(!ifp->ipv4)
                     goto done;
             }
@@ -801,7 +804,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             if(rc < 0)
                 goto done;
             is_ss = !is_default(src_prefix, src_plen);
-            if(message[2] == 0) {
+            if(message[2] == AE_WILDCARD) {
                 if(is_ss) {
                     /* Wildcard requests don't carry a source prefix. */
                     fprintf(stderr,
@@ -823,7 +826,8 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 }
             } else {
                 debugf("Received request for dst %s%s%s from %s on %s.\n",
-                       message[2] == 0 ? "" : format_prefix(prefix, plen),
+                       message[2] == AE_WILDCARD ?
+                                     "" : format_prefix(prefix, plen),
                        is_ss ? " src " : "",
                        is_ss ? format_prefix(src_prefix, src_plen) : "",
                        format_address(from), ifp->name);
@@ -1610,7 +1614,7 @@ void
 buffer_wildcard_retraction(struct buffered *buf, struct interface *ifp)
 {
     start_message(buf, ifp, MESSAGE_UPDATE, 10);
-    accumulate_byte(buf, 0);
+    accumulate_byte(buf, AE_WILDCARD);
     accumulate_byte(buf, 0);
     accumulate_byte(buf, 0);
     accumulate_byte(buf, 0);
@@ -1695,7 +1699,7 @@ buffer_ihu(struct buffered *buf, struct interface *ifp, unsigned short rxcost,
     msglen = (ll ? 14 : 22) + (rtt_data ? 10 : 0);
 
     start_message(buf, ifp, MESSAGE_IHU, msglen);
-    accumulate_byte(buf, ll ? 3 : 2);
+    accumulate_byte(buf, ll ? AE_IPV6_LOCAL : AE_IPV6);
     accumulate_byte(buf, 0);
     accumulate_short(buf, rxcost);
     accumulate_short(buf, interval);
@@ -1816,7 +1820,7 @@ send_request(struct buffered *buf, struct interface *ifp,
         assert(!src_prefix);
         debugf("sending request for any.\n");
         start_message(buf, ifp, MESSAGE_REQUEST, 2);
-        accumulate_byte(buf, 0);
+        accumulate_byte(buf, AE_WILDCARD);
         accumulate_byte(buf, 0);
         end_message(buf, MESSAGE_REQUEST, 2);
         return;
@@ -1832,7 +1836,7 @@ send_request(struct buffered *buf, struct interface *ifp,
     len = 2 + pb + (is_ss ? 3 + spb : 0);
 
     start_message(buf, ifp, MESSAGE_REQUEST, len);
-    accumulate_byte(buf, v4 ? 1 : 2);
+    accumulate_byte(buf, v4 ? AE_IPV4 : AE_IPV6);
     accumulate_byte(buf, v4 ? plen - 96 : plen);
     if(v4)
         accumulate_bytes(buf, prefix + 12, pb);
@@ -1919,7 +1923,7 @@ send_multihop_request(struct buffered *buf, struct interface *ifp,
     len = 6 + 8 + pb + (is_ss ? 3 + spb : 0);
 
     start_message(buf, ifp, MESSAGE_MH_REQUEST, len);
-    accumulate_byte(buf, v4 ? 1 : 2);
+    accumulate_byte(buf, v4 ? AE_IPV4 : AE_IPV6);
     accumulate_byte(buf, v4 ? plen - 96 : plen);
     accumulate_short(buf, seqno);
     accumulate_byte(buf, hop_count);
