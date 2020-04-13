@@ -42,17 +42,17 @@ THE SOFTWARE.
 #include "configuration.h"
 #include "rule.h"
 
-struct filter *input_filters = NULL;
-struct filter *output_filters = NULL;
-struct filter *redistribute_filters = NULL;
-struct filter *install_filters = NULL;
+static struct filter *input_filters = NULL;
+static struct filter *output_filters = NULL;
+static struct filter *redistribute_filters = NULL;
+static struct filter *install_filters = NULL;
 struct interface_conf *default_interface_conf = NULL;
-struct interface_conf *interface_confs = NULL;
+static struct interface_conf *interface_confs = NULL;
 
 /* This indicates whether initial configuration is done.  See
    finalize_config below. */
 
-int config_finalised = 0;
+static int config_finalised = 0;
 
 /* This file implements a recursive descent parser with one character
    lookahead.  The looked-ahead character is returned from most
