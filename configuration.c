@@ -334,6 +334,26 @@ free_filter(struct filter *f)
     free(f);
 }
 
+void
+release_filters(void)
+{
+    struct filter *f;
+#define free_list(l)                            \
+    do {                                        \
+        f = l;                                  \
+        while(f != NULL) {                      \
+            struct filter *next = f->next;      \
+            free_filter(f);                     \
+            f = next;                           \
+        }                                       \
+    } while(0)
+    free_list(input_filters);
+    free_list(output_filters);
+    free_list(redistribute_filters);
+    free_list(install_filters);
+#undef free_list
+}
+
 static int
 parse_filter(int c, gnc_t gnc, void *closure, struct filter **filter_return)
 {
