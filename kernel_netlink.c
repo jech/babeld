@@ -1635,8 +1635,6 @@ add_rule(int prio, const unsigned char *src_prefix, int src_plen, int table)
     memcpy(RTA_DATA(current_attribute), src_prefix, addr_size);
 
     message_header->nlmsg_len += current_attribute->rta_len;
-    current_attribute = (void*)
-        ((char*)current_attribute + current_attribute->rta_len);
 
     /* send message */
     if(message_header->nlmsg_len > 64) {
@@ -1686,8 +1684,6 @@ flush_rule(int prio, int family)
     *(int*)RTA_DATA(current_attribute) = prio;
 
     message_header->nlmsg_len += current_attribute->rta_len;
-    current_attribute = (void*)
-        ((char*)current_attribute + current_attribute->rta_len);
 
     /* send message */
     if(message_header->nlmsg_len > 64) {
