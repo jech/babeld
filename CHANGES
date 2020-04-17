@@ -1,3 +1,12 @@
+babeld-1.9.2 (unreleased):
+
+  * Fixed two issues that could cause IPv4 routes to be represented
+    incorrectly, with a range of confusing symptoms.  Thanks to
+    Fabian Blaese.
+  * Fixed incorrect parsing of TLVs with an unknown Address Encoding.
+    Thanks to Théophile Bastian.
+  * Fixed access to mis-aligned data structure.  Thanks to Antonin Décimo.
+
 20 August 2019: babeld-1.9.1
 
   * Fixed a crash that could happen when unicast and RTT estimation are
