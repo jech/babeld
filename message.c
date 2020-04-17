@@ -127,6 +127,7 @@ parse_update_subtlv(struct interface *ifp, int metric, int ae,
 {
     int type, len, i = 0;
     int channels_len;
+    int have_src_prefix = 0;
 
     /* This will be overwritten if there's a DIVERSITY_HOPS sub-TLV. */
     if(*channels_len_return < 1 || (ifp->flags & IF_FARAWAY)) {
@@ -141,8 +142,6 @@ parse_update_subtlv(struct interface *ifp, int metric, int ae,
             channels_len = 1;
         }
     }
-
-    *src_plen = 0;
 
     while(i < alen) {
         type = a[i];
@@ -168,15 +167,17 @@ parse_update_subtlv(struct interface *ifp, int metric, int ae,
                 goto fail;
             if(a[i + 2] == 0)   /* source prefix cannot be default */
                 goto fail;
-            if(*src_plen != 0)  /* source prefix can only be specified once */
+            if(have_src_prefix != 0) /* source prefix can only appear once */
                 goto fail;
-            *src_plen = a[i + 2];
-            rc = network_prefix(ae, *src_plen, 0, a + i + 3, NULL,
+            rc = network_prefix(ae, a[i + 2], 0, a + i + 3, NULL,
                                 len - 1, src_prefix);
             if(rc < 0)
                 goto fail;
             if(ae == 1)
-                (*src_plen) += 96;
+                *src_plen = a[i + 2] + 96;
+            else
+                *src_plen = a[i + 2];
+            have_src_prefix = 1;
         } else {
             debugf("Received unknown%s Update sub-TLV %d.\n",
                    (type & 0x80) != 0 ? " mandatory" : "", type);
@@ -309,8 +310,7 @@ parse_request_subtlv(int ae, const unsigned char *a, int alen,
                      unsigned char *src_prefix, unsigned char *src_plen)
 {
     int type, len, i = 0;
-
-    *src_plen = 0;
+    int have_src_prefix = 0;
 
     while(i < alen) {
         type = a[0];
@@ -334,15 +334,17 @@ parse_request_subtlv(int ae, const unsigned char *a, int alen,
                 goto fail;
             if(a[i + 2] == 0)
                 goto fail;
-            if(*src_plen != 0)
+            if(have_src_prefix != 0)
                 goto fail;
-            *src_plen = a[i + 2];
-            rc = network_prefix(ae, *src_plen, 0, a + i + 3, NULL,
+            rc = network_prefix(ae, a[i + 2], 0, a + i + 3, NULL,
                                 len - 1, src_prefix);
             if(rc < 0)
                 goto fail;
             if(ae == 1)
-                (*src_plen) += 96;
+                *src_plen = a[i + 2] + 96;
+            else
+                *src_plen = a[i + 2];
+            have_src_prefix = 1;
         } else {
             debugf("Received unknown%s Route Request sub-TLV %d.\n",
                    ((type & 0x80) != 0) ? " mandatory" : "", type);

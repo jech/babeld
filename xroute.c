@@ -276,8 +276,13 @@ filter_address(struct kernel_addr *addr, void *data) {
         return 0;
 
     route = &routes[*found];
+    memset(route, 0, sizeof(struct kernel_route));
     memcpy(route->prefix, addr->addr.s6_addr, 16);
     route->plen = 128;
+    if(v4mapped(route->prefix)) {
+        memcpy(route->src_prefix, v4prefix, 16);
+        route->src_plen = 96;
+    }
     route->metric = 0;
     route->ifindex = addr->ifindex;
     route->proto = RTPROT_BABEL_LOCAL;

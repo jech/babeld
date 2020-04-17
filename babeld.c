@@ -1081,12 +1081,10 @@ dump_route(FILE *out, struct babel_route *route)
         snprintf(channels + j, 100 - j, ")");
     }
 
-    fprintf(out, "%s%s%s metric %d (%d) refmetric %d id %s "
+    fprintf(out, "%s from %s metric %d (%d) refmetric %d id %s "
             "seqno %d%s age %d via %s neigh %s%s%s%s\n",
             format_prefix(route->src->prefix, route->src->plen),
-            route->src->src_plen > 0 ? " from " : "",
-            route->src->src_plen > 0 ?
-            format_prefix(route->src->src_prefix, route->src->src_plen) : "",
+            format_prefix(route->src->src_prefix, route->src->src_plen),
             route_metric(route), route_smoothed_metric(route), route->refmetric,
             format_eui64(route->src->id),
             (int)route->seqno,
@@ -1103,11 +1101,9 @@ dump_route(FILE *out, struct babel_route *route)
 static void
 dump_xroute(FILE *out, struct xroute *xroute)
 {
-    fprintf(out, "%s%s%s metric %d (exported)\n",
+    fprintf(out, "%s from %s metric %d (exported)\n",
             format_prefix(xroute->prefix, xroute->plen),
-            xroute->src_plen > 0 ? " from " : "",
-            xroute->src_plen > 0 ?
-            format_prefix(xroute->src_prefix, xroute->src_plen) : "",
+            format_prefix(xroute->src_prefix, xroute->src_plen),
             xroute->metric);
 }
 
