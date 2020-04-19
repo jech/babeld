@@ -54,7 +54,7 @@ struct timeval seqno_time = {0, 0};
 static int
 known_ae(int ae)
 {
-    return ae <= AE_IPV6_LOCAL;
+    return ae <= AE_IPV6_LOCAL || ae == AE_V4OV6;
 }
 
 /* Parse a network prefix, encoded in the somewhat baroque compressed
@@ -85,6 +85,7 @@ network_prefix(int ae, int plen, unsigned int omitted,
         ret = 0;
         break;
     case AE_IPV4:
+    case AE_V4OV6:
         if(omitted > 4 || pb > 4 || (pb > omitted && len < pb - omitted))
             return -1;
         memcpy(prefix, v4prefix, 12);
