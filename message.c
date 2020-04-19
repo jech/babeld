@@ -1190,7 +1190,7 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
                      unsigned char *channels, int channels_len)
 {
     int add_metric, v4, real_plen, real_src_plen;
-    int omit, spb, channels_size, len;
+    int ae, omit, spb, channels_size, len;
     const unsigned char *real_prefix, *real_src_prefix;
     unsigned short flags = 0;
     int is_ss = !is_default(src_prefix, src_plen);
@@ -1214,24 +1214,28 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
     v4 = plen >= 96 && v4mapped(prefix);
 
     if(v4) {
-        if(!ifp->ipv4)
-            return;
-        omit = 0;
-        if(!buf->have_nh ||
-           memcmp(buf->nh, ifp->ipv4, 4) != 0) {
-            start_message(buf, ifp, MESSAGE_NH, 6);
-            accumulate_byte(buf, 1);
-            accumulate_byte(buf, 0);
-            accumulate_bytes(buf, ifp->ipv4, 4);
-            end_message(buf, MESSAGE_NH, 6);
-            memcpy(&buf->nh, ifp->ipv4, 4);
-            buf->have_nh = 1;
+        if(!ifp->ipv4) {
+            ae = AE_V4OV6;
+        } else {
+            ae = AE_IPV4;
+            if(!buf->have_nh ||
+               memcmp(buf->nh, ifp->ipv4, 4) != 0) {
+                start_message(buf, ifp, MESSAGE_NH, 6);
+                accumulate_byte(buf, AE_IPV4);
+                accumulate_byte(buf, 0);
+                accumulate_bytes(buf, ifp->ipv4, 4);
+                end_message(buf, MESSAGE_NH, 6);
+                memcpy(&buf->nh, ifp->ipv4, 4);
+                buf->have_nh = 1;
+            }
         }
+        omit = 0;
         real_prefix = prefix + 12;
         real_plen = plen - 96;
         real_src_prefix = src_prefix + 12;
         real_src_plen = src_plen - 96;
     } else {
+        ae = AE_IPV6;
         omit = 0;
         if(buf->have_prefix) {
             while(omit < plen / 8 &&
@@ -1267,7 +1271,7 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
         len += 3 + spb;
 
     start_message(buf, ifp, MESSAGE_UPDATE, len);
-    accumulate_byte(buf, v4 ? 1 : 2);
+    accumulate_byte(buf, ae);
     accumulate_byte(buf, flags);
     accumulate_byte(buf, real_plen);
     accumulate_byte(buf, omit);
