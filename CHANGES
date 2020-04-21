@@ -1,8 +1,8 @@
-babeld-1.9.2 (unreleased):
+21 April 2020: babeld-1.9.2
 
   * Fixed two issues that could cause IPv4 routes to be represented
     incorrectly, with a range of confusing symptoms.  Thanks to
-    Fabian Blaese.
+    Fabian Bläse.
   * Fixed incorrect parsing of TLVs with an unknown Address Encoding.
     Thanks to Théophile Bastian.
   * Fixed access to mis-aligned data structure.  Thanks to Antonin Décimo.
