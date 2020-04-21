@@ -686,6 +686,13 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                        message[2]);
                 goto done;
             }
+            if(message[2] == AE_V4OV6 && !has_v4ov6) {
+                /* We can safely ignore the prefix update that might come
+                   alongside with this TLV, since we ignore every v4-over-v6
+                   TLVs */
+                debugf("Ignoring v4-over-v6 route (unsupported).\n");
+                goto done;
+            }
             DO_NTOHS(interval, message + 6);
             DO_NTOHS(seqno, message + 8);
             DO_NTOHS(metric, message + 10);
@@ -1215,6 +1222,8 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
 
     if(v4) {
         if(!ifp->ipv4) {
+            if(!has_v4ov6)
+                return;
             ae = AE_V4OV6;
         } else {
             ae = AE_IPV4;

@@ -850,6 +850,7 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
               strcmp(token, "daemonise") == 0 ||
               strcmp(token, "skip-kernel-setup") == 0 ||
               strcmp(token, "ipv6-subtrees") == 0 ||
+              strcmp(token, "v4-over-v6") == 0 ||
               strcmp(token, "reflect-kernel-metric") == 0) {
         int b;
         c = getbool(c, &b, gnc, closure);
@@ -866,6 +867,8 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
             skip_kernel_setup = b;
         else if(strcmp(token, "ipv6-subtrees") == 0)
             has_ipv6_subtrees = b;
+        else if(strcmp(token, "v4-over-v6") == 0)
+            has_v4ov6 = b;
         else if(strcmp(token, "reflect-kernel-metric") == 0)
             reflect_kernel_metric = b;
         else
