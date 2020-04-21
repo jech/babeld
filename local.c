@@ -133,11 +133,10 @@ local_notify_interface(struct interface *ifp, int kind)
 {
     int i;
     for(i = 0; i < num_local_sockets; i++) {
-        if(local_sockets[i].monitor & (0x01 << SHOW_INTERFACE))
+        if(local_sockets[i].monitor & SHOW_INTERFACE)
             local_notify_interface_1(&local_sockets[i], ifp, kind);
     }
 }
-
 
 static void
 local_notify_neighbour_1(struct local_socket *s,
@@ -189,7 +188,7 @@ local_notify_neighbour(struct neighbour *neigh, int kind)
 {
     int i;
     for(i = 0; i < num_local_sockets; i++) {
-        if(local_sockets[i].monitor & (0x01 << SHOW_NEIGHBOUR))
+        if(local_sockets[i].monitor & SHOW_NEIGHBOUR)
             local_notify_neighbour_1(&local_sockets[i], neigh, kind);
     }
 }
@@ -226,7 +225,7 @@ local_notify_xroute(struct xroute *xroute, int kind)
 {
     int i;
     for(i = 0; i < num_local_sockets; i++) {
-        if(local_sockets[i].monitor & (0x01 << SHOW_XROUTE))
+        if(local_sockets[i].monitor & SHOW_XROUTE)
             local_notify_xroute_1(&local_sockets[i], xroute, kind);
     }
 }
@@ -271,7 +270,7 @@ local_notify_route(struct babel_route *route, int kind)
 {
     int i;
     for(i = 0; i < num_local_sockets; i++) {
-        if(local_sockets[i].monitor & (0x01 << SHOW_ROUTE))
+        if(local_sockets[i].monitor & SHOW_ROUTE)
             local_notify_route_1(&local_sockets[i], route, kind);
     }
 }
@@ -334,13 +333,13 @@ local_notify_all_route_1(struct local_socket *s)
 static void
 local_notify_all(struct local_socket *s, unsigned int mask)
 {
-    if(mask & (0x01 << SHOW_INTERFACE))
+    if(mask & SHOW_INTERFACE)
         local_notify_all_interface_1(s);
-    if(mask & (0x01 << SHOW_NEIGHBOUR))
+    if(mask & SHOW_NEIGHBOUR)
         local_notify_all_neighbour_1(s);
-    if(mask & (0x01 << SHOW_ROUTE))
+    if(mask & SHOW_ROUTE)
         local_notify_all_route_1(s);
-    if(mask & (0x01 << SHOW_XROUTE))
+    if(mask & SHOW_XROUTE)
         local_notify_all_xroute_1(s);
 }
 
@@ -360,28 +359,26 @@ show_flags_map(int rc)
     case CONFIG_ACTION_MONITOR_ROUTE:
     case CONFIG_ACTION_UNMONITOR_ROUTE:
     case CONFIG_ACTION_DUMP_ROUTE:
-        return 0x01 << SHOW_ROUTE;
+        return SHOW_ROUTE;
     case CONFIG_ACTION_MONITOR_INTERFACE:
     case CONFIG_ACTION_UNMONITOR_INTERFACE:
     case CONFIG_ACTION_DUMP_INTERFACE:
-        return 0x01 << SHOW_INTERFACE;
+        return SHOW_INTERFACE;
     case CONFIG_ACTION_MONITOR_XROUTE:
     case CONFIG_ACTION_UNMONITOR_XROUTE:
     case CONFIG_ACTION_DUMP_XROUTE:
-        return 0x01 << SHOW_XROUTE;
+        return SHOW_XROUTE;
     case CONFIG_ACTION_MONITOR_NEIGHBOUR:
     case CONFIG_ACTION_UNMONITOR_NEIGHBOUR:
     case CONFIG_ACTION_DUMP_NEIGHBOUR:
-        return 0x01 << SHOW_NEIGHBOUR;
+        return SHOW_NEIGHBOUR;
     case CONFIG_ACTION_MONITOR:
     case CONFIG_ACTION_UNMONITOR:
     case CONFIG_ACTION_DUMP:
-        return 0xff;
+        return ~0U;
     }
-    return 0;
+    return 0U;
 }
-
-
 
 int
 local_read(struct local_socket *s)
@@ -445,11 +442,11 @@ local_read(struct local_socket *s)
             s->monitor &= ~show_flags_map(rc);
             break;
         case CONFIG_ACTION_UNMONITOR:
-            s->monitor = 0x00;
+            s->monitor = 0U;
             break;
         case CONFIG_ACTION_NO:
             snprintf(reply, sizeof(reply), "no%s%s\n",
-                            message ? " " : "", message ? message : "");
+                     message ? " " : "", message ? message : "");
             break;
         default:
             snprintf(reply, sizeof(reply), "bad\n");
