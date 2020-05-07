@@ -1222,8 +1222,6 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
 
     if(v4) {
         if(!ifp->ipv4) {
-            if(!has_v4ov6)
-                return;
             ae = AE_V4OV6;
         } else {
             ae = AE_IPV4;
