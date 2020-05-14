@@ -402,6 +402,12 @@ kernel_has_ipv6_subtrees(void)
 }
 
 int
+kernel_has_v4ov6(void)
+{
+    return 0;
+}
+
+int
 kernel_route(int operation, int table,
              const unsigned char *dest, unsigned short plen,
              const unsigned char *src, unsigned short src_plen,
