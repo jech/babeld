@@ -473,7 +473,7 @@ v4tov6(unsigned char *dst, const unsigned char *src)
 int
 ae_is_v4(int ae)
 {
-    return ae == 1 || ae == 240;
+    return ae == 1 || ae == 4;
 }
 
 int
