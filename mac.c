@@ -75,7 +75,7 @@ add_key(char *id, int type, int len, unsigned char *value)
 {
     struct key *key;
 
-    assert(value != NULL && type != AUTH_TYPE_NONE);
+    assert(value != NULL);
 
     key = find_key(id);
     if(key) {
@@ -85,8 +85,6 @@ add_key(char *id, int type, int len, unsigned char *value)
         return key;
     }
 
-    if(type == AUTH_TYPE_NONE)
-        return NULL;
     if(numkeys >= maxkeys) {
         struct key **new_keys;
         int n = maxkeys < 1 ? 8 : 2 * maxkeys;

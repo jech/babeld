@@ -1088,12 +1088,12 @@ flushbuf(struct buffered *buf, struct interface *ifp)
     assert(buf->len <= buf->size);
 
     if(buf->len > 0) {
-        if(ifp->key != NULL && ifp->key->type != AUTH_TYPE_NONE)
+        if(ifp->key != NULL)
             send_pc(buf, ifp);
         debugf("  (flushing %d buffered bytes)\n", buf->len);
         DO_HTONS(packet_header + 2, buf->len);
         fill_rtt_message(buf, ifp);
-        if(ifp->key != NULL && ifp->key->type != AUTH_TYPE_NONE) {
+        if(ifp->key != NULL) {
             end = sign_packet(buf, ifp, packet_header);
             if(end < 0) {
                 fprintf(stderr, "Couldn't sign the packet.\n");

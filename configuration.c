@@ -784,9 +784,7 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
                 free(auth_type);
                 goto error;
             }
-            if(strcmp(auth_type, "none") == 0) {
-                key->type = AUTH_TYPE_NONE;
-            } else if(strcmp(auth_type, "hmac-sha256") == 0) {
+            if(strcmp(auth_type, "hmac-sha256") == 0) {
                 key->type = AUTH_TYPE_SHA256;
             } else if(strcmp(auth_type, "blake2s") == 0) {
                 key->type = AUTH_TYPE_BLAKE2S;
@@ -842,9 +840,6 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
             goto error;
         }
         break;
-    case AUTH_TYPE_NONE:
-        fprintf(stderr, "Key type 'none' isn't supported.\n");
-        goto error;
     }
 
     *key_return = key;
