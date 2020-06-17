@@ -721,7 +721,7 @@ static int
 parse_ifconf(int c, gnc_t gnc, void *closure,
              struct interface_conf **if_conf_return)
 {
-    char *token = NULL;
+    char *token;
     struct interface_conf *if_conf;
 
     if_conf = calloc(1, sizeof(struct interface_conf));
@@ -743,7 +743,6 @@ parse_ifconf(int c, gnc_t gnc, void *closure,
     return parse_anonymous_ifconf(c, gnc, closure, if_conf, if_conf_return);
 
  error:
-    free(token);
     free(if_conf);
     return -2;
 }
