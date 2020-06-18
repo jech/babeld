@@ -45,11 +45,11 @@ struct key **keys = NULL;
 int numkeys = 0, maxkeys = 0;
 
 struct key *
-find_key(const char *id)
+find_key(const char *name)
 {
     int i;
     for(i = 0; i < numkeys; i++) {
-        if(strcmp(keys[i]->id, id) == 0)
+        if(strcmp(keys[i]->name, name) == 0)
             return retain_key(keys[i]);
     }
     return NULL;
@@ -71,17 +71,17 @@ release_key(struct key *key)
 }
 
 struct key *
-add_key(char *id, int type, int len, unsigned char *value)
+add_key(char *name, int algorithm, int len, unsigned char *value)
 {
     struct key *key;
 
     assert(value != NULL);
 
-    key = find_key(id);
+    key = find_key(name);
     if(key) {
-        key->type = type;
+        key->algorithm = algorithm;
         key->len = len;
-        key->value = value;
+        memcpy(key->value, value, len);
         return key;
     }
 
@@ -98,10 +98,10 @@ add_key(char *id, int type, int len, unsigned char *value)
     key = calloc(1, sizeof(struct key));
     if(key == NULL)
         return NULL;
-    key->id = id;
-    key->type = type;
+    memcpy(key->name, name, MAX_KEY_NAME_LEN);
+    key->algorithm = algorithm;
     key->len = len;
-    key->value = value;
+    memcpy(key->value, value, len);
 
     keys[numkeys++] = key;
     return key;
@@ -117,19 +117,19 @@ compute_mac(const unsigned char *src, const unsigned char *dst,
     int rc;
 
     DO_HTONS(port, (unsigned short)protocol_port);
-    switch(key->type) {
-    case AUTH_TYPE_SHA256: {
+    switch(key->algorithm) {
+    case MAC_ALGORITHM_HMAC_SHA256: {
         /* Reference hmac-sha functions weigth up babeld by 32Kb-36Kb,
          * so we roll our own! */
         unsigned char pad[SHA256_Message_Block_Size], ihash[SHA256HashSize];
         SHA256Context c;
-        unsigned i;
+        int i;
 
-        if(key->len != sizeof(pad))
-            return -1;
-
-        for(i = 0; i < sizeof(pad); i++)
+        for(i = 0; i < key->len; i++)
             pad[i] = key->value[i] ^ 0x36;
+        for(; i < (int)sizeof(pad); i++)
+            pad[i] = 0x36;
+
         rc = SHA256Reset(&c);
         if(rc < 0)
             return -1;
@@ -159,8 +159,11 @@ compute_mac(const unsigned char *src, const unsigned char *dst,
         if(rc != 0)
             return -1;
 
-        for(i = 0; i < sizeof(pad); i++)
+        for(i = 0; i < key->len; i++)
             pad[i] = key->value[i] ^ 0x5c;
+        for(; i < (int)sizeof(pad); i++)
+            pad[i] = 0x5c;
+
         rc = SHA256Reset(&c);
         if(rc != 0)
             return -1;
@@ -177,10 +180,8 @@ compute_mac(const unsigned char *src, const unsigned char *dst,
 
         return SHA256HashSize;
     }
-    case AUTH_TYPE_BLAKE2S: {
+    case MAC_ALGORITHM_BLAKE2S: {
         blake2s_state s;
-        if(key->len != BLAKE2S_KEYBYTES)
-            return -1;
         rc = blake2s_init_key(&s, BLAKE2S_OUTBYTES, key->value, key->len);
         if(rc < 0)
             return -1;

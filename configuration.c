@@ -685,19 +685,19 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
                 goto error;
             if_conf->max_rtt_penalty = penalty;
         } else if(strcmp(token, "mac") == 0) {
-            char *key_id;
+            char *key_name;
             struct key *key;
-            c = getword(c, &key_id, gnc, closure);
+            c = getword(c, &key_name, gnc, closure);
             if(c < -1)
                 goto error;
-            key = find_key(key_id);
+            key = find_key(key_name);
             if(key == NULL) {
-                fprintf(stderr, "Couldn't find key %s.\n", key_id);
-                free(key_id);
+                fprintf(stderr, "Couldn't find key %s.\n", key_name);
+                free(key_name);
                 goto error;
             }
             if_conf->key = key;
-            free(key_id);
+            free(key_name);
         } else if(strcmp(token, "mac-verify") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
@@ -756,99 +756,99 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
 {
     char *token = NULL;
     struct key *key;
+    int keybytes;
 
     key = calloc(1, sizeof(struct key));
     if(key == NULL) {
         perror("calloc(key)");
         return -2;
     }
-    while(1) {
-        c = skip_whitespace(c, gnc, closure);
-        if(c < 0 || c == '\n' || c == '#') {
-            c = skip_to_eol(c, gnc, closure);
-            break;
-        }
-        c = getword(c, &token, gnc, closure);
-        if(c < -1 || token == NULL) {
-            goto error;
-        }
-        if(strcmp(token, "id") == 0) {
-            c = getword(c, &key->id, gnc, closure);
-            if(c < -1 || key->id == NULL) {
-                goto error;
-            }
-        } else if(strcmp(token, "type") == 0) {
-            char *auth_type = NULL;
-            c = getword(c, &auth_type, gnc, closure);
-            if(c < -1 || auth_type == NULL) {
-                free(auth_type);
-                goto error;
-            }
-            if(strcmp(auth_type, "hmac-sha256") == 0) {
-                key->type = AUTH_TYPE_SHA256;
-            } else if(strcmp(auth_type, "blake2s") == 0) {
-                key->type = AUTH_TYPE_BLAKE2S;
-            } else {
-                fprintf(stderr, "Key type '%s' isn't supported.\n", auth_type);
-                free(auth_type);
-                goto error;
-            }
-            free(auth_type);
-        } else if(strcmp(token, "value") == 0) {
-            c = gethex(c, &key->value, &key->len, gnc, closure);
-            if(c < -1 || key->value == NULL) {
-                fprintf(stderr, "Couldn't parse key value.\n");
-                goto error;
-            }
-        } else {
-            fprintf(stderr, "Unrecognized keyword '%s'.\n", token);
-            goto error;
-        }
-        free(token);
-        token = NULL;
-    }
 
-    if(key->id == NULL) {
-        fprintf(stderr, "No key id was given.\n");
+    c = getword(c, &token, gnc, closure);
+    if(c < -1 || token == NULL)
+        goto error;
+    if(strcmp(token, "name") == 0) {
+        char *key_name = NULL;
+        size_t len;
+        c = getword(c, &key_name, gnc, closure);
+        if(c < -1 || key_name == NULL) {
+            fputs("Coudn't parse key name.\n", stderr);
+            free(key_name);
+            goto error;
+        }
+        len = strlen(key_name);
+        if(len >= MAX_KEY_NAME_LEN)  {
+            fprintf(stderr, "Max key name length is %u.\n", MAX_KEY_NAME_LEN);
+            free(key_name);
+            goto error;
+        }
+        memcpy(key->name, key_name, len + 1);
+        free(key_name);
+    } else {
+        fputs("Key name expected.\n", stderr);
         goto error;
     }
+    free(token);
 
-    switch(key->type) {
-    case AUTH_TYPE_SHA256: {
-        int blocksize = SHA256_Message_Block_Size;
-        if(key->len > blocksize) {
+    c = getword(c, &token, gnc, closure);
+    if(c < -1 || token == NULL)
+        goto error;
+    if(strcmp(token, "algorithm") == 0) {
+        char *algorithm = NULL;
+        c = getword(c, &algorithm, gnc, closure);
+        if(c < -1 || algorithm == NULL) {
+            fputs("Couldn't parse key algorithm.\n", stderr);
+            free(algorithm);
+            goto error;
+        }
+        if(strcmp(algorithm, "hmac-sha256") == 0) {
+            key->algorithm = MAC_ALGORITHM_HMAC_SHA256;
+            keybytes = SHA256_Message_Block_Size;
+        } else if(strcmp(algorithm, "blake2s") == 0) {
+            key->algorithm = MAC_ALGORITHM_BLAKE2S;
+            keybytes = BLAKE2S_KEYBYTES;
+        } else {
+            fprintf(stderr, "Key algorithm '%s' isn't supported.\n", algorithm);
+            free(algorithm);
+            goto error;
+        }
+        free(algorithm);
+    } else {
+        fputs("Key algorithm expected.\n", stderr);
+        goto error;
+    }
+    free(token);
+
+    c = getword(c, &token, gnc, closure);
+    if(c < -1 || token == NULL)
+        goto error;
+    if (strcmp(token, "value") == 0) {
+        unsigned char *key_value = NULL;
+        c = gethex(c, &key_value, &key->len, gnc, closure);
+        if(c < -1 || key_value == NULL) {
+            fprintf(stderr, "Couldn't parse key value.\n");
+            free(key_value);
+            goto error;
+        }
+        if(key->len > keybytes) {
             fprintf(stderr, "Key length is %d, expected at most %d.\n",
-                    key->len, blocksize);
+                    key->len, keybytes);
+            free(key_value);
             goto error;
         }
-        if(key->len < blocksize) {
-            unsigned char *v = realloc(key->value, blocksize);
-            if(v == NULL) {
-                perror("realloc(key->value)");
-                goto error;
-            }
-            memset(v + key->len, 0, blocksize - key->len);
-            key->value = v;
-            key->len = blocksize;
-        }
-        break;
+        memcpy(key->value, key_value, key->len);
+        free(key_value);
+    } else {
+        fputs("Key value expected.\n", stderr);
+        goto error;
     }
-    case AUTH_TYPE_BLAKE2S:
-        if(key->len != BLAKE2S_KEYBYTES) {
-            fprintf(stderr, "Key length is %d, expected %d.\n",
-                    key->len, BLAKE2S_KEYBYTES);
-            goto error;
-        }
-        break;
-    }
+    free(token);
 
     *key_return = key;
     return c;
 
  error:
     free(token);
-    free(key->value);
-    free(key->id);
     free(key);
     return -2;
 }
@@ -1274,7 +1274,7 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         c = parse_key(c, gnc, closure, &key);
         if(c < -1)
             goto fail;
-        add_key(key->id, key->type, key->len, key->value);
+        add_key(key->name, key->algorithm, key->len, key->value);
         free(key);
     } else {
         c = parse_option(c, gnc, closure, token);

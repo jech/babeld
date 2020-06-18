@@ -33,6 +33,9 @@ THE SOFTWARE.
 #include <net/if.h>
 #include <arpa/inet.h>
 
+#include "rfc6234/sha.h"
+#include "BLAKE2/ref/blake2.h"
+
 #include "babeld.h"
 #include "util.h"
 #include "kernel.h"

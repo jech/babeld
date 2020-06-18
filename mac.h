@@ -20,10 +20,25 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-struct key *find_key(const char *id);
+#define MAC_ALGORITHM_HMAC_SHA256 1
+#define MAC_ALGORITHM_BLAKE2S 2
+
+#define MAX_KEY_LEN ((int)SHA256_Message_Block_Size > (int)BLAKE2S_KEYBYTES ? \
+                     (int)SHA256_Message_Block_Size : (int)BLAKE2S_KEYBYTES)
+#define MAX_KEY_NAME_LEN 16U
+
+struct key {
+    char name[MAX_KEY_NAME_LEN];
+    unsigned char value[MAX_KEY_LEN];
+    int len;
+    unsigned short ref_count;
+    unsigned char algorithm;
+};
+
+struct key *find_key(const char *name);
 struct key *retain_key(struct key *key);
 void release_key(struct key *key);
-struct key *add_key(char *id, int type, int len, unsigned char *value);
+struct key *add_key(char *name, int algorithm, int len, unsigned char *value);
 int sign_packet(struct buffered *buf, const struct interface *ifp,
                 const unsigned char *packet_header);
 int verify_packet(const unsigned char *packet, int packetlen, int bodylen,

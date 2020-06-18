@@ -34,7 +34,6 @@ THE SOFTWARE.
 #include "interface.h"
 #include "neighbour.h"
 #include "source.h"
-#include "mac.h"
 #include "route.h"
 #include "message.h"
 #include "resend.h"
