@@ -110,7 +110,7 @@ add_key(char *id, int type, int len, unsigned char *value)
 static int
 compute_mac(const unsigned char *src, const unsigned char *dst,
             const unsigned char *packet_header,
-            const unsigned char *body, int bodylen, struct key *key,
+            const unsigned char *body, int bodylen, const struct key *key,
             unsigned char *mac_return)
 {
     unsigned char port[2];
@@ -214,8 +214,8 @@ compute_mac(const unsigned char *src, const unsigned char *dst,
 }
 
 int
-sign_packet(struct buffered *buf, struct interface *ifp,
-            unsigned char *packet_header)
+sign_packet(struct buffered *buf, const struct interface *ifp,
+            const unsigned char *packet_header)
 {
     int maclen;
     int i = buf->len;
@@ -249,7 +249,7 @@ static int
 compare_macs(const unsigned char *src, const unsigned char *dst,
              const unsigned char *packet, int bodylen,
              const unsigned char *mac, int maclen,
-             struct key *key)
+             const struct key *key)
 {
     unsigned char buf[MAX_DIGEST_LEN];
     int len;
@@ -261,7 +261,7 @@ compare_macs(const unsigned char *src, const unsigned char *dst,
 int
 verify_packet(const unsigned char *packet, int packetlen, int bodylen,
               const unsigned char *src, const unsigned char *dst,
-              struct interface *ifp)
+              const struct interface *ifp)
 {
     int i = bodylen + 4;
     int len;

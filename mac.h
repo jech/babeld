@@ -24,8 +24,8 @@ struct key *find_key(const char *id);
 struct key *retain_key(struct key *key);
 void release_key(struct key *key);
 struct key *add_key(char *id, int type, int len, unsigned char *value);
-int sign_packet(struct buffered *buf, struct interface *ifp,
-                unsigned char *packet_header);
+int sign_packet(struct buffered *buf, const struct interface *ifp,
+                const unsigned char *packet_header);
 int verify_packet(const unsigned char *packet, int packetlen, int bodylen,
                   const unsigned char *src, const unsigned char *dst,
-                  struct interface *ifp);
+                  const struct interface *ifp);
