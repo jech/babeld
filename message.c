@@ -1146,7 +1146,7 @@ static void
 ensure_space(struct buffered *buf, struct interface *ifp, int space)
 {
     if(ifp->key != NULL)
-        space += MAX_MAC_SPACE + 6 + NONCE_LEN;
+        space += MAX_MAC_SPACE + (6 + INDEX_LEN /* PC TLV */);
     if(buf->size - buf->len < space)
         flushbuf(buf, ifp);
 }
@@ -1154,8 +1154,8 @@ ensure_space(struct buffered *buf, struct interface *ifp, int space)
 static void
 start_message(struct buffered *buf, struct interface *ifp, int type, int len)
 {
-    int space =
-        ifp->key == NULL ? len + 2 : len + 2 + MAX_MAC_SPACE + 6 + NONCE_LEN;
+    int space = ifp->key == NULL ? len + 2
+        : len + 2 + MAX_MAC_SPACE + (6 + INDEX_LEN /* PC TLV */);
     if(buf->size - buf->len < space)
         flushbuf(buf, ifp);
     buf->buf[buf->len++] = type;
@@ -1202,7 +1202,7 @@ accumulate_bytes(struct buffered *buf,
 int
 send_pc(struct buffered *buf, struct interface *ifp)
 {
-    int space = 2 + MAX_MAC_SPACE + 6 + NONCE_LEN;
+    int space = MAX_MAC_SPACE + (6 + INDEX_LEN /* PC TLV */);
     if(buf->size - buf->len < space) {
         fputs("send_pc: no space left to accumulate pc.\n", stderr);
         return -1;
