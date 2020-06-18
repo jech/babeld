@@ -38,9 +38,6 @@ THE SOFTWARE.
 #include "configuration.h"
 #include "message.h"
 
-#define MAX_DIGEST_LEN ((int)SHA256HashSize > (int)BLAKE2S_OUTBYTES ?   \
-                        (int)SHA256HashSize : (int)BLAKE2S_OUTBYTES)
-
 struct key **keys = NULL;
 int numkeys = 0, maxkeys = 0;
 
@@ -229,7 +226,7 @@ sign_packet(struct buffered *buf, const struct interface *ifp,
     }
     src = ifp->ll[0];
 
-    if(buf->len + 2 + MAX_DIGEST_LEN > buf->size) {
+    if(buf->len + MAX_MAC_SPACE > buf->size) {
         fprintf(stderr, "sign_packet: buffer overflow.\n");
         return -1;
     }

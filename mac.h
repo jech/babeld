@@ -23,6 +23,10 @@ THE SOFTWARE.
 #define MAC_ALGORITHM_HMAC_SHA256 1
 #define MAC_ALGORITHM_BLAKE2S 2
 
+#define MAX_DIGEST_LEN ((int)SHA256HashSize > (int)BLAKE2S_OUTBYTES ?   \
+                        (int)SHA256HashSize : (int)BLAKE2S_OUTBYTES)
+#define MAX_MAC_SPACE (2 + MAX_DIGEST_LEN)
+
 #define MAX_KEY_LEN ((int)SHA256_Message_Block_Size > (int)BLAKE2S_KEYBYTES ? \
                      (int)SHA256_Message_Block_Size : (int)BLAKE2S_KEYBYTES)
 #define MAX_KEY_NAME_LEN 16U
