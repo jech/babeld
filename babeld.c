@@ -833,12 +833,15 @@ main(int argc, char **argv)
     release_tables();
     kernel_setup_socket(0);
     kernel_setup(0);
+
+#ifdef HAVE_VALGRIND
     release_interfaces();
     release_configurations();
     release_neighbours();
     release_xroutes();
     release_sources();
     free(receive_buffer);
+#endif
 
     fd = open(state_file, O_WRONLY | O_TRUNC | O_CREAT, 0644);
     if(fd < 0) {
