@@ -95,9 +95,9 @@ struct old_if {
     int rp_filter;
 };
 
-struct old_if *old_if = NULL;
-int num_old_if = 0;
-int max_old_if = 0;
+static struct old_if *old_if = NULL;
+static int num_old_if = 0;
+static int max_old_if = 0;
 
 static int dgram_socket = -1;
 
