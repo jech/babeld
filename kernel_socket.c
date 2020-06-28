@@ -54,7 +54,7 @@ static int get_sdl(struct sockaddr_dl *sdl, char *ifname);
 int export_table = -1, import_table_count = 0, import_tables[MAX_IMPORT_TABLES];
 
 int
-if_eui64(char *ifname, int ifindex, unsigned char *eui)
+if_eui64(char *ifname, unsigned int ifindex, unsigned char *eui)
 {
     struct sockaddr_dl sdl;
     char *tmp = NULL;
@@ -292,13 +292,13 @@ kernel_setup_socket(int setup)
 }
 
 int
-kernel_setup_interface(int setup, const char *ifname, int ifindex)
+kernel_setup_interface(int setup, const char *ifname, unsigned int ifindex)
 {
     return 1;
 }
 
 int
-kernel_interface_operational(const char *ifname, int ifindex)
+kernel_interface_operational(const char *ifname, unsigned int ifindex)
 {
     struct ifreq req;
     int s, rc;
@@ -318,7 +318,7 @@ kernel_interface_operational(const char *ifname, int ifindex)
 }
 
 int
-kernel_interface_ipv4(const char *ifname, int ifindex, unsigned char *addr_r)
+kernel_interface_ipv4(const char *ifname, unsigned int ifindex, unsigned char *addr_r)
 {
     struct ifreq req;
     int s, rc;
@@ -341,7 +341,7 @@ kernel_interface_ipv4(const char *ifname, int ifindex, unsigned char *addr_r)
 }
 
 int
-kernel_interface_mtu(const char *ifname, int ifindex)
+kernel_interface_mtu(const char *ifname, unsigned int ifindex)
 {
     struct ifreq req;
     int s, rc;
@@ -362,7 +362,7 @@ kernel_interface_mtu(const char *ifname, int ifindex)
 }
 
 int
-kernel_interface_wireless(const char *ifname, int ifindex)
+kernel_interface_wireless(const char *ifname, unsigned int ifindex)
 {
     struct ifmediareq ifmr;
     int s, rc;
@@ -381,7 +381,7 @@ kernel_interface_wireless(const char *ifname, int ifindex)
 }
 
 int
-kernel_interface_channel(const char *ifname, int ifindex)
+kernel_interface_channel(const char *ifname, unsigned int ifindex)
 {
     errno = ENOSYS;
     return -1;
@@ -404,8 +404,9 @@ kernel_route(int operation, int table,
              const unsigned char *dest, unsigned short plen,
              const unsigned char *src, unsigned short src_plen,
              const unsigned char *pref_src,
-             const unsigned char *gate, int ifindex, unsigned int metric,
-             const unsigned char *newgate, int newifindex,
+             const unsigned char *gate, unsigned int ifindex,
+             unsigned int metric,
+             const unsigned char *newgate, unsigned int newifindex,
              unsigned int newmetric, int newtable)
 {
     struct {
@@ -488,7 +489,7 @@ kernel_route(int operation, int table,
         msg.m_rtm.rtm_flags |= RTF_BLACKHOLE;
         if(ifindex_lo < 0) {
             ifindex_lo = if_nametoindex("lo0");
-            if(ifindex_lo <= 0)
+            if(ifindex_lo == 0)
                 return -1;
         }
         msg.m_rtm.rtm_index = ifindex_lo;
@@ -606,7 +607,7 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
 
     if(ifindex_lo < 0) {
         ifindex_lo = if_nametoindex("lo0");
-        if(ifindex_lo <= 0)
+        if(ifindex_lo == 0)
             return -1;
     }
 
@@ -667,7 +668,7 @@ parse_kernel_route(const struct rt_msghdr *rtm, struct kernel_route *route)
         struct sockaddr_in *sin = (struct sockaddr_in *)sa;
         v4tov6(route->gw, (unsigned char *)&sin->sin_addr);
     }
-    if((int)route->ifindex == ifindex_lo)
+    if(route->ifindex == (unsigned int)ifindex_lo)
         return -1;
 
     /* Netmask */
@@ -800,7 +801,7 @@ kernel_addresses(struct kernel_filter *filter)
     for(ifap = ifa; ifap != NULL; ifap = ifap->ifa_next) {
         struct kernel_addr addr;
         addr.ifindex = if_nametoindex(ifap->ifa_name);
-        if(!addr.ifindex)
+        if(addr.ifindex == 0)
             continue;
 
         if(ifap->ifa_addr->sa_family == AF_INET6) {

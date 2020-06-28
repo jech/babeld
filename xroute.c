@@ -261,7 +261,7 @@ filter_address(struct kernel_addr *addr, void *data) {
     int maxroutes = *(int *)args[0];
     struct kernel_route *routes = (struct kernel_route*)args[1];
     int *found = (int *)args[2];
-    int ifindex = *(int*)args[3];
+    unsigned int ifindex = *(unsigned int*)args[3];
     int ll = args[4] ? !!*(int*)args[4] : 0;
     struct kernel_route *route = NULL;
 
@@ -295,7 +295,7 @@ filter_address(struct kernel_addr *addr, void *data) {
 /* ifindex is 0 for all interfaces.  ll indicates whether we are
    interested in link-local or global addresses. */
 int
-kernel_addresses(int ifindex, int ll, struct kernel_route *routes,
+kernel_addresses(unsigned int ifindex, int ll, struct kernel_route *routes,
                  int maxroutes)
 {
     int found = 0;
@@ -355,7 +355,7 @@ check_xroutes(int send_updates)
     if(routes == NULL)
         return -1;
 
-    rc = kernel_addresses(0, 0, routes, maxroutes);
+    rc = kernel_addresses(0U, 0, routes, maxroutes);
     if(rc < 0) {
         perror("kernel_addresses");
         numroutes = 0;

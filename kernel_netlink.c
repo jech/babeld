@@ -112,7 +112,7 @@ static int filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter);
 
 /* Determine an interface's hardware address, in modified EUI-64 format */
 int
-if_eui64(char *ifname, int ifindex, unsigned char *eui)
+if_eui64(char *ifname, unsigned int ifindex, unsigned char *eui)
 {
     int s, rc;
     struct ifreq ifr;
@@ -678,7 +678,7 @@ get_old_if(const char *ifname)
 }
 
 int
-kernel_setup_interface(int setup, const char *ifname, int ifindex)
+kernel_setup_interface(int setup, const char *ifname, unsigned int ifindex)
 {
     char buf[100];
     int i, rc;
@@ -721,7 +721,7 @@ kernel_setup_interface(int setup, const char *ifname, int ifindex)
 }
 
 int
-kernel_interface_operational(const char *ifname, int ifindex)
+kernel_interface_operational(const char *ifname, unsigned int ifindex)
 {
     struct ifreq req;
     int rc;
@@ -736,7 +736,7 @@ kernel_interface_operational(const char *ifname, int ifindex)
 }
 
 int
-kernel_interface_ipv4(const char *ifname, int ifindex, unsigned char *addr_r)
+kernel_interface_ipv4(const char *ifname, unsigned int ifindex, unsigned char *addr_r)
 {
     struct ifreq req;
     int rc;
@@ -753,7 +753,7 @@ kernel_interface_ipv4(const char *ifname, int ifindex, unsigned char *addr_r)
 }
 
 int
-kernel_interface_mtu(const char *ifname, int ifindex)
+kernel_interface_mtu(const char *ifname, unsigned int ifindex)
 {
     struct ifreq req;
     int rc;
@@ -768,12 +768,12 @@ kernel_interface_mtu(const char *ifname, int ifindex)
 }
 
 static int
-isbridge(const char *ifname, int ifindex)
+isbridge(const char *ifname, unsigned int ifindex)
 {
     char buf[256];
     int rc, i;
     unsigned long args[3];
-    int indices[256];
+    unsigned int indices[256];
 
     rc = snprintf(buf, 256, "/sys/class/net/%s", ifname);
     if(rc < 0 || rc >= 256)
@@ -813,7 +813,7 @@ isbridge(const char *ifname, int ifindex)
 }
 
 static int
-isbatman(const char *ifname, int ifindex)
+isbatman(const char *ifname, unsigned int ifindex)
 {
     char buf[256];
     int rc;
@@ -832,7 +832,7 @@ isbatman(const char *ifname, int ifindex)
 }
 
 int
-kernel_interface_wireless(const char *ifname, int ifindex)
+kernel_interface_wireless(const char *ifname, unsigned int ifindex)
 {
 #ifndef SIOCGIWNAME
 #define SIOCGIWNAME 0x8B01
@@ -919,7 +919,7 @@ freq_to_chan(struct iw_freq *freq)
 }
 
 int
-kernel_interface_channel(const char *ifname, int ifindex)
+kernel_interface_channel(const char *ifname, unsigned int ifindex)
 {
     struct iwreq_subset iwreq;
     int rc;
@@ -953,8 +953,9 @@ kernel_route(int operation, int table,
              const unsigned char *dest, unsigned short plen,
              const unsigned char *src, unsigned short src_plen,
              const unsigned char *pref_src,
-             const unsigned char *gate, int ifindex, unsigned int metric,
-             const unsigned char *newgate, int newifindex,
+             const unsigned char *gate, unsigned int ifindex,
+             unsigned int metric,
+             const unsigned char *newgate, unsigned int newifindex,
              unsigned int newmetric, int newtable)
 {
     union { char raw[1024]; struct nlmsghdr nh; } buf;
@@ -1027,7 +1028,7 @@ kernel_route(int operation, int table,
     use_src = (!is_default(src, src_plen) && kernel_disambiguate(ipv4));
 
     kdebugf("kernel_route: %s %s from %s "
-            "table %d metric %u dev %d nexthop %s\n",
+            "table %d metric %u dev %u nexthop %s\n",
             operation == ROUTE_ADD ? "add" :
             operation == ROUTE_FLUSH ? "flush" : "???",
             format_prefix(dest, plen), format_prefix(src, src_plen),
@@ -1390,7 +1391,7 @@ filter_link(struct nlmsghdr *nh, struct kernel_link *link)
 {
     struct ifinfomsg *info;
     int len;
-    int ifindex;
+    unsigned int ifindex;
     unsigned int ifflags;
 
     len = nh->nlmsg_len;
@@ -1407,8 +1408,8 @@ filter_link(struct nlmsghdr *nh, struct kernel_link *link)
     link->ifname = parse_ifname_rta(info, len);
     if(link->ifname == NULL)
         return 0;
-    kdebugf("filter_interfaces: link change on if %s(%d): 0x%x\n",
-            link->ifname, ifindex, (unsigned)ifflags);
+    kdebugf("filter_interfaces: link change on if %s(%u): 0x%x\n",
+            link->ifname, ifindex, ifflags);
     return 1;
 }
 
