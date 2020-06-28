@@ -154,13 +154,13 @@ local_notify_neighbour_1(struct local_socket *s,
     }
 
     rc = snprintf(buf, 512,
-                  "%s neighbour %lx address %s "
+                  "%s neighbour %p address %s "
                   "if %s reach %04x ureach %04x "
                   "rxcost %u txcost %u%s cost %u\n",
                   local_kind(kind),
                   /* Neighbours never move around in memory , so we can use the
                      address as a unique identifier. */
-                  (unsigned long int)neigh,
+                  (void*)neigh,
                   format_address(neigh->address),
                   neigh->ifp->name,
                   neigh->hello.reach,
@@ -241,10 +241,10 @@ local_notify_route_1(struct local_socket *s, struct babel_route *route, int kind
                                            route->src->src_plen);
 
     rc = snprintf(buf, 512,
-                  "%s route %lx prefix %s from %s installed %s "
+                  "%s route %p prefix %s from %s installed %s "
                   "id %s metric %d refmetric %d via %s if %s\n",
                   local_kind(kind),
-                  (unsigned long)route,
+                  (void*)route,
                   dst_prefix, src_prefix,
                   route->installed ? "yes" : "no",
                   format_eui64(route->src->id),
