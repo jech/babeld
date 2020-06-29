@@ -83,13 +83,12 @@ int add_import_table(int table);
 
 int kernel_setup(int setup);
 int kernel_setup_socket(int setup);
-int kernel_setup_interface(int setup, const char *ifname, unsigned int ifindex);
-int kernel_interface_operational(const char *ifname, unsigned int ifindex);
-int kernel_interface_ipv4(const char *ifname, unsigned int ifindex,
-                          unsigned char *addr_r);
-int kernel_interface_mtu(const char *ifname, unsigned int ifindex);
+int kernel_setup_interface(int setup, const char *ifname);
+int kernel_interface_operational(const char *ifname);
+int kernel_interface_ipv4(const char *ifname, unsigned char *addr_r);
+int kernel_interface_mtu(const char *ifname);
 int kernel_interface_wireless(const char *ifname, unsigned int ifindex);
-int kernel_interface_channel(const char *ifname, unsigned int ifindex);
+int kernel_interface_channel(const char *ifname);
 int kernel_disambiguate(int v4);
 int kernel_route(int operation, int table,
                  const unsigned char *dest, unsigned short plen,
@@ -101,7 +100,7 @@ int kernel_route(int operation, int table,
                  unsigned int newmetric, int newtable);
 int kernel_dump(int operation, struct kernel_filter *filter);
 int kernel_callback(struct kernel_filter *filter);
-int if_eui64(char *ifname, unsigned int ifindex, unsigned char *eui);
+int if_eui64(char *ifname, unsigned char *eui);
 int gettime(struct timeval *tv);
 int read_random_bytes(void *buf, int len);
 int kernel_older_than(const char *sysname, int version, int sub_version);

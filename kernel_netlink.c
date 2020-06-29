@@ -112,7 +112,7 @@ static int filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter);
 
 /* Determine an interface's hardware address, in modified EUI-64 format */
 int
-if_eui64(char *ifname, unsigned int ifindex, unsigned char *eui)
+if_eui64(char *ifname, unsigned char *eui)
 {
     int s, rc;
     struct ifreq ifr;
@@ -678,7 +678,7 @@ get_old_if(const char *ifname)
 }
 
 int
-kernel_setup_interface(int setup, const char *ifname, unsigned int ifindex)
+kernel_setup_interface(int setup, const char *ifname)
 {
     char buf[100];
     int i, rc;
@@ -721,7 +721,7 @@ kernel_setup_interface(int setup, const char *ifname, unsigned int ifindex)
 }
 
 int
-kernel_interface_operational(const char *ifname, unsigned int ifindex)
+kernel_interface_operational(const char *ifname)
 {
     struct ifreq req;
     int rc;
@@ -736,7 +736,7 @@ kernel_interface_operational(const char *ifname, unsigned int ifindex)
 }
 
 int
-kernel_interface_ipv4(const char *ifname, unsigned int ifindex, unsigned char *addr_r)
+kernel_interface_ipv4(const char *ifname, unsigned char *addr_r)
 {
     struct ifreq req;
     int rc;
@@ -753,7 +753,7 @@ kernel_interface_ipv4(const char *ifname, unsigned int ifindex, unsigned char *a
 }
 
 int
-kernel_interface_mtu(const char *ifname, unsigned int ifindex)
+kernel_interface_mtu(const char *ifname)
 {
     struct ifreq req;
     int rc;
@@ -813,7 +813,7 @@ isbridge(const char *ifname, unsigned int ifindex)
 }
 
 static int
-isbatman(const char *ifname, unsigned int ifindex)
+isbatman(const char *ifname)
 {
     char buf[256];
     int rc;
@@ -840,7 +840,7 @@ kernel_interface_wireless(const char *ifname, unsigned int ifindex)
     struct ifreq req;
     int rc;
 
-    if(isbridge(ifname, ifindex) != 0 || isbatman(ifname, ifindex) != 0)
+    if(isbridge(ifname, ifindex) != 0 || isbatman(ifname) != 0)
         return -1;
 
     memset(&req, 0, sizeof(req));
@@ -919,7 +919,7 @@ freq_to_chan(struct iw_freq *freq)
 }
 
 int
-kernel_interface_channel(const char *ifname, unsigned int ifindex)
+kernel_interface_channel(const char *ifname)
 {
     struct iwreq_subset iwreq;
     int rc;

@@ -149,7 +149,7 @@ check_interface_ipv4(struct interface *ifp)
     int rc;
 
     if(ifp->ifindex > 0)
-        rc = kernel_interface_ipv4(ifp->name, ifp->ifindex, ipv4);
+        rc = kernel_interface_ipv4(ifp->name, ipv4);
     else
         rc = 0;
 
@@ -186,7 +186,7 @@ check_interface_channel(struct interface *ifp)
     if(channel == IF_CHANNEL_UNKNOWN) {
         /* IF_WIRELESS merely means that we know for sure that the
            interface is wireless, so check unconditionally. */
-        channel = kernel_interface_channel(ifp->name, ifp->ifindex);
+        channel = kernel_interface_channel(ifp->name);
         if(channel < 0) {
             if((ifp->flags & IF_WIRELESS))
                 rc = -1;
@@ -274,7 +274,7 @@ interface_updown(struct interface *ifp, int up)
             goto fail;
         }
 
-        rc = kernel_setup_interface(1, ifp->name, ifp->ifindex);
+        rc = kernel_setup_interface(1, ifp->name);
         if(rc < 0) {
             fprintf(stderr, "kernel_setup_interface(%s, %u) failed.\n",
                     ifp->name, ifp->ifindex);
@@ -287,7 +287,7 @@ interface_updown(struct interface *ifp, int up)
         ifp->buf.sin6.sin6_port = htons(protocol_port);
         ifp->buf.sin6.sin6_scope_id = ifp->ifindex;
 
-        mtu = kernel_interface_mtu(ifp->name, ifp->ifindex);
+        mtu = kernel_interface_mtu(ifp->name);
         if(mtu < 0) {
             fprintf(stderr,
                     "Warning: couldn't get MTU of interface %s (%u), "
@@ -491,7 +491,7 @@ interface_updown(struct interface *ifp, int up)
                             (char*)&mreq, sizeof(mreq));
             if(rc < 0)
                 perror("setsockopt(IPV6_LEAVE_GROUP)");
-            kernel_setup_interface(0, ifp->name, ifp->ifindex);
+            kernel_setup_interface(0, ifp->name);
         }
         if(ifp->ll)
             free(ifp->ll);
@@ -542,7 +542,7 @@ check_interfaces(void)
         }
 
         if(ifp->ifindex > 0)
-            rc = kernel_interface_operational(ifp->name, ifp->ifindex);
+            rc = kernel_interface_operational(ifp->name);
         else
             rc = 0;
         if((rc > 0) != if_up(ifp)) {

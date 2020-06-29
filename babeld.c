@@ -462,7 +462,7 @@ main(int argc, char **argv)
             ifname = if_indextoname(i, buf);
             if(ifname == NULL)
                 continue;
-            rc = if_eui64(ifname, i, eui);
+            rc = if_eui64(ifname, eui);
             if(rc < 0)
                 continue;
             memcpy(myid, eui, 8);

@@ -54,7 +54,7 @@ static int get_sdl(struct sockaddr_dl *sdl, char *ifname);
 int export_table = -1, import_table_count = 0, import_tables[MAX_IMPORT_TABLES];
 
 int
-if_eui64(char *ifname, unsigned int ifindex, unsigned char *eui)
+if_eui64(char *ifname, unsigned char *eui)
 {
     struct sockaddr_dl sdl;
     char *tmp = NULL;
@@ -292,13 +292,13 @@ kernel_setup_socket(int setup)
 }
 
 int
-kernel_setup_interface(int setup, const char *ifname, unsigned int ifindex)
+kernel_setup_interface(int setup, const char *ifname)
 {
     return 1;
 }
 
 int
-kernel_interface_operational(const char *ifname, unsigned int ifindex)
+kernel_interface_operational(const char *ifname)
 {
     struct ifreq req;
     int s, rc;
@@ -318,7 +318,7 @@ kernel_interface_operational(const char *ifname, unsigned int ifindex)
 }
 
 int
-kernel_interface_ipv4(const char *ifname, unsigned int ifindex, unsigned char *addr_r)
+kernel_interface_ipv4(const char *ifname, unsigned char *addr_r)
 {
     struct ifreq req;
     int s, rc;
@@ -341,7 +341,7 @@ kernel_interface_ipv4(const char *ifname, unsigned int ifindex, unsigned char *a
 }
 
 int
-kernel_interface_mtu(const char *ifname, unsigned int ifindex)
+kernel_interface_mtu(const char *ifname)
 {
     struct ifreq req;
     int s, rc;
@@ -381,7 +381,7 @@ kernel_interface_wireless(const char *ifname, unsigned int ifindex)
 }
 
 int
-kernel_interface_channel(const char *ifname, unsigned int ifindex)
+kernel_interface_channel(const char *ifname)
 {
     errno = ENOSYS;
     return -1;
