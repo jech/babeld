@@ -30,6 +30,7 @@ THE SOFTWARE.
 
 #include "babeld.h"
 #include "kernel.h"
+#include "mac.h"
 #include "interface.h"
 #include "neighbour.h"
 #include "message.h"

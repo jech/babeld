@@ -1,5 +1,6 @@
 /*
 Copyright (c) 2018 by Clara Dô and Weronika Kolodziejak
+Copyright (c) 2019-2020 by Antonin Décimo
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,77 +32,443 @@ THE SOFTWARE.
 #include "BLAKE2/ref/blake2.h"
 
 #include "babeld.h"
+#include "mac.h"
 #include "interface.h"
 #include "neighbour.h"
 #include "util.h"
-#include "mac.h"
 #include "configuration.h"
 #include "message.h"
 
-struct key **keys = NULL;
-int numkeys = 0, maxkeys = 0;
+#define MAX_DIGEST_LEN ((int)SHA256HashSize > (int)BLAKE2S_OUTBYTES ?   \
+                        (int)SHA256HashSize : (int)BLAKE2S_OUTBYTES)
 
-struct key *
-find_key(const char *name)
+struct keysuperset allkeysets = {0};
+struct keyset allkeys = {0};
+
+struct mac {
+    unsigned int len;
+    unsigned char digest[MAX_DIGEST_LEN];
+};
+
+static struct mac *macs = NULL;
+static unsigned int macslen = 0;
+
+int
+init_keysuperset(struct keysuperset *kss)
 {
-    int i;
-    for(i = 0; i < numkeys; i++) {
-        if(strcmp(keys[i]->name, name) == 0)
-            return retain_key(keys[i]);
+    kss->cap = 1;
+    kss->len = 0;
+    kss->keysets = calloc(kss->cap, sizeof(struct keyset*));
+    if(kss->keysets == NULL) {
+        perror("calloc(keysets)");
+        free(kss);
+        return -1;
+    }
+    return 0;
+}
+
+static struct keyset *
+init_keyset(struct keyset *ks, const char *name)
+{
+    int alloc = ks == NULL;
+
+    if(alloc) {
+        ks = calloc(1, sizeof(struct keyset));
+        if(ks == NULL) {
+            perror("calloc(keyset)");
+            return NULL;
+        }
+    }
+
+    if(name != NULL) {
+        strncpy(ks->name, name, MAX_KEY_NAME_LEN - 1);
+        ks->name[MAX_KEY_NAME_LEN - 1] = '\0';
+    }
+
+    ks->cap = 4;
+    ks->refcount = -1;
+    ks->keys = calloc(ks->cap, sizeof(struct key*));
+    if(ks->keys == NULL) {
+        perror("calloc(keys)");
+        if(alloc)
+            free(ks);
+        return NULL;
+    }
+    return ks;
+}
+
+int
+init_mac(void)
+{
+    struct keyset *ks;
+    int rc;
+
+    rc = init_keysuperset(&allkeysets);
+    if(rc)
+        goto fail1;
+    ks = init_keyset(&allkeys, NULL);
+    if(ks == NULL)
+        goto fail2;
+    return 0;
+
+ fail2:
+    free(allkeysets.keysets);
+    memset(&allkeys, 0, sizeof(struct keyset));
+ fail1:
+    memset(&allkeysets, 0, sizeof(struct keysuperset));
+    return -1;
+
+}
+
+static void
+retain_key(struct key *key)
+{
+    if(key->refcount == -1)
+        key->refcount = 0;
+    ++key->refcount;
+}
+
+static void
+retain_keyset(struct keyset *ks)
+{
+    if(ks->refcount == -1)
+        ks->refcount = 0;
+    ++ks->refcount;
+}
+
+static void
+pop_keyset(struct keysuperset *kss, const unsigned int i)
+{
+    kss->keysets[i] = kss->keysets[--kss->len];
+}
+
+static void
+pop_key(struct keyset *ks, const unsigned int i)
+{
+    ks->keys[i] = ks->keys[--ks->len];
+}
+
+static void
+memzero(void *v, size_t n)
+{
+#ifdef HAVE_EXPLICIT_BZERO
+    explicit_bzero(v, n);
+#elif HAVE_MEMSET_S
+    memset_s(v, n, 0, n);
+#else
+    static void *(*const volatile memset_v)(void *, int, size_t) = &memset;
+    memset_v(v, 0, n);
+#endif
+}
+
+static void
+release_key(struct key *key)
+{
+    unsigned int i;
+
+    --key->refcount;
+    if(key->refcount > 0)
+        return;
+
+    for(i = 0; allkeys.keys[i] != key; i++);
+    pop_key(&allkeys, i);
+    memzero(key->value, key->len);
+    free(key);
+}
+
+static void
+release_keyset(struct keyset *ks)
+{
+    unsigned int i;
+
+    --ks->refcount;
+    if(ks->refcount > 0)
+        return;
+
+    for(i = 0; i < ks->len; i++)
+        release_key(ks->keys[i]);
+    for(i = 0; allkeysets.keysets[i] != ks; i++);
+    pop_keyset(&allkeysets, i);
+    free(ks->keys);
+    free(ks);
+}
+
+void
+release_keysuperset(struct keysuperset *kss)
+{
+    unsigned int i;
+    for(i = 0; i < kss->len; i++)
+        release_keyset(kss->keysets[i]);
+    free(kss->keysets);
+    kss->keysets = NULL;
+}
+
+void
+release_mac(void)
+{
+    unsigned int i;
+    release_keysuperset(&allkeysets);
+    for(i = 0; i < allkeys.len; i++)
+        release_key(*allkeys.keys + i);
+    free(allkeys.keys);
+    free(macs);
+
+    memset(&allkeysets, 0, sizeof(struct keysuperset));
+    memset(&allkeys, 0, sizeof(struct keyset));
+    macs = NULL;
+    macslen = 0;
+}
+
+static struct keyset *
+find_keyset(const struct keysuperset *kss, const char *name, unsigned int *pos)
+{
+    unsigned int i;
+    for(i = 0; i < kss->len; i++) {
+        if(strcmp(name, kss->keysets[i]->name) == 0) {
+            if(pos != NULL)
+                *pos = i;
+            return kss->keysets[i];
+        }
     }
     return NULL;
 }
 
-struct key *
-retain_key(struct key *key)
+static int
+contains_keyset(const struct keysuperset *kss, const struct keyset *ks)
 {
-    assert(key->ref_count < 0xffff);
-    key->ref_count++;
-    return key;
+    unsigned int i;
+    for(i = 0; i < kss->len; i++)
+        if(kss->keysets[i] == ks)
+            return 1;
+    return 0;
 }
 
-void
-release_key(struct key *key)
+static struct key *
+find_key(const struct keyset *ks, const char *name, unsigned int *pos)
 {
-    assert(key->ref_count > 0);
-    key->ref_count--;
+    unsigned int i;
+    for(i = 0; i < ks->len; i++) {
+        if(strcmp(name, ks->keys[i]->name) == 0) {
+            if(pos != NULL)
+                *pos = i;
+            return ks->keys[i];
+        }
+    }
+    return NULL;
 }
 
-struct key *
-add_key(char *name, int algorithm, int len, unsigned char *value)
+static int
+contains_key(const struct keyset *ks, const struct key *key)
 {
+    unsigned int i;
+    for(i = 0; i < ks->len; i++)
+        if(ks->keys[i] == key)
+            return 1;
+    return 0;
+}
+
+static int
+push_keyset(struct keysuperset *kss, struct keyset *ks)
+{
+    if(kss->len == kss->cap) {
+        unsigned int cap = 2 * kss->cap;
+        struct keyset **keysets = realloc(kss->keysets, cap * sizeof(struct keyset*));
+        if(keysets == NULL) {
+            perror("realloc(kss->keysets)");
+            return -1;
+        }
+        /* memset(keysets + kss->cap, 0, (cap - kss->cap) * sizeof(struct keyset*)); */
+        kss->keysets = keysets;
+        kss->cap = cap;
+    }
+    kss->keysets[kss->len++] = ks;
+    return 0;
+}
+
+static int
+push_key(struct keyset *ks, struct key *key)
+{
+    if(ks->len == ks->cap) {
+        unsigned int cap = 2 * ks->cap;
+        struct key **keys = realloc(ks->keys, cap * sizeof(struct key*));
+        if(keys == NULL) {
+            perror("realloc(ks->keys)");
+            return -1;
+        }
+        /* memset(keys + ks->cap, 0, (cap - ks->cap) * sizeof(struct key*)); */
+        ks->keys = keys;
+        ks->cap = cap;
+    }
+    ks->keys[ks->len++] = key;
+    return 0;
+}
+
+int
+add_key(struct key *key)
+{
+    const struct key *key2;
+    key2 = find_key(&allkeys, key->name, NULL);
+    if(key2 != NULL) {
+        fprintf(stderr, "add_key: key %s already exists.\n", key->name);
+        return -1;
+    }
+    key->refcount = -1;
+
+    if(macslen < allkeys.len + 1) {
+        struct mac *buf;
+        buf = realloc(macs, (allkeys.len + 1) * sizeof(struct mac));
+        if(buf == NULL) {
+            perror("realloc(macs)");
+            return -1;
+        }
+        /* memset(buf + macslen, 0, (allkeys.len + 1 - macslen) * sizeof(struct mac)); */
+        macs = buf;
+        macslen = allkeys.len + 1;
+    }
+
+    return push_key(&allkeys, key);
+}
+
+int
+add_keyset(const char *name)
+{
+    struct keyset *ks;
+    int rc;
+
+    ks = find_keyset(&allkeysets, name, NULL);
+    if(ks != NULL) {
+        fprintf(stderr, "add_keyset: keyset %s already exists.\n", name);
+        return -1;
+    }
+    ks = init_keyset(NULL, name);
+    if(ks == NULL)
+        return -1;
+
+    rc = push_keyset(&allkeysets, ks);
+    if(rc) {
+        free(ks->keys);
+        free(ks);
+        return -1;
+    }
+
+    return 0;
+}
+
+int
+add_key_to_keyset(const char *keyset_name, const char *key_name)
+{
+    struct keyset *ks;
     struct key *key;
-
-    assert(value != NULL);
-
-    key = find_key(name);
-    if(key) {
-        key->algorithm = algorithm;
-        key->len = len;
-        memcpy(key->value, value, len);
-        return key;
+    int rc;
+    ks = find_keyset(&allkeysets, keyset_name, NULL);
+    if(ks == NULL) {
+        fprintf(stderr, "add_key_to_keyset: could not find keyset %s.\n",
+                keyset_name);
+        return -1;
+    }
+    key = find_key(&allkeys, key_name, NULL);
+    if(key == NULL) {
+        fprintf(stderr, "add_key_to_keyset: could not find key %s.\n",
+                key_name);
+        return -1;
+    }
+    if(contains_key(ks, key)) {
+        fprintf(stderr, "add_key_to_keyset: key %s already in keyset %s.\n",
+                key_name, keyset_name);
+        return -1;
     }
 
-    if(numkeys >= maxkeys) {
-        struct key **new_keys;
-        int n = maxkeys < 1 ? 8 : 2 * maxkeys;
-        new_keys = realloc(keys, n * sizeof(struct key*));
-        if(new_keys == NULL)
-            return NULL;
-        maxkeys = n;
-        keys = new_keys;
+    rc = push_key(ks, key);
+    if(rc)
+        return -1;
+    if(key->use & KEY_USE_SIGN)
+        ++ks->signing;
+    retain_key(key);
+    return 0;
+}
+
+int
+rm_key_from_keyset(const char *keyset_name, const char *key_name)
+{
+    unsigned int i;
+    struct keyset *ks;
+    struct key *key;
+    ks = find_keyset(&allkeysets, keyset_name, NULL);
+    if(ks == NULL) {
+        fprintf(stderr, "rm_key_from_keyset: could not find keyset %s.\n",
+                keyset_name);
+        return -1;
+    }
+    key = find_key(ks, key_name, &i);
+    if(key == NULL) {
+        fprintf(stderr, "rm_key_from_keyset: could not find key %s in keyset %s.\n",
+                key_name, keyset_name);
+        return -1;
     }
 
-    key = calloc(1, sizeof(struct key));
-    if(key == NULL)
-        return NULL;
-    memcpy(key->name, name, MAX_KEY_NAME_LEN);
-    key->algorithm = algorithm;
-    key->len = len;
-    memcpy(key->value, value, len);
+    pop_key(ks, i);
+    if(key->use & KEY_USE_SIGN)
+        --ks->signing;
+    release_key(key);
+    return 0;
+}
 
-    keys[numkeys++] = key;
-    return key;
+int
+merge_keysupersets(struct keysuperset *dst, const struct keysuperset *src)
+{
+    unsigned int i;
+    int rc;
+    for(i = 0; i < src->len; i++) {
+        struct keyset *ks = src->keysets[i];
+        if(contains_keyset(dst, ks))
+            continue;
+        rc = push_keyset(dst, ks);
+        if(rc)
+            return -1;
+        retain_keyset(ks);
+    }
+    return 0;
+}
+
+int
+add_keyset_to_keysuperset(struct keysuperset *kss, const char *keyset_name)
+{
+    struct keyset *ks;
+    int rc;
+    if(find_keyset(kss, keyset_name, NULL) != NULL) {
+        fprintf(stderr, "add_keyset_to_keysuperset: keyset %s already in keysuperset.\n",
+                keyset_name);
+        return -1;
+    }
+    ks = find_keyset(&allkeysets, keyset_name, NULL);
+    if(ks == NULL) {
+        fprintf(stderr, "add_keyset_to_keysuperset: could not find keyset %s.\n",
+                keyset_name);
+        return -1;
+    }
+
+    rc = push_keyset(kss, ks);
+    if(rc)
+        return -1;
+    retain_keyset(ks);
+    return 0;
+}
+
+int
+rm_keyset_from_keysuperset(struct keysuperset *kss, const char *keyset_name)
+{
+    unsigned int i;
+    struct keyset *ks;
+    ks = find_keyset(kss, keyset_name, &i);
+    if(ks == NULL) {
+        fprintf(stderr, "rm_keyset_to_interface: "
+                "could not find keyset %s.\n", keyset_name);
+        return -1;
+    }
+
+    pop_keyset(kss, i);
+    release_keyset(ks);
+    return 0;
 }
 
 static int
@@ -212,11 +579,20 @@ compute_mac(const unsigned char *src, const unsigned char *dst,
 }
 
 int
+max_mac_space(const struct interface *ifp)
+{
+    unsigned int numkeys = 0, i;
+    for(i = 0; i < ifp->kss.len; i++)
+        numkeys += ifp->kss.keysets[i]->signing;
+    return numkeys * (2 + MAX_DIGEST_LEN);
+}
+
+int
 sign_packet(struct buffered *buf, const struct interface *ifp,
             const unsigned char *packet_header)
 {
-    int maclen;
-    int i = buf->len;
+    int maclen, bufi;
+    unsigned int i, j;
     unsigned char *dst = buf->sin6.sin6_addr.s6_addr;
     unsigned char *src;
 
@@ -226,66 +602,109 @@ sign_packet(struct buffered *buf, const struct interface *ifp,
     }
     src = ifp->ll[0];
 
-    if(buf->len + MAX_MAC_SPACE > buf->size) {
+    if(buf->size - buf->len < max_mac_space(ifp)) {
         fprintf(stderr, "sign_packet: buffer overflow.\n");
         return -1;
     }
 
-    maclen = compute_mac(src, dst, packet_header,
-                         buf->buf, buf->len, ifp->key,
-                         buf->buf + i + 2);
-    if(maclen < 0)
-        return -1;
-    buf->buf[i++] = MESSAGE_MAC;
-    buf->buf[i++] = maclen;
-    i += maclen;
-    return i;
+    bufi = buf->len;
+    for(i = 0; i < ifp->kss.len; i++) {
+        struct keyset *ks = ifp->kss.keysets[i];
+        for(j = 0; j < ks->len; j++) {
+            struct key *key = ks->keys[j];
+            if(!(key->use & KEY_USE_SIGN))
+               continue;
+
+            maclen = compute_mac(src, dst, packet_header, buf->buf, buf->len,
+                                 key, buf->buf + bufi + 2);
+            if(maclen < 0) {
+                fprintf(stderr, "sign_packet: couldn't compute mac.\n");
+                return -1;
+            }
+            buf->buf[bufi++] = MESSAGE_MAC;
+            buf->buf[bufi++] = maclen;
+            bufi += maclen;
+        }
+    }
+    return bufi;
 }
 
+static int
+compare_mac_keysuperset(const unsigned char *src, const unsigned char *dst,
+                        const unsigned char *packet, unsigned int bodylen,
+                        const unsigned char *mac, unsigned int maclen,
+                        const struct keysuperset *kss,
+                        int *memoized)
+{
+    unsigned int i, j;
+    int k = 0;
+
+    for(i = 0; i < kss->len; i++) {
+        struct keyset *ks = kss->keysets[i];
+        for(j = 0; j < ks->len; j++) {
+            struct key *key = ks->keys[j];
+            struct mac *mmac;
+            if(!(key->use & KEY_USE_VERIFY))
+                continue;
+
+            mmac = macs + k;
+            if(k > *memoized) {
+                mmac->len = compute_mac(src, dst, packet, packet + 4, bodylen,
+                                        key, mmac->digest);
+                *memoized = k;
+            }
+            if(mmac->len == maclen && memcmp(mmac->digest, mac, maclen) == 0)
+                return 1;
+            k++;
+        }
+    }
+    return 0;
+}
 
 static int
 compare_macs(const unsigned char *src, const unsigned char *dst,
              const unsigned char *packet, int bodylen,
              const unsigned char *mac, int maclen,
-             const struct key *key)
+             const struct keysuperset *kss, int drop)
 {
-    unsigned char buf[MAX_DIGEST_LEN];
-    int len;
+    static int memoized;
+    if(drop)
+        memoized = -1;
 
-    len = compute_mac(src, dst, packet, packet + 4, bodylen, key, buf);
-    return len == maclen && (memcmp(buf, mac, maclen) == 0);
+    return compare_mac_keysuperset(src, dst, packet, bodylen, mac, maclen,
+                                   kss, &memoized);
 }
 
 int
-verify_packet(const unsigned char *packet, int packetlen, int bodylen,
+verify_packet(const unsigned char *packet, unsigned int packetlen, int bodylen,
               const unsigned char *src, const unsigned char *dst,
               const struct interface *ifp)
 {
-    int i = bodylen + 4;
-    int len;
+    unsigned int i = bodylen + 4;
     int rc = -1;
 
     debugf("verify_packet %s -> %s\n",
            format_address(src), format_address(dst));
     while(i < packetlen) {
+        unsigned int maclen;
         if(i + 2 > packetlen) {
             fprintf(stderr, "Received truncated message.\n");
             break;
         }
-        len = packet[i + 1];
+        maclen = packet[i + 1];
         if(packet[i] == MESSAGE_MAC) {
             int ok;
-            if(i + len + 2 > packetlen) {
+            if(i + maclen + 2 > packetlen) {
                 fprintf(stderr, "Received truncated message.\n");
                 return -1;
             }
-            ok = compare_macs(src, dst, packet, bodylen,
-                              packet + i + 2, len, ifp->key);
+            ok = compare_macs(src, dst, packet, bodylen, packet + i + 2, maclen,
+                              &ifp->kss, rc);
             if(ok)
                 return 1;
             rc = 0;
         }
-        i += len + 2;
+        i += maclen + 2;
     }
     return rc;
 }

@@ -31,6 +31,7 @@ THE SOFTWARE.
 #include <arpa/inet.h>
 
 #include "babeld.h"
+#include "mac.h"
 #include "interface.h"
 #include "source.h"
 #include "neighbour.h"

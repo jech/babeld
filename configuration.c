@@ -34,15 +34,12 @@ THE SOFTWARE.
 #define RTPROT_BOOT 3 /* Route installed during boot */
 #endif
 
-#include "rfc6234/sha.h"
-#include "BLAKE2/ref/blake2.h"
-
 #include "babeld.h"
 #include "util.h"
+#include "mac.h"
 #include "interface.h"
 #include "route.h"
 #include "kernel.h"
-#include "mac.h"
 #include "configuration.h"
 #include "rule.h"
 
@@ -685,19 +682,72 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
                 goto error;
             if_conf->max_rtt_penalty = penalty;
         } else if(strcmp(token, "mac") == 0) {
-            char *key_name;
-            struct key *key;
-            c = getword(c, &key_name, gnc, closure);
+            int v;
+            c = getbool(c, &v, gnc, closure);
             if(c < -1)
                 goto error;
-            key = find_key(key_name);
-            if(key == NULL) {
-                fprintf(stderr, "Couldn't find key %s.\n", key_name);
-                free(key_name);
+            if(v == CONFIG_YES && init_keysuperset(&if_conf->kss))
+                goto error;
+            if_conf->mac = v;
+        } else if(strcmp(token, "add-keyset") == 0) {
+            struct interface *ifp;
+            char *keyset_name;
+            int rc;
+            c = getword(c, &keyset_name, gnc, closure);
+            if(c < -1) {
+                free(keyset_name);
                 goto error;
             }
-            if_conf->key = key;
-            free(key_name);
+            /* Since babeld doesn't support interface configuration
+             * changes at runtime, find the interface we're
+             * modifying. */
+            FOR_ALL_INTERFACES(ifp) {
+                if(strcmp(ifp->name, if_conf->ifname) == 0)
+                    break;
+            }
+            if(ifp != NULL && (ifp->flags & IF_MAC)) {
+                rc = add_keyset_to_keysuperset(&ifp->kss, keyset_name);
+            } else if(if_conf->mac == CONFIG_YES) {
+                rc = add_keyset_to_keysuperset(&if_conf->kss, keyset_name);
+            } else {
+                if_conf->mac = CONFIG_YES;
+                if(init_keysuperset(&if_conf->kss)) {
+                    free(keyset_name);
+                    goto error;
+                }
+                rc = add_keyset_to_keysuperset(&if_conf->kss, keyset_name);
+            }
+            free(keyset_name);
+            if(rc)
+                goto error;
+        } else if(strcmp(token, "rm-keyset") == 0) {
+            struct interface *ifp;
+            char *keyset_name;
+            int rc = 0;
+            c = getword(c, &keyset_name, gnc, closure);
+            if(c < -1) {
+                free(keyset_name);
+                goto error;
+            }
+            /* Since babeld doesn't support interface configuration
+             * changes at runtime, find the interface we're
+             * modifying. */
+            FOR_ALL_INTERFACES(ifp) {
+                if(strcmp(ifp->name, if_conf->ifname) == 0)
+                    break;
+            }
+            if(ifp != NULL && (ifp->flags & IF_MAC)) {
+                rc = rm_keyset_from_keysuperset(&ifp->kss, keyset_name);
+            } else if(if_conf->mac == CONFIG_YES) {
+                rc = rm_keyset_from_keysuperset(&if_conf->kss, keyset_name);
+            } else {
+                fprintf(stderr, "MAC auth wasn't enabled on interface %s.\n",
+                        if_conf->ifname);
+                rc = -1;
+            }
+            free(keyset_name);
+            if(rc)
+                goto error;
         } else if(strcmp(token, "mac-verify") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
@@ -715,8 +765,11 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
 
  error:
     free(token);
-    if(if_conf)
+    if(if_conf) {
+        if(if_conf->mac == CONFIG_YES)
+            release_keysuperset(&if_conf->kss);
         free(if_conf->ifname);
+    }
     free(if_conf);
     return -2;
 }
@@ -747,6 +800,8 @@ parse_ifconf(int c, gnc_t gnc, void *closure,
     return parse_anonymous_ifconf(c, gnc, closure, if_conf, if_conf_return);
 
  error:
+    if(if_conf && if_conf->mac == CONFIG_YES)
+        release_keysuperset(&if_conf->kss);
     free(if_conf);
     return -2;
 }
@@ -844,6 +899,34 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
     }
     free(token);
 
+    c = getword(c, &token, gnc, closure);
+    if(c < -1 || token == NULL)
+        goto error;
+    if(strcmp(token, "use") == 0) {
+        char *use = NULL;
+        c = getword(c, &use, gnc, closure);
+        if(c < -1 || use == NULL) {
+            free(use);
+            goto error;
+        }
+        if(strcmp(use, "sign") == 0) {
+            key->use = KEY_USE_SIGN;
+        } else if(strcmp(use, "verify") == 0) {
+            key->use = KEY_USE_VERIFY;
+        } else if(strcmp(use, "both") == 0) {
+            key->use = KEY_USE_SIGN | KEY_USE_VERIFY;
+        } else {
+            fprintf(stderr, "Key use '%s' isn't supported.\n", use);
+            free(use);
+            goto error;
+        }
+        free(use);
+    } else {
+        fprintf(stderr, "Key use expected.\n");
+        goto error;
+    }
+    free(token);
+
     *key_return = key;
     return c;
 
@@ -869,11 +952,20 @@ add_filter(struct filter *filter, struct filter **filters)
     }
 }
 
-static void
+static int
 merge_ifconf(struct interface_conf *dest,
              const struct interface_conf *src1,
              const struct interface_conf *src2)
 {
+    if(dest == src1 && src2->mac == CONFIG_YES) {
+        if(dest->mac != CONFIG_YES && init_keysuperset(&dest->kss))
+            return -1;
+        merge_keysupersets(&dest->kss, &src2->kss);
+    } else if(dest == src2 && src1->mac == CONFIG_YES) {
+        if(dest->mac != CONFIG_YES && init_keysuperset(&dest->kss))
+            return -1;
+        merge_keysupersets(&dest->kss, &src1->kss);
+    }
 
 #define MERGE(field)                            \
     do {                                        \
@@ -891,6 +983,7 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(lq);
     MERGE(faraway);
     MERGE(unicast);
+    MERGE(mac);
     MERGE(mac_verify);
     MERGE(channel);
     MERGE(enable_timestamps);
@@ -899,9 +992,9 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(rtt_min);
     MERGE(rtt_max);
     MERGE(max_rtt_penalty);
-    MERGE(key);
 
 #undef MERGE
+    return 0;
 }
 
 static void
@@ -918,6 +1011,8 @@ add_ifconf(struct interface_conf *if_conf, struct interface_conf **if_confs)
             if(strcmp(next->ifname, if_conf->ifname) == 0) {
                 merge_ifconf(next, if_conf, next);
                 free(if_conf->ifname);
+                if(if_conf->mac == CONFIG_YES)
+                    release_keysuperset(&if_conf->kss);
                 free(if_conf);
                 if_conf = next;
                 goto done;
@@ -940,6 +1035,8 @@ flush_ifconf(struct interface_conf *if_conf)
     if(if_conf == interface_confs) {
         interface_confs = if_conf->next;
         free(if_conf->ifname);
+        if(if_conf->mac == CONFIG_YES)
+            release_keysuperset(&if_conf->kss);
         free(if_conf);
         return;
     } else {
@@ -948,6 +1045,8 @@ flush_ifconf(struct interface_conf *if_conf)
             if(prev->next == if_conf) {
                 prev->next = if_conf->next;
                 free(if_conf->ifname);
+                if(if_conf->mac == CONFIG_YES)
+                    release_keysuperset(&if_conf->kss);
                 free(if_conf);
                 return;
             }
@@ -1227,6 +1326,8 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         else {
             merge_ifconf(default_interface_conf,
                          if_conf, default_interface_conf);
+            if(if_conf->mac == CONFIG_YES)
+                release_keysuperset(&if_conf->kss);
             free(if_conf);
         }
     } else if(strcmp(token, "flush") == 0) {
@@ -1271,11 +1372,70 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         reopen_logfile();
     } else if(strcmp(token, "key") == 0) {
         struct key *key = NULL;
+        int rc;
         c = parse_key(c, gnc, closure, &key);
         if(c < -1)
             goto fail;
-        add_key(key->name, key->algorithm, key->len, key->value);
-        free(key);
+        rc = add_key(key);
+        if(rc) {
+            free(key);
+            goto fail;
+        }
+    } else if(strcmp(token, "keyset") == 0) {
+        char *keyset_name = NULL;
+        int rc;
+        c = getword(c, &keyset_name, gnc, closure);
+        c = skip_eol(c, gnc, closure);
+        if(c < -1) {
+            free(keyset_name);
+            goto fail;
+        }
+        rc = add_keyset(keyset_name);
+        free(keyset_name);
+        if(rc)
+            goto fail;
+    } else if(strcmp(token, "keyset-add-key") == 0) {
+        char *keyset_name, *key_name;
+        int rc;
+        c = getword(c, &keyset_name, gnc, closure);
+        c = skip_whitespace(c, gnc, closure);
+        if(c < -1) {
+            free(keyset_name);
+            goto fail;
+        }
+        c = getword(c, &key_name, gnc, closure);
+        c = skip_eol(c, gnc, closure);
+        if(c < -1) {
+            free(keyset_name);
+            free(key_name);
+            goto fail;
+        }
+        rc = add_key_to_keyset(keyset_name, key_name);
+        free(keyset_name);
+        free(key_name);
+        if(rc)
+            goto fail;
+    } else if(strcmp(token, "keyset-rm-key") == 0) {
+        char *keyset_name, *key_name;
+        int rc;
+        c = getword(c, &keyset_name, gnc, closure);
+        c = skip_whitespace(c, gnc, closure);
+        if(c < -1) {
+            free(keyset_name);
+            goto fail;
+        }
+        c = getword(c, &key_name, gnc, closure);
+        c = skip_eol(c, gnc, closure);
+        if(c < -1) {
+            free(keyset_name);
+            free(key_name);
+            goto fail;
+        }
+        rc = rm_key_from_keyset(keyset_name, key_name);
+        free(keyset_name);
+        free(key_name);
+        if(rc)
+            goto fail;
     } else {
         c = parse_option(c, gnc, closure, token);
         if(c < -1)

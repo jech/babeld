@@ -29,6 +29,7 @@ THE SOFTWARE.
 
 #include "babeld.h"
 #include "util.h"
+#include "mac.h"
 #include "interface.h"
 #include "neighbour.h"
 #include "resend.h"

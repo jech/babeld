@@ -43,6 +43,7 @@ THE SOFTWARE.
 #include "util.h"
 #include "net.h"
 #include "kernel.h"
+#include "mac.h"
 #include "interface.h"
 #include "source.h"
 #include "neighbour.h"
@@ -169,6 +170,10 @@ main(int argc, char **argv)
     protocol_port = 6696;
     change_smoothing_half_life(4);
     has_ipv6_subtrees = kernel_has_ipv6_subtrees();
+
+    rc = init_mac();
+    if(rc)
+        goto fail;
 
     while(1) {
         opt = getopt(argc, argv,

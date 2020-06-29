@@ -33,12 +33,10 @@ THE SOFTWARE.
 #include <net/if.h>
 #include <arpa/inet.h>
 
-#include "rfc6234/sha.h"
-#include "BLAKE2/ref/blake2.h"
-
 #include "babeld.h"
 #include "util.h"
 #include "kernel.h"
+#include "mac.h"
 #include "interface.h"
 #include "neighbour.h"
 #include "message.h"
@@ -46,7 +44,6 @@ THE SOFTWARE.
 #include "configuration.h"
 #include "local.h"
 #include "xroute.h"
-#include "mac.h"
 
 #define MIN_MTU 512
 
@@ -124,6 +121,8 @@ flush_interface(char *ifname)
 
     if(ifp->conf != NULL && ifp->conf != default_interface_conf)
         flush_ifconf(ifp->conf);
+    if(ifp->flags & IF_MAC)
+        release_keysuperset(&ifp->kss);
 
     local_notify_interface(ifp, LOCAL_FLUSH);
 
@@ -400,10 +399,16 @@ interface_updown(struct interface *ifp, int up)
 
         if(IF_CONF(ifp, unicast) == CONFIG_YES)
             ifp->flags |= IF_UNICAST;
+        if(IF_CONF(ifp, mac) == CONFIG_YES) {
+            if(!(ifp->flags & IF_MAC) && init_keysuperset(&ifp->kss))
+                goto fail;
+            ifp->flags |= IF_MAC;
+            merge_keysupersets(&ifp->kss, &ifp->conf->kss);
+        }
         if(IF_CONF(ifp, mac_verify) == CONFIG_YES ||
            IF_CONF(ifp, mac_verify) == CONFIG_DEFAULT)
             ifp->flags |= IF_MAC_VERIFY;
-        else if(IF_CONF(ifp, mac_verify) == CONFIG_NO)
+        else
             ifp->flags &= ~IF_MAC_VERIFY;
         if(IF_CONF(ifp, hello_interval) > 0)
             ifp->hello_interval = IF_CONF(ifp, hello_interval);
@@ -482,15 +487,6 @@ interface_updown(struct interface *ifp, int up)
                     ifp->name);
         update_interface_metric(ifp);
         rc = check_interface_ipv4(ifp);
-
-        if(IF_CONF(ifp, key) != ifp->key) {
-            if(ifp->key != NULL)
-                release_key(ifp->key);
-            if(IF_CONF(ifp, key) != NULL)
-                ifp->key = retain_key(IF_CONF(ifp, key));
-            else
-                ifp->key = NULL;
-        }
 
         debugf("Upped interface %s (cost=%d, channel=%d%s).\n",
                ifp->name,

@@ -54,6 +54,7 @@ THE SOFTWARE.
 #include "babeld.h"
 #include "kernel.h"
 #include "util.h"
+#include "mac.h"
 #include "interface.h"
 #include "configuration.h"
 

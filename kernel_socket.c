@@ -44,6 +44,7 @@ THE SOFTWARE.
 #include <net/route.h>
 
 #include "babeld.h"
+#include "mac.h"
 #include "interface.h"
 #include "neighbour.h"
 #include "kernel.h"

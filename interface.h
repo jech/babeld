@@ -45,6 +45,7 @@ struct interface_conf {
     char lq;
     char faraway;
     char unicast;
+    char mac;
     char mac_verify;
     int channel;
     int enable_timestamps;
@@ -53,7 +54,7 @@ struct interface_conf {
     unsigned int rtt_min;
     unsigned int rtt_max;
     unsigned int max_rtt_penalty;
-    struct key *key;
+    struct keysuperset kss;
     struct interface_conf *next;
 };
 
@@ -77,10 +78,12 @@ struct interface_conf {
 #define IF_TIMESTAMPS (1 << 6)
 /* Remain compatible with RFC 6126. */
 #define IF_RFC6126 (1 << 7)
-/* Incoming packets are required to have a valid MAC hash. */
-#define IF_MAC_VERIFY (1 << 8)
+/* Use MAC authentication for Babel on this interface. */
+#define IF_MAC (1 << 8)
 /* Use Babel over DTLS on this interface. */
 #define IF_DTLS (1 << 9)
+/* Incoming packets are required to have a valid MAC hash. */
+#define IF_MAC_VERIFY (1 << 10)
 
 /* Only INTERFERING can appear on the wire. */
 #define IF_CHANNEL_UNKNOWN 0
@@ -136,7 +139,7 @@ struct interface {
     unsigned int rtt_min;
     unsigned int rtt_max;
     unsigned int max_rtt_penalty;
-    struct key *key;
+    struct keysuperset kss;
     unsigned int pc;
     unsigned char index[INDEX_LEN];
 };

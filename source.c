@@ -31,6 +31,7 @@ THE SOFTWARE.
 #include "babeld.h"
 #include "util.h"
 #include "source.h"
+#include "mac.h"
 #include "interface.h"
 #include "route.h"
 

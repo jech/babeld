@@ -29,12 +29,10 @@ THE SOFTWARE.
 #include <arpa/inet.h>
 #include <time.h>
 
-#include "rfc6234/sha.h"
-#include "BLAKE2/ref/blake2.h"
-
 #include "babeld.h"
 #include "util.h"
 #include "net.h"
+#include "mac.h"
 #include "interface.h"
 #include "source.h"
 #include "neighbour.h"
@@ -44,7 +42,6 @@ THE SOFTWARE.
 #include "resend.h"
 #include "message.h"
 #include "configuration.h"
-#include "mac.h"
 
 unsigned char packet_header[4] = {42, 2};
 
@@ -611,7 +608,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         bodylen = packetlen - 4;
     }
 
-    if(ifp->key != NULL) {
+    if(ifp->flags & IF_MAC) {
         switch(verify_packet(packet, packetlen, bodylen, from, to, ifp)) {
         case -1: /* no mac trailer */
             if(!(ifp->flags & IF_MAC_VERIFY))
@@ -1091,12 +1088,12 @@ flushbuf(struct buffered *buf, struct interface *ifp)
     assert(buf->len <= buf->size);
 
     if(buf->len > 0) {
-        if(ifp->key != NULL)
+        if(ifp->flags & IF_MAC)
             send_pc(buf, ifp);
         debugf("  (flushing %d buffered bytes)\n", buf->len);
         DO_HTONS(packet_header + 2, buf->len);
         fill_rtt_message(buf, ifp);
-        if(ifp->key != NULL) {
+        if(ifp->flags & IF_MAC) {
             end = sign_packet(buf, ifp, packet_header);
             if(end < 0) {
                 fprintf(stderr, "Couldn't sign the packet.\n");
@@ -1145,8 +1142,8 @@ schedule_flush_now(struct buffered *buf)
 static void
 ensure_space(struct buffered *buf, struct interface *ifp, int space)
 {
-    if(ifp->key != NULL)
-        space += MAX_MAC_SPACE + (6 + INDEX_LEN /* PC TLV */);
+    if(ifp->flags & IF_MAC)
+        space += max_mac_space(ifp) + (6 + INDEX_LEN /* PC TLV */);
     if(buf->size - buf->len < space)
         flushbuf(buf, ifp);
 }
@@ -1154,8 +1151,8 @@ ensure_space(struct buffered *buf, struct interface *ifp, int space)
 static void
 start_message(struct buffered *buf, struct interface *ifp, int type, int len)
 {
-    int space = ifp->key == NULL ? len + 2
-        : len + 2 + MAX_MAC_SPACE + (6 + INDEX_LEN /* PC TLV */);
+    int space = (ifp->flags & IF_MAC) ? len + 2
+        : len + 2 + max_mac_space(ifp) + (6 + INDEX_LEN /* PC TLV */);
     if(buf->size - buf->len < space)
         flushbuf(buf, ifp);
     buf->buf[buf->len++] = type;
@@ -1202,7 +1199,7 @@ accumulate_bytes(struct buffered *buf,
 int
 send_pc(struct buffered *buf, struct interface *ifp)
 {
-    int space = MAX_MAC_SPACE + (6 + INDEX_LEN /* PC TLV */);
+    int space = max_mac_space(ifp) + (6 + INDEX_LEN /* PC TLV */);
     if(buf->size - buf->len < space) {
         fputs("send_pc: no space left to accumulate pc.\n", stderr);
         return -1;
