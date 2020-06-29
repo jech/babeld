@@ -508,7 +508,7 @@ netlink_send_dump(int type, void *data, int len) {
     iov[1].iov_base = data;
     iov[1].iov_len = len;
 
-    memset(buf.raw, 0, sizeof(buf.raw));
+    memset(&buf, 0, sizeof(buf));
     buf.nh.nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
     buf.nh.nlmsg_type = type;
     buf.nh.nlmsg_seq = ++nl_command.seqno;
@@ -1038,7 +1038,7 @@ kernel_route(int operation, int table,
     if(metric >= KERNEL_INFINITY && (plen == 0 || (ipv4 && plen == 96)))
         return 0;
 
-    memset(buf.raw, 0, sizeof(buf.raw));
+    memset(&buf, 0, sizeof(buf));
     if(operation == ROUTE_ADD) {
         buf.nh.nlmsg_flags = NLM_F_REQUEST | NLM_F_CREATE | NLM_F_EXCL;
         buf.nh.nlmsg_type = RTM_NEWROUTE;
