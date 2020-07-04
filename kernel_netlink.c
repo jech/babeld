@@ -1654,8 +1654,6 @@ flush_rule(int prio, int family)
     struct rtmsg *message = NULL;
     struct rtattr *current_attribute = NULL;
 
-    memset(buffer, 0, sizeof(buffer));
-
     kdebugf("Flush rule v%c prio %d\n", family == AF_INET ? '4' : '6', prio);
 
 #if RTA_ALIGNTO != NLMSG_ALIGNTO
