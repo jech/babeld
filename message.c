@@ -448,8 +448,9 @@ network_address(int ae, const unsigned char *a, unsigned int len,
 }
 
 static struct neighbour *
-preparse_packet(const unsigned char *body, int bodylen,
-                const unsigned char *address, struct interface *ifp)
+preparse_packet(const unsigned char *from, struct interface *ifp,
+                const unsigned char *body, int bodylen,
+                const unsigned char *to)
 {
     int rc, i;
     struct neighbour *neigh = NULL;
@@ -485,20 +486,24 @@ preparse_packet(const unsigned char *body, int bodylen,
             }
             if(index != NULL)
                 goto done;
-            debugf("Received PC from %s.\n", format_address(address));
+            debugf("Received PC from %s.\n", format_address(from));
             pc = message + 2;
             index = message + 6;
             index_len = len - 4;
         } else if(type == MESSAGE_CHALLENGE_REQUEST) {
             debugf("Received challenge request from %s.\n",
-                   format_address(address));
+                   format_address(from));
+
+            if(IN6_IS_ADDR_MULTICAST(to))
+                goto done;
+
             nonce = message + 2;
             nonce_len = len;
         } else if(type == MESSAGE_CHALLENGE_REPLY) {
             debugf("Received challenge reply from %s.\n",
-                   format_address(address));
+                   format_address(from));
 
-            neigh = neigh != NULL ? neigh : find_neighbour(address, ifp);
+            neigh = neigh != NULL ? neigh : find_neighbour(from, ifp);
             if(neigh == NULL)
                 goto done;
 
@@ -531,7 +536,7 @@ preparse_packet(const unsigned char *body, int bodylen,
 
     if(neigh == NULL || !neigh->have_index || neigh->index_len != index_len ||
        memcmp(index, neigh->index, index_len) != 0) {
-        neigh = neigh != NULL ? neigh : find_neighbour(address, ifp);
+        neigh = neigh != NULL ? neigh : find_neighbour(from, ifp);
         if(neigh == NULL)
             return NULL;
         rc = send_challenge_request(neigh);
@@ -550,7 +555,7 @@ preparse_packet(const unsigned char *body, int bodylen,
 
  maybe_send_challenge_reply:
     if(nonce != NULL) { /* a challenge request was received */
-        neigh = neigh != NULL ? neigh : find_neighbour(address, ifp);
+        neigh = neigh != NULL ? neigh : find_neighbour(from, ifp);
         if(neigh == NULL)
             return NULL;
         send_challenge_reply(neigh, nonce, nonce_len);
@@ -618,7 +623,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             fputs("Received wrong MAC.\n", stderr);
             return;
         case 1:
-            neigh = preparse_packet(packet, bodylen, from, ifp);
+            neigh = preparse_packet(from, ifp, packet, bodylen, to);
             if(neigh == NULL) {
                 fputs("Received wrong PC or failed the challenge.\n", stderr);
                 return;
