@@ -47,9 +47,8 @@ struct neighbour {
     struct timeval echo_receive_time;
     unsigned int rtt;
     struct timeval rtt_time;
-    int have_index;
-    int index_len;
     unsigned char pc[4];
+    int index_len; /* This is -1 when index is undefined */
     unsigned char index[32];
     unsigned char nonce[NONCE_LEN];
     struct timeval challenge_deadline;
