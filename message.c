@@ -1264,7 +1264,7 @@ send_challenge_request(struct neighbour *neigh)
     accumulate_bytes(&neigh->buf, neigh->nonce, NONCE_LEN);
     end_message(&neigh->buf, MESSAGE_CHALLENGE_REQUEST, NONCE_LEN);
     gettime(&now);
-    timeval_add_msec(&neigh->challenge_deadline, &now, 300);
+    timeval_add_msec(&neigh->challenge_deadline, &now, 30000);
     timeval_add_msec(&neigh->challenge_request_limitation, &now, 300);
     schedule_flush_now(&neigh->buf);
     return 0;
