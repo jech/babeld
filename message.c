@@ -476,6 +476,7 @@ preparse_packet(const unsigned char *from, struct interface *ifp,
             break;
         }
         if(type == MESSAGE_PC) {
+            unsigned int pcnat;
             if(len < 4) {
                 fprintf(stderr, "Received truncated PC TLV.\n");
                 break;
@@ -486,10 +487,13 @@ preparse_packet(const unsigned char *from, struct interface *ifp,
             }
             if(index != NULL)
                 goto done;
-            debugf("Received PC from %s.\n", format_address(from));
             pc = message + 2;
             index = message + 6;
             index_len = len - 4;
+
+            memcpy(&pcnat, pc, 4);
+            debugf("Received PC %u from %s.\n",
+                   ntohl(pcnat), format_address(from));
         } else if(type == MESSAGE_CHALLENGE_REQUEST) {
             debugf("Received challenge request from %s.\n",
                    format_address(from));
