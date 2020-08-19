@@ -508,10 +508,16 @@ preparse_packet(const unsigned char *from, struct interface *ifp,
                 goto done;
 
             gettime(&now);
+            if(timeval_compare(&now, &neigh->challenge_deadline) > 0) {
+                debugf("No pending challenge.\n");
+                goto done;
+            }
+
             if(len == sizeof(neigh->nonce) &&
-               memcmp(neigh->nonce, message + 2, len) == 0 &&
-               timeval_compare(&now, &neigh->challenge_deadline) <= 0) {
+               memcmp(neigh->nonce, message + 2, len) == 0) {
+                const struct timeval zero = {0, 0};
                 challenge_success = 1;
+                neigh->challenge_deadline = zero;
             } else {
                 debugf("Challenge failed.\n");
             }
@@ -529,12 +535,11 @@ preparse_packet(const unsigned char *from, struct interface *ifp,
         neigh->index_len = index_len;
         memcpy(neigh->index, index, index_len);
         memcpy(neigh->pc, pc, 4);
-        neigh->have_index = 1;
         accept_packet = 1;
         goto maybe_send_challenge_reply;
     }
 
-    if(neigh == NULL || !neigh->have_index || neigh->index_len != index_len ||
+    if(neigh == NULL || neigh->index_len != index_len ||
        memcmp(index, neigh->index, index_len) != 0) {
         neigh = neigh != NULL ? neigh : find_neighbour(from, ifp);
         if(neigh == NULL)

@@ -108,7 +108,8 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
     neigh->hello_rtt_receive_time = zero;
     neigh->echo_receive_time = zero;
     neigh->rtt_time = zero;
-    neigh->challenge_deadline = now;
+    neigh->index_len = -1;
+    neigh->challenge_deadline = zero;
     neigh->ifp = ifp;
     neigh->buf.buf = buf;
     neigh->buf.size = ifp->buf.size;
