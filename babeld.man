@@ -756,7 +756,7 @@ or up to 32 bytes for
 .BR blake2s ).
 The
 .B use
-specifies wether the key is used to
+specifies whether the key is used to
 .B sign
 packets,
 .B verify
