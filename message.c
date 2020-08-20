@@ -477,6 +477,10 @@ preparse_packet(const unsigned char *from, struct interface *ifp,
         }
         if(type == MESSAGE_PC) {
             unsigned int pcnat;
+
+            if(index != NULL)
+                goto done;
+
             if(len < 4) {
                 fprintf(stderr, "Received truncated PC TLV.\n");
                 break;
@@ -485,8 +489,7 @@ preparse_packet(const unsigned char *from, struct interface *ifp,
                 fprintf(stderr, "Overlong PC TLV.\n");
                 break;
             }
-            if(index != NULL)
-                goto done;
+
             pc = message + 2;
             index = message + 6;
             index_len = len - 4;
@@ -495,15 +498,25 @@ preparse_packet(const unsigned char *from, struct interface *ifp,
             debugf("Received PC %u from %s.\n",
                    ntohl(pcnat), format_address(from));
         } else if(type == MESSAGE_CHALLENGE_REQUEST) {
-            debugf("Received challenge request from %s.\n",
-                   format_address(from));
-
             if(IN6_IS_ADDR_MULTICAST(to))
                 goto done;
 
+            if(len > 192) {
+                fprintf(stderr, "Overlong challenge request TLV.\n");
+                break;
+            }
+
             nonce = message + 2;
             nonce_len = len;
+
+            debugf("Received challenge request from %s.\n",
+                   format_address(from));
         } else if(type == MESSAGE_CHALLENGE_REPLY) {
+            if(len > 192) {
+                fprintf(stderr, "Overlong challenge reply TLV.\n");
+                break;
+            }
+
             debugf("Received challenge reply from %s.\n",
                    format_address(from));
 
@@ -522,6 +535,7 @@ preparse_packet(const unsigned char *from, struct interface *ifp,
                 const struct timeval zero = {0, 0};
                 challenge_success = 1;
                 neigh->challenge_deadline = zero;
+                debugf("Challenge succeeded!\n");
             } else {
                 debugf("Challenge failed.\n");
             }
@@ -532,43 +546,37 @@ preparse_packet(const unsigned char *from, struct interface *ifp,
 
     if(index == NULL) {
         debugf("No PC in packet.\n");
-        goto maybe_send_challenge_reply;
-    }
-
-    if(challenge_success) {
+    } else if(challenge_success) {
         neigh->index_len = index_len;
         memcpy(neigh->index, index, index_len);
         memcpy(neigh->pc, pc, 4);
         accept_packet = 1;
-        goto maybe_send_challenge_reply;
-    }
-
-    if(neigh == NULL || neigh->index_len != index_len ||
-       memcmp(index, neigh->index, index_len) != 0) {
+    } else {
         neigh = neigh != NULL ? neigh : find_neighbour(from, ifp);
         if(neigh == NULL)
             return NULL;
-        rc = send_challenge_request(neigh);
-        if(rc < -1)
-            fputs("Could not send challenge request.\n", stderr);
-        goto maybe_send_challenge_reply;
+        if(neigh->index_len == -1 ||
+           neigh->index_len != index_len ||
+           memcmp(index, neigh->index, index_len) != 0) {
+            rc = send_challenge_request(neigh);
+            if(rc < -1)
+                fputs("Could not send challenge request.\n", stderr);
+        } else if(memcmp(pc, neigh->pc, 4) <= 0) {
+            debugf("Out of order PC.\n");
+            nonce = NULL;
+        } else {
+            memcpy(neigh->pc, pc, 4);
+            accept_packet = 1;
+        }
     }
 
-    if(memcmp(pc, neigh->pc, 4) <= 0) {
-        debugf("Out of order PC.\n");
-        return NULL;
-    }
-
-    memcpy(neigh->pc, pc, 4);
-    return neigh;
-
- maybe_send_challenge_reply:
     if(nonce != NULL) { /* a challenge request was received */
         neigh = neigh != NULL ? neigh : find_neighbour(from, ifp);
         if(neigh == NULL)
             return NULL;
         send_challenge_reply(neigh, nonce, nonce_len);
     }
+    debugf("accept_packet: %d, neigh: %p.\n", accept_packet, (void*)neigh);
     return accept_packet ? neigh : NULL;
 }
 
