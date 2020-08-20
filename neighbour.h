@@ -53,7 +53,6 @@ extern struct neighbour *neighs;
 #define FOR_ALL_NEIGHBOURS(_neigh) \
     for(_neigh = neighs; _neigh; _neigh = _neigh->next)
 
-int neighbour_valid(struct neighbour *neigh);
 void flush_neighbour(struct neighbour *neigh);
 struct neighbour *find_neighbour(const unsigned char *address,
                                  struct interface *ifp);
