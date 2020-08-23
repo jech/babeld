@@ -1250,7 +1250,8 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
     if(channels_size > 0) {
         accumulate_byte(buf, 2);
         accumulate_byte(buf, channels_len);
-        accumulate_bytes(buf, channels, channels_len);
+        if(channels_len > 0)
+            accumulate_bytes(buf, channels, channels_len);
     }
     end_message(buf, MESSAGE_UPDATE, len);
     if(flags & 0x80) {
@@ -1425,9 +1426,9 @@ flushupdates(struct interface *ifp)
                     continue;
 
                 if(route_ifp->channel == IF_CHANNEL_NONINTERFERING) {
-                    memcpy(channels, route->channels,
-                           MIN(route->channels_len, MAX_CHANNEL_HOPS));
                     chlen = MIN(route->channels_len, MAX_CHANNEL_HOPS);
+                    if(chlen > 0)
+                        memcpy(channels, route->channels, chlen);
                 } else {
                     if(route_ifp->channel == IF_CHANNEL_UNKNOWN)
                         channels[0] = IF_CHANNEL_INTERFERING;
