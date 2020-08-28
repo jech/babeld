@@ -1173,8 +1173,9 @@ ensure_space(struct buffered *buf, struct interface *ifp, int space)
 static void
 start_message(struct buffered *buf, struct interface *ifp, int type, int len)
 {
-    int space = (ifp->flags & IF_MAC) ? len + 2
-        : len + 2 + max_mac_space(ifp) + (6 + INDEX_LEN /* PC TLV */);
+    int space = len + 2;
+    if(ifp->flags & IF_MAC)
+        space += max_mac_space(ifp) + (6 + INDEX_LEN /* PC TLV */);
     if(buf->size - buf->len < space)
         flushbuf(buf, ifp);
     buf->buf[buf->len++] = type;
