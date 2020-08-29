@@ -397,7 +397,7 @@ main(int argc, char **argv)
         int pfd, len;
         char buf[100];
 
-        len = snprintf(buf, 100, "%lu", (unsigned long)getpid());
+        len = snprintf(buf, 100, "%ld", (long)getpid());
         if(len < 0 || len >= 100) {
             perror("snprintf(getpid)");
             exit(1);
