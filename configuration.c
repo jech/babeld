@@ -844,6 +844,7 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
         goto error;
     }
     free(token);
+    token = NULL;
 
     c = getword(c, &token, gnc, closure);
     if(c < -1 || token == NULL)
@@ -873,6 +874,7 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
         goto error;
     }
     free(token);
+    token = NULL;
 
     c = getword(c, &token, gnc, closure);
     if(c < -1 || token == NULL)
@@ -898,6 +900,7 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
         goto error;
     }
     free(token);
+    token = NULL;
 
     c = getword(c, &token, gnc, closure);
     if(c < -1 || token == NULL)
@@ -1395,17 +1398,17 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         if(rc)
             goto fail;
     } else if(strcmp(token, "keyset-add-key") == 0) {
-        char *keyset_name, *key_name;
+        char *keyset_name = NULL, *key_name = NULL;
         int rc;
         c = getword(c, &keyset_name, gnc, closure);
         c = skip_whitespace(c, gnc, closure);
-        if(c < -1) {
+        if(c < -1 || keyset_name == NULL) {
             free(keyset_name);
             goto fail;
         }
         c = getword(c, &key_name, gnc, closure);
         c = skip_eol(c, gnc, closure);
-        if(c < -1) {
+        if(c < -1 || key_name == NULL) {
             free(keyset_name);
             free(key_name);
             goto fail;
@@ -1416,17 +1419,17 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         if(rc)
             goto fail;
     } else if(strcmp(token, "keyset-rm-key") == 0) {
-        char *keyset_name, *key_name;
+        char *keyset_name = NULL, *key_name = NULL;
         int rc;
         c = getword(c, &keyset_name, gnc, closure);
         c = skip_whitespace(c, gnc, closure);
-        if(c < -1) {
+        if(c < -1 || keyset_name == NULL) {
             free(keyset_name);
             goto fail;
         }
         c = getword(c, &key_name, gnc, closure);
         c = skip_eol(c, gnc, closure);
-        if(c < -1) {
+        if(c < -1 || key_name == NULL) {
             free(keyset_name);
             free(key_name);
             goto fail;
