@@ -61,7 +61,8 @@ init_keysuperset(struct keysuperset *kss)
     kss->keysets = calloc(kss->cap, sizeof(struct keyset*));
     if(kss->keysets == NULL) {
         perror("calloc(keysets)");
-        free(kss);
+        if(kss != &allkeysets)
+            free(kss);
         return -1;
     }
     return 0;
@@ -272,12 +273,14 @@ push_keyset(struct keysuperset *kss, struct keyset *ks)
 {
     if(kss->len == kss->cap) {
         unsigned int cap = 2 * kss->cap;
-        struct keyset **keysets = realloc(kss->keysets, cap * sizeof(struct keyset*));
+        struct keyset **keysets;
+        if(cap == 0)
+            return -1;
+        keysets = realloc(kss->keysets, cap * sizeof(struct keyset*));
         if(keysets == NULL) {
             perror("realloc(kss->keysets)");
             return -1;
         }
-        /* memset(keysets + kss->cap, 0, (cap - kss->cap) * sizeof(struct keyset*)); */
         kss->keysets = keysets;
         kss->cap = cap;
     }
@@ -290,12 +293,14 @@ push_key(struct keyset *ks, struct key *key)
 {
     if(ks->len == ks->cap) {
         unsigned int cap = 2 * ks->cap;
-        struct key **keys = realloc(ks->keys, cap * sizeof(struct key*));
+        struct key **keys;
+        if(cap == 0)
+            return -1;
+        keys = realloc(ks->keys, cap * sizeof(struct key*));
         if(keys == NULL) {
             perror("realloc(ks->keys)");
             return -1;
         }
-        /* memset(keys + ks->cap, 0, (cap - ks->cap) * sizeof(struct key*)); */
         ks->keys = keys;
         ks->cap = cap;
     }
