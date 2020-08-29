@@ -700,7 +700,7 @@ static int
 parse_ifconf(int c, gnc_t gnc, void *closure,
              struct interface_conf **if_conf_return)
 {
-    char *token;
+    char *token = NULL;
     struct interface_conf *if_conf;
 
     if_conf = calloc(1, sizeof(struct interface_conf));
