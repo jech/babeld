@@ -46,9 +46,9 @@ struct interface_conf {
     char lq;
     char faraway;
     char unicast;
+    char enable_timestamps;
+    char rfc6126;
     int channel;
-    int enable_timestamps;
-    int rfc6126;
     unsigned int rtt_decay;
     unsigned int rtt_min;
     unsigned int rtt_max;
