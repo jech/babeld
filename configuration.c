@@ -698,13 +698,20 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
                 free(keyset_name);
                 goto error;
             }
+
             /* Since babeld doesn't support interface configuration
              * changes at runtime, find the interface we're
              * modifying. */
+            if(if_conf->ifname == NULL) {
+                fprintf(stderr, "Empty interface.\n");
+                free(keyset_name);
+                goto error;
+            }
             FOR_ALL_INTERFACES(ifp) {
                 if(strcmp(ifp->name, if_conf->ifname) == 0)
                     break;
             }
+
             if(ifp != NULL && (ifp->flags & IF_MAC)) {
                 rc = add_keyset_to_keysuperset(&ifp->kss, keyset_name);
             } else if(if_conf->mac == CONFIG_YES) {
@@ -729,13 +736,20 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
                 free(keyset_name);
                 goto error;
             }
+
             /* Since babeld doesn't support interface configuration
              * changes at runtime, find the interface we're
              * modifying. */
+            if(if_conf->ifname == NULL) {
+                fprintf(stderr, "Empty interface.\n");
+                free(keyset_name);
+                goto error;
+            }
             FOR_ALL_INTERFACES(ifp) {
                 if(strcmp(ifp->name, if_conf->ifname) == 0)
                     break;
             }
+
             if(ifp != NULL && (ifp->flags & IF_MAC)) {
                 rc = rm_keyset_from_keysuperset(&ifp->kss, keyset_name);
             } else if(if_conf->mac == CONFIG_YES) {
