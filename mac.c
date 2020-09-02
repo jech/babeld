@@ -38,6 +38,7 @@ THE SOFTWARE.
 #include "util.h"
 #include "configuration.h"
 #include "message.h"
+#include "local.h"
 
 #define MAX_DIGEST_LEN ((int)SHA256HashSize > (int)BLAKE2S_OUTBYTES ?   \
                         (int)SHA256HashSize : (int)BLAKE2S_OUTBYTES)
@@ -159,6 +160,7 @@ release_key(struct key *key)
         return;
 
     for(i = 0; allkeys.keys[i] != key; i++);
+    local_notify_key(key, LOCAL_FLUSH);
     pop_key(&allkeys, i);
     memzero(key->value, key->len);
     free(key);
@@ -176,6 +178,7 @@ release_keyset(struct keyset *ks)
     for(i = 0; i < ks->len; i++)
         release_key(ks->keys[i]);
     for(i = 0; allkeysets.keysets[i] != ks; i++);
+    local_notify_keyset(ks, LOCAL_FLUSH);
     pop_keyset(&allkeysets, i);
     free(ks->keys);
     free(ks);
@@ -299,6 +302,8 @@ int
 add_key(struct key *key)
 {
     const struct key *key2;
+    int rc;
+
     key2 = find_key(&allkeys, key->name, NULL);
     if(key2 != NULL) {
         fprintf(stderr, "add_key: key %s already exists.\n", key->name);
@@ -318,7 +323,11 @@ add_key(struct key *key)
         macslen = allkeys.len + 1;
     }
 
-    return push_key(&allkeys, key);
+    rc = push_key(&allkeys, key);
+    if(rc)
+        return rc;
+    local_notify_key(key, LOCAL_ADD);
+    return 0;
 }
 
 int
@@ -343,6 +352,7 @@ add_keyset(const char *name)
         return -1;
     }
 
+    local_notify_keyset(ks, LOCAL_ADD);
     return 0;
 }
 
@@ -376,6 +386,7 @@ add_key_to_keyset(const char *keyset_name, const char *key_name)
     if(key->use & KEY_USE_SIGN)
         ++ks->signing;
     retain_key(key);
+    local_notify_keyset(ks, LOCAL_CHANGE);
     return 0;
 }
 
@@ -402,6 +413,7 @@ rm_key_from_keyset(const char *keyset_name, const char *key_name)
     if(key->use & KEY_USE_SIGN)
         --ks->signing;
     release_key(key);
+    local_notify_keyset(ks, LOCAL_CHANGE);
     return 0;
 }
 
@@ -443,6 +455,7 @@ add_keyset_to_keysuperset(struct keysuperset *kss, const char *keyset_name)
     if(rc)
         return -1;
     retain_keyset(ks);
+    local_notify_keysuperset(kss, LOCAL_CHANGE);
     return 0;
 }
 
@@ -460,6 +473,7 @@ rm_keyset_from_keysuperset(struct keysuperset *kss, const char *keyset_name)
 
     pop_keyset(kss, i);
     release_keyset(ks);
+    local_notify_keysuperset(kss, LOCAL_CHANGE);
     return 0;
 }
 

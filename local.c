@@ -107,11 +107,12 @@ local_notify_interface_1(struct local_socket *s,
         v4[0] = '\0';
     if(up)
         rc = snprintf(buf, 512,
-                      "%s interface %s up true%s%s%s%s\n",
+                      "%s interface %s up true%s%s%s%s kss %p\n",
                       local_kind(kind), ifp->name,
                       ifp->numll > 0 ? " ipv6 " : "",
                       ifp->numll > 0 ? format_address(ifp->ll[0]) : "",
-                      v4[0] ? " ipv4 " : "", v4);
+                      v4[0] ? " ipv4 " : "", v4,
+                      (void*)&ifp->kss);
     else
         rc = snprintf(buf, 512, "%s interface %s up false\n",
                       local_kind(kind), ifp->name);
@@ -277,15 +278,149 @@ local_notify_route(struct babel_route *route, int kind)
 }
 
 static void
+local_notify_key_1(struct local_socket *s, struct key *key, int kind)
+{
+    char buf[512];
+    int rc;
+
+    rc = snprintf(buf, 512,
+                  "%s key name %.*s refcount %d %s use %s\n",
+                  local_kind(kind),
+                  MAX_KEY_NAME_LEN, key->name,
+                  key->refcount,
+                  key->algorithm == MAC_ALGORITHM_HMAC_SHA256 ? "hmac-sha256" :
+                  key->algorithm == MAC_ALGORITHM_BLAKE2S ? "blake2s" : "?",
+                  key->use == (KEY_USE_SIGN | KEY_USE_VERIFY) ? "both" :
+                  (key->use & KEY_USE_SIGN) ? "sign" :
+                  (key->use & KEY_USE_VERIFY) ? "verify" : "?");
+    if(rc < 0 || rc >= 512)
+        goto fail;
+
+    rc = write_timeout(s->fd, buf, rc);
+    if(rc < 0)
+        goto fail;
+    return;
+
+fail:
+    shutdown(s->fd, 1);
+    return;
+}
+
+void
+local_notify_key(struct key *key, int kind)
+{
+    int i;
+    for(i = 0; i < num_local_sockets; i++) {
+        if(local_sockets[i].monitor)
+            local_notify_key_1(&local_sockets[i], key, kind);
+    }
+}
+
+static void
+local_notify_keyset_1(struct local_socket *s, struct keyset *ks, int kind)
+{
+    unsigned int i;
+    char buf[512];
+    int rc;
+
+    rc = snprintf(buf, 512,
+                  "%s keyset name %.*s refcount %d %u/%u\n",
+                  local_kind(kind),
+                  MAX_KEY_NAME_LEN, ks->name,
+                  ks->refcount,
+                  ks->len, ks->cap);
+    if(rc < 0 || rc >= 512)
+        goto fail;
+
+    rc = write_timeout(s->fd, buf, rc);
+    if(rc < 0)
+        goto fail;
+
+    for(i = 0; i < ks->len; i++) {
+        rc = snprintf(buf, 512,
+                      "%s keyset-add-key %.*s %.*s\n",
+                      local_kind(kind),
+                      MAX_KEY_NAME_LEN, ks->name,
+                      MAX_KEY_NAME_LEN, ks->keys[i]->name);
+        if(rc < 0 || rc >= 512)
+            goto fail;
+
+        rc = write_timeout(s->fd, buf, rc);
+        if(rc < 0)
+            goto fail;
+    }
+    return;
+
+fail:
+    shutdown(s->fd, 1);
+    return;
+}
+
+void
+local_notify_keyset(struct keyset *keyset, int kind)
+{
+    int i;
+    for(i = 0; i < num_local_sockets; i++) {
+        if(local_sockets[i].monitor)
+            local_notify_keyset_1(&local_sockets[i], keyset, kind);
+    }
+}
+
+static void
+local_notify_keysuperset_1(struct local_socket *s,
+                           struct keysuperset *kss, int kind)
+{
+    unsigned int i;
+    char buf[512];
+    int rc;
+
+    for(i = 0; i < kss->len; i++) {
+        rc = snprintf(buf, 512,
+                      "%s add-keyset %p %.*s\n",
+                      local_kind(kind),
+                      (void*)kss,
+                      MAX_KEY_NAME_LEN, kss->keysets[i]->name);
+        if(rc < 0 || rc >= 512)
+            goto fail;
+
+        rc = write_timeout(s->fd, buf, rc);
+        if(rc < 0)
+            goto fail;
+    }
+    return;
+
+fail:
+    shutdown(s->fd, 1);
+    return;
+}
+
+void
+local_notify_keysuperset(struct keysuperset *kss, int kind)
+{
+    int i;
+    for(i = 0; i < num_local_sockets; i++) {
+        if(local_sockets[i].monitor)
+            local_notify_keysuperset_1(&local_sockets[i], kss, kind);
+    }
+}
+
+static void
 local_notify_all_1(struct local_socket *s)
 {
     struct interface *ifp;
     struct neighbour *neigh;
     struct xroute_stream *xroutes;
     struct route_stream *routes;
+    unsigned int i;
+
+    for(i = 0; i < allkeys.len; i++)
+        local_notify_key_1(s, allkeys.keys[i], LOCAL_ADD);
+    for(i = 0; i < allkeysets.len; i++)
+        local_notify_keyset_1(s, allkeysets.keysets[i], LOCAL_ADD);
 
     FOR_ALL_INTERFACES(ifp) {
         local_notify_interface_1(s, ifp, LOCAL_ADD);
+        local_notify_keysuperset_1(s, &ifp->kss, LOCAL_ADD);
     }
 
     FOR_ALL_NEIGHBOURS(neigh) {
