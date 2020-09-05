@@ -534,6 +534,7 @@ preparse_packet(const unsigned char *from, struct interface *ifp,
                memcmp(neigh->nonce, message + 2, len) == 0) {
                 const struct timeval zero = {0, 0};
                 challenge_success = 1;
+                memzero(neigh->nonce, NONCE_LEN);
                 neigh->challenge_deadline = zero;
                 debugf("Challenge succeeded!\n");
             } else {

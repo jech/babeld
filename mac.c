@@ -150,19 +150,6 @@ pop_key(struct keyset *ks, const unsigned int i)
 }
 
 static void
-memzero(void *v, size_t n)
-{
-#ifdef HAVE_EXPLICIT_BZERO
-    explicit_bzero(v, n);
-#elif HAVE_MEMSET_S
-    memset_s(v, n, 0, n);
-#else
-    static void *(*const volatile memset_v)(void *, int, size_t) = &memset;
-    memset_v(v, 0, n);
-#endif
-}
-
-static void
 release_key(struct key *key)
 {
     unsigned int i;
