@@ -390,12 +390,6 @@ kernel_interface_channel(const char *ifname, int ifindex)
 }
 
 int
-kernel_disambiguate(int v4)
-{
-    return 0;
-}
-
-int
 kernel_has_ipv6_subtrees(void)
 {
     return 0;
@@ -851,29 +845,6 @@ kernel_callback(struct kernel_filter *filter)
     return 0;
 
 }
-
-int
-add_rule(int prio, const unsigned char *src_prefix, int src_plen, int table)
-{
-    errno = ENOSYS;
-    return -1;
-}
-
-int
-flush_rule(int prio, int family)
-{
-    errno = ENOSYS;
-    return -1;
-}
-
-int
-change_rule(int new_prio, int old_prio,
-            const unsigned char *src, int plen, int table)
-{
-    errno = ENOSYS;
-    return -1;
-}
-
 
 /* Local Variables:      */
 /* c-basic-offset: 4     */

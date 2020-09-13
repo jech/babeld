@@ -39,7 +39,6 @@ THE SOFTWARE.
 #include "resend.h"
 #include "configuration.h"
 #include "local.h"
-#include "disambiguation.h"
 
 struct babel_route **routes = NULL;
 static int route_slots = 0, max_route_slots = 0;
@@ -431,7 +430,7 @@ route_stream_done(struct route_stream *stream)
     free(stream);
 }
 
-int
+static int
 metric_to_kernel(int metric)
 {
         if(metric >= INFINITY) {
@@ -462,6 +461,30 @@ move_installed_route(struct babel_route *route, int i)
     }
 }
 
+static int
+change_route(int operation, const struct babel_route *route, int metric,
+             const unsigned char *new_next_hop,
+             int new_ifindex, int new_metric)
+{
+    struct filter_result filter_result;
+    unsigned char *pref_src = NULL;
+    unsigned int ifindex = route->neigh->ifp->ifindex;
+
+    int m = install_filter(route->src->prefix, route->src->plen,
+                           route->src->src_prefix, route->src->src_plen,
+                           ifindex, &filter_result);
+    if (m < INFINITY)
+        pref_src = filter_result.pref_src;
+
+    int table = filter_result.table ? filter_result.table : export_table;
+
+    return kernel_route(operation, table, route->src->prefix, route->src->plen,
+                        route->src->src_prefix, route->src->src_plen, pref_src,
+                        route->nexthop, ifindex,
+                        metric, new_next_hop, new_ifindex, new_metric,
+                        operation == ROUTE_MODIFY ? table : 0);
+}
+
 void
 install_route(struct babel_route *route)
 {
@@ -484,9 +507,15 @@ install_route(struct babel_route *route)
         return;
     }
 
-    rc = kinstall_route(route);
-    if(rc < 0 && errno != EEXIST)
+    debugf("install_route(%s from %s)\n",
+           format_prefix(route->src->prefix, route->src->plen),
+           format_prefix(route->src->src_prefix, route->src->src_plen));
+    rc = change_route(ROUTE_ADD, route, metric_to_kernel(route_metric(route)),
+                      NULL, 0, 0);
+    if(rc < 0 && errno != EEXIST) {
+        perror("kernel_route(ADD)");
         return;
+    }
 
     route->installed = 1;
     move_installed_route(route, i);
@@ -497,12 +526,22 @@ install_route(struct babel_route *route)
 void
 uninstall_route(struct babel_route *route)
 {
+    int rc;
+
     if(!route->installed)
         return;
 
     route->installed = 0;
 
-    kuninstall_route(route);
+    debugf("uninstall_route(%s from %s)\n",
+           format_prefix(route->src->prefix, route->src->plen),
+           format_prefix(route->src->src_prefix, route->src->src_plen));
+    rc = change_route(ROUTE_FLUSH, route, metric_to_kernel(route_metric(route)),
+                      NULL, 0, 0);
+    if(rc < 0) {
+        perror("kernel_route(FLUSH)");
+        return;
+    }
 
     local_notify_route(route, LOCAL_CHANGE);
 }
@@ -510,7 +549,6 @@ uninstall_route(struct babel_route *route)
 /* This is equivalent to uninstall_route followed with install_route,
    but without the race condition.  The destination of both routes
    must be the same. */
-
 static void
 switch_routes(struct babel_route *old, struct babel_route *new)
 {
@@ -528,9 +566,16 @@ switch_routes(struct babel_route *old, struct babel_route *new)
         fprintf(stderr, "WARNING: switching to unfeasible route "
                 "(this shouldn't happen).");
 
-    rc = kswitch_routes(old, new);
-    if(rc < 0)
+    debugf("switch_routes(%s from %s)\n",
+           format_prefix(old->src->prefix, old->src->plen),
+           format_prefix(old->src->src_prefix, old->src->src_plen));
+    rc = change_route(ROUTE_MODIFY, old, metric_to_kernel(route_metric(old)),
+                      new->nexthop, new->neigh->ifp->ifindex,
+                      metric_to_kernel(route_metric(new)));
+    if(rc < 0) {
+        perror("kernel_route(MODIFY)");
         return;
+    }
 
     old->installed = 0;
     new->installed = 1;
@@ -546,17 +591,21 @@ static void
 change_route_metric(struct babel_route *route,
                     unsigned refmetric, unsigned cost, unsigned add)
 {
-    int old, new;
-    int newmetric = MIN(refmetric + cost + add, INFINITY);
+    int old_metric = metric_to_kernel(route_metric(route)),
+        new_metric = metric_to_kernel(MIN(refmetric + cost + add, INFINITY));
 
-    old = metric_to_kernel(route_metric(route));
-    new = metric_to_kernel(newmetric);
-
-    if(route->installed && old != new) {
+    if(route->installed && old_metric != new_metric) {
         int rc;
-        rc = kchange_route_metric(route, refmetric, cost, add);
-        if(rc < 0)
+        debugf("change_route_metric(%s from %s, %d -> %d)\n",
+               format_prefix(route->src->prefix, route->src->plen),
+               format_prefix(route->src->src_prefix, route->src->src_plen),
+               old_metric, new_metric);
+        rc = change_route(ROUTE_MODIFY, route, old_metric, route->nexthop,
+                          route->neigh->ifp->ifindex, new_metric);
+        if(rc < 0) {
+            perror("kernel_route(MODIFY metric)");
             return;
+        }
     }
 
     /* Update route->smoothed_metric using the old metric. */

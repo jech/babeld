@@ -40,7 +40,6 @@ THE SOFTWARE.
 #include "route.h"
 #include "kernel.h"
 #include "configuration.h"
-#include "rule.h"
 
 static struct filter *input_filters = NULL;
 static struct filter *output_filters = NULL;
@@ -939,18 +938,6 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
         if(c < -1 || h < 0)
             goto error;
         change_smoothing_half_life(h);
-    } else if(strcmp(token, "first-table-number") == 0) {
-        int n;
-        c = getint(c, &n, gnc, closure);
-        if(c < -1 || n <= 0 || n + SRC_TABLE_NUM >= 254)
-            goto error;
-        src_table_idx = n;
-    } else if(strcmp(token, "first-rule-priority") == 0) {
-        int n;
-        c = getint(c, &n, gnc, closure);
-        if(c < -1 || n <= 0 || n + SRC_TABLE_NUM >= 32765)
-            goto error;
-        src_table_prio = n;
     } else if(strcmp(token, "router-id") == 0) {
         unsigned char *id = NULL;
         c = getid(c, &id, gnc, closure);

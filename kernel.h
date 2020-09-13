@@ -45,13 +45,6 @@ struct kernel_link {
     char *ifname;
 };
 
-struct kernel_rule {
-    unsigned int priority;
-    unsigned int table;
-    unsigned char src[16];
-    unsigned char src_plen;
-};
-
 struct kernel_filter {
     /* return -1 to interrupt search. */
     int (*addr)(struct kernel_addr *, void *);
@@ -60,8 +53,6 @@ struct kernel_filter {
     void *route_closure;
     int (*link)(struct kernel_link *, void *);
     void *link_closure;
-    int (*rule)(struct kernel_rule *, void *);
-    void *rule_closure;
 };
 
 #define ROUTE_FLUSH 0
@@ -90,7 +81,6 @@ int kernel_interface_ipv4(const char *ifname, int ifindex,
 int kernel_interface_mtu(const char *ifname, int ifindex);
 int kernel_interface_wireless(const char *ifname, int ifindex);
 int kernel_interface_channel(const char *ifname, int ifindex);
-int kernel_disambiguate(int v4);
 int kernel_route(int operation, int table,
                  const unsigned char *dest, unsigned short plen,
                  const unsigned char *src, unsigned short src_plen,
@@ -105,8 +95,3 @@ int gettime(struct timeval *tv);
 int read_random_bytes(void *buf, int len);
 int kernel_older_than(const char *sysname, int version, int sub_version);
 int kernel_has_ipv6_subtrees(void);
-int add_rule(int prio, const unsigned char *src_prefix, int src_plen,
-             int table);
-int flush_rule(int prio, int family);
-int change_rule(int new_prio, int old_prio, const unsigned char *src, int plen,
-                int table);

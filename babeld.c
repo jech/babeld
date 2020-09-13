@@ -52,7 +52,6 @@ THE SOFTWARE.
 #include "resend.h"
 #include "configuration.h"
 #include "local.h"
-#include "rule.h"
 #include "version.h"
 
 struct timeval now;
@@ -87,7 +86,6 @@ unsigned char protocol_group[16];
 int protocol_socket = -1;
 int kernel_socket = -1;
 static int kernel_routes_changed = 0;
-static int kernel_rules_changed = 0;
 static int kernel_link_changed = 0;
 static int kernel_addr_changed = 0;
 
@@ -124,22 +122,6 @@ kernel_link_notify(struct kernel_link *link, void *closure)
         }
     }
     return 0;
-}
-
-static int
-kernel_rule_notify(struct kernel_rule *rule, void *closure)
-{
-    int i;
-    if(martian_prefix(rule->src, rule->src_plen))
-        return 0;
-
-    i = rule->priority - src_table_prio;
-
-    if(i < 0 || SRC_TABLE_NUM <= i)
-        return 0;
-
-    kernel_rules_changed = 1;
-    return -1;
 }
 
 int
@@ -548,12 +530,8 @@ main(int argc, char **argv)
     rc = check_xroutes(0);
     if(rc < 0)
         fprintf(stderr, "Warning: couldn't check exported routes.\n");
-    rc = check_rules();
-    if(rc < 0)
-        fprintf(stderr, "Warning: couldn't check rules.\n");
 
     kernel_routes_changed = 0;
-    kernel_rules_changed = 0;
     kernel_link_changed = 0;
     kernel_addr_changed = 0;
     kernel_dump_time = now.tv_sec + roughly(30);
@@ -656,7 +634,6 @@ main(int argc, char **argv)
             filter.route = kernel_route_notify;
             filter.addr = kernel_addr_notify;
             filter.link = kernel_link_notify;
-            filter.rule = kernel_rule_notify;
             kernel_callback(&filter);
         }
 
@@ -721,15 +698,11 @@ main(int argc, char **argv)
         }
 
         if(kernel_routes_changed || kernel_addr_changed ||
-           kernel_rules_changed || now.tv_sec >= kernel_dump_time) {
+           now.tv_sec >= kernel_dump_time) {
             rc = check_xroutes(1);
             if(rc < 0)
                 fprintf(stderr, "Warning: couldn't check exported routes.\n");
-            rc = check_rules();
-            if(rc < 0)
-                fprintf(stderr, "Warning: couldn't check rules.\n");
-            kernel_routes_changed = kernel_rules_changed =
-                kernel_addr_changed = 0;
+            kernel_routes_changed = kernel_addr_changed = 0;
             if(kernel_socket >= 0)
                 kernel_dump_time = now.tv_sec + roughly(300);
             else
@@ -830,7 +803,6 @@ main(int argc, char **argv)
         gettime(&now);
         interface_updown(ifp, 0);
     }
-    release_tables();
     kernel_setup_socket(0);
     kernel_setup(0);
 
