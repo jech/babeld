@@ -1104,7 +1104,7 @@ send_multicast_hello(struct interface *ifp, unsigned interval, int force)
     if(interval > 0)
         set_timeout(&ifp->hello_timeout, ifp->hello_interval);
 
-    debugf("Sending hello %d (%d) to %s.\n",
+    debugf("Sending hello %d (%u) to %s.\n",
            ifp->hello_seqno, interval, ifp->name);
 
     buffer_hello(&ifp->buf, ifp, ifp->hello_seqno, interval, 0);
@@ -1129,7 +1129,7 @@ send_unicast_hello(struct neighbour *neigh, unsigned interval, int force)
 
     neigh->hello_seqno = seqno_plus(neigh->hello_seqno, 1);
 
-    debugf("Sending unicast hello %d (%d) on %s.\n",
+    debugf("Sending unicast hello %d (%u) on %s.\n",
            neigh->hello_seqno, interval, neigh->ifp->name);
 
     buffer_hello(&neigh->buf, neigh->ifp, neigh->hello_seqno, interval, 1);
@@ -1358,7 +1358,7 @@ flushupdates(struct interface *ifp)
         if(!if_up(ifp))
             goto done;
 
-        debugf("  (flushing %d buffered updates on %s (%d))\n",
+        debugf("  (flushing %d buffered updates on %s (%u))\n",
                n, ifp->name, ifp->ifindex);
 
         /* In order to send fewer update messages, we want to send updates

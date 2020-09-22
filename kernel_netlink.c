@@ -351,7 +351,7 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
             goto socket_error;
         } else if(msg.msg_namelen != nl->socklen) {
             fprintf(stderr,
-                    "netlink_read: unexpected sender address length (%d)\n",
+                    "netlink_read: unexpected sender address length (%u)\n",
                     msg.msg_namelen);
             goto socket_error;
         } else if(nladdr.nl_pid != 0) {
@@ -364,7 +364,7 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
         for(nh = (struct nlmsghdr *)buf;
             NLMSG_OK(nh, len);
             nh = NLMSG_NEXT(nh, len)) {
-            kdebugf("%s{seq:%d}", (nh->nlmsg_flags & NLM_F_MULTI) ? "[multi] " : "",
+            kdebugf("%s{seq:%u}", (nh->nlmsg_flags & NLM_F_MULTI) ? "[multi] " : "",
                     nh->nlmsg_seq);
             if(!answer)
                 done = 1;
@@ -373,7 +373,7 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
                 continue;
             } else if(answer && (nh->nlmsg_pid != nl->sockaddr.nl_pid ||
                                  nh->nlmsg_seq != nl->seqno)) {
-                kdebugf("(wrong seqno %d %d /pid %d %d), ",
+                kdebugf("(wrong seqno %u %d /pid %u %u), ",
                         nh->nlmsg_seq, nl->seqno,
                         nh->nlmsg_pid, nl->sockaddr.nl_pid);
                 continue;
@@ -1028,7 +1028,7 @@ kernel_route(int operation, int table,
     use_src = (!is_default(src, src_plen) && kernel_disambiguate(ipv4));
 
     kdebugf("kernel_route: %s %s from %s "
-            "table %d metric %d dev %d nexthop %s\n",
+            "table %d metric %u dev %d nexthop %s\n",
             operation == ROUTE_ADD ? "add" :
             operation == ROUTE_FLUSH ? "flush" : "???",
             format_prefix(dest, plen), format_prefix(src, src_plen),
@@ -1441,7 +1441,7 @@ filter_addresses(struct nlmsghdr *nh, struct kernel_addr *addr)
         return 0;
     addr->ifindex = ifa->ifa_index;
 
-    kdebugf("found address on interface %s(%d): %s\n",
+    kdebugf("found address on interface %s(%u): %s\n",
             if_indextoname(ifa->ifa_index, ifname), ifa->ifa_index,
             format_address(addr->addr.s6_addr));
 
