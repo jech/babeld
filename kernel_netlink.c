@@ -396,7 +396,8 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
                 check_interfaces();
             } else if(skip) {
                 kdebugf("(skip)");
-            } if(filter) {
+            }
+            if(filter) {
                 kdebugf("(msg -> \"");
                 err = filter_netlink(nh, filter);
                 kdebugf("\" %d), ", err);
