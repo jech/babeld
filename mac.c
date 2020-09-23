@@ -329,30 +329,25 @@ add_key(struct key *key)
     return 0;
 }
 
-int
+static struct keyset *
 add_keyset(const char *name)
 {
     struct keyset *ks;
     int rc;
 
-    ks = find_keyset(&allkeysets, name, NULL);
-    if(ks != NULL) {
-        fprintf(stderr, "add_keyset: keyset %s already exists.\n", name);
-        return -1;
-    }
     ks = init_keyset(NULL, name);
     if(ks == NULL)
-        return -1;
+        return NULL;
 
     rc = push_keyset(&allkeysets, ks);
     if(rc) {
         free(ks->keys);
         free(ks);
-        return -1;
+        return NULL;
     }
 
     local_notify_keyset(ks, LOCAL_ADD);
-    return 0;
+    return ks;
 }
 
 int
@@ -363,9 +358,12 @@ add_key_to_keyset(const char *keyset_name, const char *key_name)
     int rc;
     ks = find_keyset(&allkeysets, keyset_name, NULL);
     if(ks == NULL) {
-        fprintf(stderr, "add_key_to_keyset: could not find keyset %s.\n",
-                keyset_name);
-        return -1;
+        ks = add_keyset(keyset_name);
+        if(ks == NULL) {
+            fprintf(stderr, "add_key_to_keyset: could not create keyset %s.\n",
+                    keyset_name);
+            return -1;
+        }
     }
     key = find_key(&allkeys, key_name, NULL);
     if(key == NULL) {
@@ -445,9 +443,12 @@ add_keyset_to_keysuperset(struct keysuperset *kss, const char *keyset_name)
     }
     ks = find_keyset(&allkeysets, keyset_name, NULL);
     if(ks == NULL) {
-        fprintf(stderr, "add_keyset_to_keysuperset: could not find keyset %s.\n",
-                keyset_name);
-        return -1;
+        ks = add_keyset(keyset_name);
+        if(ks == NULL) {
+            fprintf(stderr, "add_keyset_to_keysuperset: could not create keyset %s.\n",
+                    keyset_name);
+            return -1;
+        }
     }
 
     rc = push_keyset(kss, ks);

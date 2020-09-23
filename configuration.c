@@ -1401,19 +1401,6 @@ parse_config_line(int c, gnc_t gnc, void *closure,
             free(key);
             goto fail;
         }
-    } else if(strcmp(token, "keyset") == 0) {
-        char *keyset_name = NULL;
-        int rc;
-        c = getword(c, &keyset_name, gnc, closure);
-        c = skip_eol(c, gnc, closure);
-        if(c < -1) {
-            free(keyset_name);
-            goto fail;
-        }
-        rc = add_keyset(keyset_name);
-        free(keyset_name);
-        if(rc)
-            goto fail;
     } else if(strcmp(token, "keyset-add-key") == 0) {
         char *keyset_name = NULL, *key_name = NULL;
         int rc;

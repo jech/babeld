@@ -764,9 +764,6 @@ packets, or
 .B both
 (signing and verifying packets).
 .TP
-.BI "keyset" " name"
-Create an empty keyset.
-.TP
 .B "keyset-add-key" \c
 .I keyset-name key-name
 Add the key
