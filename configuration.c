@@ -873,7 +873,10 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
         }
         if(strcmp(algorithm, "hmac-sha256") == 0) {
             key->algorithm = MAC_ALGORITHM_HMAC_SHA256;
-            keybytes = SHA256_Message_Block_Size;
+            /* Using 64 octets for SHA-256 gives no additional security.
+             * https://crypto.stackexchange.com/questions/34864/key-size-for-hmac-sha256
+             * https://mailarchive.ietf.org/arch/msg/babel/qYtlmCrlUhbHIjWsGYCWwC3LbSA/ */
+            keybytes = SHA256HashSize;
         } else if(strcmp(algorithm, "blake2s") == 0) {
             key->algorithm = MAC_ALGORITHM_BLAKE2S;
             keybytes = BLAKE2S_KEYBYTES;
@@ -901,8 +904,8 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
             free(key_value);
             goto error;
         }
-        if(key->len > keybytes) {
-            fprintf(stderr, "Key length is %d, expected at most %d.\n",
+        if(key->len != keybytes) {
+            fprintf(stderr, "Key length is %d, expected %d.\n",
                     key->len, keybytes);
             free(key_value);
             goto error;

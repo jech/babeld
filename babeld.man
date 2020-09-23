@@ -750,10 +750,10 @@ or
 .BR blake2s .
 The
 .B value
-is a hexadecimal string (up to 64 bytes for
+is a hexadecimal string of exactly 32 bytes for
 .B hmac-sha256
-or up to 32 bytes for
-.BR blake2s ).
+and
+.BR blake2s .
 The
 .B use
 specifies whether the key is used to

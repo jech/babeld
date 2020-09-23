@@ -40,8 +40,7 @@ THE SOFTWARE.
 #include "message.h"
 #include "local.h"
 
-#define MAX_DIGEST_LEN ((int)SHA256HashSize > (int)BLAKE2S_OUTBYTES ?   \
-                        (int)SHA256HashSize : (int)BLAKE2S_OUTBYTES)
+#define MAX_DIGEST_LEN MAX((int)SHA256HashSize, (int)BLAKE2S_OUTBYTES)
 
 struct keysuperset allkeysets = {0};
 struct keyset allkeys = {0};

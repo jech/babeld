@@ -30,8 +30,7 @@ THE SOFTWARE.
 #define KEY_USE_SIGN (1 << 0)
 #define KEY_USE_VERIFY (1 << 1)
 
-#define MAX_KEY_LEN ((int)SHA256_Message_Block_Size > (int)BLAKE2S_KEYBYTES ? \
-                     (int)SHA256_Message_Block_Size : (int)BLAKE2S_KEYBYTES)
+#define MAX_KEY_LEN MAX((int)SHA256HashSize, (int)BLAKE2S_KEYBYTES)
 #define MAX_KEY_NAME_LEN 16U
 
 struct key {
