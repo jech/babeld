@@ -1117,8 +1117,9 @@ flushbuf(struct buffered *buf, struct interface *ifp)
         DO_HTONS(packet_header + 2, buf->len);
         fill_rtt_message(buf, ifp);
         if(ifp->flags & IF_MAC) {
+            int old_end = end;
             end = sign_packet(buf, ifp, packet_header);
-            if(end < 0) {
+            if(end < 0 || end == old_end) {
                 fprintf(stderr, "Couldn't sign the packet.\n");
                 return;
             }
