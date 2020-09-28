@@ -762,14 +762,14 @@ or
 .B verify
 packets, or both (sign and verify packets) by default.
 .TP
-.B "keyset-add-key" \c
+.B "add-key" \c
 .I keyset-name key-name
 Add the key
 .I key-name
 to the keyset
 .IR keyset-name .
 .TP
-.B "keyset-rm-key" \c
+.B "rm-key" \c
 .I keyset-name key-name
 Remove the key
 .I key-name

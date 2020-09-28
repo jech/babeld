@@ -1402,7 +1402,7 @@ parse_config_line(int c, gnc_t gnc, void *closure,
             free(key);
             goto fail;
         }
-    } else if(strcmp(token, "keyset-add-key") == 0) {
+    } else if(strcmp(token, "add-key") == 0) {
         char *keyset_name = NULL, *key_name = NULL;
         int rc;
         c = getword(c, &keyset_name, gnc, closure);
@@ -1423,7 +1423,7 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         free(key_name);
         if(rc)
             goto fail;
-    } else if(strcmp(token, "keyset-rm-key") == 0) {
+    } else if(strcmp(token, "rm-key") == 0) {
         char *keyset_name = NULL, *key_name = NULL;
         int rc;
         c = getword(c, &keyset_name, gnc, closure);

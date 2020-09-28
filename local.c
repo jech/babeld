@@ -338,7 +338,7 @@ local_notify_keyset_1(struct local_socket *s, struct keyset *ks, int kind)
 
     for(i = 0; i < ks->len; i++) {
         rc = snprintf(buf, 512,
-                      "%s keyset-add-key %.*s %.*s\n",
+                      "%s add-key %.*s %.*s\n",
                       local_kind(kind),
                       MAX_KEY_NAME_LEN, ks->name,
                       MAX_KEY_NAME_LEN, ks->keys[i]->name);
