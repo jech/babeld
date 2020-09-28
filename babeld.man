@@ -731,7 +731,8 @@ interface. Enables MAC security on that interface.
 .BI "add-keyset" " keyset-name"
 Add the keyset
 .I keyset-name
-to the set of keysets of this interface.
+to the set of keysets of this interface. Enables MAC security on that
+interface.
 .TP
 .BI "rm-keyset" " keyset-name"
 Remove the keyset
