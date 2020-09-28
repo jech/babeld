@@ -762,6 +762,36 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             free(keyset_name);
             if(rc)
                 goto error;
+        } else if(strcmp(token, "key") == 0) {
+            char *key_name;
+            int rc;
+            c = getword(c, &key_name, gnc, closure);
+            if(c < -1) {
+                free(key_name);
+                goto error;
+            }
+
+            if(if_conf->ifname == NULL) {
+                fprintf(stderr, "Can not add key to unnamed interface.\n");
+                free(key_name);
+                goto error;
+            }
+
+            rc = init_keysuperset(&if_conf->kss);
+            if(rc) {
+                free(key_name);
+                goto error;
+            }
+            if_conf->mac = CONFIG_YES;
+
+            rc = add_key_to_keyset(if_conf->ifname, key_name);
+            free(key_name);
+            if(rc)
+                goto error;
+
+            rc = add_keyset_to_keysuperset(&if_conf->kss, if_conf->ifname);
+            if(rc)
+                goto error;
         } else if(strcmp(token, "mac-verify") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);

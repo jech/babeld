@@ -722,6 +722,12 @@ Check packet signatures, reject unsigned or incorrectly signed
 packets.  The default is
 .BR true .
 .TP
+.BI key " key-name"
+Create a keyset using the name of the interface, add the key
+.I key-name
+to that keyset, and add the keyset to the set of keysets of that
+interface. Enables MAC security on that interface.
+.TP
 .BI "add-keyset" " keyset-name"
 Add the keyset
 .I keyset-name
