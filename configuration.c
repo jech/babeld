@@ -826,6 +826,7 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
     char *token = NULL;
     struct key *key;
     int keybytes;
+    int c_tmp;
 
     key = calloc(1, sizeof(struct key));
     if(key == NULL) {
@@ -834,9 +835,10 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
     }
 
     c = getword(c, &token, gnc, closure);
-    if(c < -1 || token == NULL)
+    if(c < -1 || token == NULL || strcmp(token, "name") != 0) {
+        fputs("Key name expected.\n", stderr);
         goto error;
-    if(strcmp(token, "name") == 0) {
+    } else {
         char *key_name = NULL;
         size_t len;
         c = getword(c, &key_name, gnc, closure);
@@ -853,17 +855,15 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
         }
         memcpy(key->name, key_name, len + 1);
         free(key_name);
-    } else {
-        fputs("Key name expected.\n", stderr);
-        goto error;
     }
     free(token);
     token = NULL;
 
     c = getword(c, &token, gnc, closure);
-    if(c < -1 || token == NULL)
+    if(c < -1 || token == NULL || strcmp(token, "algorithm") != 0) {
+        fputs("Key algorithm expected.\n", stderr);
         goto error;
-    if(strcmp(token, "algorithm") == 0) {
+    } else {
         char *algorithm = NULL;
         c = getword(c, &algorithm, gnc, closure);
         if(c < -1 || algorithm == NULL) {
@@ -886,17 +886,15 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
             goto error;
         }
         free(algorithm);
-    } else {
-        fputs("Key algorithm expected.\n", stderr);
-        goto error;
     }
     free(token);
     token = NULL;
 
     c = getword(c, &token, gnc, closure);
-    if(c < -1 || token == NULL)
+    if(c < -1 || token == NULL || strcmp(token, "value") != 0) {
+        fputs("Key value expected.\n", stderr);
         goto error;
-    if (strcmp(token, "value") == 0) {
+    } else {
         unsigned char *key_value = NULL;
         c = gethex(c, &key_value, &key->len, gnc, closure);
         if(c < -1 || key_value == NULL) {
@@ -912,17 +910,21 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
         }
         memcpy(key->value, key_value, key->len);
         free(key_value);
-    } else {
-        fputs("Key value expected.\n", stderr);
-        goto error;
     }
     free(token);
     token = NULL;
 
-    c = getword(c, &token, gnc, closure);
-    if(c < -1 || token == NULL)
+    c_tmp = skip_whitespace(c, gnc, closure);
+    if(c_tmp != '\n') {
+        c = skip_eol(c_tmp, gnc, closure);
+        if(c != -2)
+            goto fini;
+    }
+    c = getword(c_tmp, &token, gnc, closure);
+    if(c < -1 || token == NULL || strcmp(token, "use") != 0) {
+        fputs("Key use expected.\n", stderr);
         goto error;
-    if(strcmp(token, "use") == 0) {
+    } else {
         char *use = NULL;
         c = getword(c, &use, gnc, closure);
         if(c < -1 || use == NULL) {
@@ -933,18 +935,17 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
             key->use = KEY_USE_SIGN;
         } else if(strcmp(use, "verify") == 0) {
             key->use = KEY_USE_VERIFY;
-        } else if(strcmp(use, "both") == 0) {
-            key->use = KEY_USE_SIGN | KEY_USE_VERIFY;
         } else {
             fprintf(stderr, "Key use '%s' isn't supported.\n", use);
             free(use);
             goto error;
         }
         free(use);
-    } else {
-        fprintf(stderr, "Key use expected.\n");
-        goto error;
     }
+
+ fini:
+    if(!key->use)
+        key->use = KEY_USE_SIGN | KEY_USE_VERIFY;
     free(token);
 
     *key_return = key;

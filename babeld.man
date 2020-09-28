@@ -738,8 +738,8 @@ from the set of keysets of this interface.
 .TP
 .BI "key name" " name" " algorithm " \c
 .RB { hmac-sha256 | blake2s } \c
-.BI " value" " value" " use " \c
-.RB { sign | verify | both }
+.BI " value" " value" \c
+.RB " [" use " {" sign | verify "}]"
 Configure a key for use with the
 .B mac
 interface option.  The
@@ -756,13 +756,11 @@ and
 .BR blake2s .
 The
 .B use
-specifies whether the key is used to
+specifies whether the key is used to exclusively
 .B sign
-packets,
+or
 .B verify
-packets, or
-.B both
-(signing and verifying packets).
+packets, or both (sign and verify packets) by default.
 .TP
 .B "keyset-add-key" \c
 .I keyset-name key-name
