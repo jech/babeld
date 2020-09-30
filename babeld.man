@@ -324,6 +324,12 @@ If this flag is set to
 no neighbour acquisition is done (e.g., via Multicast Hellos), and
 neighbours must be added via an external mechanism. The default is
 .BR true .
+.TP
+.BI neighbour " address ifname"
+Add the neighbour with given
+.I address
+to the interface
+.IR ifname .
 .SS Interface configuration
 An interface is configured by a line with the following format:
 .IP
@@ -620,6 +626,9 @@ any configuration file directive, including
 .BR interface ;
 .IP \(bu
 .BR "flush interface" ;
+.IP \(bu
+.B "flush neighbour"
+.IR "address ifname" ;
 .IP \(bu
 .BR dump ;
 .IP \(bu

@@ -72,6 +72,27 @@ flush_neighbour(struct neighbour *neigh)
     free(neigh);
 }
 
+int
+flush_neighbour2(const unsigned char *address, const struct interface *ifp)
+{
+    struct neighbour **neigh = &neighs, *flush;
+
+    while(*neigh != NULL &&
+          memcmp(address, (*neigh)->address, 16) != 0 &&
+          ifp != (*neigh)->ifp)
+        neigh = &(*neigh)->next;
+    flush = *neigh;
+    if(flush == NULL)
+        return -1;
+    *neigh = flush->next;
+    flush_neighbour_routes(flush);
+    flush_resends(flush);
+    local_notify_neighbour(flush, LOCAL_FLUSH);
+    free(flush->buf.buf);
+    free(flush);
+    return 0;
+}
+
 struct neighbour *
 find_neighbour(const unsigned char *address, struct interface *ifp)
 {

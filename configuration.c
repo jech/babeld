@@ -37,6 +37,7 @@ THE SOFTWARE.
 #include "babeld.h"
 #include "util.h"
 #include "interface.h"
+#include "neighbour.h"
 #include "route.h"
 #include "kernel.h"
 #include "configuration.h"
@@ -973,6 +974,41 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
 }
 
 static int
+parse_neighbour(int c, gnc_t gnc, void *closure,
+                unsigned char **address_return, struct interface **ifp_return)
+{
+    char *ifname = NULL;
+    struct interface *ifp;
+    *address_return = NULL;
+    *ifp_return = NULL;
+
+    c = skip_whitespace(c, gnc, closure);
+    c = getip(c, address_return, NULL, gnc, closure);
+    if(c < -1)
+        return c;
+    c = getword(c, &ifname, gnc, closure);
+    c = skip_eol(c, gnc, closure);
+    if(c < -1) {
+        free(*address_return);
+        *address_return = NULL;
+        return c;
+    }
+
+    FOR_ALL_INTERFACES(ifp) {
+        if(strcmp(ifp->name, ifname) == 0)
+            break;
+    }
+    *ifp_return = ifp;
+    if(ifp == NULL) {
+        fprintf(stderr, "Couldn't find interface %s.\n", ifname);
+        free(*address_return);
+        *address_return = NULL;
+    }
+    free(ifname);
+    return c;
+}
+
+static int
 parse_config_line(int c, gnc_t gnc, void *closure,
                   int *action_return, const char **message_return)
 {
@@ -1071,6 +1107,19 @@ parse_config_line(int c, gnc_t gnc, void *closure,
                          if_conf, default_interface_conf);
             free(if_conf);
         }
+    } else if(strcmp(token, "neighbour") == 0) {
+        unsigned char *address;
+        struct interface *ifp;
+        struct neighbour *neigh;
+        c = parse_neighbour(c, gnc, closure, &address, &ifp);
+        if(c < -1 || address == NULL || ifp == NULL)
+            goto fail;
+        neigh = find_neighbour(address, ifp);
+        free(address);
+        if(neigh == NULL) {
+            fprintf(stderr, "Couldn't allocate neighbour.\n");
+            goto fail;
+        }
     } else if(strcmp(token, "flush") == 0) {
         char *token2;
         c = skip_whitespace(c, gnc, closure);
@@ -1100,6 +1149,22 @@ parse_config_line(int c, gnc_t gnc, void *closure,
             }
             free(token2);
             free(ifname);
+        } else if(strcmp(token2, "neighbour") == 0) {
+            unsigned char *address;
+            struct interface *ifp;
+            int rc;
+            free(token2);
+            c = parse_neighbour(c, gnc, closure, &address, &ifp);
+            if(c < -1 || address == NULL || ifp == NULL)
+                goto fail;
+            rc = flush_neighbour2(address, ifp);
+            if(rc) {
+                if(action_return)
+                    *action_return = CONFIG_ACTION_NO;
+                if(message_return)
+                    *message_return = "No such neighbour";
+            }
+            free(address);
         } else {
             free(token2);
             goto fail;
