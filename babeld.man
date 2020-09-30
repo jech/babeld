@@ -612,7 +612,8 @@ The following requests are currently defined:
 any configuration file directive, including
 .BR interface ;
 .IP \(bu
-.BR "flush interface" ;
+.B "flush interface"
+.IR "ifname" ;
 .IP \(bu
 .BR dump ;
 .IP \(bu
