@@ -126,7 +126,7 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
    This does not call local_notify_neighbour, see update_neighbour_metric. */
 int
 update_neighbour(const struct neighbour *neigh, struct hello_history *hist,
-                 int unicast, int hello, int hello_interval)
+                 int hello, int hello_interval)
 {
     int missed_hellos;
     int rc = 0;
@@ -230,8 +230,8 @@ check_neighbours()
     neigh = neighs;
     while(neigh) {
         int changed, rc;
-        changed = update_neighbour(neigh, &neigh->hello, 0, -1, 0);
-        rc = update_neighbour(neigh, &neigh->uhello, 1, -1, 0);
+        changed = update_neighbour(neigh, &neigh->hello, -1, 0);
+        rc = update_neighbour(neigh, &neigh->uhello, -1, 0);
         changed = changed || rc;
 
         if(neigh->hello.reach == 0 ||

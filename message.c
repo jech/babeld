@@ -563,7 +563,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             changed =
                 update_neighbour(neigh,
                                  unicast ? &neigh->uhello : &neigh->hello,
-                                 unicast, seqno, interval);
+                                 seqno, interval);
             update_neighbour_metric(neigh, changed);
             if(interval > 0)
                 /* Multiply by 3/2 to allow hellos to expire. */
