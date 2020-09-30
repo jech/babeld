@@ -42,7 +42,8 @@ THE SOFTWARE.
 struct neighbour *neighs = NULL;
 
 static struct neighbour *
-find_neighbour_nocreate(const unsigned char *address, struct interface *ifp)
+find_neighbour_nocreate(const unsigned char *address,
+                        const struct interface *ifp)
 {
     struct neighbour *neigh;
     FOR_ALL_NEIGHBOURS(neigh) {
@@ -124,7 +125,7 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
 /* Recompute a neighbour's rxcost.  Return true if anything changed.
    This does not call local_notify_neighbour, see update_neighbour_metric. */
 int
-update_neighbour(struct neighbour *neigh, struct hello_history *hist,
+update_neighbour(const struct neighbour *neigh, struct hello_history *hist,
                  int unicast, int hello, int hello_interval)
 {
     int missed_hellos;
@@ -213,7 +214,7 @@ reset_txcost(struct neighbour *neigh)
 }
 
 unsigned
-neighbour_txcost(struct neighbour *neigh)
+neighbour_txcost(const struct neighbour *neigh)
 {
     return neigh->txcost;
 }
@@ -274,7 +275,7 @@ two_three(int reach)
 }
 
 unsigned
-neighbour_rxcost(struct neighbour *neigh)
+neighbour_rxcost(const struct neighbour *neigh)
 {
     unsigned delay, udelay;
     unsigned short reach = neigh->hello.reach;
@@ -306,7 +307,7 @@ neighbour_rxcost(struct neighbour *neigh)
 }
 
 unsigned
-neighbour_rttcost(struct neighbour *neigh)
+neighbour_rttcost(const struct neighbour *neigh)
 {
     struct interface *ifp = neigh->ifp;
 
@@ -329,7 +330,7 @@ neighbour_rttcost(struct neighbour *neigh)
 }
 
 unsigned
-neighbour_cost(struct neighbour *neigh)
+neighbour_cost(const struct neighbour *neigh)
 {
     unsigned a, b, cost;
 
@@ -364,7 +365,7 @@ neighbour_cost(struct neighbour *neigh)
 }
 
 int
-valid_rtt(struct neighbour *neigh)
+valid_rtt(const struct neighbour *neigh)
 {
     return (timeval_minus_msec(&now, &neigh->rtt_time) < 180000) ? 1 : 0;
 }

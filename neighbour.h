@@ -56,11 +56,11 @@ extern struct neighbour *neighs;
 void flush_neighbour(struct neighbour *neigh);
 struct neighbour *find_neighbour(const unsigned char *address,
                                  struct interface *ifp);
-int update_neighbour(struct neighbour *neigh, struct hello_history *hist,
+int update_neighbour(const struct neighbour *neigh, struct hello_history *hist,
                      int unicast, int hello, int hello_interval);
 unsigned check_neighbours(void);
-unsigned neighbour_txcost(struct neighbour *neigh);
-unsigned neighbour_rxcost(struct neighbour *neigh);
-unsigned neighbour_rttcost(struct neighbour *neigh);
-unsigned neighbour_cost(struct neighbour *neigh);
-int valid_rtt(struct neighbour *neigh);
+unsigned neighbour_txcost(const struct neighbour *neigh);
+unsigned neighbour_rxcost(const struct neighbour *neigh);
+unsigned neighbour_rttcost(const struct neighbour *neigh);
+unsigned neighbour_cost(const struct neighbour *neigh);
+int valid_rtt(const struct neighbour *neigh);
