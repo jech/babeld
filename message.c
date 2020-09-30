@@ -495,10 +495,19 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         bodylen = packetlen - 4;
     }
 
-    neigh = find_neighbour(from, ifp);
-    if(neigh == NULL) {
-        fprintf(stderr, "Couldn't allocate neighbour.\n");
-        return;
+    if(neighbour_acquisition) {
+        neigh = find_neighbour(from, ifp);
+        if(neigh == NULL) {
+            fprintf(stderr, "Couldn't allocate neighbour.\n");
+            return;
+        }
+    } else {
+        neigh = find_neighbour_nocreate(from, ifp);
+        if(neigh == NULL) {
+            fprintf(stderr, "Couldn't find neighbour %s on %s.\n",
+                    format_address(from), ifp->name);
+            return;
+        }
     }
 
     i = 0;
@@ -1082,7 +1091,7 @@ buffer_hello(struct buffered *buf, struct interface *ifp,
 void
 send_multicast_hello(struct interface *ifp, unsigned interval, int force)
 {
-    if(!if_up(ifp))
+    if(!neighbour_acquisition || !if_up(ifp))
         return;
 
     if(interval == 0 && (ifp->flags & IF_RFC6126) != 0)

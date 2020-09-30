@@ -70,6 +70,7 @@ int resend_delay = -1;
 int random_id = 0;
 int do_daemonise = 0;
 int skip_kernel_setup = 0;
+int neighbour_acquisition = 1;
 const char *logfile = NULL,
     *pidfile = "/var/run/babeld.pid",
     *state_file = "/var/lib/babel-state";
