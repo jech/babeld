@@ -31,6 +31,7 @@ struct neighbour {
     struct neighbour *next;
     /* This is -1 when unknown, so don't make it unsigned */
     unsigned char address[16];
+    struct interface *ifp;
     struct hello_history hello;
     struct hello_history uhello; /* for Unicast Hellos */
     unsigned short txcost;
@@ -44,7 +45,6 @@ struct neighbour {
     struct timeval hello_rtt_receive_time;
     unsigned int rtt;
     struct timeval rtt_time;
-    struct interface *ifp;
     struct buffered buf;
 };
 
