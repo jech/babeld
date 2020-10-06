@@ -107,6 +107,7 @@ flush_interface(char *ifname)
 
     local_notify_interface(ifp, LOCAL_FLUSH);
 
+    free(ifp->ipv4);
     free(ifp);
 
     return 1;
