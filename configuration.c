@@ -746,29 +746,20 @@ merge_ifconf(struct interface_conf *dest,
 static void
 add_ifconf(struct interface_conf *if_conf, struct interface_conf **if_confs)
 {
+    while(*if_confs != NULL &&
+          strcmp(if_conf->ifname, (*if_confs)->ifname) != 0)
+        if_confs = &(*if_confs)->next;
+
     if(*if_confs == NULL) {
         if_conf->next = NULL;
         *if_confs = if_conf;
     } else {
-        struct interface_conf *prev, *next;
-        next = *if_confs;
-        prev = NULL;
-        while(next) {
-            if(strcmp(next->ifname, if_conf->ifname) == 0) {
-                merge_ifconf(next, if_conf, next);
-                free(if_conf->ifname);
-                free(if_conf);
-                if_conf = next;
-                goto done;
-            }
-            prev = next;
-            next = next->next;
-        }
-        if_conf->next = NULL;
-        prev->next = if_conf;
+        merge_ifconf(*if_confs, if_conf, *if_confs);
+        free(if_conf->ifname);
+        free(if_conf);
+        if_conf = *if_confs;
     }
 
- done:
     if(config_finalised)
         add_interface(if_conf->ifname, if_conf);
 }
@@ -776,24 +767,16 @@ add_ifconf(struct interface_conf *if_conf, struct interface_conf **if_confs)
 void
 flush_ifconf(struct interface_conf *if_conf)
 {
-    if(if_conf == interface_confs) {
-        interface_confs = if_conf->next;
-        free(if_conf->ifname);
-        free(if_conf);
-        return;
-    } else {
-        struct interface_conf *prev = interface_confs;
-        while(prev) {
-            if(prev->next == if_conf) {
-                prev->next = if_conf->next;
-                free(if_conf->ifname);
-                free(if_conf);
-                return;
-            }
-            prev = prev->next;
-        }
-    }
-    fprintf(stderr, "Warning: attempting to free nonexistent ifconf.\n");
+    struct interface_conf **if_confs = &interface_confs;
+
+    while(*if_confs != NULL && *if_confs != if_conf)
+        if_confs = &(*if_confs)->next;
+
+    if(*if_confs == NULL)
+        fprintf(stderr, "Warning: attempting to free nonexistent ifconf.\n");
+    else
+        *if_confs = if_conf->next;
+
     free(if_conf->ifname);
     free(if_conf);
 }
