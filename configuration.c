@@ -853,10 +853,11 @@ parse_ifconf(int c, gnc_t gnc, void *closure,
 static int
 parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
 {
-    char *token = NULL;
+    char *token = NULL, *token2 = NULL;
     struct key *key;
     int keybytes;
     int c_tmp;
+    size_t len;
 
     key = calloc(1, sizeof(struct key));
     if(key == NULL) {
@@ -868,81 +869,68 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
     if(c < -1 || token == NULL || strcmp(token, "name") != 0) {
         fputs("Key name expected.\n", stderr);
         goto error;
-    } else {
-        char *key_name = NULL;
-        size_t len;
-        c = getword(c, &key_name, gnc, closure);
-        if(c < -1 || key_name == NULL) {
-            fputs("Coudn't parse key name.\n", stderr);
-            free(key_name);
-            goto error;
-        }
-        len = strlen(key_name);
-        if(len >= MAX_KEY_NAME_LEN)  {
-            fprintf(stderr, "Max key name length is %u.\n", MAX_KEY_NAME_LEN);
-            free(key_name);
-            goto error;
-        }
-        memcpy(key->name, key_name, len + 1);
-        free(key_name);
     }
+    c = getword(c, &token2, gnc, closure);
+    if(c < -1 || token2 == NULL) {
+        fputs("Coudn't parse key name.\n", stderr);
+        goto error;
+    }
+    len = strlen(token2);
+    if(len >= MAX_KEY_NAME_LEN)  {
+        fprintf(stderr, "Max key name length is %u.\n", MAX_KEY_NAME_LEN);
+        goto error;
+    }
+    memcpy(key->name, token2, len + 1);
+    free(token2);
     free(token);
-    token = NULL;
+    token = token2 = NULL;
 
     c = getword(c, &token, gnc, closure);
     if(c < -1 || token == NULL || strcmp(token, "algorithm") != 0) {
         fputs("Key algorithm expected.\n", stderr);
         goto error;
-    } else {
-        char *algorithm = NULL;
-        c = getword(c, &algorithm, gnc, closure);
-        if(c < -1 || algorithm == NULL) {
-            fputs("Couldn't parse key algorithm.\n", stderr);
-            free(algorithm);
-            goto error;
-        }
-        if(strcmp(algorithm, "hmac-sha256") == 0) {
-            key->algorithm = MAC_ALGORITHM_HMAC_SHA256;
-            /* Using 64 octets for SHA-256 gives no additional security.
-             * https://crypto.stackexchange.com/questions/34864/key-size-for-hmac-sha256
-             * https://mailarchive.ietf.org/arch/msg/babel/qYtlmCrlUhbHIjWsGYCWwC3LbSA/ */
-            keybytes = SHA256HashSize;
-        } else if(strcmp(algorithm, "blake2s") == 0) {
-            key->algorithm = MAC_ALGORITHM_BLAKE2S;
-            keybytes = BLAKE2S_KEYBYTES;
-        } else {
-            fprintf(stderr, "Key algorithm '%s' isn't supported.\n", algorithm);
-            free(algorithm);
-            goto error;
-        }
-        free(algorithm);
     }
+    c = getword(c, &token2, gnc, closure);
+    if(c < -1 || token2 == NULL) {
+        fputs("Couldn't parse key algorithm.\n", stderr);
+        goto error;
+    }
+    if(strcmp(token2, "hmac-sha256") == 0) {
+        key->algorithm = MAC_ALGORITHM_HMAC_SHA256;
+        /* Using 64 octets for SHA-256 gives no additional security.
+         * https://crypto.stackexchange.com/questions/34864/key-size-for-hmac-sha256
+         * https://mailarchive.ietf.org/arch/msg/babel/qYtlmCrlUhbHIjWsGYCWwC3LbSA/ */
+        keybytes = SHA256HashSize;
+    } else if(strcmp(token2, "blake2s") == 0) {
+        key->algorithm = MAC_ALGORITHM_BLAKE2S;
+        keybytes = BLAKE2S_KEYBYTES;
+    } else {
+        fprintf(stderr, "Key algorithm '%s' isn't supported.\n", token2);
+        goto error;
+    }
+    free(token2);
     free(token);
-    token = NULL;
+    token = token2 = NULL;
 
     c = getword(c, &token, gnc, closure);
     if(c < -1 || token == NULL || strcmp(token, "value") != 0) {
         fputs("Key value expected.\n", stderr);
         goto error;
-    } else {
-        unsigned char *key_value = NULL;
-        c = gethex(c, &key_value, &key->len, gnc, closure);
-        if(c < -1 || key_value == NULL) {
-            fprintf(stderr, "Couldn't parse key value.\n");
-            free(key_value);
-            goto error;
-        }
-        if(key->len != keybytes) {
-            fprintf(stderr, "Key length is %d, expected %d.\n",
-                    key->len, keybytes);
-            free(key_value);
-            goto error;
-        }
-        memcpy(key->value, key_value, key->len);
-        free(key_value);
     }
+    c = gethex(c, (unsigned char **)&token2, &key->len, gnc, closure);
+    if(c < -1 || token2 == NULL) {
+        fprintf(stderr, "Couldn't parse key value.\n");
+        goto error;
+    }
+    if(key->len != keybytes) {
+        fprintf(stderr, "Key length is %d, expected %d.\n",
+                key->len, keybytes);
+        goto error;
+    }
+    memcpy(key->value, token2, key->len);
+    free(token2);
     free(token);
-    token = NULL;
+    token = token2 = NULL;
 
     c_tmp = skip_whitespace(c, gnc, closure);
     if(c_tmp != '\n') {
@@ -954,24 +942,19 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
     if(c < -1 || token == NULL || strcmp(token, "use") != 0) {
         fputs("Key use expected.\n", stderr);
         goto error;
-    } else {
-        char *use = NULL;
-        c = getword(c, &use, gnc, closure);
-        if(c < -1 || use == NULL) {
-            free(use);
-            goto error;
-        }
-        if(strcmp(use, "sign") == 0) {
-            key->use = KEY_USE_SIGN;
-        } else if(strcmp(use, "verify") == 0) {
-            key->use = KEY_USE_VERIFY;
-        } else {
-            fprintf(stderr, "Key use '%s' isn't supported.\n", use);
-            free(use);
-            goto error;
-        }
-        free(use);
     }
+    c = getword(c, &token2, gnc, closure);
+    if(c < -1 || token2 == NULL)
+        goto error;
+    if(strcmp(token2, "sign") == 0) {
+        key->use = KEY_USE_SIGN;
+    } else if(strcmp(token2, "verify") == 0) {
+        key->use = KEY_USE_VERIFY;
+    } else {
+        fprintf(stderr, "Key use '%s' isn't supported.\n", token2);
+        goto error;
+    }
+    free(token2);
 
  fini:
     if(!key->use)
@@ -983,6 +966,7 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
 
  error:
     free(token);
+    free(token2);
     free(key);
     return -2;
 }
