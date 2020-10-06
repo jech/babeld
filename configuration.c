@@ -794,6 +794,8 @@ flush_ifconf(struct interface_conf *if_conf)
         }
     }
     fprintf(stderr, "Warning: attempting to free nonexistent ifconf.\n");
+    free(if_conf->ifname);
+    free(if_conf);
 }
 
 static int
