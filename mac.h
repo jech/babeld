@@ -69,6 +69,7 @@ void release_keysuperset(struct keysuperset *kss);
 
 int add_key(struct key *key);
 
+int exist_keyset(const char *keyset_name);
 int add_key_to_keyset(const char *keyset_name, const char *key_name);
 int rm_key_from_keyset(const char *keyset_name, const char *key_name);
 

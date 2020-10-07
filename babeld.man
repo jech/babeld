@@ -709,13 +709,16 @@ confidential), it only supports symmetric keying, and it only allows
 for the use of a small number of symmetric keys on every link.
 
 Keys and keysets are reference-counted.  They are discarded as soon as
-they are no longer referenced.
+they are no longer referenced. The
+.B default
+configuration is applied each time an interface goes up.
 .TP
 .B Interface configuration
 .RS 4
 .TP
 .BR mac " {" true | false }
-Enable MAC security on this interface.
+Enable MAC security on this interface. The default is
+.BR false .
 .TP
 .BR mac-verify " {" true | false }
 Check packet signatures, reject unsigned or incorrectly signed
@@ -723,16 +726,15 @@ packets.  The default is
 .BR true .
 .TP
 .BI key " key-name"
-Create a keyset using the name of the interface, add the key
+Add the key
 .I key-name
-to that keyset, and add the keyset to the set of keysets of that
-interface. Enables MAC security on that interface.
+to a newly created keyset bearing the same name, and add the keyset to
+the set of keysets of that interface.
 .TP
 .BI "add-keyset" " keyset-name"
 Add the keyset
 .I keyset-name
-to the set of keysets of this interface. Enables MAC security on that
-interface.
+to the set of keysets of this interface.
 .TP
 .BI "rm-keyset" " keyset-name"
 Remove the keyset

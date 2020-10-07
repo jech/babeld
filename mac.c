@@ -351,6 +351,12 @@ add_keyset(const char *name)
 }
 
 int
+exist_keyset(const char *keyset_name)
+{
+    return find_keyset(&allkeysets, keyset_name, NULL) != NULL;
+}
+
+int
 add_key_to_keyset(const char *keyset_name, const char *key_name)
 {
     struct keyset *ks;

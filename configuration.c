@@ -356,6 +356,41 @@ gethex(int c, unsigned char **value_r, int *len_r, gnc_t gnc, void *closure)
     return c;
 }
 
+/* As we're doing set operations, we cannot rely on the merge of
+ * configurations. We have to fetch the set we're modifying. If
+ * if_conf is anonymous, then we're modifying the default
+ * configuration (which may not exist yet!). If not, we have to check
+ * if the interface already exists and fetch the set attached to the
+ * interface. If the interface doesn't exist, we can modify if_conf.
+ *
+ * We also need the keysuperset to be created. This would add
+ * complexity to the code, so we abort the following operations if
+ * Babel-MAC isn't enabled. */
+static struct keysuperset *
+find_keysuperset(struct interface_conf *if_conf)
+{
+    struct keysuperset *kss = &if_conf->kss;
+    int mac = if_conf->mac == CONFIG_YES;
+    if (if_conf->ifname == NULL && default_interface_conf != NULL) {
+        mac = default_interface_conf->mac == CONFIG_YES;
+        kss = &default_interface_conf->kss;
+    } else {
+        struct interface *ifp;
+        FOR_ALL_INTERFACES(ifp) {
+            if(strcmp(if_conf->ifname, ifp->name) == 0) {
+                mac = !!(ifp->flags & IF_MAC);
+                kss = &ifp->kss;
+                break;
+            }
+        }
+    }
+    if(!mac) {
+        fprintf(stderr, "MAC authentication wasn't enabled.\n");
+        return NULL;
+    }
+    return kss;
+}
+
 static void
 free_filter(struct filter *f)
 {
@@ -689,115 +724,71 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if(v == CONFIG_YES && init_keysuperset(&if_conf->kss))
                 goto error;
             if_conf->mac = v;
-        } else if(strcmp(token, "add-keyset") == 0) {
-            struct interface *ifp;
-            char *keyset_name;
-            int rc;
-            c = getword(c, &keyset_name, gnc, closure);
-            if(c < -1) {
-                free(keyset_name);
-                goto error;
-            }
-
-            /* Since babeld doesn't support interface configuration
-             * changes at runtime, find the interface we're
-             * modifying. */
-            if(if_conf->ifname == NULL) {
-                fprintf(stderr, "Empty interface.\n");
-                free(keyset_name);
-                goto error;
-            }
-            FOR_ALL_INTERFACES(ifp) {
-                if(strcmp(ifp->name, if_conf->ifname) == 0)
-                    break;
-            }
-
-            if(ifp != NULL && (ifp->flags & IF_MAC)) {
-                rc = add_keyset_to_keysuperset(&ifp->kss, keyset_name);
-            } else if(if_conf->mac == CONFIG_YES) {
-                rc = add_keyset_to_keysuperset(&if_conf->kss, keyset_name);
-            } else {
-                if_conf->mac = CONFIG_YES;
-                if(init_keysuperset(&if_conf->kss)) {
-                    free(keyset_name);
-                    goto error;
-                }
-                rc = add_keyset_to_keysuperset(&if_conf->kss, keyset_name);
-            }
-            free(keyset_name);
-            if(rc)
-                goto error;
-        } else if(strcmp(token, "rm-keyset") == 0) {
-            struct interface *ifp;
-            char *keyset_name;
-            int rc = 0;
-            c = getword(c, &keyset_name, gnc, closure);
-            if(c < -1) {
-                free(keyset_name);
-                goto error;
-            }
-
-            /* Since babeld doesn't support interface configuration
-             * changes at runtime, find the interface we're
-             * modifying. */
-            if(if_conf->ifname == NULL) {
-                fprintf(stderr, "Empty interface.\n");
-                free(keyset_name);
-                goto error;
-            }
-            FOR_ALL_INTERFACES(ifp) {
-                if(strcmp(ifp->name, if_conf->ifname) == 0)
-                    break;
-            }
-
-            if(ifp != NULL && (ifp->flags & IF_MAC)) {
-                rc = rm_keyset_from_keysuperset(&ifp->kss, keyset_name);
-            } else if(if_conf->mac == CONFIG_YES) {
-                rc = rm_keyset_from_keysuperset(&if_conf->kss, keyset_name);
-            } else {
-                fprintf(stderr, "MAC auth wasn't enabled on interface %s.\n",
-                        if_conf->ifname);
-                rc = -1;
-            }
-            free(keyset_name);
-            if(rc)
-                goto error;
-        } else if(strcmp(token, "key") == 0) {
-            char *key_name;
-            int rc;
-            c = getword(c, &key_name, gnc, closure);
-            if(c < -1) {
-                free(key_name);
-                goto error;
-            }
-
-            if(if_conf->ifname == NULL) {
-                fprintf(stderr, "Can not add key to unnamed interface.\n");
-                free(key_name);
-                goto error;
-            }
-
-            rc = init_keysuperset(&if_conf->kss);
-            if(rc) {
-                free(key_name);
-                goto error;
-            }
-            if_conf->mac = CONFIG_YES;
-
-            rc = add_key_to_keyset(if_conf->ifname, key_name);
-            free(key_name);
-            if(rc)
-                goto error;
-
-            rc = add_keyset_to_keysuperset(&if_conf->kss, if_conf->ifname);
-            if(rc)
-                goto error;
         } else if(strcmp(token, "mac-verify") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
             if(c < -1)
                 goto error;
             if_conf->mac_verify = v;
+        } else if(strcmp(token, "key") == 0) {
+            struct keysuperset *kss;
+            char *key_name;
+            int rc;
+            kss = find_keysuperset(if_conf);
+            if(kss == NULL)
+                goto error;
+            c = getword(c, &key_name, gnc, closure);
+            if(c < -1) {
+                free(key_name);
+                goto error;
+            }
+            rc = exist_keyset(key_name);
+            if(rc) {
+                fprintf(stderr, "Keyset %s already exists.\n", key_name);
+                free(key_name);
+                goto error;
+            }
+            rc = add_key_to_keyset(key_name, key_name);
+            if(rc) {
+                free(key_name);
+                goto error;
+            }
+            rc = add_keyset_to_keysuperset(kss, key_name);
+            free(key_name);
+            if(rc)
+                goto error;
+        } else if(strcmp(token, "add-keyset") == 0) {
+            struct keysuperset *kss;
+            char *keyset_name;
+            int rc;
+            kss = find_keysuperset(if_conf);
+            if(kss == NULL)
+                goto error;
+            c = getword(c, &keyset_name, gnc, closure);
+            if(c < -1) {
+                free(keyset_name);
+                goto error;
+            }
+            rc = add_keyset_to_keysuperset(kss, keyset_name);
+            free(keyset_name);
+            if(rc)
+                goto error;
+        } else if(strcmp(token, "rm-keyset") == 0) {
+            struct keysuperset *kss;
+            char *keyset_name;
+            int rc;
+            kss = find_keysuperset(if_conf);
+            if(kss == NULL)
+                goto error;
+            c = getword(c, &keyset_name, gnc, closure);
+            if(c < -1) {
+                free(keyset_name);
+                goto error;
+            }
+            rc = rm_keyset_from_keysuperset(kss, keyset_name);
+            free(keyset_name);
+            if(rc)
+                goto error;
         } else {
             goto error;
         }
