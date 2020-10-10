@@ -1568,7 +1568,7 @@ send_update(struct interface *ifp, int urgent,
         struct route_stream *routes;
         send_self_update(ifp);
         debugf("Sending update to %s for any.\n", ifp->name);
-        routes = route_stream(ROUTE_INSTALLED);
+        routes = route_stream(1);
         if(routes) {
             while(1) {
                 int is_ss;

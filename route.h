@@ -43,9 +43,6 @@ struct babel_route {
     struct babel_route *next;
 };
 
-#define ROUTE_ALL 0
-#define ROUTE_INSTALLED 1
-#define ROUTE_SS_INSTALLED 2
 struct route_stream;
 
 extern struct babel_route **routes;

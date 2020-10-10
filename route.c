@@ -50,22 +50,6 @@ int diversity_factor = 256;     /* in units of 1/256 */
 static int smoothing_half_life = 0;
 static int two_to_the_one_over_hl = 0; /* 2^(1/hl) * 0x10000 */
 
-static int
-check_specific_first(void)
-{
-    /* All source-specific routes are in front of the list */
-    int specific = 1;
-    int i;
-    for(i = 0; i < route_slots; i++) {
-        if(is_default(routes[i]->src->src_prefix, routes[i]->src->src_plen)) {
-            specific = 0;
-        } else if(!specific) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
 /* We maintain a list of "slots", ordered by prefix.  Every slot
    contains a linked list of the routes to this prefix, with the
    installed route, if any, at the head of the list. */
@@ -374,19 +358,16 @@ struct route_stream {
 
 
 struct route_stream *
-route_stream(int which)
+route_stream(int installed)
 {
     struct route_stream *stream;
-
-    if(!check_specific_first())
-        fprintf(stderr, "Invariant failed: specific routes first in RIB.\n");
 
     stream = calloc(1, sizeof(struct route_stream));
     if(stream == NULL)
         return NULL;
 
-    stream->installed = which;
-    stream->index = which == ROUTE_ALL ? -1 : 0;
+    stream->installed = installed;
+    stream->index = installed ? 0 : -1;
     stream->next = NULL;
 
     return stream;
@@ -396,16 +377,12 @@ struct babel_route *
 route_stream_next(struct route_stream *stream)
 {
     if(stream->installed) {
-        while(stream->index < route_slots)
-            if(stream->installed == ROUTE_SS_INSTALLED &&
-               is_default(routes[stream->index]->src->src_prefix,
-                          routes[stream->index]->src->src_plen))
-                return NULL;
-            else if(routes[stream->index]->installed)
+        while(stream->index < route_slots) {
+            if(routes[stream->index]->installed)
                 break;
             else
                 stream->index++;
-
+        }
         if(stream->index < route_slots)
             return routes[stream->index++];
         else
