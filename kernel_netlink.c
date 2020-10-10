@@ -1017,6 +1017,12 @@ kernel_route(int operation, int table,
 
     ipv4 = v4mapped(gate);
     use_src = !is_default(src, src_plen);
+    if(use_src) {
+        if(ipv4 || !has_ipv6_subtrees) {
+            errno = ENOSYS;
+            return -1;
+        }
+    }
 
     kdebugf("kernel_route: %s %s from %s "
             "table %d metric %d dev %d nexthop %s\n",
