@@ -467,19 +467,24 @@ change_route(int operation, const struct babel_route *route, int metric,
              int new_ifindex, int new_metric)
 {
     struct filter_result filter_result;
-    unsigned char *pref_src = NULL;
     unsigned int ifindex = route->neigh->ifp->ifindex;
 
     int m = install_filter(route->src->prefix, route->src->plen,
                            route->src->src_prefix, route->src->src_plen,
                            ifindex, &filter_result);
-    if (m < INFINITY)
-        pref_src = filter_result.pref_src;
+    if(m >= INFINITY) {
+        if(operation == ROUTE_ADD)
+            return 0;
+        else if(operation == ROUTE_MODIFY) {
+            operation = ROUTE_FLUSH;
+        }
+    }
 
     int table = filter_result.table ? filter_result.table : export_table;
 
     return kernel_route(operation, table, route->src->prefix, route->src->plen,
-                        route->src->src_prefix, route->src->src_plen, pref_src,
+                        route->src->src_prefix, route->src->src_plen,
+                        filter_result.pref_src,
                         route->nexthop, ifindex,
                         metric, new_next_hop, new_ifindex, new_metric,
                         operation == ROUTE_MODIFY ? table : 0);
