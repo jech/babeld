@@ -107,12 +107,12 @@ local_notify_interface_1(struct local_socket *s,
         v4[0] = '\0';
     if(up)
         rc = snprintf(buf, 512,
-                      "%s interface %s up true%s%s%s%s kss %p\n",
+                      "%s interface %s up true%s%s%s%s kss %lx\n",
                       local_kind(kind), ifp->name,
                       ifp->numll > 0 ? " ipv6 " : "",
                       ifp->numll > 0 ? format_address(ifp->ll[0]) : "",
                       v4[0] ? " ipv4 " : "", v4,
-                      (void*)&ifp->kss);
+                      (unsigned long int)&ifp->kss);
     else
         rc = snprintf(buf, 512, "%s interface %s up false\n",
                       local_kind(kind), ifp->name);
@@ -376,9 +376,9 @@ local_notify_keysuperset_1(struct local_socket *s,
 
     for(i = 0; i < kss->len; i++) {
         rc = snprintf(buf, 512,
-                      "%s add-keyset %p %.*s\n",
+                      "%s add-keyset %lx %.*s\n",
                       local_kind(kind),
-                      (void*)kss,
+                      (unsigned long int)kss,
                       MAX_KEY_NAME_LEN, kss->keysets[i]->name);
         if(rc < 0 || rc >= 512)
             goto fail;
