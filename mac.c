@@ -27,6 +27,7 @@ THE SOFTWARE.
 #include <assert.h>
 #include <sys/time.h>
 #include <netinet/in.h>
+#include <limits.h>
 
 #include "rfc6234/sha.h"
 #include "BLAKE2/ref/blake2.h"
@@ -87,7 +88,7 @@ init_keyset(struct keyset *ks, const char *name)
     }
 
     ks->cap = 4;
-    ks->refcount = -1;
+    ks->refcount = 0;
     ks->keys = calloc(ks->cap, sizeof(struct key*));
     if(ks->keys == NULL) {
         perror("calloc(keys)");
@@ -121,46 +122,36 @@ init_mac(void)
 
 }
 
-static void
+static struct key *
 retain_key(struct key *key)
 {
-    if(key->refcount == -1)
-        key->refcount = 0;
+    if(key->refcount == USHRT_MAX) {
+        fprintf(stderr, "Key %s refcount overflow.\n", key->name);
+        return NULL;
+    }
     ++key->refcount;
+    return key;
 }
 
-static void
+static struct keyset *
 retain_keyset(struct keyset *ks)
 {
-    if(ks->refcount == -1)
-        ks->refcount = 0;
+    if(ks->refcount == USHRT_MAX) {
+        fprintf(stderr, "Keyset %s refcount overflow.\n", ks->name);
+        return NULL;
+    }
     ++ks->refcount;
-}
-
-static void
-pop_keyset(struct keysuperset *kss, const unsigned int i)
-{
-    kss->keysets[i] = kss->keysets[--kss->len];
-}
-
-static void
-pop_key(struct keyset *ks, const unsigned int i)
-{
-    ks->keys[i] = ks->keys[--ks->len];
+    return ks;
 }
 
 static void
 release_key(struct key *key)
 {
-    unsigned int i;
-
     --key->refcount;
     if(key->refcount > 0)
         return;
 
-    for(i = 0; allkeys.keys[i] != key; i++);
     local_notify_key(key, LOCAL_FLUSH);
-    pop_key(&allkeys, i);
     memzero(key->value, key->len);
     free(key);
 }
@@ -176,11 +167,25 @@ release_keyset(struct keyset *ks)
 
     for(i = 0; i < ks->len; i++)
         release_key(ks->keys[i]);
-    for(i = 0; allkeysets.keysets[i] != ks; i++);
     local_notify_keyset(ks, LOCAL_FLUSH);
-    pop_keyset(&allkeysets, i);
     free(ks->keys);
     free(ks);
+}
+
+static void
+pop_key(struct keyset *ks, const unsigned int i)
+{
+    struct key *key = ks->keys[i];
+    ks->keys[i] = ks->keys[--ks->len];
+    release_key(key);
+}
+
+static void
+pop_keyset(struct keysuperset *kss, const unsigned int i)
+{
+    struct keyset *ks = kss->keysets[i];
+    kss->keysets[i] = kss->keysets[--kss->len];
+    release_keyset(ks);
 }
 
 void
@@ -273,8 +278,8 @@ push_keyset(struct keysuperset *kss, struct keyset *ks)
         kss->keysets = keysets;
         kss->cap = cap;
     }
-    kss->keysets[kss->len++] = ks;
-    return 0;
+    kss->keysets[kss->len++] = retain_keyset(ks);
+    return kss->keysets[kss->len - 1] != ks;
 }
 
 static int
@@ -293,8 +298,8 @@ push_key(struct keyset *ks, struct key *key)
         ks->keys = keys;
         ks->cap = cap;
     }
-    ks->keys[ks->len++] = key;
-    return 0;
+    ks->keys[ks->len++] = retain_key(key);
+    return ks->keys[ks->len - 1] != key;
 }
 
 int
@@ -308,7 +313,6 @@ add_key(struct key *key)
         fprintf(stderr, "add_key: key %s already exists.\n", key->name);
         return -1;
     }
-    key->refcount = -1;
 
     if(macslen < allkeys.len + 1) {
         struct mac *buf;
@@ -322,6 +326,7 @@ add_key(struct key *key)
         macslen = allkeys.len + 1;
     }
 
+    key->refcount = 0;
     rc = push_key(&allkeys, key);
     if(rc)
         return rc;
@@ -388,7 +393,6 @@ add_key_to_keyset(const char *keyset_name, const char *key_name)
         return -1;
     if(key->use & KEY_USE_SIGN)
         ++ks->signing;
-    retain_key(key);
     local_notify_keyset(ks, LOCAL_CHANGE);
     return 0;
 }
@@ -415,8 +419,13 @@ rm_key_from_keyset(const char *keyset_name, const char *key_name)
     pop_key(ks, i);
     if(key->use & KEY_USE_SIGN)
         --ks->signing;
-    release_key(key);
     local_notify_keyset(ks, LOCAL_CHANGE);
+
+    /* key is only referenced in allkeys */
+    if(key->refcount == 1) {
+        for(i = 0; i < allkeys.len && allkeys.keys[i] != key; i++);
+        pop_key(&allkeys, i);
+    }
     return 0;
 }
 
@@ -432,7 +441,6 @@ merge_keysupersets(struct keysuperset *dst, const struct keysuperset *src)
         rc = push_keyset(dst, ks);
         if(rc)
             return -1;
-        retain_keyset(ks);
     }
     return 0;
 }
@@ -460,7 +468,6 @@ add_keyset_to_keysuperset(struct keysuperset *kss, const char *keyset_name)
     rc = push_keyset(kss, ks);
     if(rc)
         return -1;
-    retain_keyset(ks);
     local_notify_keysuperset(kss, LOCAL_CHANGE);
     return 0;
 }
@@ -478,8 +485,13 @@ rm_keyset_from_keysuperset(struct keysuperset *kss, const char *keyset_name)
     }
 
     pop_keyset(kss, i);
-    release_keyset(ks);
     local_notify_keysuperset(kss, LOCAL_CHANGE);
+
+    /* ks is only referenced in allkeysets */
+    if(ks->refcount == 1) {
+        for(i = 0; i < allkeysets.len && allkeysets.keysets[i] != ks; i++);
+        pop_keyset(&allkeysets, i);
+    }
     return 0;
 }
 

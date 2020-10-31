@@ -37,14 +37,14 @@ struct key {
     char name[MAX_KEY_NAME_LEN];
     unsigned char value[MAX_KEY_LEN];
     int len;
-    short refcount;
+    unsigned short refcount;
     unsigned char algorithm;
     unsigned char use;
 };
 
 struct keyset {
     char name[MAX_KEY_NAME_LEN];
-    short refcount;
+    unsigned short refcount;
     unsigned int len, cap;
     unsigned int signing;
     struct key **keys;
