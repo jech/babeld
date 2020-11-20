@@ -41,7 +41,7 @@ THE SOFTWARE.
 #include "message.h"
 #include "local.h"
 
-#define MAX_DIGEST_LEN MAX((int)SHA256HashSize, (int)BLAKE2S_OUTBYTES)
+#define MAX_DIGEST_LEN MAX((int)SHA256HashSize, BABEL_BLAKE2S_OUTBYTES)
 
 struct keysuperset allkeysets = {0};
 struct keyset allkeys = {0};
@@ -570,7 +570,7 @@ compute_mac(const unsigned char *src, const unsigned char *dst,
     }
     case MAC_ALGORITHM_BLAKE2S: {
         blake2s_state s;
-        rc = blake2s_init_key(&s, BLAKE2S_OUTBYTES, key->value, key->len);
+        rc = blake2s_init_key(&s, BABEL_BLAKE2S_OUTBYTES, key->value, key->len);
         if(rc < 0)
             return -1;
         rc = blake2s_update(&s, src, 16);
@@ -591,11 +591,11 @@ compute_mac(const unsigned char *src, const unsigned char *dst,
         rc = blake2s_update(&s, body, bodylen);
         if(rc < 0)
             return -1;
-        rc = blake2s_final(&s, mac_return, BLAKE2S_OUTBYTES);
+        rc = blake2s_final(&s, mac_return, BABEL_BLAKE2S_OUTBYTES);
         if(rc < 0)
             return -1;
 
-        return BLAKE2S_OUTBYTES;
+        return BABEL_BLAKE2S_OUTBYTES;
     }
     default:
         return -1;

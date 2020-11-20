@@ -33,6 +33,8 @@ THE SOFTWARE.
 #define MAX_KEY_LEN MAX((int)SHA256HashSize, (int)BLAKE2S_KEYBYTES)
 #define MAX_KEY_NAME_LEN 16U
 
+#define BABEL_BLAKE2S_OUTBYTES 16
+
 struct key {
     char name[MAX_KEY_NAME_LEN];
     unsigned char value[MAX_KEY_LEN];
