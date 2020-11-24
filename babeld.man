@@ -283,9 +283,12 @@ the command-line option
 .BR \-D .
 .TP
 .BR skip-kernel-setup " {" true | false }
-If this flag is set, no kernel (sysctl) setup is performed on startup. This can
-be useful when running in environments where system permissions prevent setting
-kernel parameters, for instance inside a Linux container.
+If this flag is set, no kernel (sysctl) setup is performed on startup, and
+it is assumed that enabling forwarding, disabling redirects and disabling
+the reverse-path filter is performed by other means.  This can be useful
+when running in environments where system permissions prevent setting
+kernel parameters, for instance without root permissions or inside a Linux
+container.
 .TP
 .BI router-id " id"
 Specify the router-id explicitly, as a modified EUI-64 or a MAC-48

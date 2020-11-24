@@ -553,7 +553,8 @@ kernel_setup(int setup)
         }
         nl_setup = 1;
 
-        if(skip_kernel_setup) return 1;
+        if(skip_kernel_setup)
+            return 1;
 
         for(i=0; i<NUM_SYSCTLS; i++) {
             s = &sysctl_settings[i];
@@ -680,6 +681,8 @@ get_old_if(const char *ifname)
 int
 kernel_setup_interface(int setup, const char *ifname, int ifindex)
 {
+    if(skip_kernel_setup) return 1;
+
     char buf[100];
     int i, rc;
 
