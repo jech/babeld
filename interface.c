@@ -121,7 +121,7 @@ flush_interface(char *ifname)
 
     if(ifp->conf != NULL && ifp->conf != default_interface_conf)
         flush_ifconf(ifp->conf);
-    if(ifp->flags & IF_MAC)
+    if((ifp->flags & IF_MAC) != 0)
         release_keysuperset(&ifp->kss);
 
     local_notify_interface(ifp, LOCAL_FLUSH);

@@ -291,8 +291,8 @@ local_notify_key_1(struct local_socket *s, struct key *key, int kind)
                   key->algorithm == MAC_ALGORITHM_HMAC_SHA256 ? "hmac-sha256" :
                   key->algorithm == MAC_ALGORITHM_BLAKE2S ? "blake2s" : "?",
                   key->use == (KEY_USE_SIGN | KEY_USE_VERIFY) ? "both" :
-                  (key->use & KEY_USE_SIGN) ? "sign" :
-                  (key->use & KEY_USE_VERIFY) ? "verify" : "?");
+                  ((key->use & KEY_USE_SIGN) != 0) ? "sign" :
+                  ((key->use & KEY_USE_VERIFY) != 0) ? "verify" : "?");
     if(rc < 0 || rc >= 512)
         goto fail;
 

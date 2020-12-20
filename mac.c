@@ -391,7 +391,7 @@ add_key_to_keyset(const char *keyset_name, const char *key_name)
     rc = push_key(ks, key);
     if(rc)
         return -1;
-    if(key->use & KEY_USE_SIGN)
+    if((key->use & KEY_USE_SIGN) != 0)
         ++ks->signing;
     local_notify_keyset(ks, LOCAL_CHANGE);
     return 0;
@@ -417,7 +417,7 @@ rm_key_from_keyset(const char *keyset_name, const char *key_name)
     }
 
     pop_key(ks, i);
-    if(key->use & KEY_USE_SIGN)
+    if((key->use & KEY_USE_SIGN) != 0)
         --ks->signing;
     local_notify_keyset(ks, LOCAL_CHANGE);
 

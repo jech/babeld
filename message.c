@@ -631,7 +631,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         bodylen = packetlen - 4;
     }
 
-    if(ifp->flags & IF_MAC) {
+    if((ifp->flags & IF_MAC) != 0) {
         switch(verify_packet(packet, packetlen, bodylen, from, to, ifp)) {
         case -1: /* no mac trailer */
             if(!(ifp->flags & IF_MAC_VERIFY))
@@ -1111,12 +1111,12 @@ flushbuf(struct buffered *buf, struct interface *ifp)
     assert(buf->len <= buf->size);
 
     if(buf->len > 0) {
-        if(ifp->flags & IF_MAC)
+        if((ifp->flags & IF_MAC) != 0)
             send_pc(buf, ifp);
         debugf("  (flushing %d buffered bytes)\n", buf->len);
         DO_HTONS(packet_header + 2, buf->len);
         fill_rtt_message(buf, ifp);
-        if(ifp->flags & IF_MAC) {
+        if((ifp->flags & IF_MAC) != 0) {
             int old_end = end;
             end = sign_packet(buf, ifp, packet_header);
             if(end < 0 || end == old_end) {
@@ -1166,7 +1166,7 @@ schedule_flush_now(struct buffered *buf)
 static void
 ensure_space(struct buffered *buf, struct interface *ifp, int space)
 {
-    if(ifp->flags & IF_MAC)
+    if((ifp->flags & IF_MAC) != 0)
         space += max_mac_space(ifp) + (6 + INDEX_LEN /* PC TLV */);
     if(buf->size - buf->len < space)
         flushbuf(buf, ifp);
@@ -1176,7 +1176,7 @@ static void
 start_message(struct buffered *buf, struct interface *ifp, int type, int len)
 {
     int space = len + 2;
-    if(ifp->flags & IF_MAC)
+    if((ifp->flags & IF_MAC) != 0)
         space += max_mac_space(ifp) + (6 + INDEX_LEN /* PC TLV */);
     if(buf->size - buf->len < space)
         flushbuf(buf, ifp);
