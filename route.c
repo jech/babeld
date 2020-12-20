@@ -877,8 +877,15 @@ update_route(const unsigned char *id,
     int add_metric;
     int hold_time = MAX((4 * interval) / 100 + interval / 50, 15);
     int is_v4;
-    if(memcmp(id, myid, 8) == 0)
+
+    if(!id) {
+        if(refmetric < INFINITY) {
+            fprintf(stderr, "Update with no id and finite metric.");
+            return NULL;
+        }
+    } else if(memcmp(id, myid, 8) == 0) {
         return NULL;
+    }
 
     if(martian_prefix(prefix, plen) || martian_prefix(src_prefix, src_plen)) {
         fprintf(stderr, "Rejecting martian route to %s from %s through %s.\n",
@@ -897,6 +904,19 @@ update_route(const unsigned char *id,
         return NULL;
 
     route = find_route(prefix, plen, src_prefix, src_plen, neigh, nexthop);
+
+    if(refmetric >= INFINITY && !route) {
+        /* Somebody's retracting a route that we've never seen. */
+        return NULL;
+    } else if(!id) {
+        /* Pretend the retraction came from the currently installed source. */
+        id = route->src->id;
+    }
+
+    if(!id) {
+        fprintf(stderr, "No id in update_route -- this shouldn't happen.\n");
+        return NULL;
+    }
 
     if(route && memcmp(route->src->id, id, 8) == 0)
         /* Avoid scanning the source table. */
@@ -919,7 +939,7 @@ update_route(const unsigned char *id,
         oldsrc = route->src;
         oldmetric = route_metric(route);
 
-        /* If a successor switches sources, we must accept his update even
+        /* If a successor switches sources, we must accept their update even
            if it makes a route unfeasible in order to break any routing loops
            in a timely manner.  If the source remains the same, we ignore
            the update. */

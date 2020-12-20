@@ -718,7 +718,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 }
                 have_router_id = 1;
             }
-            if(!have_router_id && message[2] != 0) {
+            if(metric < INFINITY && !have_router_id && message[2] != 0) {
                 fprintf(stderr, "Received prefix with no router id.\n");
                 goto fail;
             }
@@ -773,7 +773,8 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                     goto done;
             }
 
-            update_route(router_id, prefix, plen, src_prefix, src_plen, seqno,
+            update_route(have_router_id ? router_id : NULL,
+                         prefix, plen, src_prefix, src_plen, seqno,
                          metric, interval, neigh, nh,
                          channels, channels_len);
         } else if(type == MESSAGE_REQUEST) {
