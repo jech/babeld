@@ -135,7 +135,7 @@ local_notify_interface(struct interface *ifp, int kind)
 {
     int i;
     for(i = 0; i < num_local_sockets; i++) {
-        if(local_sockets[i].monitor & SHOW(INTERFACE))
+        if((local_sockets[i].monitor & SHOW(INTERFACE)) != 0)
             local_notify_interface_1(&local_sockets[i], ifp, kind);
     }
 }
@@ -190,7 +190,7 @@ local_notify_neighbour(struct neighbour *neigh, int kind)
 {
     int i;
     for(i = 0; i < num_local_sockets; i++) {
-        if(local_sockets[i].monitor & SHOW(NEIGHBOUR))
+        if((local_sockets[i].monitor & SHOW(NEIGHBOUR)) != 0)
             local_notify_neighbour_1(&local_sockets[i], neigh, kind);
     }
 }
@@ -227,7 +227,7 @@ local_notify_xroute(struct xroute *xroute, int kind)
 {
     int i;
     for(i = 0; i < num_local_sockets; i++) {
-        if(local_sockets[i].monitor & SHOW(XROUTE))
+        if((local_sockets[i].monitor & SHOW(XROUTE)) != 0)
             local_notify_xroute_1(&local_sockets[i], xroute, kind);
     }
 }
@@ -272,7 +272,7 @@ local_notify_route(struct babel_route *route, int kind)
 {
     int i;
     for(i = 0; i < num_local_sockets; i++) {
-        if(local_sockets[i].monitor & SHOW(ROUTE))
+        if((local_sockets[i].monitor & SHOW(ROUTE)) != 0)
             local_notify_route_1(&local_sockets[i], route, kind);
     }
 }
@@ -335,13 +335,13 @@ local_notify_all_route_1(struct local_socket *s)
 static void
 local_notify_all(struct local_socket *s, unsigned int mask)
 {
-    if(mask & SHOW(INTERFACE))
+    if((mask & SHOW(INTERFACE)) != 0)
         local_notify_all_interface_1(s);
-    if(mask & SHOW(NEIGHBOUR))
+    if((mask & SHOW(NEIGHBOUR)) != 0)
         local_notify_all_neighbour_1(s);
-    if(mask & SHOW(ROUTE))
+    if((mask & SHOW(ROUTE)) != 0)
         local_notify_all_route_1(s);
-    if(mask & SHOW(XROUTE))
+    if((mask & SHOW(XROUTE)) != 0)
         local_notify_all_xroute_1(s);
 }
 
