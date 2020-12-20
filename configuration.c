@@ -983,13 +983,13 @@ parse_monitor_dump_filter(int *action_return, int c, gnc_t *gnc, void *closure)
     }
 
     if(strcmp(token, "route") == 0)
-        filter = FILTER_ROUTE;
+        filter = FILTER(ROUTE);
     else if(strcmp(token, "interface") == 0)
-        filter = FILTER_INTERFACE;
+        filter = FILTER(INTERFACE);
     else if(strcmp(token, "xroute") == 0)
-        filter = FILTER_XROUTE;
+        filter = FILTER(XROUTE);
     else if(strcmp(token, "neighbour") == 0)
-        filter = FILTER_NEIGHBOUR;
+        filter = FILTER(NEIGHBOUR);
     else
         filter = FILTER_INVALID;
     free(token);
@@ -1030,13 +1030,13 @@ parse_config_line(int c, gnc_t gnc, void *closure,
             goto fail;
         *action_return = CONFIG_ACTION_QUIT;
     } else if(strcmp(token, "dump") == 0) {
-        *action_return = CONFIG_ACTION_DUMP;
+        *action_return = CONFIG_ACTION_DUMP(0);
         c = parse_monitor_dump_filter(action_return, c, &gnc, closure);
     } else if(strcmp(token, "monitor") == 0) {
-        *action_return = CONFIG_ACTION_MONITOR;
+        *action_return = CONFIG_ACTION_MONITOR(0);
         c = parse_monitor_dump_filter(action_return, c, &gnc, closure);
     } else if(strcmp(token, "unmonitor") == 0) {
-        *action_return = CONFIG_ACTION_UNMONITOR;
+        *action_return = CONFIG_ACTION_UNMONITOR(0);
         c = parse_monitor_dump_filter(action_return, c, &gnc, closure);
     } else if(config_finalised && !local_server_write) {
         /* The remaining directives are only allowed in read-write mode. */

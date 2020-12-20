@@ -41,11 +41,6 @@ struct local_socket {
     unsigned int monitor;
 };
 
-#define SHOW_NEIGHBOUR (1 << 0)
-#define SHOW_INTERFACE (1 << 1)
-#define SHOW_ROUTE (1 << 2)
-#define SHOW_XROUTE (1 << 3)
-
 extern int local_server_socket;
 extern struct local_socket local_sockets[MAX_LOCAL_SOCKETS];
 extern int num_local_sockets;
