@@ -80,7 +80,7 @@ write_timeout(int fd, const void *buf, int len)
     }
 }
 
-static const char *
+const char *
 local_kind(int kind)
 {
     switch(kind) {
