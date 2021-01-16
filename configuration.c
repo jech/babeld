@@ -924,7 +924,9 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
     token = token2 = NULL;
 
     c_tmp = skip_whitespace(c, gnc, closure);
-    if(c_tmp != '\n') {
+    if(c_tmp == '\n') {
+        goto fini;
+    } else {
         c = skip_eol(c_tmp, gnc, closure);
         if(c != -2)
             goto fini;
