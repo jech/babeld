@@ -632,7 +632,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
     }
 
     if((ifp->flags & IF_MAC) != 0) {
-        switch(verify_packet(packet, packetlen, bodylen, from, to, ifp)) {
+        switch(mac_verify_packet(packet, packetlen, bodylen, from, to, ifp)) {
         case -1: /* no mac trailer */
             if(!(ifp->flags & IF_MAC_VERIFY))
                 break;
@@ -1118,9 +1118,9 @@ flushbuf(struct buffered *buf, struct interface *ifp)
         fill_rtt_message(buf, ifp);
         if((ifp->flags & IF_MAC) != 0) {
             int old_end = end;
-            end = sign_packet(buf, ifp, packet_header);
+            end = mac_send_packet(buf, ifp, packet_header);
             if(end < 0 || end == old_end) {
-                fprintf(stderr, "Couldn't sign the packet.\n");
+                fprintf(stderr, "Couldn't MAC-send the packet.\n");
                 return;
             }
         }

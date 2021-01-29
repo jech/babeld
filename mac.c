@@ -391,8 +391,8 @@ add_key_to_keyset(const char *keyset_name, const char *key_name)
     rc = push_key(ks, key);
     if(rc)
         return -1;
-    if((key->use & KEY_USE_SIGN) != 0)
-        ++ks->signing;
+    if((key->use & KEY_USE_SEND) != 0)
+        ++ks->send;
     local_notify_keyset(ks, LOCAL_CHANGE);
     return 0;
 }
@@ -417,8 +417,8 @@ rm_key_from_keyset(const char *keyset_name, const char *key_name)
     }
 
     pop_key(ks, i);
-    if((key->use & KEY_USE_SIGN) != 0)
-        --ks->signing;
+    if((key->use & KEY_USE_SEND) != 0)
+        --ks->send;
     local_notify_keyset(ks, LOCAL_CHANGE);
 
     /* key is only referenced in allkeys */
@@ -607,13 +607,13 @@ max_mac_space(const struct interface *ifp)
 {
     unsigned int numkeys = 0, i;
     for(i = 0; i < ifp->kss.len; i++)
-        numkeys += ifp->kss.keysets[i]->signing;
+        numkeys += ifp->kss.keysets[i]->send;
     return numkeys * (2 + MAX_DIGEST_LEN);
 }
 
 int
-sign_packet(struct buffered *buf, const struct interface *ifp,
-            const unsigned char *packet_header)
+mac_send_packet(struct buffered *buf, const struct interface *ifp,
+                const unsigned char *packet_header)
 {
     int maclen, bufi;
     unsigned int i, j;
@@ -621,13 +621,13 @@ sign_packet(struct buffered *buf, const struct interface *ifp,
     unsigned char *src;
 
     if(ifp->numll < 1) {
-        fprintf(stderr, "sign_packet: no link-local address.\n");
+        fprintf(stderr, "mac_send_packet: no link-local address.\n");
         return -1;
     }
     src = ifp->ll[0];
 
     if(buf->size - buf->len < max_mac_space(ifp)) {
-        fprintf(stderr, "sign_packet: buffer overflow.\n");
+        fprintf(stderr, "mac_send_packet: buffer overflow.\n");
         return -1;
     }
 
@@ -636,13 +636,13 @@ sign_packet(struct buffered *buf, const struct interface *ifp,
         struct keyset *ks = ifp->kss.keysets[i];
         for(j = 0; j < ks->len; j++) {
             struct key *key = ks->keys[j];
-            if(!(key->use & KEY_USE_SIGN))
+            if(!(key->use & KEY_USE_SEND))
                continue;
 
             maclen = compute_mac(src, dst, packet_header, buf->buf, buf->len,
                                  key, buf->buf + bufi + 2);
             if(maclen < 0) {
-                fprintf(stderr, "sign_packet: couldn't compute mac.\n");
+                fprintf(stderr, "mac_send_packet: couldn't compute mac.\n");
                 return -1;
             }
             buf->buf[bufi++] = MESSAGE_MAC;
@@ -700,14 +700,14 @@ compare_macs(const unsigned char *src, const unsigned char *dst,
 }
 
 int
-verify_packet(const unsigned char *packet, unsigned int packetlen, int bodylen,
-              const unsigned char *src, const unsigned char *dst,
-              const struct interface *ifp)
+mac_verify_packet(const unsigned char *packet, unsigned int packetlen,
+                  int bodylen, const unsigned char *src,
+                  const unsigned char *dst, const struct interface *ifp)
 {
     unsigned int i = bodylen + 4;
     int rc = -1;
 
-    debugf("verify_packet %s -> %s\n",
+    debugf("mac_verify_packet %s -> %s\n",
            format_address(src), format_address(dst));
     while(i < packetlen) {
         unsigned int maclen;

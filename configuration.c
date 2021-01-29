@@ -939,8 +939,8 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
     c = getword(c, &token2, gnc, closure);
     if(c < -1 || token2 == NULL)
         goto error;
-    if(strcmp(token2, "sign") == 0) {
-        key->use = KEY_USE_SIGN;
+    if(strcmp(token2, "send") == 0) {
+        key->use = KEY_USE_SEND;
     } else if(strcmp(token2, "verify") == 0) {
         key->use = KEY_USE_VERIFY;
     } else {
@@ -951,7 +951,7 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
 
  fini:
     if(!key->use)
-        key->use = KEY_USE_SIGN | KEY_USE_VERIFY;
+        key->use = KEY_USE_SEND | KEY_USE_VERIFY;
     free(token);
 
     *key_return = key;

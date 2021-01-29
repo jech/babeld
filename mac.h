@@ -27,7 +27,7 @@ THE SOFTWARE.
 #define MAC_ALGORITHM_HMAC_SHA256 1
 #define MAC_ALGORITHM_BLAKE2S 2
 
-#define KEY_USE_SIGN (1 << 0)
+#define KEY_USE_SEND (1 << 0)
 #define KEY_USE_VERIFY (1 << 1)
 
 #define MAX_KEY_LEN MAX((int)SHA256HashSize, (int)BLAKE2S_KEYBYTES)
@@ -48,7 +48,7 @@ struct keyset {
     char name[MAX_KEY_NAME_LEN];
     unsigned short refcount;
     unsigned int len, cap;
-    unsigned int signing;
+    unsigned int send;
     struct key **keys;
 };
 
@@ -81,8 +81,8 @@ int rm_keyset_from_keysuperset(struct keysuperset *kss, const char *keyset_name)
 int merge_keysupersets(struct keysuperset *dst, const struct keysuperset *src);
 int max_mac_space(const struct interface *ifp);
 
-int sign_packet(struct buffered *buf, const struct interface *ifp,
-                const unsigned char *packet_header);
-int verify_packet(const unsigned char *packet, unsigned int packetlen, int bodylen,
-                  const unsigned char *src, const unsigned char *dst,
-                  const struct interface *ifp);
+int mac_send_packet(struct buffered *buf, const struct interface *ifp,
+                    const unsigned char *packet_header);
+int mac_verify_packet(const unsigned char *packet, unsigned int packetlen,
+                      int bodylen, const unsigned char *src,
+                      const unsigned char *dst, const struct interface *ifp);
