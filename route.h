@@ -69,7 +69,7 @@ route_metric_noninterfering(const struct babel_route *route)
 
 struct babel_route *find_route(const unsigned char *prefix, unsigned char plen,
                         const unsigned char *src_prefix, unsigned char src_plen,
-                        struct neighbour *neigh, const unsigned char *nexthop);
+                        struct neighbour *neigh);
 struct babel_route *find_installed_route(const unsigned char *prefix,
                         unsigned char plen, const unsigned char *src_prefix,
                         unsigned char src_plen);

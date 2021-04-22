@@ -728,9 +728,13 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    format_prefix(prefix, plen),
                    format_address(from), ifp->name);
             if(message[2] == 1) {
-                if(!have_v4_nh)
-                    goto fail;
-                nh = v4_nh;
+                if(have_v4_nh) {
+                    nh = v4_nh;
+                } else {
+                    if(metric < INFINITY)
+                        goto fail;
+                    nh = NULL;
+                }
             } else if(have_v6_nh) {
                 nh = v6_nh;
             } else {

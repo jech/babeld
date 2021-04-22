@@ -130,7 +130,7 @@ find_route_slot(const unsigned char *prefix, unsigned char plen,
 struct babel_route *
 find_route(const unsigned char *prefix, unsigned char plen,
            const unsigned char *src_prefix, unsigned char src_plen,
-           struct neighbour *neigh, const unsigned char *nexthop)
+           struct neighbour *neigh)
 {
     struct babel_route *route;
     int i = find_route_slot(prefix, plen, src_prefix, src_plen, NULL);
@@ -141,7 +141,7 @@ find_route(const unsigned char *prefix, unsigned char plen,
     route = routes[i];
 
     while(route) {
-        if(route->neigh == neigh && memcmp(route->nexthop, nexthop, 16) == 0)
+        if(route->neigh == neigh)
             return route;
         route = route->next;
     }
@@ -885,7 +885,8 @@ update_route(const unsigned char *id,
     if(martian_prefix(prefix, plen) || martian_prefix(src_prefix, src_plen)) {
         fprintf(stderr, "Rejecting martian route to %s from %s through %s.\n",
                 format_prefix(prefix, plen),
-                format_prefix(src_prefix, src_plen), format_address(nexthop));
+                format_prefix(src_prefix, src_plen),
+                nexthop ? format_address(nexthop) : "(unknown)");
         return NULL;
     }
 
@@ -898,7 +899,7 @@ update_route(const unsigned char *id,
     if(add_metric >= INFINITY)
         return NULL;
 
-    route = find_route(prefix, plen, src_prefix, src_plen, neigh, nexthop);
+    route = find_route(prefix, plen, src_prefix, src_plen, neigh);
 
     if(refmetric >= INFINITY && !route) {
         /* Somebody's retracting a route that we've never seen. */
@@ -996,6 +997,12 @@ update_route(const unsigned char *id,
         if(refmetric >= INFINITY)
             /* Somebody's retracting a route we never saw. */
             return NULL;
+        if(nexthop == NULL) {
+            fprintf(stderr,
+                    "No nexthop in update_route, this shouldn't happen.\n");
+            return NULL;
+        }
+
         if(!feasible) {
             send_unfeasible_request(neigh, 0, seqno, metric, src);
         }
