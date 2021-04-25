@@ -1,3 +1,12 @@
+25 April 2021: babeld-1.10
+
+  * Removed the disambiguation code: source-specific routing is no longer
+    supported for IPv4, and for IPv6 only on Linux 3.11 or later.
+  * Fixed an issue handling of retractions with no next hop, which caused
+    interoperability problems with BIRD.  Thanks to Fabian Bläse.
+  * If skip-kernel-setup is set, we no longer disable the rp_filter, which
+    makes babeld work in containers.  Thanks to Martin Weinelt.
+
 21 April 2020: babeld-1.9.2
 
   * Fixed two issues that could cause IPv4 routes to be represented
