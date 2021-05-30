@@ -694,12 +694,12 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             }
             if_conf->key = key;
             free(key_id);
-        } else if(strcmp(token, "hmac-verify") == 0) {
+        } else if(strcmp(token, "accept-bad-signatures") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
             if(c < -1)
                 goto error;
-            if_conf->hmac_verify = v;
+            if_conf->accept_bad_signatures = v;
         } else {
             goto error;
         }
@@ -891,7 +891,7 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(lq);
     MERGE(faraway);
     MERGE(unicast);
-    MERGE(hmac_verify);
+    MERGE(accept_bad_signatures);
     MERGE(channel);
     MERGE(enable_timestamps);
     MERGE(rfc6126);

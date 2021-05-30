@@ -631,26 +631,27 @@ parse_packet(const unsigned char *from, struct interface *ifp,
     }
 
     if(ifp->key != NULL) {
-        switch(check_hmac(packet, packetlen, bodylen, from, to, ifp)) {
-        case -1: /* no mac trailer */
-            if(!(ifp->flags & IF_HMAC_VERIFY))
-                break;
-            /* fallthrough */
-        case 0:
-            fputs("Received wrong hmac.\n", stderr);
-            return;
-        case 1:
+        int rc = check_hmac(packet, packetlen, bodylen, from, to, ifp);
+        if(rc <= 0) {
+            if(rc < 0)
+                debugf("Received unsigned packet.\n");
+            else
+                debugf("Received packet with bad signature.\n");
+            if(!(ifp->flags & IF_ACCEPT_BAD_SIGNATURES))
+                return;
+        } else {
             neigh = preparse_packet(from, ifp, packet, bodylen, to);
             if(neigh == NULL) {
-                fputs("Received wrong PC or failed the challenge.\n", stderr);
+                debugf("Received packet with wrong PC.\n");
                 return;
             }
         }
     }
 
-    neigh = neigh != NULL ? neigh : find_neighbour(from, ifp);
+    if(neigh == NULL)
+        neigh = find_neighbour(from, ifp);
     if(neigh == NULL) {
-        fputs("Couldn't allocate neighbour.\n", stderr);
+        fprintf(stderr, "Couldn't allocate neighbour.\n");
         return;
     }
 
