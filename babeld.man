@@ -321,7 +321,7 @@ routes.  The default is 100.
 .RB { hmac-sha256 | blake2s } \c
 .BI " value" " value"
 Configure a key for use with the
-.B hmac
+.B key
 interface option.  The
 .B type
 is one of
@@ -465,7 +465,7 @@ and
 .BR 0
 otherwise.
 .TP
-.BI hmac " id"
+.BI key " id"
 Enable HMAC security on this interface, and use the key
 .IR id .
 .TP

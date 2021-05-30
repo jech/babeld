@@ -680,7 +680,7 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if(c < -1 || penalty <= 0 || penalty > 0xFFFF)
                 goto error;
             if_conf->max_rtt_penalty = penalty;
-        } else if(strcmp(token, "hmac") == 0) {
+        } else if(strcmp(token, "key") == 0) {
             char *key_id;
             struct key *key;
             c = getword(c, &key_id, gnc, closure);
