@@ -831,9 +831,9 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
         break;
     }
     case AUTH_TYPE_BLAKE2S:
-        if(key->len != 16) {
-            fprintf(stderr, "Key length is %d, expected %d.\n",
-                    key->len, 16);
+        if(key->len < 1 || key->len > 32) {
+            fprintf(stderr, "Key length is %d, expected 1 to 32.\n",
+                    key->len);
             goto error;
         }
         break;

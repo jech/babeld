@@ -332,7 +332,7 @@ The
 .B value
 is a hexadecimal string (up to 64 bytes for
 .BR hmac-sha256 ,
-exactly 16 bytes for
+up to 32 bytes for
 .BR blake2s ).
 .SS Interface configuration
 An interface is configured by a line with the following format:

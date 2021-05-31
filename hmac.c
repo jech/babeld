@@ -173,7 +173,7 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
     }
     case AUTH_TYPE_BLAKE2S: {
         blake2s_state s;
-        if(key->len != 16)
+        if(key->len > 32)
             return -1;
         rc = blake2s_init_key(&s, 16, key->value, key->len);
         if(rc < 0)
