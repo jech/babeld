@@ -31,7 +31,7 @@ THE SOFTWARE.
 
 #define AUTH_TYPE_NONE 0
 #define AUTH_TYPE_SHA256 1
-#define AUTH_TYPE_BLAKE2S 2
+#define AUTH_TYPE_BLAKE2S128 2
 
 struct filter_result {
     unsigned int add_metric; /* allow = 0, deny = INF, metric = <0..INF> */

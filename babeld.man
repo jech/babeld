@@ -318,7 +318,7 @@ This specifies smallest (highest) rule priority used with source-specific
 routes.  The default is 100.
 .TP
 .BI "key id" " id" " type " \c
-.RB { hmac-sha256 | blake2s } \c
+.RB { hmac-sha256 | blake2s128 } \c
 .BI " value" " value"
 Configure a key for use with the
 .B key
@@ -327,13 +327,13 @@ interface option.  The
 is one of
 .B hmac-sha256
 or
-.BR blake2s .
+.BR blake2s128 .
 The
 .B value
 is a hexadecimal string (up to 64 bytes for
 .BR hmac-sha256 ,
 up to 32 bytes for
-.BR blake2s ).
+.BR blake2s128 ).
 .SS Interface configuration
 An interface is configured by a line with the following format:
 .IP

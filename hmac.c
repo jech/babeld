@@ -171,7 +171,7 @@ compute_hmac(const unsigned char *src, const unsigned char *dst,
             return -1;
         return 32;
     }
-    case AUTH_TYPE_BLAKE2S: {
+    case AUTH_TYPE_BLAKE2S128: {
         blake2s_state s;
         if(key->len > 32)
             return -1;

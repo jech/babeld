@@ -784,8 +784,8 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
                 key->type = AUTH_TYPE_NONE;
             } else if(strcmp(auth_type, "hmac-sha256") == 0) {
                 key->type = AUTH_TYPE_SHA256;
-            } else if(strcmp(auth_type, "blake2s") == 0) {
-                key->type = AUTH_TYPE_BLAKE2S;
+            } else if(strcmp(auth_type, "blake2s128") == 0) {
+                key->type = AUTH_TYPE_BLAKE2S128;
             } else {
                 fprintf(stderr, "Key type '%s' isn't supported.\n", auth_type);
                 free(auth_type);
@@ -830,7 +830,7 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
         }
         break;
     }
-    case AUTH_TYPE_BLAKE2S:
+    case AUTH_TYPE_BLAKE2S128:
         if(key->len < 1 || key->len > 32) {
             fprintf(stderr, "Key length is %d, expected 1 to 32.\n",
                     key->len);
