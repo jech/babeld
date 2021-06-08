@@ -20,14 +20,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-/* Values returned by parse_config_from_string. */
+#define NEIGHBOUR 1
+#define ROUTE 2
+#define XROUTE 3
+#define INTERFACE 4
 
+/* Values returned by parse_config_from_string. */
 #define CONFIG_ACTION_DONE 0
 #define CONFIG_ACTION_QUIT 1
-#define CONFIG_ACTION_DUMP 2
-#define CONFIG_ACTION_MONITOR 3
-#define CONFIG_ACTION_UNMONITOR 4
-#define CONFIG_ACTION_NO 5
+#define CONFIG_ACTION_DUMP(thing) (2 + (thing))
+#define CONFIG_ACTION_NO 7
+#define CONFIG_ACTION_MONITOR(thing) (8 + (thing))
+#define CONFIG_ACTION_UNMONITOR(thing) (13 + (thing))
+
+#define FILTER(thing) (thing)
+#define FILTER_INVALID 255
 
 #define AUTH_TYPE_NONE 0
 #define AUTH_TYPE_SHA256 1
