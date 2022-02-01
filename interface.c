@@ -96,6 +96,39 @@ add_interface(char *ifname, struct interface_conf *if_conf)
     return ifp;
 }
 
+void
+remove_interface(char *ifname)
+{
+    struct interface *tmp_ifp, *ifp = NULL;
+
+    if(interfaces == NULL)
+        return;
+
+    if(strcmp(interfaces->name, ifname) == 0) {
+        tmp_ifp = interfaces;
+        interface_updown(tmp_ifp, 0);
+        interfaces = tmp_ifp->next;
+        free(tmp_ifp);
+        return;
+    }
+
+    FOR_ALL_INTERFACES(ifp) {
+        if(ifp->next == NULL)
+            break;
+        if(strcmp(ifp->next->name, ifname) == 0) {
+            break;
+        }
+    }
+
+    if(ifp->next == NULL)
+        return;
+
+    tmp_ifp = ifp->next;
+    interface_updown(tmp_ifp, 0);
+    ifp->next = tmp_ifp->next;
+    free(tmp_ifp);
+}
+
 int
 flush_interface(char *ifname)
 {

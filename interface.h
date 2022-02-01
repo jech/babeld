@@ -163,6 +163,7 @@ if_up(struct interface *ifp)
 }
 
 struct interface *add_interface(char *ifname, struct interface_conf *if_conf);
+void remove_interface(char *ifname);
 int flush_interface(char *ifname);
 unsigned jitter(struct buffered *buf, int urgent);
 unsigned update_jitter(struct interface *ifp, int urgent);
