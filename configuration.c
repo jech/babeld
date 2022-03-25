@@ -47,7 +47,7 @@ static struct filter *output_filters = NULL;
 static struct filter *redistribute_filters = NULL;
 static struct filter *install_filters = NULL;
 struct interface_conf *default_interface_conf = NULL;
-static struct interface_conf *interface_confs = NULL;
+struct interface_conf *interface_confs = NULL;
 
 /* This indicates whether initial configuration is done.  See
    finalize_config below. */
@@ -904,7 +904,7 @@ merge_ifconf(struct interface_conf *dest,
 #undef MERGE
 }
 
-static void
+void
 add_ifconf(struct interface_conf *if_conf, struct interface_conf **if_confs)
 {
     if(*if_confs == NULL) {

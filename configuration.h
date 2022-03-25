@@ -59,7 +59,9 @@ struct filter {
 };
 
 extern struct interface_conf *default_interface_conf;
+extern struct interface_conf *interface_confs;
 
+void add_ifconf(struct interface_conf *if_conf, struct interface_conf **if_confs);
 void flush_ifconf(struct interface_conf *if_conf);
 
 int parse_config_from_file(const char *filename, int *line_return);
