@@ -869,7 +869,7 @@ add_filter(struct filter *filter, struct filter **filters)
     }
 }
 
-static void
+void
 merge_ifconf(struct interface_conf *dest,
              const struct interface_conf *src1,
              const struct interface_conf *src2)

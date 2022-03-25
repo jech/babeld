@@ -63,6 +63,9 @@ extern struct interface_conf *interface_confs;
 
 void add_ifconf(struct interface_conf *if_conf, struct interface_conf **if_confs);
 void flush_ifconf(struct interface_conf *if_conf);
+void merge_ifconf(struct interface_conf *dest,
+                  const struct interface_conf *src1,
+                  const struct interface_conf *src2);
 
 int parse_config_from_file(const char *filename, int *line_return);
 int parse_config_from_string(char *string, int n, const char **message_return);
