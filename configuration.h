@@ -58,6 +58,10 @@ struct filter {
     struct filter *next;
 };
 
+extern struct filter *input_filters;
+extern struct filter *output_filters;
+extern struct filter *redistribute_filters;
+extern struct filter *install_filters;
 extern struct interface_conf *default_interface_conf;
 
 void flush_ifconf(struct interface_conf *if_conf);
@@ -66,6 +70,7 @@ int parse_config_from_file(const char *filename, int *line_return);
 int parse_config_from_string(char *string, int n, const char **message_return);
 void renumber_filters(void);
 
+void add_filter(struct filter *filter, struct filter **filters);
 int input_filter(const unsigned char *id,
                  const unsigned char *prefix, unsigned short plen,
                  const unsigned char *src_prefix, unsigned short src_plen,

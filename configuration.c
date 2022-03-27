@@ -42,10 +42,10 @@ THE SOFTWARE.
 #include "hmac.h"
 #include "configuration.h"
 
-static struct filter *input_filters = NULL;
-static struct filter *output_filters = NULL;
-static struct filter *redistribute_filters = NULL;
-static struct filter *install_filters = NULL;
+struct filter *input_filters = NULL;
+struct filter *output_filters = NULL;
+struct filter *redistribute_filters = NULL;
+struct filter *install_filters = NULL;
 struct interface_conf *default_interface_conf = NULL;
 static struct interface_conf *interface_confs = NULL;
 
@@ -853,7 +853,7 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
     return -2;
 }
 
-static void
+void
 add_filter(struct filter *filter, struct filter **filters)
 {
     if(*filters == NULL) {
