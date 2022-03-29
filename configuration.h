@@ -33,6 +33,11 @@ THE SOFTWARE.
 #define AUTH_TYPE_SHA256 1
 #define AUTH_TYPE_BLAKE2S128 2
 
+#define FILTER_TYPE_INPUT 0
+#define FILTER_TYPE_OUTPUT 1
+#define FILTER_TYPE_REDISTRIBUTE 2
+#define FILTER_TYPE_INSTALL 3
+
 struct filter_result {
     unsigned int add_metric; /* allow = 0, deny = INF, metric = <0..INF> */
     unsigned char *src_prefix;
@@ -64,6 +69,7 @@ void flush_ifconf(struct interface_conf *if_conf);
 
 int parse_config_from_file(const char *filename, int *line_return);
 int parse_config_from_string(char *string, int n, const char **message_return);
+int add_filter(struct filter *filter, int type);
 void renumber_filters(void);
 
 int input_filter(const unsigned char *id,

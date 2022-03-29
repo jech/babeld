@@ -853,9 +853,26 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
     return -2;
 }
 
-static void
-add_filter(struct filter *filter, struct filter **filters)
+int
+add_filter(struct filter *filter, int type)
 {
+    struct filter **filters;
+    switch(type) {
+    case FILTER_TYPE_INPUT:
+        filters = &input_filters;
+        break;
+    case FILTER_TYPE_OUTPUT:
+        filters = &output_filters;
+        break;
+    case FILTER_TYPE_REDISTRIBUTE:
+        filters = &redistribute_filters;
+        break;
+    case FILTER_TYPE_INSTALL:
+        filters = &install_filters;
+        break;
+    default:
+        return -1;
+    }
     if(*filters == NULL) {
         filter->next = NULL;
         *filters = filter;
@@ -867,6 +884,7 @@ add_filter(struct filter *filter, struct filter **filters)
         filter->next = NULL;
         f->next = filter;
     }
+    return 1;
 }
 
 static void
@@ -1174,7 +1192,7 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         c = parse_filter(c, gnc, closure, &filter);
         if(c < -1)
             goto fail;
-        add_filter(filter, &input_filters);
+        add_filter(filter, FILTER_TYPE_INPUT);
     } else if(strcmp(token, "out") == 0) {
         struct filter *filter;
         if(config_finalised)
@@ -1182,7 +1200,7 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         c = parse_filter(c, gnc, closure, &filter);
         if(c < -1)
             goto fail;
-        add_filter(filter, &output_filters);
+        add_filter(filter, FILTER_TYPE_OUTPUT);
     } else if(strcmp(token, "redistribute") == 0) {
         struct filter *filter;
         if(config_finalised)
@@ -1190,7 +1208,7 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         c = parse_filter(c, gnc, closure, &filter);
         if(c < -1)
             goto fail;
-        add_filter(filter, &redistribute_filters);
+        add_filter(filter, FILTER_TYPE_REDISTRIBUTE);
     } else if(strcmp(token, "install") == 0) {
         struct filter *filter;
         if(config_finalised)
@@ -1198,7 +1216,7 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         c = parse_filter(c, gnc, closure, &filter);
         if(c < -1)
             goto fail;
-        add_filter(filter, &install_filters);
+        add_filter(filter, FILTER_TYPE_INSTALL);
     } else if(strcmp(token, "interface") == 0) {
         struct interface_conf *if_conf;
         c = parse_ifconf(c, gnc, closure, &if_conf);
@@ -1531,7 +1549,7 @@ finalise_config()
     filter->proto = RTPROT_BABEL_LOCAL;
     filter->plen_le = 128;
     filter->src_plen_le = 128;
-    add_filter(filter, &redistribute_filters);
+    add_filter(filter, FILTER_TYPE_REDISTRIBUTE);
 
     while(interface_confs) {
         struct interface_conf *if_conf;
