@@ -52,7 +52,7 @@ THE SOFTWARE.
 #define AE_IPV4 1
 #define AE_IPV6 2
 #define AE_IPV6_LOCAL 3
-#define AE_V4OV6 4
+#define AE_V4VIAV6 4
 
 extern unsigned short myseqno;
 extern struct timeval seqno_time;

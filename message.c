@@ -56,7 +56,7 @@ struct timeval seqno_time = {0, 0};
 static int
 known_ae(int ae)
 {
-    return ae <= AE_IPV6_LOCAL || ae == AE_V4OV6;
+    return ae <= AE_IPV6_LOCAL || ae == AE_V4VIAV6;
 }
 
 /* Parse a network prefix, encoded in the somewhat baroque compressed
@@ -87,7 +87,7 @@ network_prefix(int ae, int plen, unsigned int omitted,
         ret = 0;
         break;
     case AE_IPV4:
-    case AE_V4OV6:
+    case AE_V4VIAV6:
         if(omitted > 4 || pb > 4 || (pb > omitted && len < pb - omitted))
             return -1;
         memcpy(prefix, v4prefix, 12);
@@ -593,10 +593,10 @@ parse_packet(const unsigned char *from, struct interface *ifp,
     int bodylen;
     struct neighbour *neigh = NULL;
     int have_router_id = 0, have_v4_prefix = 0, have_v6_prefix = 0,
-        have_v4ov6_prefix = 0,
+        have_v4viav6_prefix = 0,
         have_v4_nh = 0, have_v6_nh = 0;
     unsigned char router_id[8], v4_prefix[16], v6_prefix[16],
-        v4ov6_prefix[16], v4_nh[16], v6_nh[16];
+        v4viav6_prefix[16], v4_nh[16], v6_nh[16];
     int have_hello_rtt = 0;
     /* Content of the RTT sub-TLV on IHU messages. */
     unsigned int hello_send_us = 0, hello_rtt_receive_time = 0;
@@ -814,7 +814,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 memcpy(v6_nh, nh, 16);
                 have_v6_nh = 1;
                 break;
-            case AE_V4OV6:
+            case AE_V4VIAV6:
                 goto done;
             default:
                 /* We should have guards against this before this point. */
@@ -832,7 +832,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             int rc, parsed_len, is_ss;
             if(len < 10) {
                 if(len < 2 || message[3] & 0x80)
-                    have_v4_prefix = have_v6_prefix = have_v4ov6_prefix = 0;
+                    have_v4_prefix = have_v6_prefix = have_v4viav6_prefix = 0;
                 goto fail;
             }
             if(!known_ae(message[2])) {
@@ -840,11 +840,11 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                        message[2]);
                 goto done;
             }
-            if(message[2] == AE_V4OV6 && !has_v4ov6) {
+            if(message[2] == AE_V4VIAV6 && !has_v4viav6) {
                 /* We can safely ignore the prefix update that might come
-                   alongside with this TLV, since we ignore every v4-over-v6
+                   alongside with this TLV, since we ignore every v4-via-v6
                    TLVs */
-                debugf("Ignoring v4-over-v6 route (unsupported).\n");
+                debugf("Ignoring v4-via-v6 route (unsupported).\n");
                 goto done;
             }
             DO_NTOHS(interval, message + 6);
@@ -853,13 +853,13 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             if(message[5] == 0 ||
                (message[2] == AE_IPV4 ? have_v4_prefix :
                 message[2] == AE_IPV6 ? have_v6_prefix :
-                message[2] == AE_V4OV6 ? have_v4ov6_prefix :
+                message[2] == AE_V4VIAV6 ? have_v4viav6_prefix :
                 0))
                 rc = network_prefix(message[2], message[4], message[5],
                                     message + 12,
                                     (message[2] == AE_IPV4 ? v4_prefix :
                                      message[2] == AE_IPV6 ? v6_prefix :
-                                     message[2] == AE_V4OV6 ?  v4ov6_prefix :
+                                     message[2] == AE_V4VIAV6 ?  v4viav6_prefix :
                                      NULL),
                                     len - 10, prefix);
             else
@@ -873,7 +873,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
             }
             if(rc < 0) {
                 if(message[3] & 0x80)
-                    have_v4_prefix = have_v6_prefix = have_v4ov6_prefix = 0;
+                    have_v4_prefix = have_v6_prefix = have_v4viav6_prefix = 0;
                 goto fail;
             }
             parsed_len = 10 + rc;
@@ -890,9 +890,9 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                     memcpy(v6_prefix, prefix, 16);
                     have_v6_prefix = 1;
                     break;
-                case AE_V4OV6:
-                    memcpy(v4ov6_prefix, prefix, 16);
-                    have_v4ov6_prefix = 1;
+                case AE_V4VIAV6:
+                    memcpy(v4viav6_prefix, prefix, 16);
+                    have_v4viav6_prefix = 1;
                     break;
                 default:
                     debugf("Received default prefix update with invalid "
@@ -1461,7 +1461,7 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
 
     if(v4) {
         if(!ifp->ipv4) {
-            ae = AE_V4OV6;
+            ae = AE_V4VIAV6;
         } else {
             ae = AE_IPV4;
             if(!buf->have_nh ||

@@ -1047,7 +1047,7 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
         else if(strcmp(token, "ipv6-subtrees") == 0)
             has_ipv6_subtrees = b;
         else if(strcmp(token, "v4-over-v6") == 0)
-            has_v4ov6 = b;
+            has_v4viav6 = b;
         else if(strcmp(token, "reflect-kernel-metric") == 0)
             reflect_kernel_metric = b;
         else

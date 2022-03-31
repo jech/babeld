@@ -396,7 +396,7 @@ kernel_has_ipv6_subtrees(void)
 }
 
 int
-kernel_has_v4ov6(void)
+kernel_has_v4viav6(void)
 {
     return 0;
 }

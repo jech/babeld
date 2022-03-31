@@ -944,9 +944,9 @@ kernel_has_ipv6_subtrees(void)
 }
 
 int
-kernel_has_v4ov6(void)
+kernel_has_v4viav6(void)
 {
-    /* v4-over-v6 was introduced in Linux by commit
+    /* v4-via-v6 was introduced in Linux by commit
        d15662682db232da77136cd348f4c9df312ca6f9 first released as 5.2 */
     return (kernel_older_than("Linux", 5, 2) == 0);
 }
