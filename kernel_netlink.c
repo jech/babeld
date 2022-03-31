@@ -944,6 +944,14 @@ kernel_has_ipv6_subtrees(void)
 }
 
 int
+kernel_has_v4ov6(void)
+{
+    /* v4-over-v6 was introduced in Linux by commit
+       d15662682db232da77136cd348f4c9df312ca6f9 first released as 5.2 */
+    return (kernel_older_than("Linux", 5, 2) == 0);
+}
+
+int
 kernel_route(int operation, int table,
              const unsigned char *dest, unsigned short plen,
              const unsigned char *src, unsigned short src_plen,
@@ -956,7 +964,7 @@ kernel_route(int operation, int table,
     struct rtmsg *rtm;
     struct rtattr *rta;
     int len = sizeof(buf.raw);
-    int rc, ipv4, use_src = 0;
+    int rc, ipv4, is_v4_over_v6, use_src = 0;
 
     if(!nl_setup) {
         fprintf(stderr,"kernel_route: netlink not initialized.\n");
@@ -978,8 +986,7 @@ kernel_route(int operation, int table,
 
     /* Check that the protocol family is consistent. */
     if(plen >= 96 && v4mapped(dest)) {
-        if(!v4mapped(gate) ||
-           !v4mapped(src)) {
+        if(!v4mapped(src)) {
             errno = EINVAL;
             return -1;
         }
@@ -1018,7 +1025,8 @@ kernel_route(int operation, int table,
     }
 
 
-    ipv4 = v4mapped(gate);
+    ipv4 = v4mapped(dest);
+    is_v4_over_v6 = ipv4 && !v4mapped(gate);
     use_src = !is_default(src, src_plen);
     if(use_src) {
         if(ipv4 || !has_ipv6_subtrees) {
@@ -1094,23 +1102,32 @@ kernel_route(int operation, int table,
         rta->rta_type = RTA_OIF;
         *(int*)RTA_DATA(rta) = ifindex;
 
-#define ADD_IPARG(type, addr)                                           \
-        do if(ipv4) {                                                   \
-            rta = RTA_NEXT(rta, len);                                   \
-            rta->rta_len = RTA_LENGTH(sizeof(struct in_addr));          \
-            rta->rta_type = type;                                       \
-            memcpy(RTA_DATA(rta), addr + 12, sizeof(struct in_addr));   \
-        } else {                                                        \
-            rta = RTA_NEXT(rta, len);                                   \
-            rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr));         \
-            rta->rta_type = type;                                       \
-            memcpy(RTA_DATA(rta), addr, sizeof(struct in6_addr));       \
+#define ADD_IPARG(type, addr) \
+        do { \
+            rta = RTA_NEXT(rta, len); \
+            rta->rta_type = type; \
+            if(v4mapped(addr)) { \
+                rta->rta_len = RTA_LENGTH(sizeof(struct in_addr)); \
+                memcpy(RTA_DATA(rta), addr + 12, sizeof(struct in_addr)); \
+            } else { \
+                if(type == RTA_VIA) { \
+                    rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr) + 2); \
+                    *((sa_family_t*) RTA_DATA(rta)) = AF_INET6; \
+                    memcpy(RTA_DATA(rta) + 2, addr, sizeof(struct in6_addr)); \
+                } else { \
+                    rta->rta_len = RTA_LENGTH(sizeof(struct in6_addr)); \
+                    memcpy(RTA_DATA(rta), addr, sizeof(struct in6_addr)); \
+                } \
+            } \
         } while (0)
 
-        ADD_IPARG(RTA_GATEWAY, gate);
+        if(is_v4_over_v6)
+            ADD_IPARG(RTA_VIA, gate);
+        else
+            ADD_IPARG(RTA_GATEWAY, gate);
+
         if(pref_src)
             ADD_IPARG(RTA_PREFSRC, pref_src);
-
 #undef ADD_IPARG
     } else {
         *(int*)RTA_DATA(rta) = -1;

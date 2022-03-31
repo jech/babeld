@@ -63,6 +63,7 @@ int debug = 0;
 int link_detect = 0;
 int all_wireless = 0;
 int has_ipv6_subtrees = 0;
+int has_v4ov6 = 0;
 int default_wireless_hello_interval = -1;
 int default_wired_hello_interval = -1;
 int resend_delay = -1;
@@ -151,6 +152,7 @@ main(int argc, char **argv)
     protocol_port = 6696;
     change_smoothing_half_life(4);
     has_ipv6_subtrees = kernel_has_ipv6_subtrees();
+    has_v4ov6 = kernel_has_v4ov6();
 
     while(1) {
         opt = getopt(argc, argv,

@@ -47,6 +47,13 @@ THE SOFTWARE.
 #define SUBTLV_TIMESTAMP 3       /* Used to compute RTT. */
 #define SUBTLV_SOURCE_PREFIX 128 /* Source-specific routing. */
 
+/* Address encodings */
+#define AE_WILDCARD 0
+#define AE_IPV4 1
+#define AE_IPV6 2
+#define AE_IPV6_LOCAL 3
+#define AE_V4OV6 4
+
 extern unsigned short myseqno;
 extern struct timeval seqno_time;
 
