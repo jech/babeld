@@ -1461,6 +1461,8 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
 
     if(v4) {
         if(!ifp->ipv4) {
+            if((ifp->flags & IF_V4VIAV6) == 0)
+                return;
             ae = AE_V4VIAV6;
         } else {
             ae = AE_IPV4;

@@ -402,6 +402,12 @@ kernel_has_v4viav6(void)
 }
 
 int
+kernel_safe_v4viav6(void)
+{
+    return 0;
+}
+
+int
 kernel_route(int operation, int table,
              const unsigned char *dest, unsigned short plen,
              const unsigned char *src, unsigned short src_plen,

@@ -200,11 +200,6 @@ This specifies whether to use native source-specific IPv6 forwarding
 rather than multiple routing tables.  The default is chosen automatically
 depending on the kernel version.
 .TP
-.BR v4-over-v6 " {" true | false }
-This specifies whether to use v4-over-v6 routes (IPv4 routes with an IPv6
-next-hop).  This should not be enabled unless your kernel supports it.  The
-default is chosen automatically depending on the kernel version.
-.TP
 .BI debug " level"
 This specifies the debugging level, and is equivalent to the command-line
 option
@@ -469,6 +464,10 @@ if the interface is of type
 and
 .BR 0
 otherwise.
+.TP
+.B$ v4-via-v6 " {" true | false }
+Whether to announce IPv4 routes through this interface even when there is
+no IPv4 address.  The default depends on the kernel version.
 .TP
 .BI key " id"
 Enable HMAC security on this interface, and use the key

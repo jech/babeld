@@ -96,6 +96,7 @@ int read_random_bytes(void *buf, int len);
 int kernel_older_than(const char *sysname, int version, int sub_version);
 int kernel_has_ipv6_subtrees(void);
 int kernel_has_v4viav6(void);
+int kernel_safe_v4viav6(void);
 int add_rule(int prio, const unsigned char *src_prefix, int src_plen,
              int table);
 int flush_rule(int prio, int family);

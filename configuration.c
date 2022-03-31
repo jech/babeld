@@ -700,6 +700,12 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if(c < -1)
                 goto error;
             if_conf->accept_bad_signatures = v;
+        } else if(strcmp(token, "v4-via-v6") == 0) {
+            int v;
+            c = getbool(c, &v, gnc, closure);
+            if(c < -1)
+                goto error;
+            if_conf->v4viav6 = v;
         } else {
             goto error;
         }
@@ -917,6 +923,7 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(rtt_min);
     MERGE(rtt_max);
     MERGE(max_rtt_penalty);
+    MERGE(v4viav6);
     MERGE(key);
 
 #undef MERGE
@@ -1029,7 +1036,6 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
               strcmp(token, "daemonise") == 0 ||
               strcmp(token, "skip-kernel-setup") == 0 ||
               strcmp(token, "ipv6-subtrees") == 0 ||
-              strcmp(token, "v4-over-v6") == 0 ||
               strcmp(token, "reflect-kernel-metric") == 0) {
         int b;
         c = getbool(c, &b, gnc, closure);
@@ -1046,8 +1052,6 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
             skip_kernel_setup = b;
         else if(strcmp(token, "ipv6-subtrees") == 0)
             has_ipv6_subtrees = b;
-        else if(strcmp(token, "v4-over-v6") == 0)
-            has_v4viav6 = b;
         else if(strcmp(token, "reflect-kernel-metric") == 0)
             reflect_kernel_metric = b;
         else

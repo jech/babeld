@@ -280,6 +280,7 @@ interface_updown(struct interface *ifp, int up)
 {
     int mtu, rc, type;
     struct ipv6_mreq mreq;
+    int v4viav6;
 
     if((!!up) == if_up(ifp))
         return 0;
@@ -457,6 +458,17 @@ interface_updown(struct interface *ifp, int up)
             ifp->flags |= IF_RFC6126;
         else
             ifp->flags &= ~IF_RFC6126;
+
+        if(IF_CONF(ifp, v4viav6) == CONFIG_NO)
+            v4viav6 = 0;
+        else if(IF_CONF(ifp, v4viav6 == CONFIG_YES))
+            v4viav6 = 1;
+        else
+            v4viav6 = kernel_safe_v4viav6();
+        if(v4viav6)
+            ifp->flags |= IF_V4VIAV6;
+        else
+            ifp->flags &= ~IF_V4VIAV6;
 
         rc = check_link_local_addresses(ifp);
         if(rc < 0) {

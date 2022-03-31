@@ -951,6 +951,13 @@ kernel_has_v4viav6(void)
     return (kernel_older_than("Linux", 5, 2) == 0);
 }
 
+/* Whether the kernel is able to source ICMPv4 without an IPv4 address. */
+int
+kernel_safe_v4viav6(void)
+{
+    return (kernel_older_than("Linux", 5, 13) == 0);
+}
+
 int
 kernel_route(int operation, int table,
              const unsigned char *dest, unsigned short plen,

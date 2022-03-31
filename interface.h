@@ -56,6 +56,7 @@ struct interface_conf {
     char enable_timestamps;
     char rfc6126;
     char accept_bad_signatures;
+    char v4viav6;
     int channel;
     unsigned int rtt_decay;
     unsigned int rtt_min;
@@ -89,6 +90,8 @@ struct interface_conf {
 #define IF_ACCEPT_BAD_SIGNATURES (1 << 8)
 /* Use Babel over DTLS on this interface. */
 #define IF_DTLS (1 << 9)
+/* Announce v4-via-v6 routes through this interface. */
+#define IF_V4VIAV6 (1 << 10)
 
 /* Only INTERFERING can appear on the wire. */
 #define IF_CHANNEL_UNKNOWN 0
