@@ -966,11 +966,6 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    is_ss ? format_prefix(src_prefix, src_plen) : "",
                    format_address(from), ifp->name);
 
-            if(message[2] == AE_IPV4) {
-                if(!ifp->ipv4)
-                    goto done;
-            }
-
             update_route(have_router_id ? router_id : NULL,
                          prefix, plen, src_prefix, src_plen, seqno,
                          metric, interval, neigh, nh,
