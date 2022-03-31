@@ -1,3 +1,8 @@
+babeld-1.12 (unreleased)
+
+  * Implement v4-via-v6 routing, which allows a router with IPv4 addresses
+    only to route IPv4.
+
 30 March 2022: babeld-1.11
 
   * Implemented MAC authentication (RFC 8967).  Thanks to Clara Dô,
