@@ -109,6 +109,54 @@ static int dgram_socket = -1;
 
 static int filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter);
 
+static int
+get_old_if(const char *ifname)
+{
+    int i;
+    for(i = 0; i < num_old_if; i++)
+        if(strcmp(old_if[i].ifname, ifname) == 0)
+            return i;
+    if(num_old_if >= MAX_INTERFACES)
+        return -1;
+    if(num_old_if >= max_old_if) {
+        int n = max_old_if == 0 ? 4 : 2 * max_old_if;
+        struct old_if *new =
+            realloc(old_if, n * sizeof(struct old_if));
+        if(new != NULL) {
+            old_if = new;
+            max_old_if = n;
+        }
+    }
+    if(num_old_if >= max_old_if)
+        return -1;
+
+    old_if[num_old_if].ifname = strdup(ifname);
+    if(old_if[num_old_if].ifname == NULL)
+        return -1;
+    old_if[num_old_if].rp_filter = -1;
+    return num_old_if++;
+}
+
+static void
+free_old_if(int i)
+{
+    if(i < 0 || i >= num_old_if) {
+        fprintf(stderr, "free_old_if: out of range (%d/%d)\n",
+                i, num_old_if);
+        return;
+    }
+    free(old_if[i].ifname);
+    old_if[i].ifname = NULL;
+    if(i != num_old_if - 1)
+        memcpy(&old_if[i], &old_if[num_old_if - 1], sizeof(struct old_if));
+    VALGRIND_MAKE_MEM_UNDEFINED(&old_if[num_old_if - 1], sizeof(struct old_if));
+    num_old_if--;
+    if(num_old_if == 0) {
+        free(old_if);
+        old_if = NULL;
+        max_old_if = 0;
+    }
+}
 
 /* Determine an interface's hardware address, in modified EUI-64 format */
 int
@@ -581,13 +629,9 @@ kernel_setup(int setup)
         nl_command.sock = -1;
         nl_setup = 0;
 
-        if(old_if != NULL) {
-            for(i = 0; i < num_old_if; i++)
-                free(old_if[i].ifname);
-            free(old_if);
-            old_if = NULL;
-            num_old_if = max_old_if = 0;
-        }
+        while(num_old_if > 0)
+            free_old_if(num_old_if - 1);
+        max_old_if = 0;
 
         if(skip_kernel_setup) return 1;
 
@@ -650,34 +694,6 @@ kernel_setup_socket(int setup)
     }
 }
 
-static int
-get_old_if(const char *ifname)
-{
-    int i;
-    for(i = 0; i < num_old_if; i++)
-        if(strcmp(old_if[i].ifname, ifname) == 0)
-            return i;
-    if(num_old_if >= MAX_INTERFACES)
-        return -1;
-    if(num_old_if >= max_old_if) {
-        int n = max_old_if == 0 ? 4 : 2 * max_old_if;
-        struct old_if *new =
-            realloc(old_if, n * sizeof(struct old_if));
-        if(new != NULL) {
-            old_if = new;
-            max_old_if = n;
-        }
-    }
-    if(num_old_if >= max_old_if)
-        return -1;
-
-    old_if[num_old_if].ifname = strdup(ifname);
-    if(old_if[num_old_if].ifname == NULL)
-        return -1;
-    old_if[num_old_if].rp_filter = -1;
-    return num_old_if++;
-}
-
 int
 kernel_setup_interface(int setup, const char *ifname, int ifindex)
 {
@@ -707,12 +723,16 @@ kernel_setup_interface(int setup, const char *ifname, int ifindex)
                 return -1;
         }
     } else {
-        if(i >= 0 && old_if[i].rp_filter > 0)
-            rc = write_proc(buf, old_if[i].rp_filter);
-        else if(i < 0)
+        if(i >= 0) {
+            if(old_if[i].rp_filter > 0)
+                rc = write_proc(buf, old_if[i].rp_filter);
+            else
+                rc = 1;
+            free_old_if(i);
+        } else {
             rc = -1;
-        else
-            rc = 1;
+            errno = ENOENT;
+        }
 
         if(rc < 0)
             fprintf(stderr,
