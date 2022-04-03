@@ -8,7 +8,7 @@ babeld-1.12 (unreleased)
   * Implemented MAC authentication (RFC 8967).  Thanks to Clara Dô,
     Weronika Kołodziejak and Antonin Décimo.
   * Changed the interface of the add_filter function in order to simplify
-    integration in OpenWRT.  Thanks to Nick Hainke.
+    integration in OpenWrt.  Thanks to Nick Hainke.
 
 25 April 2021: babeld-1.10
 
