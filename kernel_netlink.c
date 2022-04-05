@@ -39,7 +39,6 @@ THE SOFTWARE.
 #include <sys/socket.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
-#include <linux/fib_rules.h>
 #include <net/if_arp.h>
 
 /* From <linux/if_bridge.h> */
@@ -668,13 +667,9 @@ kernel_setup_socket(int setup)
                           | rtnlgrp_to_mask(RTNLGRP_IPV4_ROUTE)
                           | rtnlgrp_to_mask(RTNLGRP_LINK)
                           | rtnlgrp_to_mask(RTNLGRP_IPV4_IFADDR)
-                          | rtnlgrp_to_mask(RTNLGRP_IPV6_IFADDR)
-    /* We monitor rules, because it can be change by third parties.  For example
-       a /etc/init.d/network restart on OpenWRT flush the rules. */
-                          | rtnlgrp_to_mask(RTNLGRP_IPV4_RULE)
-                          | rtnlgrp_to_mask(RTNLGRP_IPV6_RULE));
+                          | rtnlgrp_to_mask(RTNLGRP_IPV6_IFADDR));
         if(rc < 0) {
-            perror("netlink_socket(_ROUTE | _LINK | _IFADDR | _RULE)");
+            perror("netlink_socket(_ROUTE | _LINK | _IFADDR)");
             kernel_socket = -1;
             return -1;
         }
@@ -1340,17 +1335,6 @@ kernel_dump(int operation, struct kernel_filter *filter)
                 return -1;
         }
 
-        memset(&g, 0, sizeof(g));
-        g.rtgen_family = families[i];
-        if(operation & CHANGE_RULE) {
-            rc = netlink_send_dump(RTM_GETRULE, &g, sizeof(g));
-            if(rc < 0)
-                return -1;
-
-            rc = netlink_read(&nl_command, NULL, 1, filter);
-            if(rc < 0)
-                return -1;
-        }
     }
 
     if(operation & CHANGE_ADDR) {
