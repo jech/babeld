@@ -31,6 +31,10 @@ local.o: local.c version.h
 
 kernel.o: kernel_netlink.c kernel_socket.c
 
+# NetBSD make doesn't use -o by default
+.c.o:
+	$(CC) $(CFLAGS) -o $@ -c $<
+
 version.h:
 	./generate-version.sh > version.h
 
