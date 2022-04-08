@@ -27,8 +27,8 @@ THE SOFTWARE.
 #include <sys/time.h>
 #include <netinet/in.h>
 
-#include "rfc6234/sha.h"
-#include "BLAKE2/ref/blake2.h"
+#include <rfc6234/sha.h>
+#include <blake2.h>
 
 #include "babeld.h"
 #include "interface.h"

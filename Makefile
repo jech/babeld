@@ -5,17 +5,22 @@ CDEBUGFLAGS = -Os -g -Wall
 
 DEFINES = $(PLATFORM_DEFINES)
 
-CFLAGS = $(CDEBUGFLAGS) $(DEFINES) $(EXTRA_DEFINES)
+SHA2_SRCS ?= rfc6234/sha224-256.c
+SHA2_CFLAGS ?= -I.
 
-LDLIBS = -lrt
+BLAKE_SRCS ?= BLAKE2/ref/blake2s-ref.c
+BLAKE_CFLAGS ?= -IBLAKE2/ref
+
+LDLIBS ?= -lrt
+
+CFLAGS = $(CDEBUGFLAGS) $(DEFINES) $(EXTRA_DEFINES) \
+         $(SHA2_CFLAGS) $(BLAKE_CFLAGS)
 
 SRCS = babeld.c net.c kernel.c util.c interface.c source.c neighbour.c \
        route.c xroute.c message.c resend.c configuration.c local.c \
-       hmac.c rfc6234/sha224-256.c BLAKE2/ref/blake2s-ref.c
+       hmac.c $(SHA2_SRCS) $(BLAKE_SRCS)
 
-OBJS = babeld.o net.o kernel.o util.o interface.o source.o neighbour.o \
-       route.o xroute.o message.o resend.o configuration.o local.o \
-       hmac.o rfc6234/sha224-256.o BLAKE2/ref/blake2s-ref.o
+OBJS = $(SRCS:.c=.o)
 
 babeld: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o babeld $(OBJS) $(LDLIBS)
