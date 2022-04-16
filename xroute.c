@@ -235,6 +235,16 @@ filter_route(struct kernel_route *route, void *data) {
        martian_prefix(route->src_prefix, route->src_plen))
         return 0;
 
+    int metric = redistribute_filter(
+	    route->prefix, route->plen,
+	    route->src_prefix,
+	    route->src_plen,
+	    route->ifindex,
+	    route->proto,
+	    NULL/*filter_result*/);
+    if (metric == INFINITY)
+	    return 0;
+
     routes[*found] = *route;
     ++ *found;
 
@@ -345,7 +355,7 @@ check_xroutes(int send_updates)
     struct kernel_route *routes;
     struct filter_result filter_result;
     int numroutes;
-    static int maxroutes = 8;
+    static int maxroutes = 1024;
     const int maxmaxroutes = 256 * 1024;
 
     debugf("\nChecking kernel routes.\n");
@@ -366,6 +376,7 @@ check_xroutes(int send_updates)
     if(numroutes >= maxroutes)
         goto resize;
 
+    fprintf(stderr, "kernel_routes %p %d\n", routes + numroutes, maxroutes - numroutes);
     rc = kernel_routes(routes + numroutes, maxroutes - numroutes);
     if(rc < 0)
         fprintf(stderr, "Couldn't get kernel routes.\n");

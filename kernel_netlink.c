@@ -318,6 +318,10 @@ netlink_socket(struct netlink *nl, uint32_t groups)
             perror("setsockopt(SO_RCVBUF)");
         }
     }
+    const int strict = 1;
+    rc = setsockopt(nl->sock, SOL_NETLINK, NETLINK_GET_STRICT_CHK, &strict, sizeof(strict));
+    if(rc < 0)
+        goto fail;
 
     rc = bind(nl->sock, (struct sockaddr *)&nl->sockaddr, nl->socklen);
     if(rc < 0)
@@ -1302,9 +1306,9 @@ filter_kernel_routes(struct nlmsghdr *nh, struct kernel_route *route)
 int
 kernel_dump(int operation, struct kernel_filter *filter)
 {
-    int i, rc;
+    int i, j, rc;
     int families[2] = { AF_INET6, AF_INET };
-    struct rtgenmsg g;
+    struct rtmsg rtm;
 
     if(!nl_setup) {
         fprintf(stderr,"kernel_dump: netlink not initialized.\n");
@@ -1323,24 +1327,28 @@ kernel_dump(int operation, struct kernel_filter *filter)
     }
 
     for(i = 0; i < 2; i++) {
-        memset(&g, 0, sizeof(g));
-        g.rtgen_family = families[i];
+        memset(&rtm, 0, sizeof(rtm));
+        rtm.rtm_family = families[i];
         if(operation & CHANGE_ROUTE) {
-            rc = netlink_send_dump(RTM_GETROUTE, &g, sizeof(g));
-            if(rc < 0)
-                return -1;
+            for (j = 0; j < import_table_count; j++) {
+                rtm.rtm_table = import_tables[j];
 
-            rc = netlink_read(&nl_command, NULL, 1, filter);
-            if(rc < 0)
-                return -1;
+                rc = netlink_send_dump(RTM_GETROUTE, &rtm, sizeof(rtm));
+                if(rc < 0)
+                    return -1;
+
+                rc = netlink_read(&nl_command, NULL, 1, filter);
+                if(rc < 0)
+                    return -1;
+            }
         }
 
     }
 
     if(operation & CHANGE_ADDR) {
-        memset(&g, 0, sizeof(g));
-        g.rtgen_family = AF_UNSPEC;
-        rc = netlink_send_dump(RTM_GETADDR, &g, sizeof(g));
+        memset(&rtm, 0, sizeof(rtm));
+        rtm.rtm_family = AF_UNSPEC;
+        rc = netlink_send_dump(RTM_GETADDR, &rtm, sizeof(rtm));
         if(rc < 0)
             return -1;
 
