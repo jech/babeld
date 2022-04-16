@@ -288,7 +288,7 @@ static int nl_setup = 0;
 static int
 netlink_socket(struct netlink *nl, uint32_t groups)
 {
-    int rc, strict = 1;
+    int rc, one = 1;
     int rcvsize = 512 * 1024;
 
     nl->sock = socket(PF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
@@ -324,8 +324,14 @@ netlink_socket(struct netlink *nl, uint32_t groups)
         }
     }
 
+    /* may not be supported, so ignore return code */
+    rc = setsockopt(nl->sock, SOL_NETLINK, NETLINK_EXT_ACK,
+                    &one, sizeof(one));
+    if(rc < 0)
+        goto fail;
+
     rc = setsockopt(nl->sock, SOL_NETLINK, NETLINK_GET_STRICT_CHK,
-                    &strict, sizeof(strict));
+                    &one, sizeof(one));
     per_table_dumps = (rc == 0);
 
     rc = bind(nl->sock, (struct sockaddr *)&nl->sockaddr, nl->socklen);
@@ -346,6 +352,43 @@ netlink_socket(struct netlink *nl, uint32_t groups)
         errno = saved_errno;
         return -1;
     }
+}
+
+#define NLA_OK(nla,len) ((len) >= (int)sizeof(struct nlattr) && \
+			 (nla)->nla_len >= sizeof(struct nlattr) && \
+			 (nla)->nla_len <= (len))
+#define NLA_NEXT(nla,attrlen)	((attrlen) -= NLA_ALIGN((nla)->nla_len), \
+				 (struct nlattr*)(((char*)(nla)) + NLA_ALIGN((nla)->nla_len)))
+#define NLA_LENGTH(len)	(NLA_ALIGN(sizeof(struct nlattr)) + (len))
+#define NLA_DATA(nla)   ((void*)(((char*)(nla)) + NLA_LENGTH(0)))
+
+static int netlink_get_extack(struct nlmsghdr *nh, int len, int done)
+{
+    const char *msg = NULL;
+    struct nlattr *nla;
+
+    if (done) {
+        nla = NLMSG_DATA(nh) + sizeof(int);
+        len -= NLMSG_ALIGN(int);
+    } else {
+        nla = NLMSG_DATA(nh) + sizeof(struct nlmsgerr);
+        len -= NLMSG_ALIGN(sizeof(struct nlmsgerr));
+
+        if (!(nh->nlmsg_flags & NLM_F_ACK_TLVS))
+            return 0;
+    }
+
+    while(NLA_OK(nla, len)) {
+        if(nla->nla_type == NLMSGERR_ATTR_MSG)
+            msg = NLA_DATA(nla);
+
+        nla = NLA_NEXT(nla, len);
+    }
+
+    if(msg && *msg != '\0')
+        kdebugf(" extack: '%s' ", msg);
+
+    return 0;
 }
 
 static int
@@ -434,11 +477,13 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
                         nh->nlmsg_pid, nl->sockaddr.nl_pid);
                 continue;
             } else if(nh->nlmsg_type == NLMSG_DONE) {
+                netlink_get_extack(nh, len, 1);
                 kdebugf("(done)\n");
                 done = 1;
                 break;
             } else if(nh->nlmsg_type == NLMSG_ERROR) {
                 struct nlmsgerr *err = (struct nlmsgerr *)NLMSG_DATA(nh);
+                netlink_get_extack(nh, len, 0);
                 if(err->error == 0) {
                     kdebugf("(ACK)\n");
                     return 0;
