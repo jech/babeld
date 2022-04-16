@@ -46,6 +46,10 @@ THE SOFTWARE.
 #define BRCTL_GET_BRIDGES 1
 #endif
 
+#ifndef NETLINK_GET_STRICT_CHK
+#define NETLINK_GET_STRICT_CHK 12
+#endif
+
 #if(__GLIBC__ < 2) || (__GLIBC__ == 2 && __GLIBC_MINOR__ <= 5)
 #define RTA_TABLE 15
 #endif
@@ -74,6 +78,7 @@ THE SOFTWARE.
     } while(0)
 
 int export_table = -1, import_tables[MAX_IMPORT_TABLES], import_table_count = 0;
+int per_table_dumps = 0;
 
 struct sysctl_setting {
     char *name;
@@ -283,7 +288,7 @@ static int nl_setup = 0;
 static int
 netlink_socket(struct netlink *nl, uint32_t groups)
 {
-    int rc;
+    int rc, strict = 1;
     int rcvsize = 512 * 1024;
 
     nl->sock = socket(PF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
@@ -318,6 +323,10 @@ netlink_socket(struct netlink *nl, uint32_t groups)
             perror("setsockopt(SO_RCVBUF)");
         }
     }
+
+    rc = setsockopt(nl->sock, SOL_NETLINK, NETLINK_GET_STRICT_CHK,
+                    &strict, sizeof(strict));
+    per_table_dumps = (rc == 0);
 
     rc = bind(nl->sock, (struct sockaddr *)&nl->sockaddr, nl->socklen);
     if(rc < 0)
@@ -1302,9 +1311,8 @@ filter_kernel_routes(struct nlmsghdr *nh, struct kernel_route *route)
 int
 kernel_dump(int operation, struct kernel_filter *filter)
 {
-    int i, rc;
+    int i, j, rc;
     int families[2] = { AF_INET6, AF_INET };
-    struct rtgenmsg g;
 
     if(!nl_setup) {
         fprintf(stderr,"kernel_dump: netlink not initialized.\n");
@@ -1323,24 +1331,36 @@ kernel_dump(int operation, struct kernel_filter *filter)
     }
 
     for(i = 0; i < 2; i++) {
-        memset(&g, 0, sizeof(g));
-        g.rtgen_family = families[i];
+        struct rtmsg msg = {
+            .rtm_family = families[i]
+        };
+
         if(operation & CHANGE_ROUTE) {
-            rc = netlink_send_dump(RTM_GETROUTE, &g, sizeof(g));
-            if(rc < 0)
-                return -1;
+            for (j = 0; j < import_table_count; j++) {
+                msg.rtm_table = import_tables[j];
 
-            rc = netlink_read(&nl_command, NULL, 1, filter);
-            if(rc < 0)
-                return -1;
+                rc = netlink_send_dump(RTM_GETROUTE, &msg, sizeof(msg));
+                if(rc < 0)
+                    return -1;
+
+                rc = netlink_read(&nl_command, NULL, 1, filter);
+                if(rc < 0)
+                    return -1;
+
+                /* the filtering on rtm_table above won't work on old kernels,
+                   in which case we'll just get routes from all tables in one
+                   dump; we detect this on socket setup, so we can just break
+                   the loop if we know it won't work */
+                if (!per_table_dumps)
+                    break;
+            }
         }
-
     }
 
     if(operation & CHANGE_ADDR) {
-        memset(&g, 0, sizeof(g));
-        g.rtgen_family = AF_UNSPEC;
-        rc = netlink_send_dump(RTM_GETADDR, &g, sizeof(g));
+        struct ifaddrmsg msg = {};
+
+        rc = netlink_send_dump(RTM_GETADDR, &msg, sizeof(msg));
         if(rc < 0)
             return -1;
 
