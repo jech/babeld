@@ -2,6 +2,8 @@ babeld-1.12 (unreleased)
 
   * Implement v4-via-v6 routing, which allows a router with IPv4 addresses
     only to route IPv4.
+  * Enable extended Netlink acks when available.
+    Thanks to Toke Høyland-Jørgensen.
 
 30 March 2022: babeld-1.11
 
