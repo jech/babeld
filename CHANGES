@@ -4,6 +4,8 @@ babeld-1.12 (unreleased)
     only to route IPv4.
   * Enable extended Netlink acks when available.
     Thanks to Toke Høyland-Jørgensen.
+  * Fix restoring of interface configuration to avoid unbounded memory
+    consumption.  Thanks to andrew-hoff.
 
 30 March 2022: babeld-1.11
 
