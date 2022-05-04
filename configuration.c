@@ -1549,14 +1549,24 @@ install_filter(const unsigned char *prefix, unsigned short plen,
 int
 finalise_config()
 {
-    struct filter *filter = calloc(1, sizeof(struct filter));
-    if(filter == NULL)
-        return -1;
+    struct filter *filter1, *filter2;
 
-    filter->proto = RTPROT_BABEL_LOCAL;
-    filter->plen_le = 128;
-    filter->src_plen_le = 128;
-    add_filter(filter, FILTER_TYPE_REDISTRIBUTE);
+    /* redistribute local allow */
+    filter1 = calloc(1, sizeof(struct filter));
+    if(filter1 == NULL)
+        return -1;
+    filter1->proto = RTPROT_BABEL_LOCAL;
+    filter1->plen_le = 128;
+    filter1->src_plen_le = 128;
+    add_filter(filter1, FILTER_TYPE_REDISTRIBUTE);
+
+    /* install allow */
+    filter2 = calloc(1, sizeof(struct filter));
+    if(filter2 == NULL)
+        return -1;
+    filter2->plen_le = 128;
+    filter2->src_plen_le = 128;
+    add_filter(filter2, FILTER_TYPE_INSTALL);
 
     while(interface_confs) {
         struct interface_conf *if_conf;

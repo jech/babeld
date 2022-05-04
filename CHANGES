@@ -6,6 +6,7 @@ babeld-1.12 (unreleased)
     Thanks to Toke Høyland-Jørgensen.
   * Fix restoring of interface configuration to avoid unbounded memory
     consumption.  Thanks to andrew-hoff.
+  * Fix handling of deny filters in the install chain.
 
 30 March 2022: babeld-1.11
 
