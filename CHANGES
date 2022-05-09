@@ -1,3 +1,9 @@
+babel 1.12.1 (unreleased)
+
+  * Implement separate PC values for unicast and multicast, which avoids
+    dropping packets protected by MAC when WiFi powersave is active.
+    Thanks to Daniel Gröber.
+
 5 May 2022: babeld-1.12
 
   * Implement v4-via-v6 routing (RFC 9229), which allows a router with
