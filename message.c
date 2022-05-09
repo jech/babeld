@@ -551,9 +551,11 @@ preparse_packet(const unsigned char *from, struct interface *ifp,
     } else if(challenge_success) {
         neigh->index_len = index_len;
         memcpy(neigh->index, index, index_len);
-        memcpy(neigh->pc, pc, 4);
+        memcpy(neigh->pc_m, pc, 4);
+        memcpy(neigh->pc_u, pc, 4);
         accept_packet = 1;
     } else {
+        int multicast = from[0] == 0xff;
         neigh = neigh != NULL ? neigh : find_neighbour(from, ifp);
         if(neigh == NULL)
             return NULL;
@@ -563,12 +565,19 @@ preparse_packet(const unsigned char *from, struct interface *ifp,
             rc = send_challenge_request(neigh);
             if(rc < -1)
                 fputs("Could not send challenge request.\n", stderr);
-        } else if(memcmp(pc, neigh->pc, 4) <= 0) {
-            debugf("Out of order PC.\n");
-            nonce = NULL;
         } else {
-            memcpy(neigh->pc, pc, 4);
-            accept_packet = 1;
+            unsigned char *last_pc;
+            if(multicast)
+                last_pc = neigh->pc_m;
+            else
+                last_pc = neigh->pc_u;
+            if(memcmp(pc, last_pc, 4) <= 0) {
+                debugf("Out of order PC.\n");
+                nonce = NULL;
+            } else {
+                memcpy(last_pc, pc, 4);
+                accept_packet = 1;
+            }
         }
     }
 
