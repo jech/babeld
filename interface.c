@@ -92,6 +92,7 @@ add_interface(char *ifname, struct interface_conf *if_conf)
         last_interface()->next = ifp;
 
     local_notify_interface(ifp, LOCAL_ADD);
+    schedule_interfaces_check(200, 0);
 
     return ifp;
 }
