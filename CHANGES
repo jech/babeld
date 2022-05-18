@@ -1,8 +1,10 @@
-babel 1.12.1 (unreleased)
+18 May 2022: babeld-1.12.1
 
   * Implement separate PC values for unicast and multicast, which avoids
     dropping packets protected by MAC when WiFi powersave is active.
     Thanks to Daniel Gröber.
+  * Schedule an interface check just after adding an interface.
+    Thanks to Andrew Hoff.
 
 5 May 2022: babeld-1.12
 
