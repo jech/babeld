@@ -20,11 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#define DIVERSITY_NONE 0
-#define DIVERSITY_INTERFACE_1 1
-#define DIVERSITY_CHANNEL_1 2
-#define DIVERSITY_CHANNEL 3
-
 struct babel_route {
     struct source *src;
     unsigned short refmetric;
@@ -38,8 +33,6 @@ struct babel_route {
     unsigned short smoothed_metric; /* for route selection */
     time_t smoothed_metric_time;
     short installed;
-    short channels_len;
-    unsigned char *channels;
     struct babel_route *next;
 };
 
@@ -47,23 +40,11 @@ struct route_stream;
 
 extern struct babel_route **routes;
 extern int kernel_metric, allow_duplicates, reflect_kernel_metric;
-extern int diversity_kind, diversity_factor;
 
 static inline int
 route_metric(const struct babel_route *route)
 {
     int m = (int)route->refmetric + route->cost + route->add_metric;
-    return MIN(m, INFINITY);
-}
-
-static inline int
-route_metric_noninterfering(const struct babel_route *route)
-{
-    int m =
-        (int)route->refmetric +
-        (diversity_factor * route->cost + 128) / 256 +
-        route->add_metric;
-    m = MAX(m, route->refmetric + 1);
     return MIN(m, INFINITY);
 }
 
@@ -100,13 +81,13 @@ void update_neighbour_metric(struct neighbour *neigh, int changed);
 void update_interface_metric(struct interface *ifp);
 void update_route_metric(struct babel_route *route);
 struct babel_route *update_route(const unsigned char *id,
-                           const unsigned char *prefix, unsigned char plen,
-                           const unsigned char *src_prefix,
-                           unsigned char src_plen,
-                           unsigned short seqno, unsigned short refmetric,
-                           unsigned short interval, struct neighbour *neigh,
-                           const unsigned char *nexthop,
-                           const unsigned char *channels, int channels_len);
+                                 const unsigned char *prefix, unsigned char plen,
+                                 const unsigned char *src_prefix,
+                                 unsigned char src_plen,
+                                 unsigned short seqno, unsigned short refmetric,
+                                 unsigned short interval,
+                                 struct neighbour *neigh,
+                                 const unsigned char *nexthop);
 void retract_neighbour_routes(struct neighbour *neigh);
 void send_unfeasible_request(struct neighbour *neigh, int force,
                              unsigned short seqno, unsigned short metric,

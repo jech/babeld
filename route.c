@@ -44,7 +44,6 @@ struct babel_route **routes = NULL;
 static int route_slots = 0, max_route_slots = 0;
 int kernel_metric = 0, reflect_kernel_metric = 0;
 int allow_duplicates = -1;
-int diversity_kind = DIVERSITY_NONE;
 int diversity_factor = 256;     /* in units of 1/256 */
 
 static int smoothing_half_life = 0;
@@ -226,7 +225,6 @@ insert_route(struct babel_route *route)
 static void
 destroy_route(struct babel_route *route)
 {
-    free(route->channels);
     free(route);
 }
 
@@ -630,45 +628,6 @@ route_expired(struct babel_route *route)
     return route->time < now.tv_sec - route->hold_time;
 }
 
-static int
-channels_interfere(int ch1, int ch2)
-{
-    if(ch1 == IF_CHANNEL_NONINTERFERING || ch2 == IF_CHANNEL_NONINTERFERING)
-        return 0;
-    if(ch1 == IF_CHANNEL_INTERFERING || ch2 == IF_CHANNEL_INTERFERING)
-        return 1;
-    return ch1 == ch2;
-}
-
-int
-route_interferes(struct babel_route *route, struct interface *ifp)
-{
-    switch(diversity_kind) {
-    case DIVERSITY_NONE:
-        return 1;
-    case DIVERSITY_INTERFACE_1:
-        return route->neigh->ifp == ifp;
-    case DIVERSITY_CHANNEL_1:
-    case DIVERSITY_CHANNEL:
-        if(route->neigh->ifp == ifp)
-            return 1;
-        if(channels_interfere(ifp->channel, route->neigh->ifp->channel))
-            return 1;
-        if(diversity_kind == DIVERSITY_CHANNEL) {
-            int i;
-            for(i = 0; i < route->channels_len; i++) {
-                if(route->channels[i] != 0 &&
-                   channels_interfere(ifp->channel, route->channels[i]))
-                    return 1;
-            }
-        }
-        return 0;
-    default:
-        fprintf(stderr, "Unknown kind of diversity.\n");
-        return 1;
-    }
-}
-
 int
 update_feasible(struct source *src,
                 unsigned short seqno, unsigned short refmetric)
@@ -867,8 +826,7 @@ update_route(const unsigned char *id,
              const unsigned char *src_prefix, unsigned char src_plen,
              unsigned short seqno, unsigned short refmetric,
              unsigned short interval,
-             struct neighbour *neigh, const unsigned char *nexthop,
-             const unsigned char *channels, int channels_len)
+             struct neighbour *neigh, const unsigned char *nexthop)
 {
     struct babel_route *route;
     struct source *src;
@@ -961,26 +919,6 @@ update_route(const unsigned char *id,
             route->time = now.tv_sec;
         route->seqno = seqno;
 
-        if(channels_len == 0) {
-            free(route->channels);
-            route->channels = NULL;
-            route->channels_len = 0;
-        } else {
-            if(channels_len != route->channels_len) {
-                unsigned char *new_channels =
-                    realloc(route->channels, channels_len);
-                if(new_channels == NULL) {
-                    perror("malloc(channels)");
-                    /* Truncate the data. */
-                    channels_len = MIN(channels_len, route->channels_len);
-                } else {
-                    route->channels = new_channels;
-                }
-            }
-            memcpy(route->channels, channels, channels_len);
-            route->channels_len = channels_len;
-        }
-
         change_route_metric(route,
                             refmetric, neighbour_cost(neigh), add_metric);
         route->hold_time = hold_time;
@@ -1028,14 +966,6 @@ update_route(const unsigned char *id,
         route->hold_time = hold_time;
         route->smoothed_metric = MAX(route_metric(route), INFINITY / 2);
         route->smoothed_metric_time = now.tv_sec;
-        if(channels_len > 0) {
-            route->channels = malloc(channels_len);
-            if(route->channels == NULL) {
-                perror("malloc(channels)");
-            } else {
-                memcpy(route->channels, channels, channels_len);
-            }
-        }
         route->next = NULL;
         new_route = insert_route(route);
         if(new_route == NULL) {

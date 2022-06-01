@@ -1,3 +1,8 @@
+babeld-1.13 (unreleased):
+
+  * Remove diversity support and related configuration file directives.
+    This is an incompatible change.
+
 18 May 2022: babeld-1.12.1
 
   * Implement separate PC values for unicast and multicast, which avoids

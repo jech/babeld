@@ -383,13 +383,6 @@ kernel_interface_wireless(const char *ifname, int ifindex)
 }
 
 int
-kernel_interface_channel(const char *ifname, int ifindex)
-{
-    errno = ENOSYS;
-    return -1;
-}
-
-int
 kernel_has_ipv6_subtrees(void)
 {
     return 0;

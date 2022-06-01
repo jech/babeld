@@ -622,28 +622,6 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if(c < -1)
                 goto error;
             if_conf->split_horizon = v;
-        } else if(strcmp(token, "channel") == 0) {
-            char *t, *end;
-
-            c = getword(c, &t, gnc, closure);
-            if(c < -1)
-                goto error;
-
-            if(strcmp(t, "noninterfering") == 0)
-                if_conf->channel = IF_CHANNEL_NONINTERFERING;
-            else if(strcmp(t, "interfering") == 0)
-                if_conf->channel = IF_CHANNEL_INTERFERING;
-            else {
-                if_conf->channel = strtol(t, &end, 0);
-                if(*end != '\0')
-                    goto error;
-            }
-
-            free(t);
-
-            if((if_conf->channel < 1 || if_conf->channel > 255) &&
-               if_conf->channel != IF_CHANNEL_NONINTERFERING)
-                goto error;
         } else if(strcmp(token, "enable-timestamps") == 0) {
             int v;
             c = getbool(c, &v, gnc, closure);
@@ -916,7 +894,6 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(faraway);
     MERGE(unicast);
     MERGE(accept_bad_signatures);
-    MERGE(channel);
     MERGE(enable_timestamps);
     MERGE(rfc6126);
     MERGE(rtt_decay);
@@ -991,8 +968,6 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
     if(config_finalised) {
         if(strcmp(token, "link-detect") != 0 &&
            strcmp(token, "log-file") != 0 &&
-           strcmp(token, "diversity") != 0 &&
-           strcmp(token, "diversity-factor") != 0 &&
            strcmp(token, "smoothing-half-life") != 0)
             goto error;
     }
@@ -1098,27 +1073,6 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
         if(c < -1 || d < 0)
             goto error;
         debug = d;
-    } else if(strcmp(token, "diversity") == 0) {
-        int d;
-        c = skip_whitespace(c, gnc, closure);
-        if(c >= '0' && c <= '9') {
-            c = getint(c, &d, gnc, closure);
-            if(c < -1)
-                goto error;
-        } else {
-            int b;
-            c = getbool(c, &b, gnc, closure);
-            if(c < -1)
-                goto error;
-            d = (b == CONFIG_YES) ? 3 : 0;
-        }
-        diversity_kind = d;
-    } else if(strcmp(token, "diversity-factor") == 0) {
-        int f;
-        c = getint(c, &f, gnc, closure);
-        if(c < -1 || f < 0 || f > 256)
-            goto error;
-        diversity_factor = f;
     } else if(strcmp(token, "smoothing-half-life") == 0) {
         int h;
         c = getint(c, &h, gnc, closure);

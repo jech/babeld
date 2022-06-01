@@ -126,26 +126,10 @@ network_prefix(int ae, int plen, unsigned int omitted,
 static int
 parse_update_subtlv(struct interface *ifp, int metric, int ae,
                     const unsigned char *a, int alen,
-                    unsigned char *channels, int *channels_len_return,
                     unsigned char *src_prefix, unsigned char *src_plen)
 {
     int type, len, i = 0;
-    int channels_len;
     int have_src_prefix = 0;
-
-    /* This will be overwritten if there's a DIVERSITY_HOPS sub-TLV. */
-    if(*channels_len_return < 1 || (ifp->flags & IF_FARAWAY)) {
-        channels_len = 0;
-    } else {
-        if(metric < 256) {
-            /* Assume non-interfering (wired) link. */
-            channels_len = 0;
-        } else {
-            /* Assume interfering. */
-            channels[0] = IF_CHANNEL_INTERFERING;
-            channels_len = 1;
-        }
-    }
 
     while(i < alen) {
         type = a[i];
@@ -162,9 +146,6 @@ parse_update_subtlv(struct interface *ifp, int metric, int ae,
 
         if(type == SUBTLV_PADN) {
             /* Nothing. */
-        } else if(type == SUBTLV_DIVERSITY) {
-            memcpy(channels, a + i + 2, MIN(len, *channels_len_return));
-            channels_len = MIN(len, *channels_len_return);
         } else if(type == SUBTLV_SOURCE_PREFIX) {
             int rc;
             if(len < 1)
@@ -191,7 +172,6 @@ parse_update_subtlv(struct interface *ifp, int metric, int ae,
 
         i += len + 2;
     }
-    *channels_len_return = channels_len;
     return 1;
 
  fail:
@@ -834,8 +814,6 @@ parse_packet(const unsigned char *from, struct interface *ifp,
         } else if(type == MESSAGE_UPDATE) {
             unsigned char prefix[16], src_prefix[16], *nh;
             unsigned char plen, src_plen;
-            unsigned char channels[MAX_CHANNEL_HOPS];
-            int channels_len = MAX_CHANNEL_HOPS;
             unsigned short interval, seqno, metric;
             int rc, parsed_len, is_ss;
             if(len < 10) {
@@ -945,8 +923,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
 
             rc = parse_update_subtlv(ifp, metric, message[2],
                                      message + 2 + parsed_len,
-                                     len - parsed_len, channels, &channels_len,
-                                     src_prefix, &src_plen);
+                                     len - parsed_len, src_prefix, &src_plen);
             if(rc < 0)
                 goto done;
 
@@ -976,8 +953,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
 
             update_route(have_router_id ? router_id : NULL,
                          prefix, plen, src_prefix, src_plen, seqno,
-                         metric, interval, neigh, nh,
-                         channels, channels_len);
+                         metric, interval, neigh, nh);
         } else if(type == MESSAGE_REQUEST) {
             unsigned char prefix[16], src_prefix[16], plen, src_plen;
             int rc, is_ss;
@@ -1440,11 +1416,10 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
                      const unsigned char *id,
                      const unsigned char *prefix, unsigned char plen,
                      const unsigned char *src_prefix, unsigned char src_plen,
-                     unsigned short seqno, unsigned short metric,
-                     unsigned char *channels, int channels_len)
+                     unsigned short seqno, unsigned short metric)
 {
     int add_metric, v4, real_plen, real_src_plen;
-    int ae, omit, spb, channels_size, len;
+    int ae, omit, spb, len;
     const unsigned char *real_prefix, *real_src_prefix;
     unsigned short flags = 0;
     int is_ss = !is_default(src_prefix, src_plen);
@@ -1519,9 +1494,7 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
         buf->have_id = 1;
     }
 
-    channels_size = diversity_kind == DIVERSITY_CHANNEL && channels_len >= 0 ?
-        channels_len + 2 : 0;
-    len = 10 + (real_plen + 7) / 8 - omit + channels_size;
+    len = 10 + (real_plen + 7) / 8 - omit;
     spb = (real_src_plen + 7) / 8;
     if(is_ss)
         len += 3 + spb;
@@ -1541,13 +1514,6 @@ really_buffer_update(struct buffered *buf, struct interface *ifp,
         accumulate_byte(buf, real_src_plen);
         accumulate_bytes(buf, real_src_prefix, spb);
     }
-    /* Note that an empty channels TLV is different from no such TLV. */
-    if(channels_size > 0) {
-        accumulate_byte(buf, 2);
-        accumulate_byte(buf, channels_len);
-        if(channels_len > 0)
-            accumulate_bytes(buf, channels, channels_len);
-    }
     end_message(buf, MESSAGE_UPDATE, len);
     if(flags & 0x80) {
         memcpy(buf->prefix, prefix, 16);
@@ -1559,8 +1525,7 @@ static void
 really_send_update(struct interface *ifp, const unsigned char *id,
                    const unsigned char *prefix, unsigned char plen,
                    const unsigned char *src_prefix, unsigned char src_plen,
-                   unsigned short seqno, unsigned short metric,
-                   unsigned char *channels, int channels_len)
+                   unsigned short seqno, unsigned short metric)
 {
     if(!if_up(ifp))
         return;
@@ -1571,13 +1536,13 @@ really_send_update(struct interface *ifp, const unsigned char *id,
             if(neigh->ifp == ifp) {
                 really_buffer_update(&neigh->buf, ifp, id,
                                      prefix, plen, src_prefix, src_plen,
-                                     seqno, metric, channels, channels_len);
+                                     seqno, metric);
             }
         }
     } else {
         really_buffer_update(&ifp->buf, ifp, id,
                              prefix, plen, src_prefix, src_plen,
-                             seqno, metric, channels, channels_len);
+                             seqno, metric);
     }
 }
 
@@ -1691,24 +1656,17 @@ flushupdates(struct interface *ifp)
                 really_send_update(ifp, myid,
                                    xroute->prefix, xroute->plen,
                                    xroute->src_prefix, xroute->src_plen,
-                                   myseqno, xroute->metric,
-                                   NULL, 0);
+                                   myseqno, xroute->metric);
                 last_prefix = xroute->prefix;
                 last_plen = xroute->plen;
                 last_src_prefix = xroute->src_prefix;
                 last_src_plen = xroute->src_plen;
             } else if(route) {
-                unsigned char channels[MAX_CHANNEL_HOPS];
-                int chlen;
-                struct interface *route_ifp = route->neigh->ifp;
                 unsigned short metric;
                 unsigned short seqno;
 
                 seqno = route->seqno;
-                metric =
-                    route_interferes(route, ifp) ?
-                    route_metric(route) :
-                    route_metric_noninterfering(route);
+                metric = route_metric(route);
 
                 if(metric < INFINITY)
                     satisfy_request(route->src->prefix, route->src->plen,
@@ -1720,29 +1678,11 @@ flushupdates(struct interface *ifp)
                    route->neigh->ifp == ifp)
                     continue;
 
-                if(route_ifp->channel == IF_CHANNEL_NONINTERFERING) {
-                    chlen = MIN(route->channels_len, MAX_CHANNEL_HOPS);
-                    if(chlen > 0)
-                        memcpy(channels, route->channels, chlen);
-                } else {
-                    if(route_ifp->channel == IF_CHANNEL_UNKNOWN)
-                        channels[0] = IF_CHANNEL_INTERFERING;
-                    else {
-                        assert(route_ifp->channel > 0 &&
-                               route_ifp->channel <= 255);
-                        channels[0] = route_ifp->channel;
-                    }
-                    memcpy(channels + 1, route->channels,
-                           MIN(route->channels_len, MAX_CHANNEL_HOPS - 1));
-                    chlen = 1 + MIN(route->channels_len, MAX_CHANNEL_HOPS - 1);
-                }
-
                 really_send_update(ifp, route->src->id,
                                    route->src->prefix, route->src->plen,
                                    route->src->src_prefix,
                                    route->src->src_plen,
-                                   seqno, metric,
-                                   channels, chlen);
+                                   seqno, metric);
                 update_source(route->src, seqno, metric);
                 last_prefix = route->src->prefix;
                 last_plen = route->src->plen;
@@ -1754,7 +1694,7 @@ flushupdates(struct interface *ifp)
                 really_send_update(ifp, myid,
                                    b[i].prefix, b[i].plen,
                                    b[i].src_prefix, b[i].src_plen,
-                                   myseqno, INFINITY, NULL, -1);
+                                   myseqno, INFINITY);
             }
         }
 

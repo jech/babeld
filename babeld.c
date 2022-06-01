@@ -157,7 +157,7 @@ main(int argc, char **argv)
 
     while(1) {
         opt = getopt(argc, argv,
-                     "m:p:h:H:i:k:A:srS:d:g:G:lwz:M:t:T:c:C:DL:I:V");
+                     "m:p:h:H:i:k:A:srS:d:g:G:lwM:t:T:c:C:DL:I:V");
         if(opt < 0)
             break;
 
@@ -241,20 +241,6 @@ main(int argc, char **argv)
             break;
         case 'w':
             all_wireless = 1;
-            break;
-        case 'z':
-            {
-                char *comma;
-                diversity_kind = (int)strtol(optarg, &comma, 0);
-                if(*comma == '\0')
-                    diversity_factor = 128;
-                else if(*comma == ',')
-                    diversity_factor = parse_nat(comma + 1);
-                else
-                    goto usage;
-                if(diversity_factor <= 0 || diversity_factor > 256)
-                    goto usage;
-            }
             break;
         case 'M': {
             int l = parse_nat(optarg);
@@ -1040,31 +1026,14 @@ dump_route(FILE *out, struct babel_route *route)
     const unsigned char *nexthop =
         memcmp(route->nexthop, route->neigh->address, 16) == 0 ?
         NULL : route->nexthop;
-    char channels[100];
-
-    if(route->channels_len == 0) {
-        channels[0] = '\0';
-    } else {
-        int k, j = 0;
-        snprintf(channels, 100, " chan (");
-        j = strlen(channels);
-        for(k = 0; k < route->channels_len; k++) {
-            if(k > 0)
-                channels[j++] = ',';
-            snprintf(channels + j, 100 - j, "%u", (unsigned)route->channels[k]);
-            j = strlen(channels);
-        }
-        snprintf(channels + j, 100 - j, ")");
-    }
 
     fprintf(out, "%s from %s metric %d (%d) refmetric %d id %s "
-            "seqno %d%s age %d via %s neigh %s%s%s%s\n",
+            "seqno %d age %d via %s neigh %s%s%s%s\n",
             format_prefix(route->src->prefix, route->src->plen),
             format_prefix(route->src->src_prefix, route->src->src_plen),
             route_metric(route), route_smoothed_metric(route), route->refmetric,
             format_eui64(route->src->id),
             (int)route->seqno,
-            channels,
             (int)(now.tv_sec - route->time),
             route->neigh->ifp->name,
             format_address(route->neigh->address),
@@ -1096,7 +1065,7 @@ dump_tables(FILE *out)
 
     FOR_ALL_NEIGHBOURS(neigh) {
         fprintf(out, "Neighbour %s dev %s reach %04x ureach %04x "
-                "rxcost %u txcost %d rtt %s rttcost %u chan %d%s.\n",
+                "rxcost %u txcost %d rtt %s rttcost %u%s.\n",
                 format_address(neigh->address),
                 neigh->ifp->name,
                 neigh->hello.reach,
@@ -1105,7 +1074,6 @@ dump_tables(FILE *out)
                 neigh->txcost,
                 format_thousands(neigh->rtt),
                 neighbour_rttcost(neigh),
-                neigh->ifp->channel,
                 if_up(neigh->ifp) ? "" : " (down)");
     }
 

@@ -57,7 +57,6 @@ struct interface_conf {
     char rfc6126;
     char accept_bad_signatures;
     char v4viav6;
-    int channel;
     unsigned int rtt_decay;
     unsigned int rtt_min;
     unsigned int rtt_max;
@@ -124,7 +123,6 @@ struct interface {
     unsigned int ifindex;
     unsigned short flags;
     unsigned short cost;
-    int channel;
     struct timeval hello_timeout;
     struct timeval update_timeout;
     struct timeval update_flush_timeout;
