@@ -86,7 +86,6 @@ int protocol_port;
 unsigned char protocol_group[16];
 int protocol_socket = -1;
 int kernel_socket = -1;
-static int kernel_routes_changed = 0;
 static int kernel_link_changed = 0;
 static int kernel_addr_changed = 0;
 int kernel_check_interval = 300;
@@ -98,12 +97,6 @@ static volatile sig_atomic_t exiting = 0, dumping = 0, reopening = 0;
 static int accept_local_connections(void);
 static void init_signals(void);
 static void dump_tables(FILE *out);
-
-static void
-kernel_route_notify(int add, struct kernel_route *route, void *closure)
-{
-    kernel_routes_changed = 1;
-}
 
 static void
 kernel_addr_notify(int add, struct kernel_addr *addr, void *closure)
@@ -524,7 +517,6 @@ main(int argc, char **argv)
     if(rc < 0)
         fprintf(stderr, "Warning: couldn't check exported routes.\n");
 
-    kernel_routes_changed = 0;
     kernel_link_changed = 0;
     kernel_addr_changed = 0;
     kernel_dump_time = now.tv_sec + roughly(kernel_check_interval);
@@ -689,13 +681,12 @@ main(int argc, char **argv)
             kernel_link_changed = 0;
         }
 
-        if(kernel_routes_changed || kernel_addr_changed ||
+        if(kernel_addr_changed ||
            (kernel_check_interval > 0 && now.tv_sec >= kernel_dump_time)) {
-            rc = check_xroutes(1,
-                               !kernel_routes_changed && !kernel_addr_changed);
+            rc = check_xroutes(1, !kernel_addr_changed);
             if(rc < 0)
                 fprintf(stderr, "Warning: couldn't check exported routes.\n");
-            kernel_routes_changed = kernel_addr_changed = 0;
+            kernel_addr_changed = 0;
             kernel_dump_time = now.tv_sec + roughly(kernel_check_interval);
         }
 

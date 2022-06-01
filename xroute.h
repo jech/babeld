@@ -37,11 +37,12 @@ struct xroute *find_xroute(const unsigned char *prefix, unsigned char plen,
 int add_xroute(unsigned char prefix[16], unsigned char plen,
                unsigned char src_prefix[16], unsigned char src_plen,
                unsigned short metric, unsigned int ifindex, int proto);
-void flush_xroute(struct xroute *xroute);
+void flush_xroute(struct xroute *xroute, int send_update);
 int xroutes_estimate(void);
 struct xroute_stream *xroute_stream();
 struct xroute *xroute_stream_next(struct xroute_stream *stream);
 void xroute_stream_done(struct xroute_stream *stream);
 int kernel_addresses(int ifindex, int ll,
                      struct kernel_route *routes, int maxroutes);
+void kernel_route_notify(int add, struct kernel_route *route, void *closure);
 int check_xroutes(int send_updates, int warn);
