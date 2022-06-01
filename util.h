@@ -113,16 +113,6 @@ is_default(const unsigned char *prefix, int plen)
     return plen == 0 || (plen == 96 && v4mapped(prefix));
 }
 
-enum prefix_status {
-    PST_EQUALS = 0,
-    PST_DISJOINT,
-    PST_MORE_SPECIFIC,
-    PST_LESS_SPECIFIC
-};
-enum prefix_status
-prefix_cmp(const unsigned char *p1, unsigned char plen1,
-           const unsigned char *p2, unsigned char plen2);
-
 /* If debugging is disabled, we want to avoid calling format_address
    for every omitted debugging message.  So debug is a macro.  But
    vararg macros are not portable. */

@@ -529,27 +529,3 @@ daemonise()
 
     return 1;
 }
-
-enum prefix_status
-prefix_cmp(const unsigned char *p1, unsigned char plen1,
-           const unsigned char *p2, unsigned char plen2)
-{
-    int plen = MIN(plen1, plen2);
-
-    if(memcmp(p1, p2, plen / 8) != 0)
-        return PST_DISJOINT;
-
-    if(plen % 8 != 0) {
-        int i = plen / 8 + 1;
-        unsigned char mask = (0xFF << (plen % 8)) & 0xFF;
-        if((p1[i] & mask) != (p2[i] & mask))
-            return PST_DISJOINT;
-    }
-
-    if(plen1 < plen2)
-        return PST_LESS_SPECIFIC;
-    else if(plen1 > plen2)
-        return PST_MORE_SPECIFIC;
-    else
-        return PST_EQUALS;
-}
