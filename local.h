@@ -55,4 +55,3 @@ int local_read(struct local_socket *s);
 int local_header(struct local_socket *s);
 struct local_socket *local_socket_create(int fd);
 void local_socket_destroy(int i);
-const char *local_kind(int kind);

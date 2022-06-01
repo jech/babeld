@@ -63,7 +63,6 @@ extern struct neighbour *neighs;
 #define FOR_ALL_NEIGHBOURS(_neigh) \
     for(_neigh = neighs; _neigh; _neigh = _neigh->next)
 
-void flush_neighbour(struct neighbour *neigh);
 struct neighbour *find_neighbour(const unsigned char *address,
                                  struct interface *ifp);
 int update_neighbour(struct neighbour *neigh, struct hello_history *hist,

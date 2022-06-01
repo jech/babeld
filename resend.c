@@ -79,7 +79,7 @@ find_resend(int kind, const unsigned char *prefix, unsigned char plen,
     return NULL;
 }
 
-struct resend *
+static struct resend *
 find_request(const unsigned char *prefix, unsigned char plen,
              const unsigned char *src_prefix, unsigned char src_plen,
              struct resend **previous_return)

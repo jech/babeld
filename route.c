@@ -618,13 +618,13 @@ route_feasible(struct babel_route *route)
     return update_feasible(route->src, route->seqno, route->refmetric);
 }
 
-int
+static int
 route_old(struct babel_route *route)
 {
     return route->time < now.tv_sec - route->hold_time * 7 / 8;
 }
 
-int
+static int
 route_expired(struct babel_route *route)
 {
     return route->time < now.tv_sec - route->hold_time;

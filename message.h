@@ -85,7 +85,6 @@ void send_update_resend(struct interface *ifp,
                         const unsigned char *src_prefix,
                         unsigned char src_plen);
 void send_wildcard_retraction(struct interface *ifp);
-void update_myseqno(void);
 void send_self_update(struct interface *ifp);
 void send_ihu(struct neighbour *neigh, struct interface *ifp);
 void send_marginal_ihu(struct interface *ifp);

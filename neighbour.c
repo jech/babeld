@@ -54,7 +54,7 @@ find_neighbour_nocreate(const unsigned char *address, struct interface *ifp)
     return NULL;
 }
 
-void
+static void
 flush_neighbour(struct neighbour *neigh)
 {
     flush_neighbour_routes(neigh);
