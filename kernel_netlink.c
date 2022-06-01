@@ -1483,34 +1483,35 @@ filter_addresses(struct nlmsghdr *nh, struct kernel_addr *addr)
 static void
 filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter)
 {
-    int rc;
+    int rc, tpe;
     union {
         struct kernel_route route;
         struct kernel_addr addr;
         struct kernel_link link;
     } u;
 
-    switch(nh->nlmsg_type) {
+    tpe = nh->nlmsg_type;
+    switch(tpe) {
     case RTM_NEWROUTE:
     case RTM_DELROUTE:
         if(!filter->route) break;
         rc = filter_kernel_routes(nh, &u.route);
         if(rc <= 0) break;
-        filter->route(&u.route, filter->route_closure);
+        filter->route(tpe == RTM_NEWROUTE, &u.route, filter->route_closure);
         break;
     case RTM_NEWLINK:
     case RTM_DELLINK:
         if(!filter->link) break;
         rc = filter_link(nh, &u.link);
         if(rc <= 0) break;
-        filter->link(&u.link, filter->link_closure);
+        filter->link(tpe == RTM_NEWLINK, &u.link, filter->link_closure);
         break;
     case RTM_NEWADDR:
     case RTM_DELADDR:
         if(!filter->addr) break;
         rc = filter_addresses(nh, &u.addr);
         if(rc <= 0) break;
-        filter->addr(&u.addr, filter->addr_closure);
+        filter->addr(tpe == RTM_NEWADDR, &u.addr, filter->addr_closure);
         break;
     default:
         kdebugf("filter_netlink: unexpected message type %d\n",

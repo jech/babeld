@@ -222,7 +222,7 @@ xroute_stream_done(struct xroute_stream *stream)
 }
 
 static void
-filter_route(struct kernel_route *route, void *data) {
+filter_route(int add, struct kernel_route *route, void *data) {
     void **args = (void**)data;
     int maxroutes = *(int*)args[0];
     struct kernel_route *routes = (struct kernel_route *)args[1];
@@ -254,7 +254,8 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
 }
 
 static void
-filter_address(struct kernel_addr *addr, void *data) {
+filter_address(int add, struct kernel_addr *addr, void *data)
+{
     void **args = (void **)data;
     int maxroutes = *(int *)args[0];
     struct kernel_route *routes = (struct kernel_route*)args[1];

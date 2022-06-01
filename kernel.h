@@ -46,11 +46,11 @@ struct kernel_link {
 };
 
 struct kernel_filter {
-    void (*addr)(struct kernel_addr *, void *);
+    void (*addr)(int, struct kernel_addr *, void *);
     void *addr_closure;
-    void (*route)(struct kernel_route *, void *);
+    void (*route)(int, struct kernel_route *, void *);
     void *route_closure;
-    void (*link)(struct kernel_link *, void *);
+    void (*link)(int, struct kernel_link *, void *);
     void *link_closure;
 };
 

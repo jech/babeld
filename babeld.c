@@ -100,19 +100,19 @@ static void init_signals(void);
 static void dump_tables(FILE *out);
 
 static void
-kernel_route_notify(struct kernel_route *route, void *closure)
+kernel_route_notify(int add, struct kernel_route *route, void *closure)
 {
     kernel_routes_changed = 1;
 }
 
 static void
-kernel_addr_notify(struct kernel_addr *addr, void *closure)
+kernel_addr_notify(int add, struct kernel_addr *addr, void *closure)
 {
     kernel_addr_changed = 1;
 }
 
 static void
-kernel_link_notify(struct kernel_link *link, void *closure)
+kernel_link_notify(int add, struct kernel_link *link, void *closure)
 {
     struct interface *ifp;
     FOR_ALL_INTERFACES(ifp) {
