@@ -98,31 +98,28 @@ static int accept_local_connections(void);
 static void init_signals(void);
 static void dump_tables(FILE *out);
 
-static int
+static void
 kernel_route_notify(struct kernel_route *route, void *closure)
 {
     kernel_routes_changed = 1;
-    return -1;
 }
 
-static int
+static void
 kernel_addr_notify(struct kernel_addr *addr, void *closure)
 {
     kernel_addr_changed = 1;
-    return -1;
 }
 
-static int
+static void
 kernel_link_notify(struct kernel_link *link, void *closure)
 {
     struct interface *ifp;
     FOR_ALL_INTERFACES(ifp) {
         if(strcmp(ifp->name, link->ifname) == 0) {
             kernel_link_changed = 1;
-            return -1;
+            return;
         }
     }
-    return 0;
 }
 
 int

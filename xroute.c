@@ -221,7 +221,7 @@ xroute_stream_done(struct xroute_stream *stream)
     free(stream);
 }
 
-static int
+static void
 filter_route(struct kernel_route *route, void *data) {
     void **args = (void**)data;
     int maxroutes = *(int*)args[0];
@@ -229,16 +229,14 @@ filter_route(struct kernel_route *route, void *data) {
     int *found = (int*)args[2];
 
     if(*found >= maxroutes)
-        return -1;
+        return;
 
     if(martian_prefix(route->prefix, route->plen) ||
        martian_prefix(route->src_prefix, route->src_plen))
-        return 0;
+        return;
 
     routes[*found] = *route;
     ++ *found;
-
-    return 0;
 }
 
 static int
@@ -255,7 +253,7 @@ kernel_routes(struct kernel_route *routes, int maxroutes)
     return found;
 }
 
-static int
+static void
 filter_address(struct kernel_addr *addr, void *data) {
     void **args = (void **)data;
     int maxroutes = *(int *)args[0];
@@ -266,14 +264,14 @@ filter_address(struct kernel_addr *addr, void *data) {
     struct kernel_route *route = NULL;
 
     if(*found >= maxroutes)
-        return 0;
+        return;
 
     if(ll == !IN6_IS_ADDR_LINKLOCAL(&addr->addr))
-        return 0;
+        return;
 
     /* ifindex may be 0 -- see kernel_addresses */
     if(ifindex && addr->ifindex != ifindex)
-        return 0;
+        return;
 
     route = &routes[*found];
     memset(route, 0, sizeof(struct kernel_route));
@@ -288,8 +286,6 @@ filter_address(struct kernel_addr *addr, void *data) {
     route->proto = RTPROT_BABEL_LOCAL;
     memset(route->gw, 0, 16);
     ++ *found;
-
-    return 1;
 }
 
 /* ifindex is 0 for all interfaces.  ll indicates whether we are

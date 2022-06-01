@@ -730,9 +730,7 @@ kernel_routes(struct kernel_filter *filter) {
         if(debug > 2)
             print_kernel_route(1, &route);
 
-        rc = filter->route(&route, filter->route_closure);
-        if(rc < 0)
-            break;
+        filter->route(&route, filter->route_closure);
     }
 
     free(buf);

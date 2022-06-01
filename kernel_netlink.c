@@ -111,7 +111,7 @@ static int dgram_socket = -1;
 #define NO_ARPHRD
 #endif
 
-static int filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter);
+static void filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter);
 
 static int
 get_old_if(const char *ifname)
@@ -404,14 +404,12 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
     /* -1 : error                                          */
     /*  0 : success                                        */
 
-    int err;
     struct msghdr msg;
     struct sockaddr_nl nladdr;
     struct iovec iov;
     struct nlmsghdr *nh;
     int len;
     int done = 0;
-    int skip = 0;
 
     struct nlmsghdr buf[8192/sizeof(struct nlmsghdr)];
 
@@ -494,15 +492,10 @@ netlink_read(struct netlink *nl, struct netlink *nl_ignore, int answer,
             } else if(nh->nlmsg_type == RTM_NEWLINK || nh->nlmsg_type == RTM_DELLINK ) {
                 kdebugf("detected an interface change via netlink - triggering babeld interface check\n");
                 check_interfaces();
-            } else if(skip) {
-                kdebugf("(skip)");
-            } if(filter) {
-                kdebugf("(msg -> \"");
-                err = filter_netlink(nh, filter);
-                kdebugf("\" %d), ", err);
-                if(err < 0) skip = 1;
-                continue;
             }
+
+            if(filter)
+                filter_netlink(nh, filter);
             kdebugf(", ");
         }
         kdebugf("\n");
@@ -1487,7 +1480,7 @@ filter_addresses(struct nlmsghdr *nh, struct kernel_addr *addr)
     return 1;
 }
 
-static int
+static void
 filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter)
 {
     int rc;
@@ -1503,25 +1496,27 @@ filter_netlink(struct nlmsghdr *nh, struct kernel_filter *filter)
         if(!filter->route) break;
         rc = filter_kernel_routes(nh, &u.route);
         if(rc <= 0) break;
-        return filter->route(&u.route, filter->route_closure);
+        filter->route(&u.route, filter->route_closure);
+        break;
     case RTM_NEWLINK:
     case RTM_DELLINK:
         if(!filter->link) break;
         rc = filter_link(nh, &u.link);
         if(rc <= 0) break;
-        return filter->link(&u.link, filter->link_closure);
+        filter->link(&u.link, filter->link_closure);
+        break;
     case RTM_NEWADDR:
     case RTM_DELADDR:
         if(!filter->addr) break;
         rc = filter_addresses(nh, &u.addr);
         if(rc <= 0) break;
-        return filter->addr(&u.addr, filter->addr_closure);
+        filter->addr(&u.addr, filter->addr_closure);
+        break;
     default:
         kdebugf("filter_netlink: unexpected message type %d\n",
                 nh->nlmsg_type);
         break;
     }
-    return 0;
 }
 
 int
