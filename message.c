@@ -480,7 +480,7 @@ preparse_packet(const unsigned char *from, struct interface *ifp,
             debugf("Received PC %u from %s.\n",
                    ntohl(pcnat), format_address(from));
         } else if(type == MESSAGE_CHALLENGE_REQUEST) {
-            if(IN6_IS_ADDR_MULTICAST(to))
+            if(to[0] == 0xff)   /* multicast */
                 goto done;
 
             if(len > 192) {
@@ -546,7 +546,7 @@ preparse_packet(const unsigned char *from, struct interface *ifp,
                 fputs("Could not send challenge request.\n", stderr);
         } else {
             unsigned char *last_pc;
-            if(IN6_IS_ADDR_MULTICAST(to))
+            if(to[0] == 0xff)
                 last_pc = neigh->pc_m;
             else
                 last_pc = neigh->pc_u;
