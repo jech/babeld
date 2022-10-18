@@ -837,6 +837,48 @@ parse_key(int c, gnc_t gnc, void *closure, struct key **key_return)
     return -2;
 }
 
+void
+delete_filters_from_interface(char* ifname, struct filter **filters)
+{
+    struct filter *f;
+
+    while(*filters && (*filters)->ifname && strcmp(ifname, (*filters)->ifname) == 0)
+    {
+        f = *filters;
+        *filters = f->next;
+        free(f);
+    }
+    
+    f = *filters;
+    while(f && f->next)
+    {
+        if(!f->next->ifname)
+        {
+            f = f->next;
+            continue;
+        }
+
+        if(strcmp(ifname, f->next->ifname) == 0)
+        {
+            struct filter *tmp;
+            tmp = f->next;
+            f->next = f->next->next;
+            free(tmp);
+        } else {
+            f = f->next;
+        }
+    }
+}
+
+void
+delete_all_filters_from_interface(char* ifname)
+{
+    delete_filters_from_interface(ifname, &input_filters);
+    delete_filters_from_interface(ifname, &output_filters);
+    delete_filters_from_interface(ifname, &redistribute_filters);
+    delete_filters_from_interface(ifname, &install_filters);
+}
+
 int
 add_filter(struct filter *filter, int type)
 {
