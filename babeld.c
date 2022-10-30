@@ -490,6 +490,12 @@ main(int argc, char **argv)
         goto fail;
     }
 
+    rc = kernel_setup_socket(1);
+    if(rc < 0 || kernel_socket < 0) {
+        perror("Couldn't setup kernel socket");
+        goto fail;
+    }
+
     if(local_server_port >= 0) {
         local_server_socket = tcp_server_socket(local_server_port, 1);
         if(local_server_socket < 0) {
@@ -585,11 +591,8 @@ main(int argc, char **argv)
             timeval_minus(&tv, &tv, &now);
             FD_SET(protocol_socket, &readfds);
             maxfd = MAX(maxfd, protocol_socket);
-            if(kernel_socket < 0) kernel_setup_socket(1);
-            if(kernel_socket >= 0) {
-                FD_SET(kernel_socket, &readfds);
-                maxfd = MAX(maxfd, kernel_socket);
-            }
+            FD_SET(kernel_socket, &readfds);
+            maxfd = MAX(maxfd, kernel_socket);
             if(local_server_socket >= 0 &&
                num_local_sockets < MAX_LOCAL_SOCKETS) {
                 FD_SET(local_server_socket, &readfds);
@@ -615,7 +618,7 @@ main(int argc, char **argv)
         if(exiting)
             break;
 
-        if(kernel_socket >= 0 && FD_ISSET(kernel_socket, &readfds)) {
+        if(FD_ISSET(kernel_socket, &readfds)) {
             struct kernel_filter filter = {0};
             filter.route = kernel_route_notify;
             filter.addr = kernel_addr_notify;
@@ -690,10 +693,7 @@ main(int argc, char **argv)
             if(rc < 0)
                 fprintf(stderr, "Warning: couldn't check exported routes.\n");
             kernel_routes_changed = kernel_addr_changed = 0;
-            if(kernel_socket >= 0)
-                kernel_dump_time = now.tv_sec + roughly(300);
-            else
-                kernel_dump_time = now.tv_sec + roughly(30);
+            kernel_dump_time = now.tv_sec + roughly(300);
         }
 
         if(timeval_compare(&check_neighbours_timeout, &now) < 0) {
