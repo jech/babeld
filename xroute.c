@@ -336,7 +336,7 @@ kernel_route_compare(const void *v1, const void *v2)
 }
 
 int
-check_xroutes(int send_updates)
+check_xroutes(int send_updates, int warn)
 {
     int i, j, change = 0, rc;
     struct kernel_route *routes;
@@ -407,6 +407,11 @@ check_xroutes(int send_updates)
             /* Add route i. */
             if(!martian_prefix(routes[i].prefix, routes[i].plen) &&
                routes[i].metric < INFINITY) {
+                if(warn)
+                    fprintf(stderr,
+                            "Adding missing route to %s "
+                            "(this shouldn't happen)\n",
+                            format_prefix(routes[i].prefix, routes[i].plen));
                 rc = add_xroute(routes[i].prefix, routes[i].plen,
                                 routes[i].src_prefix, routes[i].src_plen,
                                 routes[i].metric, routes[i].ifindex,
@@ -434,6 +439,11 @@ check_xroutes(int send_updates)
             unsigned char prefix[16], plen;
             unsigned char src_prefix[16], src_plen;
             struct babel_route *route;
+            if(warn)
+                fprintf(stderr,
+                        "Flushing spurious route to %s "
+                        "(this shouldn't happen)\n",
+                        format_prefix(xroutes[j].prefix, xroutes[j].plen));
             memcpy(prefix, xroutes[j].prefix, 16);
             plen = xroutes[j].plen;
             memcpy(src_prefix, xroutes[j].src_prefix, 16);
