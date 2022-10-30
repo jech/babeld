@@ -437,10 +437,10 @@ check_xroutes(int send_updates)
             unsigned char prefix[16], plen;
             unsigned char src_prefix[16], src_plen;
             struct babel_route *route;
-            memcpy(prefix, xroutes[i].prefix, 16);
-            plen = xroutes[i].plen;
-            memcpy(src_prefix, xroutes[i].src_prefix, 16);
-            src_plen = xroutes[i].src_plen;
+            memcpy(prefix, xroutes[j].prefix, 16);
+            plen = xroutes[j].plen;
+            memcpy(src_prefix, xroutes[j].src_prefix, 16);
+            src_plen = xroutes[j].src_plen;
             flush_xroute(&xroutes[j]);
             route = find_best_route(prefix, plen, src_prefix, src_plen,
                                     1, NULL);
