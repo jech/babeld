@@ -89,6 +89,7 @@ int kernel_socket = -1;
 static int kernel_routes_changed = 0;
 static int kernel_link_changed = 0;
 static int kernel_addr_changed = 0;
+int kernel_check_interval = 300;
 
 struct timeval check_neighbours_timeout, check_interfaces_timeout;
 
@@ -526,7 +527,7 @@ main(int argc, char **argv)
     kernel_routes_changed = 0;
     kernel_link_changed = 0;
     kernel_addr_changed = 0;
-    kernel_dump_time = now.tv_sec + roughly(30);
+    kernel_dump_time = now.tv_sec + roughly(kernel_check_interval);
     schedule_neighbours_check(5000, 1);
     schedule_interfaces_check(30000, 1);
     expiry_time = now.tv_sec + roughly(30);
@@ -572,7 +573,8 @@ main(int argc, char **argv)
         timeval_min(&tv, &check_interfaces_timeout);
         timeval_min_sec(&tv, expiry_time);
         timeval_min_sec(&tv, source_expiry_time);
-        timeval_min_sec(&tv, kernel_dump_time);
+        if(kernel_check_interval > 0)
+            timeval_min_sec(&tv, kernel_dump_time);
         timeval_min(&tv, &resend_time);
         FOR_ALL_INTERFACES(ifp) {
             if(!if_up(ifp))
@@ -688,12 +690,12 @@ main(int argc, char **argv)
         }
 
         if(kernel_routes_changed || kernel_addr_changed ||
-           now.tv_sec >= kernel_dump_time) {
+           (kernel_check_interval > 0 && now.tv_sec >= kernel_dump_time)) {
             rc = check_xroutes(1);
             if(rc < 0)
                 fprintf(stderr, "Warning: couldn't check exported routes.\n");
             kernel_routes_changed = kernel_addr_changed = 0;
-            kernel_dump_time = now.tv_sec + roughly(300);
+            kernel_dump_time = now.tv_sec + roughly(kernel_check_interval);
         }
 
         if(timeval_compare(&check_neighbours_timeout, &now) < 0) {

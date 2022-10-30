@@ -105,6 +105,7 @@ extern int local_server_write;
 extern unsigned char protocol_group[16];
 extern int protocol_socket;
 extern int kernel_socket;
+extern int kernel_check_interval;
 extern int max_request_hopcount;
 
 void schedule_neighbours_check(int msecs, int override);

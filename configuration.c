@@ -978,7 +978,8 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
        strcmp(token, "local-port") == 0 ||
        strcmp(token, "local-port-readwrite") == 0 ||
        strcmp(token, "export-table") == 0 ||
-       strcmp(token, "import-table") == 0) {
+       strcmp(token, "import-table") == 0 ||
+       strcmp(token, "kernel-check-interval") == 0) {
         int v;
         c = getint(c, &v, gnc, closure);
         if(c < -1 || v <= 0 || v >= 0xFFFF)
@@ -1004,6 +1005,8 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
             export_table = v;
         else if(strcmp(token, "import-table") == 0)
             add_import_table(v);
+        else if(strcmp(token, "kernel-check-interval") == 0)
+            kernel_check_interval = v;
         else
             abort();
     } else if(strcmp(token, "link-detect") == 0 ||
