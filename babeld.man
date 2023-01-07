@@ -476,7 +476,6 @@ Enable HMAC security on this interface, and use the key
 .BR accept\-bad\-signatures " {" true | false }
 Accept packets with no signature or an incorrect signature.  This only has
 an effect if a key was configured on an interface.  The default is false.
-.TP
 .SS Filtering rules
 A filtering rule is defined by a single line with the following format:
 .IP
