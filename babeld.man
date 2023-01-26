@@ -453,8 +453,12 @@ specifies the filter to which this entry will be added, and can be one of
 
 Each
 .I selector
-specifies the conditions under which the given statement matches.  It
-can be one of
+specifies the conditions under which the given statement matches. The sense
+of the match may be inverted using the
+.I not
+action.
+.I Selector
+may be one of:
 .TP
 .BI ip " prefix"
 This entry only applies to routes in the given prefix.
@@ -520,6 +524,10 @@ specifies the interface over which the route forwards packets.
 specifies the action to be taken when this entry matches.  It can have
 one of the following values:
 .TP
+.BI not
+Toggle inverted matching of
+.IR selector
+.TP.
 .B allow
 Allow this route, without changing its metric (or setting its metric
 to 0 in case of a redistribute filter).

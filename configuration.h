@@ -20,6 +20,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include <stdbool.h>
+
 /* Values returned by parse_config_from_string. */
 
 #define CONFIG_ACTION_DONE 0
@@ -44,6 +46,7 @@ struct filter_result {
     unsigned char src_plen;
     unsigned int table;
     unsigned char *pref_src;
+    bool invert;
 };
 
 struct filter {

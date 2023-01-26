@@ -487,6 +487,8 @@ parse_filter(int c, gnc_t gnc, void *closure, struct filter **filter_return)
             if(metric <= 0 || metric > INFINITY)
                 goto error;
             filter->action.add_metric = metric;
+        } else if(strcmp(token, "not") == 0) {
+	    filter->action.invert = !filter->action.invert;
         } else if(strcmp(token, "src-prefix") == 0) {
             int af;
             c = getnet(c, &filter->action.src_prefix, &filter->action.src_plen,
@@ -1435,8 +1437,9 @@ do_filter(struct filter *f, const unsigned char *id,
         memset(result, 0, sizeof(struct filter_result));
 
     while(f) {
-        if(filter_match(f, id, prefix, plen, src_prefix, src_plen,
-                        neigh, ifindex, proto)) {
+	int match = !!filter_match(f, id, prefix, plen, src_prefix, src_plen,
+				   neigh, ifindex, proto);
+        if(match ^ f->action.invert) {
             if(result)
                 memcpy(result, &f->action, sizeof(struct filter_result));
             return f->action.add_metric;
