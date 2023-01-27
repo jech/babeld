@@ -989,7 +989,7 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
             protocol_port = v;
         else if(strcmp(token, "kernel-priority") == 0)
             kernel_metric = v;
-        else if(strcmp(token, "allow_duplicates") == 0)
+        else if(strcmp(token, "allow-duplicates") == 0)
             allow_duplicates = v;
         else if(strcmp(token, "local-port") == 0) {
             local_server_port = v;
