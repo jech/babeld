@@ -3,6 +3,16 @@ babeld-1.13 (unreleased):
   * Remove diversity support and related configuration file directives.
     This is an incompatible change.
 
+7 February 2023: babeld-1.12.2
+
+  * Fix reinstalling a Babel route after a redistributed route is retracted.
+    This avoids waiting for a new update after a non-Babel route is removed
+    from the routing table.
+  * Fix parsing of the "allow-duplicates" option.  Thanks to Daniel Gröber.
+  * Fix parsing of multiple sub-TLVs in a single TLV.  Since we currently
+    never send multiple sub-TLVs, this was not visible in practice, but
+    is a serious bug in the packet parser.  Thanks to zmw12306.
+
 18 May 2022: babeld-1.12.1
 
   * Implement separate PC values for unicast and multicast, which avoids
