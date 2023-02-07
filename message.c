@@ -187,7 +187,7 @@ parse_hello_subtlv(const unsigned char *a, int alen,
     unsigned int timestamp = 0;
 
     while(i < alen) {
-        type = a[0];
+        type = a[i];
         if(type == SUBTLV_PAD1) {
             i++;
             continue;
@@ -241,7 +241,7 @@ parse_ihu_subtlv(const unsigned char *a, int alen,
     unsigned int timestamp1 = 0, timestamp2 = 0;
 
     while(i < alen) {
-        type = a[0];
+        type = a[i];
         if(type == SUBTLV_PAD1) {
             i++;
             continue;
@@ -296,7 +296,7 @@ parse_request_subtlv(int ae, const unsigned char *a, int alen,
     int have_src_prefix = 0;
 
     while(i < alen) {
-        type = a[0];
+        type = a[i];
         if(type == SUBTLV_PAD1) {
             i++;
             continue;
@@ -351,7 +351,7 @@ parse_seqno_request_subtlv(int ae, const unsigned char *a, int alen,
     int type, len, i = 0;
 
     while(i < alen) {
-        type = a[0];
+        type = a[i];
         if(type == SUBTLV_PAD1) {
             i++;
             continue;
@@ -397,7 +397,7 @@ parse_other_subtlv(const unsigned char *a, int alen)
     int type, len, i = 0;
 
     while(i < alen) {
-        type = a[0];
+        type = a[i];
         if(type == SUBTLV_PAD1) {
             i++;
             continue;
