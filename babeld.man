@@ -240,6 +240,13 @@ This specifies the interval between two kernel routing table dumps.  The
 default is 300s (5 minutes).  This may be set to 0 in order to never
 perform periodic kernel dumps.
 .TP
+.BI shutdown-delay-ms " milliseconds"
+During shutdown we first notify neighbours of our imminent shutdown by
+sending route retractions, wait for the specified number of milliseconds
+and then flush kernel routes. This ensures any inflight traffic is still
+properly forwarded. You may want to ensure the delay is appropriate for the
+maximum delay path in your network. Setting this to zero is permissible.
+.TP
 .BR link-detect " {" true | false }
 This specifies whether to use carrier sense for determining interface
 availability, and is equivalent to the command-line option

@@ -89,6 +89,7 @@ int kernel_socket = -1;
 static int kernel_link_changed = 0;
 static int kernel_addr_changed = 0;
 int kernel_check_interval = 300;
+int shutdown_delay_msec = -1;
 
 struct timeval check_neighbours_timeout, check_interfaces_timeout;
 
@@ -759,31 +760,29 @@ main(int argc, char **argv)
     usleep(roughly(10000));
     gettime(&now);
 
+    for (unsigned retrans=0; retrans < 1; retrans++) {
+        FOR_ALL_INTERFACES(ifp) {
+            if(!if_up(ifp))
+                continue;
+            send_wildcard_retraction(ifp);
+            /* Make sure that we expire quickly from our neighbours'
+               association caches. */
+            send_multicast_hello(ifp, 10, 1);
+            flushbuf(&ifp->buf, ifp);
+            usleep(roughly(1000));
+            gettime(&now);
+        }
+    }
+
+    if (shutdown_delay_msec > 0)
+	    usleep(roughly(shutdown_delay_msec * 1000));
+
     /* We need to flush so interface_updown won't try to reinstall. */
     flush_all_routes();
 
-    FOR_ALL_INTERFACES(ifp) {
-        if(!if_up(ifp))
-            continue;
-        send_wildcard_retraction(ifp);
-        /* Make sure that we expire quickly from our neighbours'
-           association caches. */
-        send_multicast_hello(ifp, 10, 1);
-        flushbuf(&ifp->buf, ifp);
-        usleep(roughly(1000));
-        gettime(&now);
-    }
-    FOR_ALL_INTERFACES(ifp) {
-        if(!if_up(ifp))
-            continue;
-        /* Make sure they got it. */
-        send_wildcard_retraction(ifp);
-        send_multicast_hello(ifp, 1, 1);
-        flushbuf(&ifp->buf, ifp);
-        usleep(roughly(10000));
-        gettime(&now);
+    FOR_ALL_INTERFACES(ifp)
         interface_updown(ifp, 0);
-    }
+
     kernel_setup_socket(0);
     kernel_setup(0);
 
