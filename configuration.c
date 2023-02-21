@@ -979,7 +979,8 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
        strcmp(token, "local-port-readwrite") == 0 ||
        strcmp(token, "export-table") == 0 ||
        strcmp(token, "import-table") == 0 ||
-       strcmp(token, "kernel-check-interval") == 0) {
+       strcmp(token, "kernel-check-interval") == 0 ||
+       strcmp(token, "shutdown-delay-ms") == 0) {
         int v;
         c = getint(c, &v, gnc, closure);
         if(c < -1 || v <= 0 || v >= 0xFFFF)
@@ -1007,7 +1008,9 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
             add_import_table(v);
         else if(strcmp(token, "kernel-check-interval") == 0)
             kernel_check_interval = v;
-        else
+        else if(strcmp(token, "shutdown-delay-ms") == 0)
+	    shutdown_delay_msec = v;
+	else
             abort();
     } else if(strcmp(token, "link-detect") == 0 ||
               strcmp(token, "random-id") == 0 ||
