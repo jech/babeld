@@ -1288,8 +1288,10 @@ parse_config_from_file(const char *filename, int *line_return)
     }
 
     c = gnc_file(&s);
-    if(c < 0)
+    if(c < 0) {
+        fclose(s.f);
         return 0;
+    }
 
     while(1) {
         c = parse_config_line(c, (gnc_t)gnc_file, &s, NULL, NULL);
