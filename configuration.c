@@ -1297,6 +1297,7 @@ parse_config_from_file(const char *filename, int *line_return)
         c = parse_config_line(c, (gnc_t)gnc_file, &s, NULL, NULL);
         if(c < -1) {
             *line_return = s.line;
+            fclose(s.f);
             return -1;
         }
         if(c == -1)
