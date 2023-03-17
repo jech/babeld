@@ -1166,7 +1166,7 @@ route_lost(struct source *src, unsigned oldmetric)
     struct babel_route *new_route;
     new_route = find_best_route(src->prefix, src->plen,
                                 src->src_prefix, src->src_plen, 1, NULL);
-    if(new_route) {
+    if(new_route && route_feasible(new_route)) {
         consider_route(new_route);
     } else if(oldmetric < INFINITY) {
         /* Avoid creating a blackhole. */
