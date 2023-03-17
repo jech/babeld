@@ -4,6 +4,8 @@ babeld-1.13 (unreleased):
     This is an incompatible change.
   * Optimise route redistribution.  We now install just the route that the
     kernel sent us rather than doing a full route dump on every change.
+  * Add optional delay to daemon shutdown; see the configuration option
+    "shutdown-delay-ms".  Thanks to Daniel Gröber.
 
 7 February 2023: babeld-1.12.2
 
