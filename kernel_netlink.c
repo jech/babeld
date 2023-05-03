@@ -39,6 +39,7 @@ THE SOFTWARE.
 #include <sys/socket.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
+#include <linux/wireless.h>
 #include <net/if_arp.h>
 
 /* From <linux/if_bridge.h> */
@@ -898,9 +899,6 @@ isbatman(const char *ifname, int ifindex)
 int
 kernel_interface_wireless(const char *ifname, int ifindex)
 {
-#ifndef SIOCGIWNAME
-#define SIOCGIWNAME 0x8B01
-#endif
     struct ifreq req;
     int rc;
 
@@ -922,18 +920,6 @@ kernel_interface_wireless(const char *ifname, int ifindex)
     }
     return rc;
 }
-
-/* Sorry for that, but I haven't managed to get <linux/wireless.h>
-   to include cleanly. */
-
-#define SIOCGIWFREQ 0x8B05
-
-struct iw_freq {
-    int m;
-    short e;
-    unsigned char i;
-    unsigned char flags;
-};
 
 struct iwreq_subset {
     union {
