@@ -1,25 +1,26 @@
 babeld-1.13 (unreleased):
 
-  * Remove diversity support and related configuration file directives.
+  * Removed diversity support and related configuration file directives.
     This is an incompatible change.
-  * Optimise route redistribution.  We now install just the route that the
+  * Optimised route redistribution.  We now install just the route that the
     kernel sent us rather than doing a full route dump on every change.
-  * Add optional delay to daemon shutdown; see the configuration option
+  * Added optional delay to daemon shutdown; see the configuration option
     "shutdown-delay-ms".  Thanks to Daniel Gröber.
+  * Fixed compilation under BSD.  Thanks to Antonin Décimo.
 
 7 February 2023: babeld-1.12.2
 
-  * Fix reinstalling a Babel route after a redistributed route is retracted.
-    This avoids waiting for a new update after a non-Babel route is removed
-    from the routing table.
-  * Fix parsing of the "allow-duplicates" option.  Thanks to Daniel Gröber.
-  * Fix parsing of multiple sub-TLVs in a single TLV.  Since we currently
+  * Fixed reinstalling a Babel route after a redistributed route is
+    retracted.  This avoids waiting for a new update after a non-Babel
+    route is removed from the routing table.
+  * Fixed parsing of the "allow-duplicates" option.  Thanks to Daniel Gröber.
+  * Fixed parsing of multiple sub-TLVs in a single TLV.  Since we currently
     never send multiple sub-TLVs, this was not visible in practice, but
     is a serious bug in the packet parser.  Thanks to zmw12306.
 
 18 May 2022: babeld-1.12.1
 
-  * Implement separate PC values for unicast and multicast, which avoids
+  * Implemented separate PC values for unicast and multicast, which avoids
     dropping packets protected by MAC when WiFi powersave is active.
     Thanks to Daniel Gröber.
   * Schedule an interface check just after adding an interface.
@@ -27,13 +28,13 @@ babeld-1.13 (unreleased):
 
 5 May 2022: babeld-1.12
 
-  * Implement v4-via-v6 routing (RFC 9229), which allows a router with
+  * Implemented v4-via-v6 routing (RFC 9229), which allows a router with
     IPv4 addresses only to route IPv4.  Thanks to Théophile Bastian.
-  * Enable extended Netlink acks when available.
+  * Enableed extended Netlink acks when available.
     Thanks to Toke Høyland-Jørgensen.
-  * Fix restoring of interface configuration to avoid unbounded memory
+  * Fixed restoring of interface configuration to avoid unbounded memory
     consumption.  Thanks to andrew-hoff.
-  * Fix handling of deny filters in the install chain.
+  * Fixed handling of deny filters in the install chain.
 
 30 March 2022: babeld-1.11
 
