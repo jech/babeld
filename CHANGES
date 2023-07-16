@@ -1,4 +1,4 @@
-babeld-1.13 (unreleased):
+16 July 2023: babeld-1.13
 
   * Removed diversity support and related configuration file directives.
     This is an incompatible change.
