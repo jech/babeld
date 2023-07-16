@@ -448,7 +448,7 @@ preparse_packet(const unsigned char *from, struct interface *ifp,
             i++;
             continue;
         }
-        if(i + 1 > bodylen) {
+        if(i + 2 > bodylen) {
             fprintf(stderr, "Received truncated message.\n");
             break;
         }
