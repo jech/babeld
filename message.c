@@ -1136,6 +1136,7 @@ flushbuf(struct buffered *buf, struct interface *ifp)
     assert(buf->len <= buf->size);
 
     if(buf->len > 0) {
+        int probe;
         if(ifp->key != NULL && ifp->key->type != AUTH_TYPE_NONE)
             send_pc(buf, ifp);
         debugf("  (flushing %d buffered bytes)\n", buf->len);
@@ -1148,11 +1149,33 @@ flushbuf(struct buffered *buf, struct interface *ifp)
                 return;
             }
         }
+        probe = (ifp->flags & IF_PROBE_MTU) != 0 && ifp->buf.hello >= 0;
+        if(probe) {
+            /* pad the packet to the MTU */
+            while(end < buf->size) {
+                if(end + 2 <= buf->size) {
+                    /* PadN */
+                    int len = buf->size - end - 2;
+                    if(len > 255)
+                        len = 255;
+                    buf->buf[end++] = 1;
+                    buf->buf[end++] = len;
+                    if(len > 0) {
+                        memset(buf->buf + end, 0, len);
+                        end += len;
+                    }
+                } else {
+                    /* Pad1 */
+                    buf->buf[end++] = 0;
+                }
+            }
+        }
+
         rc = babel_send(protocol_socket,
                         packet_header, sizeof(packet_header),
                         buf->buf, end,
                         (struct sockaddr*)&buf->sin6,
-                        sizeof(buf->sin6), 0);
+                        sizeof(buf->sin6), probe);
         if(rc < 0)
             perror("send");
     }

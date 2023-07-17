@@ -307,8 +307,8 @@ interface_updown(struct interface *ifp, int up)
         if(ifp->buf.buf)
             free(ifp->buf.buf);
 
-        /* 40 for IPv6 header, 8 for UDP header, 12 for good luck. */
-        ifp->buf.size = mtu - sizeof(packet_header) - 60;
+        /* 40 for IPv6 header, 8 for UDP header. */
+        ifp->buf.size = mtu - sizeof(packet_header) - 48;
         ifp->buf.buf = malloc(ifp->buf.size);
         if(ifp->buf.buf == NULL) {
             fprintf(stderr, "Couldn't allocate sendbuf.\n");
@@ -445,6 +445,9 @@ interface_updown(struct interface *ifp, int up)
             ifp->flags |= IF_V4VIAV6;
         else
             ifp->flags &= ~IF_V4VIAV6;
+
+        if(IF_CONF(ifp, probe_mtu) == CONFIG_YES)
+            ifp->flags |= IF_PROBE_MTU;
 
         rc = check_link_local_addresses(ifp);
         if(rc < 0) {

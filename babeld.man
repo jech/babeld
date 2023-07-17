@@ -433,6 +433,11 @@ otherwise.
 Whether to announce IPv4 routes through this interface even when there is
 no IPv4 address.  The default depends on the kernel version.
 .TP
+.BR probe-mtu " {" true | false }
+Pad all packets containing a Hello TLV to the MTU and disable
+fragmentation.  This will avoid establishing adjacencies across links with
+a mis-configured MTU, at the cost of slightly higher network usage.
+.TP
 .BI key " id"
 Enable HMAC security on this interface, and use the key
 .IR id .
