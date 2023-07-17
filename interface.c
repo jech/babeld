@@ -437,7 +437,7 @@ interface_updown(struct interface *ifp, int up)
 
         if(IF_CONF(ifp, v4viav6) == CONFIG_NO)
             v4viav6 = 0;
-        else if(IF_CONF(ifp, v4viav6 == CONFIG_YES))
+        else if(IF_CONF(ifp, v4viav6) == CONFIG_YES)
             v4viav6 = 1;
         else
             v4viav6 = kernel_safe_v4viav6();
