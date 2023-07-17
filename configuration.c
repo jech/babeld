@@ -684,6 +684,12 @@ parse_anonymous_ifconf(int c, gnc_t gnc, void *closure,
             if(c < -1)
                 goto error;
             if_conf->v4viav6 = v;
+        } else if(strcmp(token, "probe-mtu") == 0) {
+            int v;
+            c = getbool(c, &v, gnc, closure);
+            if(c < -1)
+                goto error;
+            if_conf->probe_mtu = v;
         } else {
             goto error;
         }
@@ -901,6 +907,7 @@ merge_ifconf(struct interface_conf *dest,
     MERGE(rtt_max);
     MERGE(max_rtt_penalty);
     MERGE(v4viav6);
+    MERGE(probe_mtu);
     MERGE(key);
 
 #undef MERGE

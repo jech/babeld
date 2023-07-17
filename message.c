@@ -1148,6 +1148,27 @@ flushbuf(struct buffered *buf, struct interface *ifp)
                 return;
             }
         }
+        if((ifp->flags & IF_PROBE_MTU) != 0 && ifp->buf.hello >= 0) {
+            /* pad the packet to the MTU */
+            while(end < buf->size) {
+                if(end + 2 <= buf->size) {
+                    /* PadN */
+                    int len = buf->size - end - 2;
+                    if(len > 255)
+                        len = 255;
+                    buf->buf[end++] = 1;
+                    buf->buf[end++] = len;
+                    if(len > 0) {
+                        memset(buf->buf + end, 0, len);
+                        end += len;
+                    }
+                } else {
+                    /* Pad1 */
+                    buf->buf[end++] = 0;
+                }
+            }
+        }
+
         rc = babel_send(protocol_socket,
                         packet_header, sizeof(packet_header),
                         buf->buf, end,
