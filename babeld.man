@@ -429,7 +429,7 @@ and
 .BR 0
 otherwise.
 .TP
-.B$ v4-via-v6 " {" true | false }
+.BR v4-via-v6 " {" true | false }
 Whether to announce IPv4 routes through this interface even when there is
 no IPv4 address.  The default depends on the kernel version.
 .TP
