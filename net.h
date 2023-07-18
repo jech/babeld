@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-int babel_socket(int port);
+int babel_socket(int port, int dontfrag);
 int babel_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen,
                unsigned char *src_return);
 int babel_send(int s,

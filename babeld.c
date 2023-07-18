@@ -90,6 +90,7 @@ static int kernel_link_changed = 0;
 static int kernel_addr_changed = 0;
 int kernel_check_interval = 300;
 int shutdown_delay_msec = -1;
+int dont_fragment = 0;
 
 struct timeval check_neighbours_timeout, check_interfaces_timeout;
 
@@ -479,7 +480,7 @@ main(int argc, char **argv)
         fd = -1;
     }
 
-    protocol_socket = babel_socket(protocol_port);
+    protocol_socket = babel_socket(protocol_port, dont_fragment);
     if(protocol_socket < 0) {
         perror("Couldn't create link local socket");
         goto fail;

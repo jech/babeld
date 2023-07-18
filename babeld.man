@@ -247,6 +247,9 @@ and then flush kernel routes. This ensures any inflight traffic is still
 properly forwarded. You may want to ensure the delay is appropriate for the
 maximum delay path in your network. Setting this to zero is permissible.
 .TP
+.BR dont-fragment " {" true | false }
+Disable IP fragmentation on Babel packets.
+.TP
 .BR link-detect " {" true | false }
 This specifies whether to use carrier sense for determining interface
 availability, and is equivalent to the command-line option

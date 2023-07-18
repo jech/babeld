@@ -42,7 +42,7 @@ THE SOFTWARE.
 #include "net.h"
 
 int
-babel_socket(int port)
+babel_socket(int port, int dontfrag)
 {
     struct sockaddr_in6 sin6;
     int s, rc;
@@ -76,6 +76,13 @@ babel_socket(int port)
                     &one, sizeof(one));
     if(rc < 0)
         goto fail;
+
+    if(dontfrag) {
+        rc = setsockopt(s, IPPROTO_IPV6, IPV6_DONTFRAG,
+                        &one, sizeof(one));
+        if(rc < 0)
+            goto fail;
+    }
 
 #ifdef IPV6_TCLASS
     rc = setsockopt(s, IPPROTO_IPV6, IPV6_TCLASS, &ds, sizeof(ds));

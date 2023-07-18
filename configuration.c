@@ -1017,7 +1017,8 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
               strcmp(token, "daemonise") == 0 ||
               strcmp(token, "skip-kernel-setup") == 0 ||
               strcmp(token, "ipv6-subtrees") == 0 ||
-              strcmp(token, "reflect-kernel-metric") == 0) {
+              strcmp(token, "reflect-kernel-metric") == 0 ||
+              strcmp(token, "dont-fragment") == 0) {
         int b;
         c = getbool(c, &b, gnc, closure);
         if(c < -1)
@@ -1035,6 +1036,8 @@ parse_option(int c, gnc_t gnc, void *closure, char *token)
             has_ipv6_subtrees = b;
         else if(strcmp(token, "reflect-kernel-metric") == 0)
             reflect_kernel_metric = b;
+        else if(strcmp(token, "dont-fragment") == 0)
+            dont_fragment = b;
         else
             abort();
     } else if(strcmp(token, "protocol-group") == 0) {
