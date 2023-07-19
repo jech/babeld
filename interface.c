@@ -511,6 +511,8 @@ interface_updown(struct interface *ifp, int up)
         ifp->numll = 0;
     }
 
+    ifp->flags &= ~IF_EDESTADDRREQ_SEEN;
+
     local_notify_interface(ifp, LOCAL_CHANGE);
 
     return 1;

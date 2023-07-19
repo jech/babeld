@@ -91,6 +91,8 @@ struct interface_conf {
 #define IF_DTLS (1 << 9)
 /* Announce v4-via-v6 routes through this interface. */
 #define IF_V4VIAV6 (1 << 10)
+/* Whether we've printed an error for EDESTADDRREQ already */
+#define IF_EDESTADDRREQ_SEEN (1 << 11)
 
 /* Only INTERFERING can appear on the wire. */
 #define IF_CHANNEL_UNKNOWN 0

@@ -28,6 +28,8 @@ THE SOFTWARE.
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <time.h>
+#include <errno.h>
+#include <inttypes.h>
 
 #include "babeld.h"
 #include "util.h"
@@ -1153,8 +1155,22 @@ flushbuf(struct buffered *buf, struct interface *ifp)
                         buf->buf, end,
                         (struct sockaddr*)&buf->sin6,
                         sizeof(buf->sin6));
-        if(rc < 0)
-            perror("send");
+        if(rc < 0) {
+		char *suppressed = "";
+		if (errno == EDESTADDRREQ) {
+			if (ifp->flags & IF_EDESTADDRREQ_SEEN)
+				goto suppress_send_error;
+			ifp->flags |= IF_EDESTADDRREQ_SEEN;
+			suppressed = " (suppressed)";
+		}
+
+		fprintf(stderr, "send(%s%%%" PRIu32 "): %s%s\n",
+		        format_address((unsigned char*)&buf->sin6.sin6_addr),
+			buf->sin6.sin6_scope_id,
+			strerror(errno),
+			suppressed);
+	}
+    suppress_send_error:
     }
     VALGRIND_MAKE_MEM_UNDEFINED(buf->buf, buf->size);
     buf->len = 0;
