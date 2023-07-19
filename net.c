@@ -173,10 +173,12 @@ babel_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen,
 int
 babel_send(int s,
            const void *buf1, int buflen1, const void *buf2, int buflen2,
-           const struct sockaddr *sin, int slen)
+           const struct sockaddr *sin, int slen, int dontfrag)
 {
     struct iovec iovec[2];
     struct msghdr msg;
+    int one = 1;
+    unsigned char cmsgbuf[CMSG_SPACE(sizeof(one))];
     int rc, count = 0;
 
     iovec[0].iov_base = (void*)buf1;
@@ -188,6 +190,17 @@ babel_send(int s,
     msg.msg_namelen = slen;
     msg.msg_iov = iovec;
     msg.msg_iovlen = 2;
+    if(dontfrag) {
+        struct cmsghdr *cmsg;
+        msg.msg_control = cmsgbuf;
+        msg.msg_controllen = sizeof(cmsgbuf);
+        cmsg = CMSG_FIRSTHDR(&msg);
+        cmsg->cmsg_level = IPPROTO_IPV6;
+        cmsg->cmsg_type = IPV6_DONTFRAG;;
+        cmsg->cmsg_len = CMSG_LEN(sizeof(one));
+        memcpy(CMSG_DATA(cmsg), &one, sizeof(one));
+        msg.msg_controllen = cmsg->cmsg_len;
+    }
 
     /* The Linux kernel can apparently keep returning EAGAIN indefinitely. */
 

@@ -1152,7 +1152,7 @@ flushbuf(struct buffered *buf, struct interface *ifp)
                         packet_header, sizeof(packet_header),
                         buf->buf, end,
                         (struct sockaddr*)&buf->sin6,
-                        sizeof(buf->sin6));
+                        sizeof(buf->sin6), 0);
         if(rc < 0)
             perror("send");
     }

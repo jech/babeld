@@ -25,6 +25,6 @@ int babel_recv(int s, void *buf, int buflen, struct sockaddr *sin, int slen,
                unsigned char *src_return);
 int babel_send(int s,
                const void *buf1, int buflen1, const void *buf2, int buflen2,
-               const struct sockaddr *sin, int slen);
+               const struct sockaddr *sin, int slen, int dontfrag);
 int tcp_server_socket(int port, int local);
 int unix_server_socket(const char *path);
