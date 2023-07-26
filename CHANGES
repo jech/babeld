@@ -1,3 +1,9 @@
+26 July 2023: babeld-1.13.1
+
+  * Implemented the per-interface option "probe-mtu", which automatically
+    discards links with a mis-configured MTU.  Thanks to Daniel Gröber.
+  * Fixed a typo in the handing of the option "v4viav6".
+
 16 July 2023: babeld-1.13
 
   * Removed diversity support and related configuration file directives.
