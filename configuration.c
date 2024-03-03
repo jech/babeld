@@ -1503,13 +1503,14 @@ redistribute_filter(const unsigned char *prefix, unsigned short plen,
 }
 
 int
-install_filter(const unsigned char *prefix, unsigned short plen,
+install_filter(const unsigned char *id,
+               const unsigned char *prefix, unsigned short plen,
                const unsigned char *src_prefix, unsigned short src_plen,
                unsigned int ifindex,
                struct filter_result *result)
 {
     int res;
-    res = do_filter(install_filters, NULL, prefix, plen,
+    res = do_filter(install_filters, id, prefix, plen,
                     src_prefix, src_plen, NULL, ifindex, 0, result);
     if(res < 0)
         res = INFINITY;

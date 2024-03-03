@@ -446,7 +446,8 @@ change_route(int operation, const struct babel_route *route, int metric,
     unsigned int ifindex = route->neigh->ifp->ifindex;
     int m, table;
 
-    m = install_filter(route->src->prefix, route->src->plen,
+    m = install_filter(route->src->id,
+                       route->src->prefix, route->src->plen,
                        route->src->src_prefix, route->src->src_plen,
                        ifindex, &filter_result);
     if(m >= INFINITY && operation == ROUTE_ADD) {
