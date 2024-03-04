@@ -28,6 +28,7 @@ THE SOFTWARE.
 #define CONFIG_ACTION_MONITOR 3
 #define CONFIG_ACTION_UNMONITOR 4
 #define CONFIG_ACTION_NO 5
+#define CONFIG_ACTION_CHECK_XROUTES 6
 
 #define AUTH_TYPE_NONE 0
 #define AUTH_TYPE_SHA256 1
@@ -84,7 +85,8 @@ int redistribute_filter(const unsigned char *prefix, unsigned short plen,
                     const unsigned char *src_prefix, unsigned short src_plen,
                     unsigned int ifindex, int proto,
                     struct filter_result *result);
-int install_filter(const unsigned char *prefix, unsigned short plen,
+int install_filter(const unsigned char *id,
+                   const unsigned char *prefix, unsigned short plen,
                    const unsigned char *src_prefix, unsigned short src_plen,
                    unsigned int ifindex, struct filter_result *result);
 int finalise_config(void);

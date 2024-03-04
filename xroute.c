@@ -434,7 +434,7 @@ kernel_route_notify(int add, struct kernel_route *kroute, void *closure)
 
 
 int
-check_xroutes(int send_updates, int warn)
+check_xroutes(int send_updates, int warn, int check_infinity)
 {
     int i, j, change = 0, rc;
     struct kernel_route *routes;
@@ -481,6 +481,8 @@ check_xroutes(int send_updates, int warn)
             memcpy(routes[i].src_prefix, filter_result.src_prefix, 16);
             routes[i].src_plen = filter_result.src_plen;
         }
+        debugf("Route %s metric %d\n",
+                format_prefix(routes[i].prefix, routes[i].plen), routes[i].metric);
     }
 
     qsort(routes, numroutes, sizeof(struct kernel_route), kernel_route_compare);
@@ -488,7 +490,7 @@ check_xroutes(int send_updates, int warn)
     j = 0;
     while(i < numroutes || j < numxroutes) {
         /* Ignore routes filtered out. */
-        if(i < numroutes && routes[i].metric >= INFINITY) {
+        if(!check_infinity && i < numroutes && routes[i].metric >= INFINITY) {
             i++;
             continue;
         }
