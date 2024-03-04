@@ -1265,6 +1265,11 @@ parse_config_line(int c, gnc_t gnc, void *closure,
             goto fail;
         add_key(key->id, key->type, key->len, key->value);
         free(key);
+    } else if(strcmp(token, "check_xroutes") == 0) {
+        c = skip_eol(c, gnc, closure);
+        if(c < -1 || !action_return)
+            goto fail;
+        *action_return = CONFIG_ACTION_CHECK_XROUTES;
     } else {
         c = parse_option(c, gnc, closure, token);
         if(c < -1)

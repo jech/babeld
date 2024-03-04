@@ -366,6 +366,12 @@ local_read(struct local_socket *s)
             snprintf(reply, sizeof(reply), "no%s%s\n",
                      message ? " " : "", message ? message : "");
             break;
+        case CONFIG_ACTION_CHECK_XROUTES:
+            rc = check_xroutes(1, 0, 1);
+            if(rc < 0) {
+                snprintf(reply, sizeof(reply), "Warning: couldn't check exported routes.\n");
+            }
+            break;
         default:
             snprintf(reply, sizeof(reply), "bad\n");
         }

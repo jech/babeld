@@ -514,7 +514,7 @@ main(int argc, char **argv)
 
     check_interfaces();
 
-    rc = check_xroutes(0, 0);
+    rc = check_xroutes(0, 0, 0);
     if(rc < 0)
         fprintf(stderr, "Warning: couldn't check exported routes.\n");
 
@@ -684,7 +684,7 @@ main(int argc, char **argv)
 
         if(kernel_addr_changed ||
            (kernel_check_interval > 0 && now.tv_sec >= kernel_dump_time)) {
-            rc = check_xroutes(1, !kernel_addr_changed);
+            rc = check_xroutes(1, !kernel_addr_changed, 0);
             if(rc < 0)
                 fprintf(stderr, "Warning: couldn't check exported routes.\n");
             kernel_addr_changed = 0;
