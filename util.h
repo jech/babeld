@@ -79,6 +79,7 @@ void timeval_min(struct timeval *d, const struct timeval *s);
 void timeval_min_sec(struct timeval *d, time_t secs);
 int parse_nat(const char *string) ATTRIBUTE ((pure));
 int parse_thousands(const char *string) ATTRIBUTE ((pure));
+int h2i(char c);
 int fromhex(unsigned char *dst, const char *src, int n);
 void do_debugf(int level, const char *format, ...)
     ATTRIBUTE ((format (printf, 2, 3))) COLD;

@@ -197,7 +197,7 @@ parse_thousands(const char *string)
     return -1;
 }
 
-static int
+int
 h2i(char c)
 {
     if(c >= '0' && c <= '9')
