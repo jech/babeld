@@ -261,7 +261,7 @@ flush_route(struct babel_route *route)
                         (route_slots - i - 1) * sizeof(struct babel_route*));
             routes[route_slots - 1] = NULL;
             route_slots--;
-            VALGRIND_MAKE_MEM_UNDEFINED(routes + route_slots, sizeof(struct route *));
+            VALGRIND_MAKE_MEM_UNDEFINED(routes + route_slots, sizeof(struct babel_route *));
         }
 
         if(route_slots == 0)
