@@ -26,5 +26,5 @@ THE SOFTWARE.
 int main(int argc, char **argv)
 {
     run_suite(util_test_suite, "util.c");
-    return 0;
+    return tests_failed;
 }

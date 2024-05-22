@@ -55,22 +55,22 @@ void roughly_test(void)
             swap(&lower_bound, &upper_bound);
         }
 
-        if(output < lower_bound) {
+        if(!babel_check(output >= lower_bound)) {
             fprintf(stderr, "Output of roughly function was too low. Input: %d / Output: %d.\n", input, output);
             fflush(stderr);
         }
 
-        if(output > upper_bound) {
+        if(!babel_check(output <= upper_bound)) {
             fprintf(stderr, "Output of roughly function was too high. Input: %d / Output: %d.\n", input, output);
             fflush(stderr);
         }
     }
 
-    if(roughly(1) != 1) {
+    if(!babel_check(roughly(1) == 1)) {
         fprintf(stderr, "roughly(1) should be 1.\n");
         fflush(stderr);
     }
-    if(roughly(0) != 0) {
+    if(!babel_check(roughly(0) == 0)) {
         fprintf(stderr, "roughly(1) should be 0.\n");
         fflush(stderr);
     }
@@ -102,8 +102,8 @@ void timeval_minus_test(void)
 
         timeval_minus(&result, tv1, tv2);
 
-        if(result.tv_usec != tcs[i].expected.tv_usec ||
-           result.tv_sec != tcs[i].expected.tv_sec) {
+        if(!babel_check(result.tv_usec == tcs[i].expected.tv_usec ||
+                        result.tv_sec == tcs[i].expected.tv_sec)) {
             fprintf(stderr,
                 "timeval_minus(%ld.%06ld, %ld.%06ld) = %ld.%06ld, expected: %ld.%06ld.\n",
                 tv1->tv_sec,
@@ -149,7 +149,7 @@ void timeval_minus_msec_test(void)
 
         result = timeval_minus_msec(tv1, tv2);
 
-        if(result != tcs[i].expected) {
+        if(!babel_check(result == tcs[i].expected)) {
             fprintf(stderr,
                 "timeval_minus_msec(%ld.%06ld, %ld.%06ld) = %u, expected: %u.\n",
                 tv1->tv_sec,
