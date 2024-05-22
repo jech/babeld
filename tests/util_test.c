@@ -76,6 +76,51 @@ void roughly_test(void)
     }
 }
 
+void timeval_minus_test(void)
+{
+    struct timeval *tv1, *tv2, result;
+    int i, num_of_cases;
+
+    typedef struct test_case {
+        struct timeval tv1_val;
+        struct timeval tv2_val;
+        struct timeval expected;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        { {42, 10}, {42, 10}, {0, 0} },
+        { {45, 10}, {42, 8},  {3, 2} },
+        { {45, 10}, {42, 11}, {2, 999999} }
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; i++) {
+        tv1 = &tcs[i].tv1_val;
+        tv2 = &tcs[i].tv2_val;
+
+        timeval_minus(&result, tv1, tv2);
+
+        if(result.tv_usec != tcs[i].expected.tv_usec ||
+           result.tv_sec != tcs[i].expected.tv_sec) {
+            fprintf(stderr,
+                "timeval_minus(%ld.%06ld, %ld.%06ld) = %ld.%06ld, expected: %ld.%06ld.",
+                tv1->tv_sec,
+                tv1->tv_usec,
+                tv2->tv_sec,
+                tv2->tv_usec,
+                result.tv_sec,
+                result.tv_usec,
+                tcs[i].expected.tv_sec,
+                tcs[i].expected.tv_usec
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
+    run_test(timeval_minus_test, "timeval_minus_test");
 }
