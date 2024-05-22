@@ -33,6 +33,7 @@ THE SOFTWARE.
 
 #define N_RANDOM_TESTS 128
 #define SEED 42
+#define EUI_SIZE 8
 
 void roughly_test(void)
 {
@@ -689,6 +690,49 @@ void format_prefix_test(void)
     }
 }
 
+void format_eui64_test(void)
+{
+    unsigned char *eui;
+    const char *result;
+    int num_of_cases, i;
+
+    typedef struct test_case {
+        unsigned char eui_val[EUI_SIZE];
+        size_t eui_val_length;
+        const char *expected;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        { {255, 254, 120, 42, 20, 15, 55, 12},
+          8,
+          "ff:fe:78:2a:14:0f:37:0c",
+        },
+        { {170, 170, 187, 187, 204, 204, 221, 221},
+          8,
+          "aa:aa:bb:bb:cc:cc:dd:dd",
+        },
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; ++i) {
+        eui = tcs[i].eui_val;
+
+        result = format_eui64(eui);
+
+        if(!babel_check(strcmp(result, tcs[i].expected) == 0)) {
+            fprintf(stderr,
+                "format_eui64(%s) = %s, expected: %s.",
+                str_of_array(eui, tcs[i].eui_val_length),
+                result,
+                tcs[i].expected
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
@@ -705,4 +749,5 @@ void util_test_suite(void) {
     run_test(normalize_prefix_test,"normalize_prefix_test");
     run_test(format_address_test,"format_address_test");
     run_test(format_prefix_test,"format_prefix_test");
+    run_test(format_eui64_test,"format_eui64_test");
 }
