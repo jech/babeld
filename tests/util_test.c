@@ -966,6 +966,65 @@ void wait_for_fd_test(void)
     }
 }
 
+void martian_prefix_test(void)
+{
+    unsigned char *prefix;
+    int i, num_of_cases, plen, rc;
+
+    typedef struct test_case {
+        unsigned char prefix_val[ADDRESS_ARRAY_SIZE];
+        int plen_val, expected_rc;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        { {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 127, 0, 0, 1},
+          104,
+          1,
+        },
+        { {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0xE2, 42, 42, 42},
+          100,
+          1,
+        },
+        { {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
+          128,
+          1,
+        },
+        { {42, 254, 120, 42, 20, 15, 55, 12, 90, 99, 85, 5, 200, 150, 120, 255},
+          128,
+          0,
+        },
+        { {255, 254, 120, 42, 20, 15, 55, 12, 90, 99, 85, 5, 200, 150, 120, 255},
+          128,
+          1,
+        },
+        { {254, 128, 120, 42, 20, 15, 55, 12, 90, 99, 85, 5, 200, 150, 120, 255},
+          128,
+          1,
+        },
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; ++i) {
+        prefix = tcs[i].prefix_val;
+        plen = tcs[i].plen_val;
+
+        rc = martian_prefix(prefix, plen);
+
+        if(!babel_check(rc == tcs[i].expected_rc)) {
+            fprintf(stderr,
+                "martian_prefix(%s, %d) = %d, expected: %d.",
+                str_of_array(prefix, ADDRESS_ARRAY_SIZE),
+                plen,
+                rc,
+                tcs[i].expected_rc
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
@@ -988,4 +1047,5 @@ void util_test_suite(void) {
     run_test(parse_net_test,"parse_net_test");
     run_test(parse_eui64_test,"parse_eui64_test");
     run_test(wait_for_fd_test,"wait_for_fd_test");
+    run_test(martian_prefix_test,"martian_prefix_test");
 }
