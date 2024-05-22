@@ -40,7 +40,10 @@ babeld.html: babeld.man
 
 all: babeld babeld.man
 
+o_files: $(OBJS)
+
 test:
+	$(MAKE) o_files CFLAGS+=-DTESTING
 	cd tests/ && $(MAKE) && ./main > /dev/null && $(MAKE) clean
 
 install.minimal: babeld
