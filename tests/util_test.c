@@ -300,6 +300,49 @@ void timeval_min_test(void)
     }
 }
 
+void timeval_min_sec_test(void)
+{
+    struct timeval s;
+    time_t secs;
+    int i, num_of_cases;
+
+    typedef struct test_case {
+        struct timeval s_val;
+        time_t secs_val;
+        time_t s_secs_expected;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        { {42, 10}, 41, 41 },
+        { {42, 10}, 43, 42 },
+        // NOTE: Is it correct? Infinity shouldn't be just {0, 0}?
+        { {0, 10}, 1024, 1024 }
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; i++) {
+        s = tcs[i].s_val;
+        secs = tcs[i].secs_val;
+
+        timeval_min_sec(&s, secs);
+
+
+        if(!babel_check(s.tv_sec == tcs[i].s_secs_expected)) {
+            fprintf(stderr,
+                "timeval_min_sec(%ld.%06ld, %ld) = %ld._, expected: %ld._.",
+                tcs[i].s_val.tv_sec,
+                tcs[i].s_val.tv_usec,
+                secs,
+                s.tv_sec,
+                tcs[i].s_secs_expected
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
@@ -307,4 +350,5 @@ void util_test_suite(void) {
     run_test(timeval_add_msec_test,"timeval_add_msec_test");
     run_test(timeval_compare_test,"timeval_compare_test");
     run_test(timeval_min_test,"timeval_min_test");
+    run_test(timeval_min_sec_test,"timeval_min_sec_test");
 }
