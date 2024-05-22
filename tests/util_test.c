@@ -30,7 +30,6 @@ THE SOFTWARE.
 #include "test_utilities.h"
 #include "../babeld.h"
 #include "../util.h"
-#include "../kernel.h"
 
 #define N_RANDOM_TESTS 128
 #define SEED 42
@@ -495,6 +494,51 @@ void fromhex_test(void)
     }
 }
 
+void in_prefix_test(void)
+{
+    const unsigned char *restrict prefix, *restrict address;
+    unsigned char plen;
+    int num_of_cases, i, result;
+
+    typedef struct test_case {
+        const unsigned char prefix_val[ADDRESS_ARRAY_SIZE];
+        int prefix_val_length;
+        const unsigned char address_val[ADDRESS_ARRAY_SIZE];
+        int address_val_length;
+        unsigned char plen_val;
+        int expected;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        { {0x2a, 0x2a}, 2, {0x2a, 0x2a, 0x2a}, 3, 16, 1 },
+        { {0x2a, 0x15}, 2, {0x2a, 0x2a, 0x2a}, 3, 16, 0 },
+        { {0x1, 0x2, 0xfe}, 3, {0x1, 0x2, 0xff}, 3, 23, 1 }
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; i++) {
+        prefix = tcs[i].prefix_val;
+        address = tcs[i].address_val;
+        plen = tcs[i].plen_val;
+
+        result = in_prefix(prefix, address, plen);
+
+        if(!babel_check(result == tcs[i].expected)) {
+            fprintf(stderr,
+                "in_prefix(%s, %s, %u) = %d, expected: %d.",
+                str_of_array(address, tcs[i].address_val_length),
+                str_of_array(prefix, tcs[i].prefix_val_length),
+                plen,
+                result,
+                tcs[i].expected
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
@@ -507,4 +551,5 @@ void util_test_suite(void) {
     run_test(parse_thousands_test,"parse_thousands_test");
     run_test(h2i_test,"h2i_test");
     run_test(fromhex_test,"fromhex_test");
+    run_test(in_prefix_test,"in_prefix_test");
 }
