@@ -956,6 +956,16 @@ void parse_eui64_test(void)
     }
 }
 
+void wait_for_fd_test(void)
+{
+    int rc;
+    rc = wait_for_fd(1, STDOUT_FILENO, 100);
+    if(!babel_check(rc == 1)) {
+        fprintf(stderr, "STDOUT should be able to write.\n");
+        fflush(stderr);
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
@@ -977,4 +987,5 @@ void util_test_suite(void) {
     run_test(parse_address_test,"parse_address_test");
     run_test(parse_net_test,"parse_net_test");
     run_test(parse_eui64_test,"parse_eui64_test");
+    run_test(wait_for_fd_test,"wait_for_fd_test");
 }
