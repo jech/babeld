@@ -770,6 +770,59 @@ void format_thousands_test(void)
     }
 }
 
+void parse_address_test(void)
+{
+    char *address;
+    unsigned char *addr_r;
+    int *af_r;
+    int rc, num_of_cases, i, test_ok;
+
+    typedef struct test_case {
+        char *const address_val;
+        unsigned char expected_addr_r[ADDRESS_ARRAY_SIZE];
+        int expected_af_r, expected_rc;
+    } test_case;
+
+    addr_r = malloc(ADDRESS_ARRAY_SIZE);
+    af_r = malloc(sizeof(int));
+
+    test_case tcs[] =
+    {
+        { "fffe:782a:140f:370c:5a63:5505:c896:78ff",
+          {255, 254, 120, 42, 20, 15, 55, 12, 90, 99, 85, 5, 200, 150, 120, 255},
+          AF_INET6,
+          0,
+        },
+        { "127.0.0.1",
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 127, 0, 0, 1},
+          AF_INET,
+          0,
+        }
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; ++i) {
+        address = tcs[i].address_val;
+
+        rc = parse_address(address, addr_r, af_r);
+
+        test_ok = memcmp(addr_r, tcs[i].expected_addr_r, 16) == 0;
+        test_ok &= (tcs[i].expected_af_r == *af_r);
+        test_ok &= (tcs[i].expected_rc == rc);
+
+        if(!babel_check(test_ok)) {
+            fprintf(stderr,
+                "parse_address(%s) = %s, expected: %s.",
+                address,
+                str_of_array(addr_r, ADDRESS_ARRAY_SIZE),
+                str_of_array(tcs[i].expected_addr_r, ADDRESS_ARRAY_SIZE)
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
@@ -788,4 +841,5 @@ void util_test_suite(void) {
     run_test(format_prefix_test,"format_prefix_test");
     run_test(format_eui64_test,"format_eui64_test");
     run_test(format_thousands_test,"format_thousands_test");
+    run_test(parse_address_test,"parse_address_test");
 }
