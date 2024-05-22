@@ -21,9 +21,10 @@ THE SOFTWARE.
 */
 
 #include "test_utilities.h"
+#include "util_test.h"
 
 int main(int argc, char **argv)
 {
-
+    run_suite(util_test_suite, "util.c");
     return 0;
 }
