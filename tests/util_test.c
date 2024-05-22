@@ -105,7 +105,7 @@ void timeval_minus_test(void)
         if(result.tv_usec != tcs[i].expected.tv_usec ||
            result.tv_sec != tcs[i].expected.tv_sec) {
             fprintf(stderr,
-                "timeval_minus(%ld.%06ld, %ld.%06ld) = %ld.%06ld, expected: %ld.%06ld.",
+                "timeval_minus(%ld.%06ld, %ld.%06ld) = %ld.%06ld, expected: %ld.%06ld.\n",
                 tv1->tv_sec,
                 tv1->tv_usec,
                 tv2->tv_sec,
@@ -120,7 +120,52 @@ void timeval_minus_test(void)
     }
 }
 
+void timeval_minus_msec_test(void)
+{
+    struct timeval *tv1, *tv2;
+    int i, num_of_cases;
+    unsigned result;
+
+    typedef struct test_case {
+        struct timeval tv1_val;
+        struct timeval tv2_val;
+        unsigned expected;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        { {42, 10}, {42, 10}, 0 },
+        { {100, 20000}, {40, 5000}, 60015 },
+        { {100, 20000}, {40, 5001}, 60014 },
+        { {100, 20000}, {100, 19000}, 1 },
+        { {100, 20000}, {101, 19000}, 0 },
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; i++) {
+        tv1 = &tcs[i].tv1_val;
+        tv2 = &tcs[i].tv2_val;
+
+        result = timeval_minus_msec(tv1, tv2);
+
+        if(result != tcs[i].expected) {
+            fprintf(stderr,
+                "timeval_minus_msec(%ld.%06ld, %ld.%06ld) = %u, expected: %u.\n",
+                tv1->tv_sec,
+                tv1->tv_usec,
+                tv2->tv_sec,
+                tv2->tv_usec,
+                result,
+                tcs[i].expected
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
+    run_test(timeval_minus_msec_test, "timeval_minus_test");
 }
