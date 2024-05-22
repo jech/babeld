@@ -118,7 +118,11 @@ kernel_link_notify(int add, struct kernel_link *link, void *closure)
 }
 
 int
+#ifdef TESTING
+not_main(int argc, char **argv)
+#else
 main(int argc, char **argv)
+#endif
 {
     struct sockaddr_in6 sin6;
     int rc, fd, i, opt;
