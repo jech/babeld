@@ -823,6 +823,89 @@ void parse_address_test(void)
     }
 }
 
+void parse_net_test(void)
+{
+    const char *net;
+    unsigned char *prefix_r, *plen_r, mask;
+    int *af_r, rc, num_of_cases, i, j, test_ok;
+
+
+    typedef struct test_case {
+        char *const net_val;
+        unsigned char expected_prefix_r[ADDRESS_ARRAY_SIZE];
+        unsigned char expected_plen_r;
+        int expected_af_r, expected_rc;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        { "default",
+          {},
+          0,
+          AF_INET6,
+          0,
+        },
+        { "127.0.0.1/2",
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 64, 0, 0, 0},
+          98,
+          AF_INET,
+          0,
+        },
+        { "127.0.0.1",
+           {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 127, 0, 0, 1},
+           128,
+           AF_INET,
+           0,
+        },
+        { "fffe:782a:140f:370c:5a63:5505:c896:78ff",
+          {255, 254, 120, 42, 20, 15, 55, 12, 90, 99, 85, 5, 200, 150, 120, 255},
+          128,
+          AF_INET6,
+          0,
+        },
+        { "fffe:782a:140f:370c:5a63:5505:c896:78ff/60",
+          {255, 254, 120, 42, 20, 15, 55, 8, 0, 0, 0, 0, 0, 0, 0, 0},
+          60,
+          AF_INET6,
+          0,
+        },
+    };
+
+    // 16 + 4 for prefix annotation
+    net = malloc(sizeof(char) * 20);
+    prefix_r = malloc(ADDRESS_ARRAY_SIZE);
+    plen_r = malloc(1);
+    af_r = malloc(sizeof(int));
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; ++i) {
+        net = tcs[i].net_val;
+
+        rc = parse_net(net, prefix_r, plen_r, af_r);
+
+        test_ok = (*plen_r == tcs[i].expected_plen_r);
+        test_ok &= (*af_r == tcs[i].expected_af_r);
+        test_ok &= (rc == tcs[i].expected_rc);
+        test_ok &= (memcmp(tcs[i].expected_prefix_r, prefix_r, tcs[i].expected_plen_r / 8) == 0);
+        for(j = 0; j < tcs[i].expected_plen_r % 8; ++j) {
+            mask = 1 << (8 - j - 1);
+            test_ok &= ((tcs[i].expected_prefix_r[tcs[i].expected_plen_r / 8] & mask) ==
+                        (prefix_r[tcs[i].expected_plen_r / 8] & mask));
+        }
+
+        if(!babel_check(test_ok)) {
+            fprintf(stderr,
+                "parse_net(%s) = %s, expected: %s.",
+                net,
+                str_of_array(prefix_r, ADDRESS_ARRAY_SIZE),
+                str_of_array(tcs[i].expected_prefix_r, ADDRESS_ARRAY_SIZE)
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
@@ -842,4 +925,5 @@ void util_test_suite(void) {
     run_test(format_eui64_test,"format_eui64_test");
     run_test(format_thousands_test,"format_thousands_test");
     run_test(parse_address_test,"parse_address_test");
+    run_test(parse_net_test,"parse_net_test");
 }
