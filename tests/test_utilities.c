@@ -25,6 +25,8 @@ THE SOFTWARE.
 
 #include "test_utilities.h"
 
+int tests_failed = 0;
+
 void
 swap(int* a, int* b)
 {
@@ -50,6 +52,12 @@ str_of_array(const unsigned char* const arr, int len) {
     str[i][pt] = '\0';
 
     return str[i];
+}
+
+int babel_check(int prop) {
+    if(!prop)
+        tests_failed++;
+    return prop;
 }
 
 void run_test(void (*test)(void), const char* test_name) {
