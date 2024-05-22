@@ -1,0 +1,81 @@
+/*
+Copyright (c) 2024 by Tomaz Mascarenhas
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h> // memcmp on MacOS
+#include <unistd.h> // STDOUT_FILENO on MacOS
+#include <time.h>
+#include <arpa/inet.h>
+
+#include "test_utilities.h"
+#include "../babeld.h"
+#include "../util.h"
+#include "../kernel.h"
+
+#define N_RANDOM_TESTS 128
+#define SEED 42
+
+void roughly_test(void)
+{
+    int i, input, output, lower_bound, upper_bound;
+
+    srand(SEED);
+
+    for (i = 0; i < N_RANDOM_TESTS; i++) {
+        input = rand() % 1024;
+        if (rand() % 2) {
+            input = -input;
+        }
+
+        output = roughly(input);
+        lower_bound = 3 * input / 4;
+        upper_bound = 5 * input / 4;
+
+        if (input < 0) {
+            swap(&lower_bound, &upper_bound);
+        }
+
+        if(output < lower_bound) {
+            fprintf(stderr, "Output of roughly function was too low. Input: %d / Output: %d.\n", input, output);
+            fflush(stderr);
+        }
+
+        if(output > upper_bound) {
+            fprintf(stderr, "Output of roughly function was too high. Input: %d / Output: %d.\n", input, output);
+            fflush(stderr);
+        }
+    }
+
+    if(roughly(1) != 1) {
+        fprintf(stderr, "roughly(1) should be 1.\n");
+        fflush(stderr);
+    }
+    if(roughly(0) != 0) {
+        fprintf(stderr, "roughly(1) should be 0.\n");
+        fflush(stderr);
+    }
+}
+
+void util_test_suite(void) {
+    run_test(roughly_test, "roughly_test");
+}
