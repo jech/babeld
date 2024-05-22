@@ -590,6 +590,55 @@ void normalize_prefix_test(void)
     }
 }
 
+void format_address_test(void)
+{
+    const unsigned char *address;
+    const char *result;
+    int num_of_cases, i;
+
+    typedef struct test_case {
+        unsigned char address_val[ADDRESS_ARRAY_SIZE];
+        int address_length;
+        const char *expected;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        { {0xff, 0xfe, 0x78, 0x2a, 0x14, 0xf, 0x37, 0xc, 0x5a, 0x63, 0x55, 0x5, 0xc8, 0x96, 0x78, 0xff},
+          16,
+          "fffe:782a:140f:370c:5a63:5505:c896:78ff",
+        },
+        { {0xaa, 0xaa, 0xbb, 0xbb, 0xcc, 0xcc},
+          6,
+          "aaaa:bbbb:cccc::",
+        },
+        { {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0xff, 0x7f, 0x0, 0x0, 0x1},
+          16,
+          "127.0.0.1",
+        },
+    };
+
+    result = malloc(ADDRESS_ARRAY_SIZE);
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; i++) {
+        address = tcs[i].address_val;
+
+        result = format_address(address);
+
+        if(!babel_check(strcmp(result, tcs[i].expected) == 0)) {
+            fprintf(stderr,
+                "format_address(%s) = %s, expected %s",
+                str_of_array(address, tcs[i].address_length),
+                result,
+                tcs[i].expected
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
@@ -604,4 +653,5 @@ void util_test_suite(void) {
     run_test(fromhex_test,"fromhex_test");
     run_test(in_prefix_test,"in_prefix_test");
     run_test(normalize_prefix_test,"normalize_prefix_test");
+    run_test(format_address_test,"format_address_test");
 }
