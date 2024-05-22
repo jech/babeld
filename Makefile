@@ -36,9 +36,12 @@ version.h:
 
 babeld.html: babeld.man
 
-.PHONY: all install install.minimal uninstall clean
+.PHONY: all install install.minimal uninstall clean test
 
 all: babeld babeld.man
+
+test:
+	cd tests/ && $(MAKE) && ./main > /dev/null && $(MAKE) clean
 
 install.minimal: babeld
 	-rm -f $(TARGET)$(PREFIX)/bin/babeld
