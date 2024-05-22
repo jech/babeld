@@ -164,8 +164,53 @@ void timeval_minus_msec_test(void)
     }
 }
 
+void timeval_add_msec_test(void)
+{
+    struct timeval *tv, result;
+    int msecs, num_of_cases, i, test_ok;
+
+    typedef struct test_case {
+        struct timeval tv1_val;
+        int msecs_val;
+        struct timeval expected;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        { {42, 10}, 50, { 42, 50010 } },
+        { {42, 990000}, 10, { 43, 0 } },
+        { {42, 990000}, 20, { 43, 10000 } }
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; i++) {
+        tv = &tcs[i].tv1_val;
+        msecs = tcs[i].msecs_val;
+
+        timeval_add_msec(&result, tv, msecs);
+
+        test_ok = (result.tv_sec == tcs[i].expected.tv_sec);
+        test_ok &= (result.tv_usec == tcs[i].expected.tv_usec);
+        if(!babel_check(test_ok)) {
+            fprintf(stderr,
+                "timeval_add_msec(%ld.%06ld, %d) = %ld.%06ld, expected: %ld.%06ld.",
+                tv->tv_sec,
+                tv->tv_usec,
+                msecs,
+                result.tv_sec,
+                result.tv_usec,
+                tcs[i].expected.tv_sec,
+                tcs[i].expected.tv_usec
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
     run_test(timeval_minus_msec_test, "timeval_minus_test");
+    run_test(timeval_add_msec_test,"timeval_add_msec_test");
 }
