@@ -343,6 +343,42 @@ void timeval_min_sec_test(void)
     }
 }
 
+void parse_nat_test(void)
+{
+    const char *string;
+    int result, i, num_of_cases;
+
+    typedef struct test_case {
+        const char *string_val;
+        int expected;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        { "42", 42 },
+        { "212348123481293", -1 },
+        { "0", 0 },
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; i++) {
+        string = tcs[i].string_val;
+
+        result = parse_nat(string);
+
+        if(!babel_check(result == tcs[i].expected)) {
+            fprintf(stderr,
+                "parse_nat(%s) = %d, expected: %d",
+                string,
+                result,
+                tcs[i].expected
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
@@ -351,4 +387,5 @@ void util_test_suite(void) {
     run_test(timeval_compare_test,"timeval_compare_test");
     run_test(timeval_min_test,"timeval_min_test");
     run_test(timeval_min_sec_test,"timeval_min_sec_test");
+    run_test(parse_nat_test,"parse_nat_test");
 }
