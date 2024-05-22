@@ -639,6 +639,56 @@ void format_address_test(void)
     }
 }
 
+void format_prefix_test(void)
+{
+    unsigned char plen, *prefix;
+    const char *result;
+    int num_of_cases, i;
+
+    typedef struct test_case {
+        unsigned char prefix_val[ADDRESS_ARRAY_SIZE];
+        unsigned char plen_val;
+        const char *expected;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        { {255, 254, 120, 42, 20, 15, 55, 12, 90, 99, 85, 5, 200, 150, 120, 255},
+          120,
+          "fffe:782a:140f:370c:5a63:5505:c896:78ff/120",
+        },
+        { {170, 170, 187, 187, 204, 204},
+           50,
+          "aaaa:bbbb:cccc::/50",
+        },
+        { {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 127,0,0,1},
+          100,
+          "127.0.0.1/4",
+        },
+
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; ++i) {
+        plen = tcs[i].plen_val;
+        prefix = tcs[i].prefix_val;
+
+        result = format_prefix(prefix, plen);
+
+        if(!babel_check(strcmp(result, tcs[i].expected) == 0)) {
+            fprintf(stderr,
+                "format_prefix(%s, %u) = %s, expected: %s.",
+                str_of_array(prefix, 3),
+                plen,
+                result,
+                tcs[i].expected
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
@@ -654,4 +704,5 @@ void util_test_suite(void) {
     run_test(in_prefix_test,"in_prefix_test");
     run_test(normalize_prefix_test,"normalize_prefix_test");
     run_test(format_address_test,"format_address_test");
+    run_test(format_prefix_test,"format_prefix_test");
 }
