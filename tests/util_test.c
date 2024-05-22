@@ -415,6 +415,44 @@ void parse_thousands_test(void)
     }
 }
 
+void h2i_test(void)
+{
+    int result, i, num_of_cases;
+    char c;
+
+    typedef struct test_case {
+        char c_val;
+        int expected;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        { '1', 1 },
+        { '9', 9 },
+        { 'A', 10 },
+        { 'C', 12 },
+        { 'd', 13 }
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; i++) {
+        c = tcs[i].c_val;
+
+        result = h2i(c);
+
+        if(!babel_check(result == tcs[i].expected)) {
+            fprintf(stderr,
+                "h2i(%c) = %d, expected: %d",
+                c,
+                result,
+                tcs[i].expected
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
@@ -425,4 +463,5 @@ void util_test_suite(void) {
     run_test(timeval_min_sec_test,"timeval_min_sec_test");
     run_test(parse_nat_test,"parse_nat_test");
     run_test(parse_thousands_test,"parse_thousands_test");
+    run_test(h2i_test,"h2i_test");
 }
