@@ -906,6 +906,56 @@ void parse_net_test(void)
     }
 }
 
+void parse_eui64_test(void)
+{
+    const char *eui;
+    unsigned char eui_r[EUI_SIZE];
+    int i, num_of_cases, test_ok, rc;
+
+    typedef struct test_case {
+        char *eui_val;
+        unsigned char expected_eui_r[EUI_SIZE];
+        int expected_rc;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        { "ff-34-42-ce-14-1f-ab-cc",
+          { 255, 52, 66, 206, 20, 31, 171, 204 },
+          0,
+        },
+        { "0b:ae:3d:31:42:00:ac:c5",
+          { 11, 174, 61, 49, 66, 0, 172, 197 },
+          0,
+        },
+        { "0b:ae:3d:31:42:00",
+          { 11, 174, 61, 255, 254, 49, 66, 0 },
+          0,
+        },
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; i++) {
+        eui = tcs[i].eui_val;
+
+        rc = parse_eui64(eui, eui_r);
+
+        test_ok = (rc == tcs[i].expected_rc);
+        test_ok &= (memcmp(eui_r, tcs[i].expected_eui_r, EUI_SIZE) == 0);
+
+        if(!babel_check(test_ok)) {
+            fprintf(stderr,
+                "parse_eui64(%s) = %s, expected: %s.",
+                eui,
+                str_of_array(eui_r, EUI_SIZE),
+                str_of_array(tcs[i].expected_eui_r, EUI_SIZE)
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
@@ -926,4 +976,5 @@ void util_test_suite(void) {
     run_test(format_thousands_test,"format_thousands_test");
     run_test(parse_address_test,"parse_address_test");
     run_test(parse_net_test,"parse_net_test");
+    run_test(parse_eui64_test,"parse_eui64_test");
 }
