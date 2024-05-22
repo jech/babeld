@@ -539,6 +539,57 @@ void in_prefix_test(void)
     }
 }
 
+void normalize_prefix_test(void)
+{
+    const unsigned char *restrict prefix;
+    unsigned char *restrict result;
+    unsigned char plen, mask;
+    int num_of_cases, i, j, test_ok, bit_ok;
+
+    typedef struct test_case {
+        unsigned char expected[ADDRESS_ARRAY_SIZE];
+        const unsigned char prefix_val[ADDRESS_ARRAY_SIZE];
+        int prefix_size;
+        unsigned char plen_val;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        { {0x4, 0x6}, {0x4, 0x6}, 2, 16 },
+        { {0x1, 0x2, 0xfc}, {0x1, 0x2, 0xff}, 3, 22 },
+        { {0x1, 0x1, 0x1, 0x1}, {0x1, 0x1, 0x1, 0x0}, 4, 30 }
+    };
+
+    result = malloc(ADDRESS_ARRAY_SIZE);
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; i++) {
+        prefix = tcs[i].prefix_val;
+        plen = tcs[i].plen_val;
+
+        normalize_prefix(result, prefix, plen);
+
+        test_ok = memcmp(result, tcs[i].expected, plen / 8) == 0;
+        for(j = 0; j < plen % 8; j++) {
+            mask = 1 << (8 - j - 1);
+            bit_ok = (result[plen / 8] & mask) ==
+                     (tcs[i].expected[plen / 8] & mask);
+            test_ok &= bit_ok;
+        }
+        if(!babel_check(test_ok)) {
+            fprintf(stderr,
+                "normalize_prefix(%s, %u) = %s, expected: %s.",
+                str_of_array(prefix, tcs[i].prefix_size),
+                plen,
+                str_of_array(result, tcs[i].prefix_size),
+                str_of_array(tcs[i].expected, tcs[i].prefix_size)
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
@@ -552,4 +603,5 @@ void util_test_suite(void) {
     run_test(h2i_test,"h2i_test");
     run_test(fromhex_test,"fromhex_test");
     run_test(in_prefix_test,"in_prefix_test");
+    run_test(normalize_prefix_test,"normalize_prefix_test");
 }
