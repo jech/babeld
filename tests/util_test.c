@@ -733,6 +733,43 @@ void format_eui64_test(void)
     }
 }
 
+void format_thousands_test(void)
+{
+    unsigned int value;
+    const char *result;
+    int num_of_cases, i;
+
+    typedef struct test_case {
+        unsigned int value_val;
+        const char *expected;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        { 1024, "1.024" },
+        { 512, "0.512" },
+        { 1234567, "1234.567" }
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; ++i) {
+        value = tcs[i].value_val;
+
+        result = format_thousands(value);
+
+        if(!babel_check(strcmp(result, tcs[i].expected) == 0)) {
+            fprintf(stderr,
+                "format_thousands(%d) = %s, expected: %s.",
+                value,
+                result,
+                tcs[i].expected
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
@@ -750,4 +787,5 @@ void util_test_suite(void) {
     run_test(format_address_test,"format_address_test");
     run_test(format_prefix_test,"format_prefix_test");
     run_test(format_eui64_test,"format_eui64_test");
+    run_test(format_thousands_test,"format_thousands_test");
 }
