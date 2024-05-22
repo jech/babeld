@@ -453,6 +453,48 @@ void h2i_test(void)
     }
 }
 
+void fromhex_test(void)
+{
+    unsigned char *dst;
+    const char *src;
+    int n, i, num_of_cases, dst_len;
+
+    typedef struct test_case {
+        const char *src_val;
+        unsigned char expected[ADDRESS_ARRAY_SIZE];
+        int n_val;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        { "ff",     {0xff},             2 },
+        { "eeab",   {0xee, 0xab},       4 },
+        { "0A2aC8", {0x0a, 0x2a, 0xc8}, 6 }
+    };
+
+    dst = malloc(ADDRESS_ARRAY_SIZE);
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 1; i < num_of_cases; i++) {
+        src = tcs[i].src_val;
+        n = tcs[i].n_val;
+
+        dst_len = fromhex(dst, src, n);
+
+        if(!babel_check(memcmp(dst, tcs[i].expected, dst_len) == 0)) {
+            fprintf(stderr,
+                "fromhex(\"%s\", %d) = %s, expected: %s",
+                src,
+                n,
+                str_of_array(dst, dst_len),
+                str_of_array(tcs[i].expected, tcs[i].n_val / 2)
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
@@ -464,4 +506,5 @@ void util_test_suite(void) {
     run_test(parse_nat_test,"parse_nat_test");
     run_test(parse_thousands_test,"parse_thousands_test");
     run_test(h2i_test,"h2i_test");
+    run_test(fromhex_test,"fromhex_test");
 }
