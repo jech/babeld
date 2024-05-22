@@ -252,10 +252,59 @@ void timeval_compare_test(void)
     }
 }
 
+void timeval_min_test(void)
+{
+    struct timeval s1, s2;
+    int i, num_of_cases, test_ok;
+
+    typedef struct test_case {
+        struct timeval s1_val;
+        struct timeval s2_val;
+        struct timeval expected;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        { {42, 10}, {42, 10}, {42, 10} },
+        { {42, 10}, {0, 0}, {42, 10} },
+        { {0, 0}, {42, 10}, {42, 10} },
+        { {42, 9}, {42, 10}, {42, 9} },
+        { {41, 15}, {42, 10}, {41, 15} },
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; i++) {
+        s1 = tcs[i].s1_val;
+        s2 = tcs[i].s2_val;
+
+        timeval_min(&s1, &s2);
+
+
+        test_ok = (s1.tv_sec == tcs[i].expected.tv_sec);
+        test_ok &= (s1.tv_usec == tcs[i].expected.tv_usec);
+        if(!babel_check(test_ok)) {
+            fprintf(stderr,
+                "timeval_min(%ld.%06ld, %ld.%06ld) = %ld.%06ld, expected: %ld.%06ld.",
+                tcs[i].s1_val.tv_sec,
+                tcs[i].s1_val.tv_usec,
+                tcs[i].s2_val.tv_sec,
+                tcs[i].s2_val.tv_usec,
+                s1.tv_sec,
+                s1.tv_usec,
+                tcs[i].expected.tv_sec,
+                tcs[i].expected.tv_usec
+            );
+            fflush(stderr);
+        }
+    }
+}
+
 void util_test_suite(void) {
     run_test(roughly_test, "roughly_test");
     run_test(timeval_minus_test, "timeval_minus_test");
     run_test(timeval_minus_msec_test, "timeval_minus_test");
     run_test(timeval_add_msec_test,"timeval_add_msec_test");
     run_test(timeval_compare_test,"timeval_compare_test");
+    run_test(timeval_min_test,"timeval_min_test");
 }
