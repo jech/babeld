@@ -21,7 +21,9 @@ THE SOFTWARE.
 */
 
 #include <arpa/inet.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include "test_utilities.h"
@@ -31,6 +33,7 @@ THE SOFTWARE.
 #include "../interface.h"
 #include "../neighbour.h"
 #include "../route.h"
+#include "../source.h"
 
 #define N_ROUTES 6
 
@@ -51,6 +54,168 @@ int route_list_length(struct babel_route *r) {
         r = r->next;
     }
     return length;
+}
+
+void route_compare_test(void)
+{
+    int i, num_of_cases, rc_sign;
+    unsigned char *prefix, *src_prefix;
+    unsigned char plen, src_plen;
+    struct babel_route route;
+
+    typedef struct test_case {
+        unsigned char *prefix_val;
+        unsigned char plen_val;
+        unsigned char *src_prefix_val;
+        unsigned char src_plen_val;
+        unsigned char *route_src_prefix_val;
+        unsigned char route_src_plen_val;
+        unsigned char *route_prefix_val;
+        unsigned char route_plen_val;
+        int expected_rc_sign;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        {
+            .prefix_val = (unsigned char[])
+                { 204, 191, 204, 17, 179, 148, 97, 201, 24, 33, 133, 32, 138, 138, 104, 235 },
+            .plen_val = 128,
+            .src_prefix_val = (unsigned char[])
+                { 167, 145, 127, 130, 201, 185, 216, 226, 87, 1, 78, 203, 236, 64, 33, 184 },
+            .src_plen_val = 96,
+            .route_src_prefix_val = (unsigned char[])
+                { 0, 237, 201, 179, 130, 42, 124, 154, 75, 1, 186, 213, 139, 34, 192, 50 },
+            .route_src_plen_val = 96,
+            .route_prefix_val = (unsigned char[])
+                { 180, 64, 181, 125, 249, 141, 95, 81, 142, 173, 28, 122, 238, 61, 50, 238 },
+            .route_plen_val = 128,
+            .expected_rc_sign = 24
+        },
+        {
+            .prefix_val = (unsigned char[])
+                { 204, 191, 204, 17, 179, 148, 97, 201, 24, 33, 133, 32, 138, 138, 104, 235 },
+            .plen_val = 128,
+            .src_prefix_val = (unsigned char[])
+                { 167, 145, 127, 130, 201, 185, 216, 226, 87, 1, 78, 203, 236, 64, 33, 184 },
+            .src_plen_val = 0,
+            .route_src_prefix_val = (unsigned char[])
+                { 0, 237, 201, 179, 130, 42, 124, 154, 75, 1, 186, 213, 139, 34, 192, 50 },
+            .route_src_plen_val = 96,
+            .route_prefix_val = (unsigned char[])
+                { 180, 64, 181, 125, 249, 141, 95, 81, 142, 173, 28, 122, 238, 61, 50, 238 },
+            .route_plen_val = 128,
+            .expected_rc_sign = 1
+        },
+        {
+            .prefix_val = (unsigned char[])
+                { 201, 5, 52, 158, 160, 192, 253, 113, 137, 217, 19, 232, 162, 114, 41, 141 },
+            .plen_val = 128,
+            .src_prefix_val = (unsigned char[])
+                { 234, 209, 73, 225, 36, 213, 61, 230, 152, 59, 215, 238, 134, 233, 23, 140 },
+            .src_plen_val = 96,
+            .route_src_prefix_val = (unsigned char[])
+                { 5, 224, 238, 168, 213, 155, 140, 95, 208, 200, 219, 162, 95, 201, 94, 65 },
+            .route_src_plen_val = 0,
+            .route_prefix_val = (unsigned char[])
+                { 225, 33, 114, 8, 246, 83, 140, 92, 194, 195, 254, 241, 86, 75, 18, 40 },
+            .route_plen_val = 128,
+            .expected_rc_sign = -1
+        },
+        {
+            .prefix_val = (unsigned char[])
+                { 201, 5, 52, 158, 160, 192, 253, 113, 137, 217, 19, 232, 162, 114, 41, 141 },
+            .plen_val = 10,
+            .src_prefix_val = (unsigned char[])
+                { 234, 209, 73, 225, 36, 213, 61, 230, 152, 59, 215, 238, 134, 233, 23, 140 },
+            .src_plen_val = 96,
+            .route_src_prefix_val = (unsigned char[])
+                { 5, 224, 238, 168, 213, 155, 140, 95, 208, 200, 219, 162, 95, 201, 94, 65 },
+            .route_src_plen_val = 96,
+            .route_prefix_val = (unsigned char[])
+                { 201, 5, 52, 158, 160, 192, 253, 113, 137, 217, 19, 232, 162, 114, 41, 141 },
+            .route_plen_val = 128,
+            .expected_rc_sign = -1
+        },
+        {
+            .prefix_val = (unsigned char[])
+                { 201, 5, 52, 158, 160, 192, 253, 113, 137, 217, 19, 232, 162, 114, 41, 141 },
+            .plen_val = 128,
+            .src_prefix_val = (unsigned char[])
+                { 234, 209, 73, 225, 36, 213, 61, 230, 152, 59, 215, 238, 134, 233, 23, 140 },
+            .src_plen_val = 96,
+            .route_src_prefix_val = (unsigned char[])
+                { 5, 224, 238, 168, 213, 155, 140, 95, 208, 200, 219, 162, 95, 201, 94, 65 },
+            .route_src_plen_val = 96,
+            .route_prefix_val = (unsigned char[])
+                { 201, 5, 52, 158, 160, 192, 253, 113, 137, 217, 19, 232, 162, 114, 41, 141 },
+            .route_plen_val = 10,
+            .expected_rc_sign = 1
+        },
+        {
+            .prefix_val = (unsigned char[])
+                { 201, 5, 52, 158, 160, 192, 253, 113, 137, 217, 19, 232, 162, 114, 41, 141 },
+            .plen_val = 128,
+            .src_prefix_val = (unsigned char[])
+                { 234, 209, 73, 225, 36, 213, 61, 230, 152, 59, 215, 238, 134, 233, 23, 140 },
+            .src_plen_val = 96,
+            .route_src_prefix_val = (unsigned char[])
+                { 5, 224, 238, 168, 213, 155, 140, 95, 208, 200, 219, 162, 95, 201, 94, 65 },
+            .route_src_plen_val = 96,
+            .route_prefix_val = (unsigned char[])
+                { 201, 5, 52, 158, 160, 192, 253, 113, 137, 217, 19, 232, 162, 114, 41, 141 },
+            .route_plen_val = 128,
+            .expected_rc_sign = 1
+        },
+        {
+            .prefix_val = (unsigned char[])
+                { 201, 5, 52, 158, 160, 192, 253, 113, 137, 217, 19, 232, 162, 114, 41, 141 },
+            .plen_val = 128,
+            .src_prefix_val = (unsigned char[])
+                { 234, 209, 73, 225, 36, 213, 61, 230, 152, 59, 215, 238, 134, 233, 23, 140 },
+            .src_plen_val = 0,
+            .route_src_prefix_val = (unsigned char[])
+                { 5, 224, 238, 168, 213, 155, 140, 95, 208, 200, 219, 162, 95, 201, 94, 65 },
+            .route_src_plen_val = 0,
+            .route_prefix_val = (unsigned char[])
+                { 201, 5, 52, 158, 160, 192, 253, 113, 137, 217, 19, 232, 162, 114, 41, 141 },
+            .route_plen_val = 128,
+            .expected_rc_sign = 0
+        },
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+    route.src = malloc(sizeof(struct source));
+    for(i = 0; i < num_of_cases; ++i) {
+        prefix = tcs[i].prefix_val;
+        plen = tcs[i].plen_val;
+        src_prefix = tcs[i].src_prefix_val;
+        src_plen = tcs[i].src_plen_val;
+        route.src->plen = tcs[i].route_plen_val;
+        memcpy(route.src->prefix, tcs[i].route_prefix_val, 16);
+        route.src->src_plen = tcs[i].route_src_plen_val;
+        memcpy(route.src->src_prefix, tcs[i].route_src_prefix_val, 16);
+
+        rc_sign = route_compare(prefix, plen, src_prefix, src_plen, &route);
+
+        // The magnitude of the result of memcmp is implementation-dependent, so we can only check
+        // if we got the right sign
+        if(!babel_check(sign(rc_sign) == sign(tcs[i].expected_rc_sign))) {
+            fprintf(stderr, "Failed test (%d) on route_compare\n", i);
+            fprintf(stderr, "prefix: %s\n", str_of_array(prefix, 16));
+            fprintf(stderr, "plen: %d\n", plen);
+            fprintf(stderr, "src_prefix: %s\n", str_of_array(src_prefix, 16));
+            fprintf(stderr, "src_plen: %d\n", src_plen);
+            fprintf(stderr, "route->src->prefix: %s\n", str_of_array(route.src->prefix, 16));
+            fprintf(stderr, "route->src->plen: %d\n", route.src->plen);
+            fprintf(stderr, "route->src->src_prefix: %s\n", str_of_array(route.src->src_prefix, 16));
+            fprintf(stderr, "route->src->src_plen: %d\n", route.src->src_plen);
+            fprintf(stderr, "expected rc: %d\n", tcs[i].expected_rc_sign);
+            fprintf(stderr, "computed rc: %d\n", rc_sign);
+            fflush(stderr);
+        }
+    }
+    free(route.src);
 }
 
 void route_setup(void) {
@@ -122,4 +287,5 @@ void run_route_test(void (*test)(void), char *test_name) {
 
 void route_test_suite(void)
 {
+    run_test(route_compare_test, "route_compare_test");
 }
