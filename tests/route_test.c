@@ -21,11 +21,13 @@ THE SOFTWARE.
 */
 
 #include <arpa/inet.h>
+#include <stdlib.h>
 #include <time.h>
 
 #include "test_utilities.h"
 
 #include "../babeld.h"
+#include "../configuration.h"
 #include "../interface.h"
 #include "../neighbour.h"
 #include "../route.h"
@@ -92,13 +94,19 @@ void route_setup(void) {
         { 173, 76, 71, 184, 21, 200, 70, 185, 15, 19, 223, 62, 165, 179, 210, 92 },
       };
     int src_plens[] = {100, 115, 96, 50, 37, 81};
+
+    // Install artificial filter
+    struct filter *filter = calloc(1, sizeof(struct filter));
+    filter->plen_le = 128;
+    filter->src_plen_le = 128;
+    add_filter(filter, FILTER_TYPE_INSTALL);
+
     for(i = 0; i < N_ROUTES; i++) {
         const unsigned char id[] = {i};
         struct neighbour *n = find_neighbour(neigh_addresses[i], ifp);
-        update_route(id, prefixes[i], plens[i], src_prefixes[i], src_plens[i], 0, 10, 0, n, next_hops[i]);
+        struct babel_route *r = update_route(id, prefixes[i], plens[i], src_prefixes[i], src_plens[i], 0, 10, 0, n, next_hops[i]);
         ns[i] = n;
-        // This will make some call to the kernel that is breaking the tests
-        /* install_route(r); */
+        install_route(r);
     }
 }
 
