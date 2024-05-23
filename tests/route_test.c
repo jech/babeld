@@ -34,6 +34,23 @@ THE SOFTWARE.
 
 struct neighbour *ns[N_ROUTES];
 
+int sign(int x) {
+    if(x > 0)
+        return 1;
+    if(x < 0)
+        return -1;
+    return 0;
+}
+
+int route_list_length(struct babel_route *r) {
+    int length = 0;
+    while(r != NULL) {
+        length++;
+        r = r->next;
+    }
+    return length;
+}
+
 void route_setup(void) {
     int i;
     struct interface *ifp = add_interface("test_if", NULL);
