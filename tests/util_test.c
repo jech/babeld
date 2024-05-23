@@ -20,12 +20,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h> // memcmp on MacOS
-#include <unistd.h> // STDOUT_FILENO on MacOS
 #include <time.h>
-#include <arpa/inet.h>
+#include <unistd.h> // STDOUT_FILENO on MacOS
 
 #include "test_utilities.h"
 #include "../babeld.h"
