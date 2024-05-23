@@ -285,6 +285,73 @@ void find_route_slot_test(void)
     }
 }
 
+void find_route_test(void)
+{
+    int i, num_of_cases;
+    unsigned char *prefix, *src_prefix;
+    unsigned char plen, src_plen;
+    struct babel_route *route, *expected_route;
+    struct neighbour *neigh;
+
+    typedef struct test_case {
+        unsigned char *prefix_val;
+        unsigned char plen_val;
+        unsigned char *src_prefix_val;
+        unsigned char src_plen_val;
+        int neigh_index_val;
+        int expected_route_index;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        {
+            .prefix_val = (unsigned char[])
+                { 78, 162, 240, 49, 189, 24, 46, 203, 201, 107, 41, 160, 213, 182, 197, 23 },
+            .plen_val = 101,
+            .src_prefix_val = (unsigned char[])
+                { 26, 137, 255, 238, 199, 6, 224, 128, 87, 142, 8, 197, 49, 142, 106, 113 },
+            .src_plen_val = 115,
+            .neigh_index_val = 1,
+            .expected_route_index = 1
+        },
+        {
+            .prefix_val = (unsigned char[])
+                { 68, 162, 240, 49, 189, 24, 46, 203, 201, 107, 41, 160, 213, 182, 197, 23 },
+            .plen_val = 101,
+            .src_prefix_val = (unsigned char[])
+                { 26, 137, 255, 238, 199, 6, 224, 128, 87, 142, 8, 197, 49, 142, 106, 113 },
+            .src_plen_val = 115,
+            .neigh_index_val = -1,
+            .expected_route_index = -1
+        },
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; ++i) {
+        prefix = tcs[i].prefix_val;
+        plen = tcs[i].plen_val;
+        src_prefix = tcs[i].src_prefix_val;
+        src_plen = tcs[i].src_plen_val;
+        neigh = ns[tcs[i].neigh_index_val];
+
+        route = find_route(prefix, plen, src_prefix, src_plen, neigh);
+
+        expected_route =
+            tcs[i].expected_route_index == -1 ? NULL : routes[tcs[i].expected_route_index];
+        if(!babel_check(route == expected_route)) {
+            fprintf(stderr, "Failed test (%d) on find_route\n", i);
+            fprintf(stderr, "prefix: %s\n", str_of_array(prefix, plen));
+            fprintf(stderr, "plen: %d\n", plen);
+            fprintf(stderr, "src_prefix: %s\n", str_of_array(src_prefix, src_plen));
+            fprintf(stderr, "src_plen: %d\n", src_plen);
+            fprintf(stderr, "neighbour: ns[%d]\n", tcs[i].neigh_index_val);
+            fprintf(stderr, "expected route: routes[%d]\n", tcs[i].expected_route_index);
+            fflush(stderr);
+        }
+    }
+}
+
 void route_setup(void) {
     int i;
     struct interface *ifp = add_interface("test_if", NULL);
@@ -368,4 +435,5 @@ void route_test_suite(void)
     kernel_route = &kernel_route_dummy;
     run_test(route_compare_test, "route_compare_test");
     run_route_test(find_route_slot_test, "find_route_slot_test");
+    run_route_test(find_route_test, "find_route_test");
 }
