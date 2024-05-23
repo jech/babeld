@@ -515,6 +515,16 @@ void flush_route_test(void) {
     }
 }
 
+void route_stream_test(void) {
+    struct route_stream *stream;
+    int which;
+    for(which = 0; which <= 1; which++) {
+        stream = route_stream(which);
+        if(!babel_check(stream != NULL))
+            fprintf(stderr, "Failed test: route_stream(%d) was NULL.", which);
+    }
+}
+
 void route_setup(void) {
     int i;
     struct interface *ifp = add_interface("test_if", NULL);
@@ -602,4 +612,5 @@ void route_test_suite(void)
     run_route_test(installed_routes_estimate_test, "installed_routes_estimate_test");
     run_route_test(insert_route_test, "insert_route_test");
     run_route_test(flush_route_test, "flush_route_test");
+    run_test(route_stream_test, "route_stream_test");
 }
