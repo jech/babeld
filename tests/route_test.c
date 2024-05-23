@@ -31,6 +31,7 @@ THE SOFTWARE.
 #include "../babeld.h"
 #include "../configuration.h"
 #include "../interface.h"
+#include "../kernel.h"
 #include "../neighbour.h"
 #include "../route.h"
 #include "../source.h"
@@ -285,7 +286,20 @@ void run_route_test(void (*test)(void), char *test_name) {
     route_tear_down();
 }
 
+int
+kernel_route_dummy(int operation, int table,
+                   const unsigned char *dest, unsigned short plen,
+                   const unsigned char *src, unsigned short src_plen,
+                   const unsigned char *pref_src,
+                   const unsigned char *gate, int ifindex, unsigned int metric,
+                   const unsigned char *newgate, int newifindex,
+                   unsigned int newmetric, int newtable)
+{
+    return 0;
+}
+
 void route_test_suite(void)
 {
+    kernel_route = &kernel_route_dummy;
     run_test(route_compare_test, "route_compare_test");
 }

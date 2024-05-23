@@ -953,13 +953,13 @@ kernel_safe_v4viav6(void)
 }
 
 int
-kernel_route(int operation, int table,
-             const unsigned char *dest, unsigned short plen,
-             const unsigned char *src, unsigned short src_plen,
-             const unsigned char *pref_src,
-             const unsigned char *gate, int ifindex, unsigned int metric,
-             const unsigned char *newgate, int newifindex,
-             unsigned int newmetric, int newtable)
+kernel_route_impl(int operation, int table,
+                  const unsigned char *dest, unsigned short plen,
+                  const unsigned char *src, unsigned short src_plen,
+                  const unsigned char *pref_src,
+                  const unsigned char *gate, int ifindex, unsigned int metric,
+                  const unsigned char *newgate, int newifindex,
+                  unsigned int newmetric, int newtable)
 {
     union { char raw[1024]; struct nlmsghdr nh; } buf;
     struct rtmsg *rtm;
@@ -1196,6 +1196,14 @@ parse_kernel_route_rta(struct rtmsg *rtm, int len, struct kernel_route *route)
 
     return -1;
 }
+
+int (*kernel_route)(int operation, int table,
+                    const unsigned char *dest, unsigned short plen,
+                    const unsigned char *src, unsigned short src_plen,
+                    const unsigned char *pref_src,
+                    const unsigned char *gate, int ifindex, unsigned int metric,
+                    const unsigned char *newgate, int newifindex,
+                    unsigned int newmetric, int newtable) = &kernel_route_impl;
 
 static void
 print_kernel_route(int add, int protocol, int type,

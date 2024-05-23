@@ -79,13 +79,17 @@ int kernel_interface_ipv4(const char *ifname, int ifindex,
                           unsigned char *addr_r);
 int kernel_interface_mtu(const char *ifname, int ifindex);
 int kernel_interface_wireless(const char *ifname, int ifindex);
-int kernel_route(int operation, int table,
-                 const unsigned char *dest, unsigned short plen,
-                 const unsigned char *src, unsigned short src_plen,
-                 const unsigned char *pref_src,
-                 const unsigned char *gate, int ifindex, unsigned int metric,
-                 const unsigned char *newgate, int newifindex,
-                 unsigned int newmetric, int newtable);
+
+// Making this a function pointer so we can mock it.
+extern int (*kernel_route)
+    (int operation, int table,
+     const unsigned char *dest, unsigned short plen,
+     const unsigned char *src, unsigned short src_plen,
+     const unsigned char *pref_src,
+     const unsigned char *gate, int ifindex, unsigned int metric,
+     const unsigned char *newgate, int newifindex,
+     unsigned int newmetric, int newtable);
+
 int kernel_dump(int operation, struct kernel_filter *filter);
 int kernel_callback(struct kernel_filter *filter);
 int if_eui64(char *ifname, int ifindex, unsigned char *eui);

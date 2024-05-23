@@ -401,13 +401,13 @@ kernel_safe_v4viav6(void)
 }
 
 int
-kernel_route(int operation, int table,
-             const unsigned char *dest, unsigned short plen,
-             const unsigned char *src, unsigned short src_plen,
-             const unsigned char *pref_src,
-             const unsigned char *gate, int ifindex, unsigned int metric,
-             const unsigned char *newgate, int newifindex,
-             unsigned int newmetric, int newtable)
+kernel_route_impl(int operation, int table,
+                  const unsigned char *dest, unsigned short plen,
+                  const unsigned char *src, unsigned short src_plen,
+                  const unsigned char *pref_src,
+                  const unsigned char *gate, int ifindex, unsigned int metric,
+                  const unsigned char *newgate, int newifindex,
+                  unsigned int newmetric, int newtable)
 {
     struct {
         struct rt_msghdr m_rtm;
@@ -576,6 +576,14 @@ kernel_route(int operation, int table,
 
     return 1;
 }
+
+int (*kernel_route)(int operation, int table,
+                    const unsigned char *dest, unsigned short plen,
+                    const unsigned char *src, unsigned short src_plen,
+                    const unsigned char *pref_src,
+                    const unsigned char *gate, int ifindex, unsigned int metric,
+                    const unsigned char *newgate, int newifindex,
+                    unsigned int newmetric, int newtable) = &kernel_route_impl;
 
 static void
 print_kernel_route(int add, struct kernel_route *route)
