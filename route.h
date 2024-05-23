@@ -40,6 +40,7 @@ struct route_stream;
 
 extern struct babel_route **routes;
 extern int kernel_metric, allow_duplicates, reflect_kernel_metric;
+extern int route_slots;
 
 static inline int
 route_metric(const struct babel_route *route)
