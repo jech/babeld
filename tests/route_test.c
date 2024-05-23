@@ -448,6 +448,72 @@ void insert_route_test(void)
         flush_route(added_routes[i]);
 }
 
+void flush_route_test(void) {
+    int i, j, num_of_cases, test_ok, prev_slots, prev_length, curr_length;
+    struct babel_route *r, *to_insert;
+
+    // Insert some routes before running the test, so we can test slots with size > 1.
+    unsigned char p1[] = { 78, 162, 240, 49, 189, 24, 46, 203, 201, 107, 41, 160, 213, 182, 197, 23 };
+    unsigned char src_p1[] = { 26, 137, 255, 238, 199, 6, 224, 128, 87, 142, 8, 197, 49, 142, 106, 113 };
+    to_insert = malloc(sizeof(struct babel_route));
+    to_insert->installed = 0;
+    to_insert->src = malloc(sizeof(struct source));
+    to_insert->src->plen = 101;
+    memcpy(to_insert->src->prefix, p1, 16);
+    to_insert->src->src_plen = 115;
+    memcpy(to_insert->src->src_prefix, src_p1, 16);
+    to_insert->src->route_count = 1;
+    insert_route(to_insert);
+
+    // Select one of the routes stored in the global variable `routes` to be flushed in the test.
+    typedef struct test_case {
+        int slot; // slot where the route is located
+        int pos; // position inside that slot of the route
+        short last_route_in_slot;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        {
+            .slot = 1,
+            .pos = 1,
+            .last_route_in_slot = 0
+        },
+        {
+            .slot = 0,
+            .pos = 0,
+            .last_route_in_slot = 1
+        }
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; ++i) {
+        r = routes[tcs[i].slot];
+        for(j = 0; j < tcs[i].pos; j++)
+            r = r->next;
+
+        prev_slots = route_slots;
+        prev_length = route_list_length(routes[tcs[i].slot]);
+
+        flush_route(r);
+
+        curr_length = route_list_length(routes[tcs[i].slot]);
+        if(tcs[i].last_route_in_slot)
+            test_ok = route_slots == prev_slots - 1;
+        else
+            test_ok = curr_length == prev_length - 1;
+
+        if(!babel_check(test_ok)) {
+            fprintf(stderr, "Failed test (%d) on flush_route.\n", i);
+            fprintf(stderr, "Trying to flush %d-th route from %d-th slot:\n", tcs[i].pos, tcs[i].slot);
+            if(!tcs[i].last_route_in_slot && curr_length != prev_length - 1)
+                fprintf(stderr, "Route list length was not updated. Previous: %d; Current: %d.\n", prev_length, curr_length);
+            if(tcs[i].last_route_in_slot && route_slots != prev_slots - 1)
+                fprintf(stderr, "Number of route slots was not updated. Previous: %d; Current: %d.\n", prev_slots, route_slots);
+        }
+    }
+}
 
 void route_setup(void) {
     int i;
@@ -535,4 +601,5 @@ void route_test_suite(void)
     run_route_test(find_route_test, "find_route_test");
     run_route_test(installed_routes_estimate_test, "installed_routes_estimate_test");
     run_route_test(insert_route_test, "insert_route_test");
+    run_route_test(flush_route_test, "flush_route_test");
 }
