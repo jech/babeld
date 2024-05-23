@@ -214,6 +214,95 @@ void compute_hmac_test(void)
     }
 }
 
+void add_hmac_test(void)
+{
+    int i, num_of_cases, new_buf_len;
+    struct buffered buf;
+    struct interface ifp;
+    unsigned char *packet_header;
+
+    typedef struct test_case {
+        struct in6_addr sin6_addr;
+        unsigned char* buf_buf_val;
+        int buf_len_val;
+        int buf_size_val;
+        unsigned char ll0_val[16];
+        int numll_val;
+        unsigned char *packet_header_val;
+        struct key key_val;
+        int expected_buf_len;
+        unsigned char *expected_buf_val;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        {
+            .sin6_addr = { .s6_addr = { 255, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 6 }},
+            .buf_buf_val = (unsigned char [])
+                {4, 6, 0, 0, 172, 80, 0, 10, 17, 12, 0, 0, 0, 16, 101, 161, 234, 241, 60, 193, 123, 197},
+            .buf_len_val = 22,
+            .buf_size_val = 1448,
+            .ll0_val = {254, 128, 0, 0, 0, 0, 0, 0, 2, 22, 62, 255, 254, 208, 154, 166},
+            .numll_val = 1,
+            .packet_header_val = (unsigned char []) {42, 2, 0, 22},
+            .key_val = {
+                .type = AUTH_TYPE_BLAKE2S128,
+                .len = 32,
+                .value = (unsigned char [])
+                    {184, 17, 96, 231, 142, 203, 75, 118, 42, 213, 55, 90, 176, 66, 15, 104, 19,
+                     214, 60, 175, 10, 203, 125, 180, 142, 232, 123, 168, 191, 50, 173, 44}
+            },
+            .expected_buf_len = 40,
+            .expected_buf_val = (unsigned char [])
+                {4, 6, 0, 0, 172, 80, 0, 10, 17, 12, 0, 0, 0, 16, 101, 161, 234, 241, 60, 193, 123,
+                 197, 16, 16, 114, 37, 115, 35, 6, 165, 73, 235, 15, 109, 39, 142, 171, 237, 105,
+                 190}
+        },
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+    ifp.ll = malloc(16);
+
+    for(i = 0; i < num_of_cases; i++) {
+        buf.len = tcs[i].buf_len_val;
+        buf.size = tcs[i].buf_size_val;
+        buf.buf = tcs[i].buf_buf_val;
+        buf.sin6.sin6_addr = tcs[i].sin6_addr;
+        ifp.key = &tcs[i].key_val;
+        memcpy(*(ifp.ll), tcs[i].ll0_val, 16);
+        ifp.numll = tcs[i].numll_val;
+        packet_header = tcs[i].packet_header_val;
+
+        new_buf_len = add_hmac(&buf, &ifp, packet_header);
+
+        if(!babel_check(new_buf_len == tcs[i].expected_buf_len)) {
+            fprintf(stderr,
+                    "Failed test on add_hmac:\n"
+                    "add_hmac return code was %d, expected %d.\n",
+                    new_buf_len,
+                    tcs[i].expected_buf_len);
+        } else if(!babel_check(memcmp(buf.buf, tcs[i].expected_buf_val, new_buf_len) == 0)) {
+            fprintf(stderr, "Failed test on add_hmac:\n");
+            fprintf(stderr, "ifp.ll[0]: %s\n", str_of_array(ifp.ll[0], 16));
+            fprintf(stderr, "ifp.numll: %d\n", ifp.numll);
+            fprintf(stderr, "ifp.key.type: AUTH_TYPE_%s\n",
+                      ifp.key->type == AUTH_TYPE_SHA256 ? "SHA256" : "BLAKE2S128");
+            fprintf(stderr, "ifp.key.len: %d\n", ifp.key->len);
+            fprintf(stderr, "ifp.key.value: %s\n", str_of_array(ifp.key->value, ifp.key->len));
+            fprintf(stderr, "buf.len: %d\n", buf.len);
+            fprintf(stderr, "buf.size: %d\n", buf.size);
+            fprintf(stderr, "original buf.buf: %s\n", str_of_array(tcs[i].buf_buf_val, tcs[i].buf_len_val));
+            fprintf(stderr, "buf.sin6.sin6_addr: %s\n",
+                      str_of_array(buf.sin6.sin6_addr.s6_addr, ADDRESS_ARRAY_SIZE));
+            fprintf(stderr, "packet_header: %s\n", str_of_array(packet_header, PACKET_HEADER_SIZE));
+            fprintf(stderr, "resulting buf: %s\n", str_of_array(buf.buf, new_buf_len));
+            fprintf(stderr, "expected buf: %s\n", str_of_array(tcs[i].expected_buf_val, tcs[i].expected_buf_len));
+        }
+    }
+
+    free(ifp.ll);
+}
+
 void setup(void)
 {
     protocol_port = 6696;
@@ -224,4 +313,5 @@ void hmac_test_suite(void)
     setup();
     run_test(add_key_test, "add_key_test");
     run_test(compute_hmac_test, "compute_hmac_test");
+    run_test(add_hmac_test, "add_hmac_test");
 }
