@@ -352,6 +352,27 @@ void find_route_test(void)
     }
 }
 
+void installed_routes_estimate_test(void)
+{
+    struct route_stream *stream = route_stream(1);
+    struct babel_route *r;
+    int installed_routes = 0, estimate = installed_routes_estimate();
+
+    while(1) {
+        r = route_stream_next(stream);
+        if(r == NULL)
+            break;
+        else
+            installed_routes++;
+    }
+
+    if(!babel_check(installed_routes <= estimate)) {
+        fprintf(stderr, "Failed test on installed_routes_estimate.\n");
+        fprintf(stderr, "Expected that the estimated number would be greater or equal to the number of actually installed routes.\n");
+        fprintf(stderr, "Installed routes: %d\nEstimate: %d\n", installed_routes, estimate);
+    }
+}
+
 void route_setup(void) {
     int i;
     struct interface *ifp = add_interface("test_if", NULL);
@@ -436,4 +457,5 @@ void route_test_suite(void)
     run_test(route_compare_test, "route_compare_test");
     run_route_test(find_route_slot_test, "find_route_slot_test");
     run_route_test(find_route_test, "find_route_test");
+    run_route_test(installed_routes_estimate_test, "installed_routes_estimate_test");
 }
