@@ -525,6 +525,64 @@ void route_stream_test(void) {
     }
 }
 
+void route_stream_next_test(void) {
+    int i, j, num_of_cases;
+    struct route_stream *stream;
+    struct babel_route *route;
+
+    typedef struct test_case {
+        int installed_val;
+        int number_of_calls;
+        int expected_route_index;
+    } test_case;
+
+    test_case tcs[] = {
+        {
+            .installed_val = 0,
+            .number_of_calls = 2,
+            .expected_route_index = 1,
+        },
+        {
+            .installed_val = 1,
+            .number_of_calls = 1,
+            .expected_route_index = 0,
+        }
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; ++i) {
+        stream = route_stream(tcs[i].installed_val);
+        j = tcs[i].number_of_calls;
+        while(j) {
+            route = route_stream_next(stream);
+            j--;
+        }
+
+        if(!babel_check(routes[tcs[i].expected_route_index] == route)) {
+            fprintf(stderr, "Failed test (%d) on route_stream_next.\n", i);
+            fprintf(stderr, "Expected routes[%d] after %d iteration(s) (", tcs[i].expected_route_index, tcs[i].number_of_calls);
+            if(tcs[i].installed_val)
+                fprintf(stderr, "only installed routes).\n");
+            else
+                fprintf(stderr, "all routes).\n");
+        }
+    }
+}
+
+
+int
+kernel_route_dummy(int operation, int table,
+                   const unsigned char *dest, unsigned short plen,
+                   const unsigned char *src, unsigned short src_plen,
+                   const unsigned char *pref_src,
+                   const unsigned char *gate, int ifindex, unsigned int metric,
+                   const unsigned char *newgate, int newifindex,
+                   unsigned int newmetric, int newtable)
+{
+    return 0;
+}
+
 void route_setup(void) {
     int i;
     struct interface *ifp = add_interface("test_if", NULL);
@@ -573,6 +631,8 @@ void route_setup(void) {
     filter->src_plen_le = 128;
     add_filter(filter, FILTER_TYPE_INSTALL);
 
+    kernel_route = &kernel_route_dummy;
+
     for(i = 0; i < N_ROUTES; i++) {
         const unsigned char id[] = {i};
         struct neighbour *n = find_neighbour(neigh_addresses[i], ifp);
@@ -591,21 +651,8 @@ void run_route_test(void (*test)(void), char *test_name) {
     route_tear_down();
 }
 
-int
-kernel_route_dummy(int operation, int table,
-                   const unsigned char *dest, unsigned short plen,
-                   const unsigned char *src, unsigned short src_plen,
-                   const unsigned char *pref_src,
-                   const unsigned char *gate, int ifindex, unsigned int metric,
-                   const unsigned char *newgate, int newifindex,
-                   unsigned int newmetric, int newtable)
-{
-    return 0;
-}
-
 void route_test_suite(void)
 {
-    kernel_route = &kernel_route_dummy;
     run_test(route_compare_test, "route_compare_test");
     run_route_test(find_route_slot_test, "find_route_slot_test");
     run_route_test(find_route_test, "find_route_test");
@@ -613,4 +660,5 @@ void route_test_suite(void)
     run_route_test(insert_route_test, "insert_route_test");
     run_route_test(flush_route_test, "flush_route_test");
     run_test(route_stream_test, "route_stream_test");
+    run_route_test(route_stream_next_test, "route_stream_next_test");
 }
