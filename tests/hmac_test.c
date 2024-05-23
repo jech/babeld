@@ -20,10 +20,10 @@
    THE SOFTWARE.
    */
 
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <netinet/in.h>
 
 #include "test_utilities.h"
 #include "../rfc6234/sha.h"
@@ -31,11 +31,8 @@
 
 #include "../babeld.h"
 #include "../interface.h"
-#include "../neighbour.h"
-#include "../util.h"
 #include "../hmac.h"
 #include "../configuration.h"
-#include "../kernel.h"
 
 #define PACKET_HEADER_SIZE 4
 #define MAX_PACKET_BODYLEN 500
