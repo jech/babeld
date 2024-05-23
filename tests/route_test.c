@@ -570,6 +570,23 @@ void route_stream_next_test(void) {
     }
 }
 
+void metric_to_kernel_test(void) {
+    int m;
+    m = metric_to_kernel(2 * INFINITY);
+    if(!babel_check(m == KERNEL_INFINITY))
+        fprintf(stderr, "Failed test: metric_to_kernel(2 * INFINITY) = %d, expected %d\n", m, KERNEL_INFINITY);
+    m = metric_to_kernel(INFINITY - 1);
+    if(!babel_check(m == kernel_metric))
+        fprintf(stderr, "Failed test: metric_to_kernel(INFINITY - 1) = %d, expected %d\n", m, kernel_metric);
+    reflect_kernel_metric = 1;
+    m = metric_to_kernel(KERNEL_INFINITY - 1);
+    if(!babel_check(m == KERNEL_INFINITY - 1))
+        fprintf(stderr, "Failed test: metric_to_kernel(KERNEL_INFINITY - 1) = %d, expected %d.\n", m, KERNEL_INFINITY - 1);
+    kernel_metric = 2;
+    m = metric_to_kernel(KERNEL_INFINITY - 1);
+    if(!babel_check(m == KERNEL_INFINITY))
+        fprintf(stderr, "Failed test: metric_to_kernel(KERNEL_INFINITY - 1) = %d, expected %d.\n", m, KERNEL_INFINITY);
+}
 
 int
 kernel_route_dummy(int operation, int table,
@@ -661,4 +678,5 @@ void route_test_suite(void)
     run_route_test(flush_route_test, "flush_route_test");
     run_test(route_stream_test, "route_stream_test");
     run_route_test(route_stream_next_test, "route_stream_next_test");
+    run_test(metric_to_kernel_test, "metric_to_kernel_test");
 }
