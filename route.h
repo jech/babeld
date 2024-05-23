@@ -71,6 +71,7 @@ void flush_interface_routes(struct interface *ifp, int v4only);
 struct route_stream *route_stream(int which);
 struct babel_route *route_stream_next(struct route_stream *stream);
 void route_stream_done(struct route_stream *stream);
+int metric_to_kernel(int metric);
 void install_route(struct babel_route *route);
 void uninstall_route(struct babel_route *route);
 int route_feasible(struct babel_route *route);

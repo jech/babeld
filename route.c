@@ -406,7 +406,7 @@ route_stream_done(struct route_stream *stream)
     free(stream);
 }
 
-static int
+int
 metric_to_kernel(int metric)
 {
         if(metric >= INFINITY) {
