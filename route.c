@@ -53,7 +53,7 @@ static int two_to_the_one_over_hl = 0; /* 2^(1/hl) * 0x10000 */
    contains a linked list of the routes to this prefix, with the
    installed route, if any, at the head of the list. */
 
-static int
+int
 route_compare(const unsigned char *prefix, unsigned char plen,
               const unsigned char *src_prefix, unsigned char src_plen,
               struct babel_route *route)
