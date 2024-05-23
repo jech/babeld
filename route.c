@@ -94,7 +94,7 @@ route_compare(const unsigned char *prefix, unsigned char plen,
 /* Performs binary search, returns -1 in case of failure.  In the latter
    case, new_return is the place where to insert the new element. */
 
-static int
+int
 find_route_slot(const unsigned char *prefix, unsigned char plen,
                 const unsigned char *src_prefix, unsigned char src_plen,
                 int *new_return)
