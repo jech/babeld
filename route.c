@@ -189,7 +189,7 @@ resize_route_table(int new_slots)
 
 /* Insert a route into the table.  If successful, retains the route.
    On failure, caller must free the route. */
-static struct babel_route *
+struct babel_route *
 insert_route(struct babel_route *route)
 {
     int i, n;
