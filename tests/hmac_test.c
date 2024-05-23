@@ -303,6 +303,89 @@ void add_hmac_test(void)
     free(ifp.ll);
 }
 
+void check_hmac_test(void)
+{
+    int i, num_of_cases, packetlen, bodylen, rc;
+    unsigned char *packet, *src, *dst;
+    struct interface ifp;
+
+    typedef struct test_case {
+        unsigned char *packet_val;
+        int packetlen_val;
+        int bodylen_val;
+        unsigned char src_val[ADDRESS_ARRAY_SIZE];
+        unsigned char dst_val[ADDRESS_ARRAY_SIZE];
+        struct key key_val;
+        int expected_rc;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        {
+            .packet_val = (unsigned char[])
+                {42, 2, 0, 38, 4, 6, 0, 0, 41, 222, 1, 144, 5, 14, 3, 0, 255, 255, 4, 176, 206, 28,
+                 12, 0, 201, 49, 72, 251, 17, 12, 0, 0, 0, 11, 120, 212, 188, 48, 134, 68, 203, 254,
+                 16, 16, 132, 247, 70, 15, 217, 7, 16, 58, 31, 87, 47, 237, 228, 51, 34, 45},
+            .packetlen_val = 60,
+            .bodylen_val = 38,
+            .src_val = {254, 128, 0, 0, 0, 0, 0, 0, 28, 106, 200, 156, 164, 179, 1, 90},
+            .dst_val = {255, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 6},
+            .key_val = {
+                .value = (unsigned char [])
+                    {184, 17, 96, 231, 142, 203, 75, 118, 42, 213, 55, 90, 176, 66, 15, 104, 19,
+                     214, 60, 175, 10, 203, 125, 180, 142, 232, 123, 168, 191, 50, 173, 44},
+                .len = 32,
+                .type = AUTH_TYPE_BLAKE2S128
+            },
+            .expected_rc = 1
+        },
+        {
+            .packet_val = (unsigned char[])
+                {42, 2, 0, 22, 4, 6, 0, 0, 204, 139, 1, 144, 17, 12, 0, 0, 0, 4, 80, 128, 214,
+                 66, 231, 209, 171, 31, 16, 16, 213, 145, 25, 162, 84, 23, 13, 58, 217, 218,
+                 90, 8, 163, 228, 206, 121},
+            .packetlen_val = 44,
+            .bodylen_val = 22,
+            .src_val = {254, 128, 0, 0, 0, 0, 0, 0, 2, 22, 62, 255, 254, 208, 154, 166},
+            .dst_val = {255, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 6},
+            .key_val = {
+                .value = (unsigned char[])
+                    {184, 17, 96, 231, 142, 203, 75, 118, 42, 213, 55, 90, 176, 66, 15, 104, 19,
+                     214, 60, 175, 10, 203, 125, 180, 142, 232, 123, 168, 191, 50, 173, 44},
+                .len = 32,
+                .type = AUTH_TYPE_BLAKE2S128
+            },
+            .expected_rc = 0
+        }
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+
+    for(i = 0; i < num_of_cases; ++i) {
+        packet = tcs[i].packet_val;
+        packetlen = tcs[i].packetlen_val;
+        bodylen = tcs[i].bodylen_val;
+        src = tcs[i].src_val;
+        dst = tcs[i].dst_val;
+        ifp.key = &tcs[i].key_val;
+
+        rc = check_hmac(packet, packetlen, bodylen, src, dst, &ifp);
+
+        if(!babel_check(rc == tcs[i].expected_rc)) {
+            fprintf(stderr, "Failed test on check_hmac:\n");
+            fprintf(stderr, "src: %s\n", str_of_array(src, ADDRESS_ARRAY_SIZE));
+            fprintf(stderr, "dst: %s\n", str_of_array(dst, ADDRESS_ARRAY_SIZE));
+            fprintf(stderr, "packetlen: %d\n", packetlen);
+            fprintf(stderr, "packet: %s\n", str_of_array(packet, packetlen));
+            fprintf(stderr, "bodylen: %d\n", bodylen);
+            fprintf(stderr, "key value: %s\n", str_of_array(ifp.key->value, ifp.key->len));
+            fprintf(stderr, "rc computed: %d\n", rc);
+            fprintf(stderr, "rc expected: %d\n", tcs[i].expected_rc);
+            fflush(stderr);
+        }
+    }
+}
+
 void setup(void)
 {
     protocol_port = 6696;
@@ -314,4 +397,5 @@ void hmac_test_suite(void)
     run_test(add_key_test, "add_key_test");
     run_test(compute_hmac_test, "compute_hmac_test");
     run_test(add_hmac_test, "add_hmac_test");
+    run_test(check_hmac_test, "check_hmac_test");
 }
