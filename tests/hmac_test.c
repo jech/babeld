@@ -94,6 +94,7 @@ void add_key_test(void)
         test_ok &= len == key->len;
         test_ok &= memcmp(value, tcs[i].value_val, len) == 0;
         if(!babel_check(test_ok)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "add_key(%s, %d, %d, %s) =\n{ %s, %d, %d, %s }\nexpected: { %s, %d, %d, %s }.\n",
                 id,
@@ -197,6 +198,7 @@ void compute_hmac_test(void)
 
         hmac_len = tcs[i].key_val.type == AUTH_TYPE_SHA256 ? 32 : 16;
         if(!babel_check(memcmp(hmac, tcs[i].hmac_expected, hmac_len) == 0)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Failed test on compute_hmac:\n");
             fprintf(stderr, "src: %s\n", str_of_array(src, ADDRESS_ARRAY_SIZE));
             fprintf(stderr, "dst: %s\n", str_of_array(dst, ADDRESS_ARRAY_SIZE));
@@ -273,12 +275,14 @@ void add_hmac_test(void)
         new_buf_len = add_hmac(&buf, &ifp, packet_header);
 
         if(!babel_check(new_buf_len == tcs[i].expected_buf_len)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                     "Failed test on add_hmac:\n"
                     "add_hmac return code was %d, expected %d.\n",
                     new_buf_len,
                     tcs[i].expected_buf_len);
         } else if(!babel_check(memcmp(buf.buf, tcs[i].expected_buf_val, new_buf_len) == 0)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Failed test on add_hmac:\n");
             fprintf(stderr, "ifp.ll[0]: %s\n", str_of_array(ifp.ll[0], 16));
             fprintf(stderr, "ifp.numll: %d\n", ifp.numll);
@@ -369,6 +373,7 @@ void check_hmac_test(void)
         rc = check_hmac(packet, packetlen, bodylen, src, dst, &ifp);
 
         if(!babel_check(rc == tcs[i].expected_rc)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Failed test on check_hmac:\n");
             fprintf(stderr, "src: %s\n", str_of_array(src, ADDRESS_ARRAY_SIZE));
             fprintf(stderr, "dst: %s\n", str_of_array(dst, ADDRESS_ARRAY_SIZE));

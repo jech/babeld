@@ -56,21 +56,25 @@ void roughly_test(void)
         }
 
         if(!babel_check(output >= lower_bound)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Output of roughly function was too low. Input: %d / Output: %d.\n", input, output);
             fflush(stderr);
         }
 
         if(!babel_check(output <= upper_bound)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Output of roughly function was too high. Input: %d / Output: %d.\n", input, output);
             fflush(stderr);
         }
     }
 
     if(!babel_check(roughly(1) == 1)) {
+        fprintf(stderr, "-----------------------------------------------\n");
         fprintf(stderr, "roughly(1) should be 1.\n");
         fflush(stderr);
     }
     if(!babel_check(roughly(0) == 0)) {
+        fprintf(stderr, "-----------------------------------------------\n");
         fprintf(stderr, "roughly(1) should be 0.\n");
         fflush(stderr);
     }
@@ -104,6 +108,7 @@ void timeval_minus_test(void)
 
         if(!babel_check(result.tv_usec == tcs[i].expected.tv_usec ||
                         result.tv_sec == tcs[i].expected.tv_sec)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "timeval_minus(%ld.%06ld, %ld.%06ld) = %ld.%06ld, expected: %ld.%06ld.\n",
                 tv1->tv_sec,
@@ -150,6 +155,7 @@ void timeval_minus_msec_test(void)
         result = timeval_minus_msec(tv1, tv2);
 
         if(!babel_check(result == tcs[i].expected)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "timeval_minus_msec(%ld.%06ld, %ld.%06ld) = %u, expected: %u.\n",
                 tv1->tv_sec,
@@ -193,6 +199,7 @@ void timeval_add_msec_test(void)
         test_ok = (result.tv_sec == tcs[i].expected.tv_sec);
         test_ok &= (result.tv_usec == tcs[i].expected.tv_usec);
         if(!babel_check(test_ok)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "timeval_add_msec(%ld.%06ld, %d) = %ld.%06ld, expected: %ld.%06ld.",
                 tv->tv_sec,
@@ -238,6 +245,7 @@ void timeval_compare_test(void)
         result = timeval_compare(tv1, tv2);
 
         if(!babel_check(result == tcs[i].expected)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "timeval_compare(%ld.%06ld, %ld.%06ld) = %d, expected: %d.",
                 tv1->tv_sec,
@@ -284,6 +292,7 @@ void timeval_min_test(void)
         test_ok = (s1.tv_sec == tcs[i].expected.tv_sec);
         test_ok &= (s1.tv_usec == tcs[i].expected.tv_usec);
         if(!babel_check(test_ok)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "timeval_min(%ld.%06ld, %ld.%06ld) = %ld.%06ld, expected: %ld.%06ld.",
                 tcs[i].s1_val.tv_sec,
@@ -330,6 +339,7 @@ void timeval_min_sec_test(void)
 
 
         if(!babel_check(s.tv_sec == tcs[i].s_secs_expected)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "timeval_min_sec(%ld.%06ld, %ld) = %ld._, expected: %ld._.",
                 tcs[i].s_val.tv_sec,
@@ -368,6 +378,7 @@ void parse_nat_test(void)
         result = parse_nat(string);
 
         if(!babel_check(result == tcs[i].expected)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "parse_nat(%s) = %d, expected: %d",
                 string,
@@ -404,6 +415,7 @@ void parse_thousands_test(void)
         result = parse_thousands(string);
 
         if(!babel_check(result == tcs[i].expected)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "parse_thousands(%s) = %d, expected: %d.",
                 string,
@@ -442,6 +454,7 @@ void h2i_test(void)
         result = h2i(c);
 
         if(!babel_check(result == tcs[i].expected)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "h2i(%c) = %d, expected: %d",
                 c,
@@ -483,6 +496,7 @@ void fromhex_test(void)
         dst_len = fromhex(dst, src, n);
 
         if(!babel_check(memcmp(dst, tcs[i].expected, dst_len) == 0)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "fromhex(\"%s\", %d) = %s, expected: %s",
                 src,
@@ -527,6 +541,7 @@ void in_prefix_test(void)
         result = in_prefix(prefix, address, plen);
 
         if(!babel_check(result == tcs[i].expected)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "in_prefix(%s, %s, %u) = %d, expected: %d.",
                 str_of_array(address, tcs[i].address_val_length),
@@ -579,6 +594,7 @@ void normalize_prefix_test(void)
             test_ok &= bit_ok;
         }
         if(!babel_check(test_ok)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "normalize_prefix(%s, %u) = %s, expected: %s.",
                 str_of_array(prefix, tcs[i].prefix_size),
@@ -629,6 +645,7 @@ void format_address_test(void)
         result = format_address(address);
 
         if(!babel_check(strcmp(result, tcs[i].expected) == 0)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "format_address(%s) = %s, expected %s",
                 str_of_array(address, tcs[i].address_length),
@@ -678,6 +695,7 @@ void format_prefix_test(void)
         result = format_prefix(prefix, plen);
 
         if(!babel_check(strcmp(result, tcs[i].expected) == 0)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "format_prefix(%s, %u) = %s, expected: %s.",
                 str_of_array(prefix, 3),
@@ -722,6 +740,7 @@ void format_eui64_test(void)
         result = format_eui64(eui);
 
         if(!babel_check(strcmp(result, tcs[i].expected) == 0)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "format_eui64(%s) = %s, expected: %s.",
                 str_of_array(eui, tcs[i].eui_val_length),
@@ -759,6 +778,7 @@ void format_thousands_test(void)
         result = format_thousands(value);
 
         if(!babel_check(strcmp(result, tcs[i].expected) == 0)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "format_thousands(%d) = %s, expected: %s.",
                 value,
@@ -812,6 +832,7 @@ void parse_address_test(void)
         test_ok &= (tcs[i].expected_rc == rc);
 
         if(!babel_check(test_ok)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "parse_address(%s) = %s, expected: %s.",
                 address,
@@ -895,6 +916,7 @@ void parse_net_test(void)
         }
 
         if(!babel_check(test_ok)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "parse_net(%s) = %s, expected: %s.",
                 net,
@@ -945,6 +967,7 @@ void parse_eui64_test(void)
         test_ok &= (memcmp(eui_r, tcs[i].expected_eui_r, EUI_SIZE) == 0);
 
         if(!babel_check(test_ok)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "parse_eui64(%s) = %s, expected: %s.",
                 eui,
@@ -961,6 +984,7 @@ void wait_for_fd_test(void)
     int rc;
     rc = wait_for_fd(1, STDOUT_FILENO, 100);
     if(!babel_check(rc == 1)) {
+        fprintf(stderr, "-----------------------------------------------\n");
         fprintf(stderr, "STDOUT should be able to write.\n");
         fflush(stderr);
     }
@@ -1013,6 +1037,7 @@ void martian_prefix_test(void)
         rc = martian_prefix(prefix, plen);
 
         if(!babel_check(rc == tcs[i].expected_rc)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr,
                 "martian_prefix(%s, %d) = %d, expected: %d.",
                 str_of_array(prefix, ADDRESS_ARRAY_SIZE),

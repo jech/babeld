@@ -202,6 +202,7 @@ void route_compare_test(void)
         // The magnitude of the result of memcmp is implementation-dependent, so we can only check
         // if we got the right sign
         if(!babel_check(sign(rc_sign) == sign(tcs[i].expected_rc_sign))) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Failed test (%d) on route_compare\n", i);
             fprintf(stderr, "prefix: %s\n", str_of_array(prefix, 16));
             fprintf(stderr, "plen: %d\n", plen);
@@ -271,6 +272,7 @@ void find_route_slot_test(void)
         test_ok = (tcs[i].expected_rc == -1 && new_return == tcs[i].expected_new_return) ||
                   (tcs[i].expected_rc == rc);
         if (!babel_check(test_ok)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Failed test (%d) on route_compare\n", i);
             fprintf(stderr, "prefix: %s\n", str_of_array(prefix, plen));
             fprintf(stderr, "plen: %d\n", plen);
@@ -340,6 +342,7 @@ void find_route_test(void)
         expected_route =
             tcs[i].expected_route_index == -1 ? NULL : routes[tcs[i].expected_route_index];
         if(!babel_check(route == expected_route)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Failed test (%d) on find_route\n", i);
             fprintf(stderr, "prefix: %s\n", str_of_array(prefix, plen));
             fprintf(stderr, "plen: %d\n", plen);
@@ -367,6 +370,7 @@ void installed_routes_estimate_test(void)
     }
 
     if(!babel_check(installed_routes <= estimate)) {
+        fprintf(stderr, "-----------------------------------------------\n");
         fprintf(stderr, "Failed test on installed_routes_estimate.\n");
         fprintf(stderr, "Expected that the estimated number would be greater or equal to the number of actually installed routes.\n");
         fprintf(stderr, "Installed routes: %d\nEstimate: %d\n", installed_routes, estimate);
@@ -439,6 +443,7 @@ void insert_route_test(void)
         test_ok = returned_route != NULL;
         test_ok &= r == route;
         if(!babel_check(test_ok)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Failed test (%d) on insert_route\n", i);
             fprintf(stderr, "routes[%d] is not equal to the route being inserted.\n", tcs[i].expected_pos);
         }
@@ -505,6 +510,7 @@ void flush_route_test(void) {
             test_ok = curr_length == prev_length - 1;
 
         if(!babel_check(test_ok)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Failed test (%d) on flush_route.\n", i);
             fprintf(stderr, "Trying to flush %d-th route from %d-th slot:\n", tcs[i].pos, tcs[i].slot);
             if(!tcs[i].last_route_in_slot && curr_length != prev_length - 1)
@@ -520,8 +526,10 @@ void route_stream_test(void) {
     int which;
     for(which = 0; which <= 1; which++) {
         stream = route_stream(which);
-        if(!babel_check(stream != NULL))
+        if(!babel_check(stream != NULL)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Failed test: route_stream(%d) was NULL.", which);
+        }
     }
 }
 
@@ -560,6 +568,7 @@ void route_stream_next_test(void) {
         }
 
         if(!babel_check(routes[tcs[i].expected_route_index] == route)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Failed test (%d) on route_stream_next.\n", i);
             fprintf(stderr, "Expected routes[%d] after %d iteration(s) (", tcs[i].expected_route_index, tcs[i].number_of_calls);
             if(tcs[i].installed_val)
@@ -573,19 +582,27 @@ void route_stream_next_test(void) {
 void metric_to_kernel_test(void) {
     int m;
     m = metric_to_kernel(2 * INFINITY);
-    if(!babel_check(m == KERNEL_INFINITY))
+    if(!babel_check(m == KERNEL_INFINITY)) {
+        fprintf(stderr, "-----------------------------------------------\n");
         fprintf(stderr, "Failed test: metric_to_kernel(2 * INFINITY) = %d, expected %d\n", m, KERNEL_INFINITY);
+    }
     m = metric_to_kernel(INFINITY - 1);
-    if(!babel_check(m == kernel_metric))
+    if(!babel_check(m == kernel_metric)) {
+        fprintf(stderr, "-----------------------------------------------\n");
         fprintf(stderr, "Failed test: metric_to_kernel(INFINITY - 1) = %d, expected %d\n", m, kernel_metric);
+    }
     reflect_kernel_metric = 1;
     m = metric_to_kernel(KERNEL_INFINITY - 1);
-    if(!babel_check(m == KERNEL_INFINITY - 1))
+    if(!babel_check(m == KERNEL_INFINITY - 1)) {
+        fprintf(stderr, "-----------------------------------------------\n");
         fprintf(stderr, "Failed test: metric_to_kernel(KERNEL_INFINITY - 1) = %d, expected %d.\n", m, KERNEL_INFINITY - 1);
+    }
     kernel_metric = 2;
     m = metric_to_kernel(KERNEL_INFINITY - 1);
-    if(!babel_check(m == KERNEL_INFINITY))
+    if(!babel_check(m == KERNEL_INFINITY)) {
+        fprintf(stderr, "-----------------------------------------------\n");
         fprintf(stderr, "Failed test: metric_to_kernel(KERNEL_INFINITY - 1) = %d, expected %d.\n", m, KERNEL_INFINITY);
+    }
 }
 
 void update_feasible_test(void)
@@ -597,6 +614,7 @@ void update_feasible_test(void)
 
     rc = update_feasible(NULL, 0, 0);
     if(!babel_check(rc == 1)) {
+        fprintf(stderr, "-----------------------------------------------\n");
         fprintf(stderr, "Failed test on update_feasible.\n");
         fprintf(stderr, "update_feasible(NULL, 0, 0) = %d, expected 1.\n", rc);
     }
@@ -662,6 +680,7 @@ void update_feasible_test(void)
 
         rc = update_feasible(&src, tcs[i].seqno_val, tcs[i].refmetric_val);
         if(!babel_check(rc == tcs[i].expected_rc)) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Failed test on update_feasible.\n");
             fprintf(stderr, "src->time = %jd\n", src.time);
             fprintf(stderr, "src->seqno = %d\n", src.seqno);
@@ -681,6 +700,7 @@ void change_smoothing_half_life_test(void)
 
     change_smoothing_half_life(-1);
     if(!babel_check(two_to_the_one_over_hl == 0 && smoothing_half_life == 0)) {
+        fprintf(stderr, "-----------------------------------------------\n");
         fprintf(stderr, "Failed test on change_smoothing_half_life.\n");
         fprintf(stderr, "change_smoothing_half_life(-1) resulted in:\n");
         fprintf(stderr, "two_to_the_one_over_hl = %d and smoothing_half_life = %d.\n",
@@ -690,6 +710,7 @@ void change_smoothing_half_life_test(void)
     for(half_life = 0; half_life <= 5; half_life++) {
         change_smoothing_half_life(half_life);
         if(!babel_check(smoothing_half_life == half_life && two_to_the_one_over_hl == expected_values[half_life])) {
+            fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Failed test on change_smoothing_half_life.\n");
             fprintf(stderr, "change_smoothing_half_life(%d) resulted in:\n", half_life);
             fprintf(stderr, "two_to_the_one_over_hl = %d and smoothing_half_life = %d.\n",
