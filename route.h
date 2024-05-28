@@ -41,6 +41,8 @@ struct route_stream;
 extern struct babel_route **routes;
 extern int kernel_metric, allow_duplicates, reflect_kernel_metric;
 extern int route_slots;
+extern int smoothing_half_life;
+extern int two_to_the_one_over_hl; /* 2^(1/hl) * 0x10000 */
 
 static inline int
 route_metric(const struct babel_route *route)
