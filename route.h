@@ -65,7 +65,6 @@ void route_stream_done(struct route_stream *stream);
 void install_route(struct babel_route *route);
 void uninstall_route(struct babel_route *route);
 int route_feasible(struct babel_route *route);
-int route_interferes(struct babel_route *route, struct interface *ifp);
 int update_feasible(struct source *src,
                     unsigned short seqno, unsigned short refmetric);
 void change_smoothing_half_life(int half_life);
