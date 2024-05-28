@@ -355,6 +355,44 @@ void find_route_test(void)
     }
 }
 
+void find_installed_route_test(void)
+{
+
+    unsigned char prefix[] =
+      { 78, 162, 240, 49, 189, 24, 46, 203, 201, 107, 41, 160, 213, 182, 197, 23 };
+    unsigned char src_prefix[] =
+      { 26, 137, 255, 238, 199, 6, 224, 128, 87, 142, 8, 197, 49, 142, 106, 113 };
+    unsigned char plen = 101;
+    unsigned char src_plen = 115;
+
+    struct babel_route *route = find_installed_route(prefix, plen, src_prefix, src_plen);
+
+    if(!babel_check(route == routes[1])) {
+        fprintf(stderr, "-----------------------------------------------\n");
+        fprintf(stderr, "Failed test on find_installed_route\n");
+        fprintf(stderr, "prefix: %s\n", str_of_array(prefix, plen));
+        fprintf(stderr, "plen: %d\n", plen);
+        fprintf(stderr, "src_prefix: %s\n", str_of_array(src_prefix, src_plen));
+        fprintf(stderr, "src_plen: %d\n", src_plen);
+        fprintf(stderr, "expected route: routes[1].\n");
+        fflush(stderr);
+    }
+
+    uninstall_route(route);
+
+    route = find_installed_route(prefix, plen, src_prefix, src_plen);
+    if(!babel_check(route == NULL)) {
+        fprintf(stderr, "-----------------------------------------------\n");
+        fprintf(stderr, "Failed test on find_installed_route (after uninstall_route)\n");
+        fprintf(stderr, "prefix: %s\n", str_of_array(prefix, plen));
+        fprintf(stderr, "plen: %d\n", plen);
+        fprintf(stderr, "src_prefix: %s\n", str_of_array(src_prefix, src_plen));
+        fprintf(stderr, "src_plen: %d\n", src_plen);
+        fprintf(stderr, "expected NULL.\n");
+        fflush(stderr);
+    }
+}
+
 void installed_routes_estimate_test(void)
 {
     struct route_stream *stream = route_stream(1);
@@ -806,6 +844,7 @@ void route_test_suite(void)
     run_test(route_compare_test, "route_compare_test");
     run_route_test(find_route_slot_test, "find_route_slot_test");
     run_route_test(find_route_test, "find_route_test");
+    run_route_test(find_installed_route_test, "find_installed_route_test");
     run_route_test(installed_routes_estimate_test, "installed_routes_estimate_test");
     run_route_test(insert_route_test, "insert_route_test");
     run_route_test(flush_route_test, "flush_route_test");
