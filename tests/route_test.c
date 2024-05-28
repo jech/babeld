@@ -559,6 +559,15 @@ void flush_route_test(void) {
     }
 }
 
+void flush_all_routes_test()
+{
+    flush_all_routes();
+    if(!babel_check(route_slots == 0)) {
+        fprintf(stderr, "Failed test on flush_all_routes.\n");
+        fprintf(stderr, "Expected route_slots = 0, got %d.\n", route_slots);
+    }
+}
+
 void route_stream_test(void) {
     struct route_stream *stream;
     int which;
@@ -848,6 +857,7 @@ void route_test_suite(void)
     run_route_test(installed_routes_estimate_test, "installed_routes_estimate_test");
     run_route_test(insert_route_test, "insert_route_test");
     run_route_test(flush_route_test, "flush_route_test");
+    run_route_test(flush_all_routes_test, "flush_all_routes_test");
     run_test(route_stream_test, "route_stream_test");
     run_route_test(route_stream_next_test, "route_stream_next_test");
     run_test(metric_to_kernel_test, "metric_to_kernel_test");
