@@ -674,6 +674,32 @@ void update_feasible_test(void)
     }
 }
 
+void change_smoothing_half_life_test(void)
+{
+    int half_life;
+    int expected_values[] = {0, 131072, 92682, 82570, 77935, 74621};
+
+    change_smoothing_half_life(-1);
+    if(!babel_check(two_to_the_one_over_hl == 0 && smoothing_half_life == 0)) {
+        fprintf(stderr, "Failed test on change_smoothing_half_life.\n");
+        fprintf(stderr, "change_smoothing_half_life(-1) resulted in:\n");
+        fprintf(stderr, "two_to_the_one_over_hl = %d and smoothing_half_life = %d.\n",
+                        two_to_the_one_over_hl, smoothing_half_life);
+        fprintf(stderr, "Expected two_to_the_one_over_hl = 0 and smoothing_half_life = 0.\n");
+    }
+    for(half_life = 0; half_life <= 5; half_life++) {
+        change_smoothing_half_life(half_life);
+        if(!babel_check(smoothing_half_life == half_life && two_to_the_one_over_hl == expected_values[half_life])) {
+            fprintf(stderr, "Failed test on change_smoothing_half_life.\n");
+            fprintf(stderr, "change_smoothing_half_life(%d) resulted in:\n", half_life);
+            fprintf(stderr, "two_to_the_one_over_hl = %d and smoothing_half_life = %d.\n",
+                            two_to_the_one_over_hl, smoothing_half_life);
+            fprintf(stderr, "Expected two_to_the_one_over_hl = %d and smoothing_half_life = %d.\n",
+                             expected_values[half_life], half_life);
+        }
+    }
+}
+
 int
 kernel_route_dummy(int operation, int table,
                    const unsigned char *dest, unsigned short plen,
@@ -766,4 +792,5 @@ void route_test_suite(void)
     run_route_test(route_stream_next_test, "route_stream_next_test");
     run_test(metric_to_kernel_test, "metric_to_kernel_test");
     run_test(update_feasible_test, "update_feasible_test");
+    run_test(change_smoothing_half_life_test, "change_smoothing_half_life_test");
 }
