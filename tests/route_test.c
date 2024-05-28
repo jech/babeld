@@ -563,8 +563,20 @@ void flush_all_routes_test()
 {
     flush_all_routes();
     if(!babel_check(route_slots == 0)) {
+        fprintf(stderr, "-----------------------------------------------\n");
         fprintf(stderr, "Failed test on flush_all_routes.\n");
         fprintf(stderr, "Expected route_slots = 0, got %d.\n", route_slots);
+    }
+}
+
+void flush_neighbour_route_test(void)
+{
+    int prev_route_slots = route_slots;
+    flush_neighbour_routes(ns[1]);
+    if(!babel_check(prev_route_slots == route_slots + 1)) {
+        fprintf(stderr, "-----------------------------------------------\n");
+        fprintf(stderr, "Failed test on flush_neighbour_route_test.\n");
+        fprintf(stderr, "Expected route_slots = %d, got %d.\n", prev_route_slots - 1, route_slots);
     }
 }
 
@@ -858,6 +870,7 @@ void route_test_suite(void)
     run_route_test(insert_route_test, "insert_route_test");
     run_route_test(flush_route_test, "flush_route_test");
     run_route_test(flush_all_routes_test, "flush_all_routes_test");
+    run_route_test(flush_neighbour_route_test, "flush_neighbour_route_test");
     run_test(route_stream_test, "route_stream_test");
     run_route_test(route_stream_next_test, "route_stream_next_test");
     run_test(metric_to_kernel_test, "metric_to_kernel_test");
