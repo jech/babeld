@@ -47,8 +47,8 @@ int kernel_metric = 0, reflect_kernel_metric = 0;
 int allow_duplicates = -1;
 int diversity_factor = 256;     /* in units of 1/256 */
 
-static int smoothing_half_life = 0;
-static int two_to_the_one_over_hl = 0; /* 2^(1/hl) * 0x10000 */
+int smoothing_half_life = 0;
+int two_to_the_one_over_hl = 0; /* 2^(1/hl) * 0x10000 */
 
 /* We maintain a list of "slots", ordered by prefix.  Every slot
    contains a linked list of the routes to this prefix, with the
