@@ -528,7 +528,7 @@ void route_stream_test(void) {
 void route_stream_next_test(void) {
     int i, j, num_of_cases;
     struct route_stream *stream;
-    struct babel_route *route;
+    struct babel_route *route = NULL;
 
     typedef struct test_case {
         int installed_val;
@@ -586,6 +586,92 @@ void metric_to_kernel_test(void) {
     m = metric_to_kernel(KERNEL_INFINITY - 1);
     if(!babel_check(m == KERNEL_INFINITY))
         fprintf(stderr, "Failed test: metric_to_kernel(KERNEL_INFINITY - 1) = %d, expected %d.\n", m, KERNEL_INFINITY);
+}
+
+void update_feasible_test(void)
+{
+    int i, num_of_cases, rc;
+    struct source src;
+
+    gettime(&now);
+
+    rc = update_feasible(NULL, 0, 0);
+    if(!babel_check(rc == 1)) {
+        fprintf(stderr, "Failed test on update_feasible.\n");
+        fprintf(stderr, "update_feasible(NULL, 0, 0) = %d, expected 1.\n", rc);
+    }
+
+    typedef struct test_case {
+        time_t src_time_val;
+        unsigned short src_seqno_val;
+        unsigned short src_metric_val;
+        unsigned short seqno_val;
+        unsigned short refmetric_val;
+        int expected_rc;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        {
+            .src_time_val = now.tv_sec - SOURCE_GC_TIME - 10,
+            .src_seqno_val = 0,
+            .src_metric_val = 0,
+            .seqno_val = 0,
+            .refmetric_val = 0,
+            .expected_rc = 1,
+        },
+        {
+            .src_time_val = now.tv_sec,
+            .src_seqno_val = 0,
+            .src_metric_val = 0,
+            .seqno_val = 0,
+            .refmetric_val = INFINITY,
+            .expected_rc = 1
+        },
+        {
+            .src_time_val = now.tv_sec,
+            .src_seqno_val = 0,
+            .src_metric_val = 0,
+            .seqno_val = 0x8000,
+            .refmetric_val = 0,
+            .expected_rc = 1
+        },
+        {
+            .src_time_val = now.tv_sec,
+            .src_seqno_val = 0x8000,
+            .src_metric_val = 50,
+            .seqno_val = 0x8000,
+            .refmetric_val = 10,
+            .expected_rc = 1
+        },
+        {
+            .src_time_val = now.tv_sec,
+            .src_seqno_val = 0x8000,
+            .src_metric_val = 10,
+            .seqno_val = 0x8000,
+            .refmetric_val = 50,
+            .expected_rc = 0
+        },
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+    for(i = 0; i < num_of_cases; ++i) {
+        src.time = tcs[i].src_time_val;
+        src.seqno = tcs[i].src_seqno_val;
+        src.metric = tcs[i].src_metric_val;
+
+        rc = update_feasible(&src, tcs[i].seqno_val, tcs[i].refmetric_val);
+        if(!babel_check(rc == tcs[i].expected_rc)) {
+            fprintf(stderr, "Failed test on update_feasible.\n");
+            fprintf(stderr, "src->time = %jd\n", src.time);
+            fprintf(stderr, "src->seqno = %d\n", src.seqno);
+            fprintf(stderr, "src->metric = %d\n", src.metric);
+            fprintf(stderr, "seqno = %d\n", tcs[i].seqno_val);
+            fprintf(stderr, "refmetric = %d\n", tcs[i].refmetric_val);
+            fprintf(stderr, "expected rc: %d\n", tcs[i].expected_rc);
+            fprintf(stderr, "computed rc: %d\n", rc);
+        }
+    }
 }
 
 int
@@ -679,4 +765,5 @@ void route_test_suite(void)
     run_test(route_stream_test, "route_stream_test");
     run_route_test(route_stream_next_test, "route_stream_next_test");
     run_test(metric_to_kernel_test, "metric_to_kernel_test");
+    run_test(update_feasible_test, "update_feasible_test");
 }
