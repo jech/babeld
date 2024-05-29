@@ -567,7 +567,7 @@ switch_routes(struct babel_route *old, struct babel_route *new)
     local_notify_route(new, LOCAL_CHANGE);
 }
 
-static void
+void
 change_route_metric(struct babel_route *route,
                     unsigned refmetric, unsigned cost, unsigned add)
 {

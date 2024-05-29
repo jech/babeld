@@ -76,6 +76,10 @@ void route_stream_done(struct route_stream *stream);
 int metric_to_kernel(int metric);
 void install_route(struct babel_route *route);
 void uninstall_route(struct babel_route *route);
+void change_route_metric(struct babel_route *route,
+                         unsigned refmetric,
+                         unsigned cost,
+                         unsigned add);
 int route_feasible(struct babel_route *route);
 int route_interferes(struct babel_route *route, struct interface *ifp);
 int update_feasible(struct source *src,
