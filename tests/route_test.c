@@ -780,6 +780,58 @@ void change_smoothing_half_life_test(void)
     }
 }
 
+void change_route_metric_test(void)
+{
+    int i, num_of_cases, test_ok;
+    struct babel_route *route;
+
+    typedef struct test_case {
+        int index_of_route_to_change;
+        unsigned refmetric_val;
+        unsigned cost_val;
+        unsigned add_val;
+    } test_case;
+
+    test_case tcs[] =
+    {
+        {
+            .index_of_route_to_change = 1,
+            .refmetric_val = 10,
+            .cost_val = 20,
+            .add_val = 30
+        }
+    };
+
+    num_of_cases = sizeof(tcs) / sizeof(test_case);
+    for(i = 0; i < num_of_cases; ++i) {
+        route = routes[tcs[i].index_of_route_to_change];
+
+        change_route_metric(route, tcs[i].refmetric_val, tcs[i].cost_val, tcs[i].add_val);
+
+        test_ok = route->refmetric == tcs[i].refmetric_val;
+        test_ok &= route->cost == tcs[i].cost_val;
+        test_ok &= route->add_metric == tcs[i].add_val;
+        if(!babel_check(test_ok)) {
+            fprintf(stderr, "-----------------------------------------------\n");
+            fprintf(stderr, "Failed test on change_route_metric\n");
+            fprintf(stderr, "Route used: routes[%d]\n", tcs[i].index_of_route_to_change);
+            fprintf(stderr, "Call was: change_route_metric(routes[%d], %u, %u, %u)\n",
+                            tcs[i].index_of_route_to_change,
+                            tcs[i].refmetric_val,
+                            tcs[i].cost_val,
+                            tcs[i].add_val);
+            fprintf(stderr, "Expected route->refmetric = %u, "
+                            "route->cost = %u, "
+                            "route->add_metric = %u.\n",
+                            tcs[i].refmetric_val, tcs[i].cost_val, tcs[i].add_val);
+            fprintf(stderr, "Got: route->refmetric = %u, "
+                            "route->cost = %u, "
+                            "route->add_metric = %u.\n",
+                            route->refmetric, route->cost, route->add_metric);
+        }
+    }
+}
+
 int
 kernel_route_dummy(int operation, int table,
                    const unsigned char *dest, unsigned short plen,
@@ -876,4 +928,5 @@ void route_test_suite(void)
     run_test(metric_to_kernel_test, "metric_to_kernel_test");
     run_test(update_feasible_test, "update_feasible_test");
     run_test(change_smoothing_half_life_test, "change_smoothing_half_life_test");
+    run_route_test(change_route_metric_test, "change_route_metric_test");
 }
