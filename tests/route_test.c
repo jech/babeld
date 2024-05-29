@@ -35,6 +35,7 @@ THE SOFTWARE.
 #include "../neighbour.h"
 #include "../route.h"
 #include "../source.h"
+#include "../util.h"
 
 #define N_ROUTES 6
 
@@ -204,14 +205,10 @@ void route_compare_test(void)
         if(!babel_check(sign(rc_sign) == sign(tcs[i].expected_rc_sign))) {
             fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Failed test (%d) on route_compare\n", i);
-            fprintf(stderr, "prefix: %s\n", str_of_array(prefix, 16));
-            fprintf(stderr, "plen: %d\n", plen);
-            fprintf(stderr, "src_prefix: %s\n", str_of_array(src_prefix, 16));
-            fprintf(stderr, "src_plen: %d\n", src_plen);
-            fprintf(stderr, "route->src->prefix: %s\n", str_of_array(route.src->prefix, 16));
-            fprintf(stderr, "route->src->plen: %d\n", route.src->plen);
-            fprintf(stderr, "route->src->src_prefix: %s\n", str_of_array(route.src->src_prefix, 16));
-            fprintf(stderr, "route->src->src_plen: %d\n", route.src->src_plen);
+            fprintf(stderr, "prefix: %s\n", format_prefix(prefix, plen));
+            fprintf(stderr, "src_prefix: %s\n", format_prefix(src_prefix, src_plen));
+            fprintf(stderr, "route->src->prefix: %s\n", format_prefix(route.src->prefix, route.src->plen));
+            fprintf(stderr, "route->src->src_prefix: %s\n", format_prefix(route.src->src_prefix, route.src->src_plen));
             fprintf(stderr, "expected rc: %d\n", tcs[i].expected_rc_sign);
             fprintf(stderr, "computed rc: %d\n", rc_sign);
             fflush(stderr);
@@ -274,10 +271,8 @@ void find_route_slot_test(void)
         if (!babel_check(test_ok)) {
             fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Failed test (%d) on route_compare\n", i);
-            fprintf(stderr, "prefix: %s\n", str_of_array(prefix, plen));
-            fprintf(stderr, "plen: %d\n", plen);
-            fprintf(stderr, "src_prefix: %s\n", str_of_array(src_prefix, src_plen));
-            fprintf(stderr, "src_plen: %d\n", src_plen);
+            fprintf(stderr, "prefix: %s\n", format_prefix(prefix, plen));
+            fprintf(stderr, "src_prefix: %s\n", format_prefix(src_prefix, src_plen));
             fprintf(stderr, "expected rc: %d\n", tcs[i].expected_rc);
             fprintf(stderr, "computed rc: %d\n", rc);
             fprintf(stderr, "expected new_return: %d\n", tcs[i].expected_new_return);
@@ -344,10 +339,8 @@ void find_route_test(void)
         if(!babel_check(route == expected_route)) {
             fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Failed test (%d) on find_route\n", i);
-            fprintf(stderr, "prefix: %s\n", str_of_array(prefix, plen));
-            fprintf(stderr, "plen: %d\n", plen);
-            fprintf(stderr, "src_prefix: %s\n", str_of_array(src_prefix, src_plen));
-            fprintf(stderr, "src_plen: %d\n", src_plen);
+            fprintf(stderr, "prefix: %s\n", format_prefix(prefix, plen));
+            fprintf(stderr, "src_prefix: %s\n", format_prefix(src_prefix, src_plen));
             fprintf(stderr, "neighbour: ns[%d]\n", tcs[i].neigh_index_val);
             fprintf(stderr, "expected route: routes[%d]\n", tcs[i].expected_route_index);
             fflush(stderr);
@@ -370,10 +363,8 @@ void find_installed_route_test(void)
     if(!babel_check(route == routes[1])) {
         fprintf(stderr, "-----------------------------------------------\n");
         fprintf(stderr, "Failed test on find_installed_route\n");
-        fprintf(stderr, "prefix: %s\n", str_of_array(prefix, plen));
-        fprintf(stderr, "plen: %d\n", plen);
-        fprintf(stderr, "src_prefix: %s\n", str_of_array(src_prefix, src_plen));
-        fprintf(stderr, "src_plen: %d\n", src_plen);
+        fprintf(stderr, "prefix: %s\n", format_prefix(prefix, plen));
+        fprintf(stderr, "src_prefix: %s\n", format_prefix(src_prefix, src_plen));
         fprintf(stderr, "expected route: routes[1].\n");
         fflush(stderr);
     }
@@ -384,10 +375,8 @@ void find_installed_route_test(void)
     if(!babel_check(route == NULL)) {
         fprintf(stderr, "-----------------------------------------------\n");
         fprintf(stderr, "Failed test on find_installed_route (after uninstall_route)\n");
-        fprintf(stderr, "prefix: %s\n", str_of_array(prefix, plen));
-        fprintf(stderr, "plen: %d\n", plen);
-        fprintf(stderr, "src_prefix: %s\n", str_of_array(src_prefix, src_plen));
-        fprintf(stderr, "src_plen: %d\n", src_plen);
+        fprintf(stderr, "prefix: %s\n", format_prefix(prefix, plen));
+        fprintf(stderr, "src_prefix: %s\n", format_prefix(src_prefix, src_plen));
         fprintf(stderr, "expected NULL.\n");
         fflush(stderr);
     }
