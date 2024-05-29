@@ -117,17 +117,14 @@ kernel_link_notify(int add, struct kernel_link *link, void *closure)
     }
 }
 
+#ifndef NO_MAIN
 int
 main(int argc, char **argv)
 {
-    struct sockaddr_in6 sin6;
     int rc, fd, i, opt;
-    time_t expiry_time, source_expiry_time, kernel_dump_time;
     const char **config_files = NULL;
     int num_config_files = 0;
-    void *vrc;
     unsigned int seed;
-    struct interface *ifp;
 
     gettime(&now);
 
@@ -378,11 +375,44 @@ main(int argc, char **argv)
         rc = write(pfd, buf, len);
         if(rc < len) {
             perror("write(pidfile)");
-            goto fail_pid;
+            unlink(pidfile);
+            exit(1);
         }
 
         close(pfd);
     }
+
+    return babel_main(argv + optind, argc - optind);
+
+ usage:
+    fprintf(stderr,
+            "%s\n"
+            "Syntax: babeld "
+            "[-V] [-m multicast_address] [-p port] [-S state-file]\n"
+            "               "
+            "[-h hello] [-H wired_hello] [-z kind[,factor]]\n"
+            "               "
+            "[-g port] [-G port] [-k metric] [-A metric] [-s] [-l] [-w] [-r]\n"
+            "               "
+            "[-t table] [-T table] [-c file] [-C statement]\n"
+            "               "
+            "[-d level] [-D] [-L logfile] [-I pidfile]\n"
+            "               "
+            "interface...\n",
+            BABELD_VERSION);
+    exit(1);
+
+}
+#endif
+
+int
+babel_main(char **interface_names, int num_interface_names)
+{
+    struct interface *ifp;
+    time_t expiry_time, source_expiry_time, kernel_dump_time;
+    struct sockaddr_in6 sin6;
+    void *vrc;
+    int i, fd, rc;
 
     rc = kernel_setup(1);
     if(rc < 0) {
@@ -403,8 +433,8 @@ main(int argc, char **argv)
         goto fail;
     }
 
-    for(i = optind; i < argc; i++) {
-        vrc = add_interface(argv[i], NULL);
+    for(i = 0; i < num_interface_names; i++) {
+        vrc = add_interface(interface_names[i], NULL);
         if(vrc == NULL)
             goto fail;
     }
@@ -814,24 +844,6 @@ main(int argc, char **argv)
         unlink(pidfile);
     debugf("Done.\n");
     return 0;
-
- usage:
-    fprintf(stderr,
-            "%s\n"
-            "Syntax: babeld "
-            "[-V] [-m multicast_address] [-p port] [-S state-file]\n"
-            "               "
-            "[-h hello] [-H wired_hello] [-z kind[,factor]]\n"
-            "               "
-            "[-g port] [-G port] [-k metric] [-A metric] [-s] [-l] [-w] [-r]\n"
-            "               "
-            "[-t table] [-T table] [-c file] [-C statement]\n"
-            "               "
-            "[-d level] [-D] [-L logfile] [-I pidfile]\n"
-            "               "
-            "interface...\n",
-            BABELD_VERSION);
-    exit(1);
 
  fail:
     FOR_ALL_INTERFACES(ifp) {

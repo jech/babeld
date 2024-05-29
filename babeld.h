@@ -109,6 +109,7 @@ extern int kernel_check_interval;
 extern int max_request_hopcount;
 extern int shutdown_delay_msec;
 
+int babel_main(char **interface_names, int num_interface_names);
 void schedule_neighbours_check(int msecs, int override);
 void schedule_interfaces_check(int msecs, int override);
 int resize_receive_buffer(int size);
