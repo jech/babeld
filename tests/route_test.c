@@ -211,7 +211,6 @@ void route_compare_test(void)
             fprintf(stderr, "route->src->src_prefix: %s\n", format_prefix(route.src->src_prefix, route.src->src_plen));
             fprintf(stderr, "expected rc: %d\n", tcs[i].expected_rc_sign);
             fprintf(stderr, "computed rc: %d\n", rc_sign);
-            fflush(stderr);
         }
     }
     free(route.src);
@@ -277,7 +276,6 @@ void find_route_slot_test(void)
             fprintf(stderr, "computed rc: %d\n", rc);
             fprintf(stderr, "expected new_return: %d\n", tcs[i].expected_new_return);
             fprintf(stderr, "computed new_return: %d\n", new_return);
-            fflush(stderr);
         }
     }
 }
@@ -343,7 +341,6 @@ void find_route_test(void)
             fprintf(stderr, "src_prefix: %s\n", format_prefix(src_prefix, src_plen));
             fprintf(stderr, "neighbour: ns[%d]\n", tcs[i].neigh_index_val);
             fprintf(stderr, "expected route: routes[%d]\n", tcs[i].expected_route_index);
-            fflush(stderr);
         }
     }
 }
@@ -366,7 +363,6 @@ void find_installed_route_test(void)
         fprintf(stderr, "prefix: %s\n", format_prefix(prefix, plen));
         fprintf(stderr, "src_prefix: %s\n", format_prefix(src_prefix, src_plen));
         fprintf(stderr, "expected route: routes[1].\n");
-        fflush(stderr);
     }
 
     uninstall_route(route);
@@ -378,7 +374,6 @@ void find_installed_route_test(void)
         fprintf(stderr, "prefix: %s\n", format_prefix(prefix, plen));
         fprintf(stderr, "src_prefix: %s\n", format_prefix(src_prefix, src_plen));
         fprintf(stderr, "expected NULL.\n");
-        fflush(stderr);
     }
 }
 

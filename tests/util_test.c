@@ -58,25 +58,21 @@ void roughly_test(void)
         if(!babel_check(output >= lower_bound)) {
             fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Output of roughly function was too low. Input: %d / Output: %d.\n", input, output);
-            fflush(stderr);
         }
 
         if(!babel_check(output <= upper_bound)) {
             fprintf(stderr, "-----------------------------------------------\n");
             fprintf(stderr, "Output of roughly function was too high. Input: %d / Output: %d.\n", input, output);
-            fflush(stderr);
         }
     }
 
     if(!babel_check(roughly(1) == 1)) {
         fprintf(stderr, "-----------------------------------------------\n");
         fprintf(stderr, "roughly(1) should be 1.\n");
-        fflush(stderr);
     }
     if(!babel_check(roughly(0) == 0)) {
         fprintf(stderr, "-----------------------------------------------\n");
         fprintf(stderr, "roughly(1) should be 0.\n");
-        fflush(stderr);
     }
 }
 
@@ -120,7 +116,6 @@ void timeval_minus_test(void)
                 tcs[i].expected.tv_sec,
                 tcs[i].expected.tv_usec
             );
-            fflush(stderr);
         }
     }
 }
@@ -165,7 +160,6 @@ void timeval_minus_msec_test(void)
                 result,
                 tcs[i].expected
             );
-            fflush(stderr);
         }
     }
 }
@@ -210,7 +204,6 @@ void timeval_add_msec_test(void)
                 tcs[i].expected.tv_sec,
                 tcs[i].expected.tv_usec
             );
-            fflush(stderr);
         }
     }
 }
@@ -255,7 +248,6 @@ void timeval_compare_test(void)
                 result,
                 tcs[i].expected
             );
-            fflush(stderr);
         }
     }
 }
@@ -304,7 +296,6 @@ void timeval_min_test(void)
                 tcs[i].expected.tv_sec,
                 tcs[i].expected.tv_usec
             );
-            fflush(stderr);
         }
     }
 }
@@ -348,7 +339,6 @@ void timeval_min_sec_test(void)
                 s.tv_sec,
                 tcs[i].s_secs_expected
             );
-            fflush(stderr);
         }
     }
 }
@@ -385,7 +375,6 @@ void parse_nat_test(void)
                 result,
                 tcs[i].expected
             );
-            fflush(stderr);
         }
     }
 }
@@ -422,7 +411,6 @@ void parse_thousands_test(void)
                 result,
                 tcs[i].expected
             );
-            fflush(stderr);
         }
     }
 }
@@ -461,7 +449,6 @@ void h2i_test(void)
                 result,
                 tcs[i].expected
             );
-            fflush(stderr);
         }
     }
 }
@@ -504,7 +491,6 @@ void fromhex_test(void)
                 str_of_array(dst, dst_len),
                 str_of_array(tcs[i].expected, tcs[i].n_val / 2)
             );
-            fflush(stderr);
         }
     }
 }
@@ -550,7 +536,6 @@ void in_prefix_test(void)
                 result,
                 tcs[i].expected
             );
-            fflush(stderr);
         }
     }
 }
@@ -602,7 +587,6 @@ void normalize_prefix_test(void)
                 str_of_array(result, tcs[i].prefix_size),
                 str_of_array(tcs[i].expected, tcs[i].prefix_size)
             );
-            fflush(stderr);
         }
     }
 }
@@ -652,7 +636,6 @@ void format_address_test(void)
                 result,
                 tcs[i].expected
             );
-            fflush(stderr);
         }
     }
 }
@@ -703,7 +686,6 @@ void format_prefix_test(void)
                 result,
                 tcs[i].expected
             );
-            fflush(stderr);
         }
     }
 }
@@ -747,7 +729,6 @@ void format_eui64_test(void)
                 result,
                 tcs[i].expected
             );
-            fflush(stderr);
         }
     }
 }
@@ -785,7 +766,6 @@ void format_thousands_test(void)
                 result,
                 tcs[i].expected
             );
-            fflush(stderr);
         }
     }
 }
@@ -839,7 +819,6 @@ void parse_address_test(void)
                 str_of_array(addr_r, ADDRESS_ARRAY_SIZE),
                 str_of_array(tcs[i].expected_addr_r, ADDRESS_ARRAY_SIZE)
             );
-            fflush(stderr);
         }
     }
 }
@@ -923,7 +902,6 @@ void parse_net_test(void)
                 str_of_array(prefix_r, ADDRESS_ARRAY_SIZE),
                 str_of_array(tcs[i].expected_prefix_r, ADDRESS_ARRAY_SIZE)
             );
-            fflush(stderr);
         }
     }
 }
@@ -974,7 +952,6 @@ void parse_eui64_test(void)
                 str_of_array(eui_r, EUI_SIZE),
                 str_of_array(tcs[i].expected_eui_r, EUI_SIZE)
             );
-            fflush(stderr);
         }
     }
 }
@@ -986,7 +963,6 @@ void wait_for_fd_test(void)
     if(!babel_check(rc == 1)) {
         fprintf(stderr, "-----------------------------------------------\n");
         fprintf(stderr, "STDOUT should be able to write.\n");
-        fflush(stderr);
     }
 }
 
@@ -1045,7 +1021,6 @@ void martian_prefix_test(void)
                 rc,
                 tcs[i].expected_rc
             );
-            fflush(stderr);
         }
     }
 }

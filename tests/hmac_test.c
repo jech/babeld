@@ -110,7 +110,6 @@ void add_key_test(void)
                 len,
                 str_of_array(value, len)
             );
-            fflush(stderr);
         }
     }
 }
@@ -208,7 +207,6 @@ void compute_hmac_test(void)
             fprintf(stderr, "key value: %s\n", str_of_array(key->value, key->len));
             fprintf(stderr, "hmac computed: %s\n", str_of_array(hmac, hmac_len));
             fprintf(stderr, "hmac expected: %s\n", str_of_array(tcs[i].hmac_expected, hmac_len));
-            fflush(stderr);
         }
     }
 }
@@ -383,7 +381,6 @@ void check_hmac_test(void)
             fprintf(stderr, "key value: %s\n", str_of_array(ifp.key->value, ifp.key->len));
             fprintf(stderr, "rc computed: %d\n", rc);
             fprintf(stderr, "rc expected: %d\n", tcs[i].expected_rc);
-            fflush(stderr);
         }
     }
 }
