@@ -438,7 +438,7 @@ preparse_packet(const unsigned char *from, struct interface *ifp,
     struct neighbour *neigh = NULL;
     int challenge_success = 0, accept_packet = 0;
     const unsigned char *pc = NULL, *index = NULL, *nonce = NULL;
-    int index_len, nonce_len;
+    int index_len, nonce_len = 0;
 
     i = 0;
     while(i < bodylen) {
