@@ -26,6 +26,10 @@ struct key *find_key(const char *id);
 struct key *retain_key(struct key *key);
 void release_key(struct key *key);
 struct key *add_key(char *id, int type, int len, unsigned char *value);
+int compute_hmac(const unsigned char *src, const unsigned char *dst,
+                 const unsigned char *packet_header,
+                 const unsigned char *body, int bodylen, struct key *key,
+                 unsigned char *hmac_return);
 int add_hmac(struct buffered *buf, struct interface *ifp,
              unsigned char *packet_header);
 int check_hmac(const unsigned char *packet, int packetlen, int bodylen,

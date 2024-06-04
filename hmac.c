@@ -106,7 +106,7 @@ add_key(char *id, int type, int len, unsigned char *value)
     return key;
 }
 
-static int
+int
 compute_hmac(const unsigned char *src, const unsigned char *dst,
              const unsigned char *packet_header,
              const unsigned char *body, int bodylen, struct key *key,
