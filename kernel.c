@@ -27,7 +27,9 @@ THE SOFTWARE.
 
 #include "babeld.h"
 
-#ifdef __linux
+#if defined(MOCKED_KERNEL)
+#include "mocked_kernel.c"
+#elif defined(__linux)
 #include "kernel_netlink.c"
 #else
 #include "kernel_socket.c"
