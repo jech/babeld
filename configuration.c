@@ -370,7 +370,7 @@ free_filter(struct filter *f)
 static int
 parse_filter(int c, gnc_t gnc, void *closure, struct filter **filter_return)
 {
-    char *token;
+    char *token = NULL;
     struct filter *filter;
 
     filter = calloc(1, sizeof(struct filter));
@@ -711,7 +711,7 @@ static int
 parse_ifconf(int c, gnc_t gnc, void *closure,
              struct interface_conf **if_conf_return)
 {
-    char *token;
+    char *token = NULL;
     struct interface_conf *if_conf;
 
     if_conf = calloc(1, sizeof(struct interface_conf));
