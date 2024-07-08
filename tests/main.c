@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2018 by Clara Dô and Weronika Kolodziejak
+Copyright (c) 2024 by Tomaz Mascarenhas
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -20,18 +20,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#define MAX_DIGEST_LEN 32
+#include "hmac_test.h"
+#include "route_test.h"
+#include "test_utilities.h"
+#include "util_test.h"
 
-struct key *find_key(const char *id);
-struct key *retain_key(struct key *key);
-void release_key(struct key *key);
-struct key *add_key(char *id, int type, int len, unsigned char *value);
-int compute_hmac(const unsigned char *src, const unsigned char *dst,
-                 const unsigned char *packet_header,
-                 const unsigned char *body, int bodylen, struct key *key,
-                 unsigned char *hmac_return);
-int add_hmac(struct buffered *buf, struct interface *ifp,
-             unsigned char *packet_header);
-int check_hmac(const unsigned char *packet, int packetlen, int bodylen,
-               const unsigned char *src, const unsigned char *dst,
-               struct interface *ifp);
+int main(int argc, char **argv)
+{
+    run_suite(util_test_suite, "util.c");
+    run_suite(hmac_test_suite, "hmac.c");
+    run_suite(route_test_suite, "route.c");
+    return tests_failed;
+}

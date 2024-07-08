@@ -40,6 +40,9 @@ struct route_stream;
 
 extern struct babel_route **routes;
 extern int kernel_metric, allow_duplicates, reflect_kernel_metric;
+extern int route_slots;
+extern int smoothing_half_life;
+extern int two_to_the_one_over_hl; /* 2^(1/hl) * 0x10000 */
 
 static inline int
 route_metric(const struct babel_route *route)
@@ -48,6 +51,13 @@ route_metric(const struct babel_route *route)
     return MIN(m, INFINITY);
 }
 
+int route_compare(const unsigned char *prefix, unsigned char plen,
+                  const unsigned char *src_prefix, unsigned char src_plen,
+                  struct babel_route *route);
+int
+find_route_slot(const unsigned char *prefix, unsigned char plen,
+                const unsigned char *src_prefix, unsigned char src_plen,
+                int *new_return);
 struct babel_route *find_route(const unsigned char *prefix, unsigned char plen,
                         const unsigned char *src_prefix, unsigned char src_plen,
                         struct neighbour *neigh);
@@ -55,6 +65,7 @@ struct babel_route *find_installed_route(const unsigned char *prefix,
                         unsigned char plen, const unsigned char *src_prefix,
                         unsigned char src_plen);
 int installed_routes_estimate(void);
+struct babel_route * insert_route(struct babel_route *route);
 void flush_route(struct babel_route *route);
 void flush_all_routes(void);
 void flush_neighbour_routes(struct neighbour *neigh);
@@ -62,9 +73,15 @@ void flush_interface_routes(struct interface *ifp, int v4only);
 struct route_stream *route_stream(int which);
 struct babel_route *route_stream_next(struct route_stream *stream);
 void route_stream_done(struct route_stream *stream);
+int metric_to_kernel(int metric);
 void install_route(struct babel_route *route);
 void uninstall_route(struct babel_route *route);
+void change_route_metric(struct babel_route *route,
+                         unsigned refmetric,
+                         unsigned cost,
+                         unsigned add);
 int route_feasible(struct babel_route *route);
+int route_interferes(struct babel_route *route, struct interface *ifp);
 int update_feasible(struct source *src,
                     unsigned short seqno, unsigned short refmetric);
 void change_smoothing_half_life(int half_life);

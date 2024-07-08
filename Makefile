@@ -40,6 +40,12 @@ babeld.html: babeld.man
 
 all: babeld babeld.man
 
+o_files: $(OBJS)
+
+test:
+	$(MAKE) o_files CFLAGS+=-DNO_MAIN CFLAGS+=-DMOCKED_KERNEL
+	cd tests/ && $(MAKE) && ./main > /dev/null && $(MAKE) clean
+
 install.minimal: babeld
 	-rm -f $(TARGET)$(PREFIX)/bin/babeld
 	mkdir -p $(TARGET)$(PREFIX)/bin

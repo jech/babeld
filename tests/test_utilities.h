@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2018 by Clara Dô and Weronika Kolodziejak
+Copyright (c) 2024 by Tomaz Mascarenhas
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -20,18 +20,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#define MAX_DIGEST_LEN 32
+#ifndef TEST_UTILITIES_H
+#define TEST_UTILITIES_H
 
-struct key *find_key(const char *id);
-struct key *retain_key(struct key *key);
-void release_key(struct key *key);
-struct key *add_key(char *id, int type, int len, unsigned char *value);
-int compute_hmac(const unsigned char *src, const unsigned char *dst,
-                 const unsigned char *packet_header,
-                 const unsigned char *body, int bodylen, struct key *key,
-                 unsigned char *hmac_return);
-int add_hmac(struct buffered *buf, struct interface *ifp,
-             unsigned char *packet_header);
-int check_hmac(const unsigned char *packet, int packetlen, int bodylen,
-               const unsigned char *src, const unsigned char *dst,
-               struct interface *ifp);
+#define ADDRESS_ARRAY_SIZE 16
+#define ARR_MAX_SIZE 400
+
+extern int tests_failed;
+
+void swap(int *a, int *b);
+char* str_of_array(const unsigned char* const arr, int len);
+int babel_check(int prop);
+void run_test(void (*test)(void), const char* test_name);
+void run_suite(void (*suite)(void), const char* suite_name);
+
+#endif
