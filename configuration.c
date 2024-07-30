@@ -1187,6 +1187,13 @@ parse_config_line(int c, gnc_t gnc, void *closure,
                 goto fail;
             c = update_filter(redistribute_filters, filter);
             free_filter(filter);
+            if (c == 0) {
+                if(action_return)
+                    *action_return = CONFIG_ACTION_NO;
+                if(message_return) {
+                    *message_return = "Couldn't find the redistribute filter to update";
+                }
+            }
             if(c < -1)
                 goto fail;
         } else {
