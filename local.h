@@ -38,7 +38,7 @@ struct local_socket {
     int fd;
     char *buf;
     int n;
-    int monitor;
+    unsigned int monitor;
 };
 
 extern int local_server_socket;
