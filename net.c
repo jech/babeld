@@ -37,6 +37,10 @@ THE SOFTWARE.
 #include <arpa/inet.h>
 #include <errno.h>
 
+#if defined(__UCLIBC__)
+#include <linux/in6.h>
+#endif
+
 #include "babeld.h"
 #include "util.h"
 #include "net.h"
