@@ -45,4 +45,4 @@ void xroute_stream_done(struct xroute_stream *stream);
 int kernel_addresses(int ifindex, int ll,
                      struct kernel_route *routes, int maxroutes);
 void kernel_route_notify(int add, struct kernel_route *route, void *closure);
-int check_xroutes(int send_updates, int warn);
+int check_xroutes(int send_updates, int warn, int check_infinity);
