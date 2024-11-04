@@ -64,6 +64,8 @@ static int config_finalised = 0;
 /* get_next_char callback */
 typedef int (*gnc_t)(void*);
 
+static int update_filter(struct filter *f, struct filter *newf);
+
 static int
 skip_whitespace(int c, gnc_t gnc, void *closure)
 {
@@ -1177,12 +1179,26 @@ parse_config_line(int c, gnc_t gnc, void *closure,
         add_filter(filter, FILTER_TYPE_OUTPUT);
     } else if(strcmp(token, "redistribute") == 0) {
         struct filter *filter;
-        if(config_finalised)
-            goto fail;
         c = parse_filter(c, gnc, closure, &filter);
         if(c < -1)
             goto fail;
-        add_filter(filter, FILTER_TYPE_REDISTRIBUTE);
+        if(config_finalised) {
+            if(!action_return)
+                goto fail;
+            c = update_filter(redistribute_filters, filter);
+            free_filter(filter);
+            if (c == 0) {
+                if(action_return)
+                    *action_return = CONFIG_ACTION_NO;
+                if(message_return) {
+                    *message_return = "Couldn't find the redistribute filter to update";
+                }
+            }
+            if(c < -1)
+                goto fail;
+        } else {
+            add_filter(filter, FILTER_TYPE_REDISTRIBUTE);
+        }
     } else if(strcmp(token, "install") == 0) {
         struct filter *filter;
         if(config_finalised)
@@ -1256,6 +1272,11 @@ parse_config_line(int c, gnc_t gnc, void *closure,
             goto fail;
         add_key(key->id, key->type, key->len, key->value);
         free(key);
+    } else if(strcmp(token, "check_xroutes") == 0) {
+        c = skip_eol(c, gnc, closure);
+        if(c < -1 || !action_return)
+            goto fail;
+        *action_return = CONFIG_ACTION_CHECK_XROUTES;
     } else {
         c = parse_option(c, gnc, closure, token);
         if(c < -1)
@@ -1458,6 +1479,23 @@ do_filter(struct filter *f, const unsigned char *id,
     }
 
     return -1;
+}
+
+static int
+update_filter(struct filter *f, struct filter *newf)
+{
+    while(f) {
+        if(filter_match(f, newf->id, newf->prefix, newf->plen, newf->src_prefix, newf->src_plen,
+                        newf->neigh, newf->ifindex, newf->proto)) {
+            f->action.add_metric = newf->action.add_metric;
+            // f->action.table = newf->action.table;
+            // memcpy(f->action.pref_src, newf->action.pref_src, 16);
+            return -1;
+        }
+        f = f->next;
+    }
+
+    return 0;
 }
 
 int

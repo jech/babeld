@@ -959,7 +959,8 @@ kernel_route(int operation, int table,
              const unsigned char *pref_src,
              const unsigned char *gate, int ifindex, unsigned int metric,
              const unsigned char *newgate, int newifindex,
-             unsigned int newmetric, int newtable)
+             unsigned int newmetric, int newtable,
+             const unsigned char *newpref_src)
 {
     union { char raw[1024]; struct nlmsghdr nh; } buf;
     struct rtmsg *rtm;
@@ -1011,11 +1012,11 @@ kernel_route(int operation, int table,
         kernel_route(ROUTE_FLUSH, table, dest, plen,
                      src, src_plen, pref_src,
                      gate, ifindex, metric,
-                     NULL, 0, 0, 0);
+                     NULL, 0, 0, 0, NULL);
         rc = kernel_route(ROUTE_ADD, newtable, dest, plen,
-                          src, src_plen, pref_src,
+                          src, src_plen, newpref_src,
                           newgate, newifindex, newmetric,
-                          NULL, 0, 0, 0);
+                          NULL, 0, 0, 0, NULL);
         if(rc < 0) {
             if(errno == EEXIST)
                 rc = 1;
