@@ -6,6 +6,16 @@ based on HSDV and AODV, but with provisions for link cost estimation
 and redistribution of routes from other routing protocols.
 
 
+Getting the source
+==================
+
+    $ git clone https://github.com/jech/babeld.git
+    $ cd babeld
+
+    $ git submodule init
+    $ git submodule update
+
+
 Installation
 ============
 
