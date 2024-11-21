@@ -27,6 +27,7 @@ struct xroute;
 #define LOCAL_FLUSH 0
 #define LOCAL_ADD 1
 #define LOCAL_CHANGE 2
+#define LOCAL_REMOVE 3
 
 #ifndef MAX_LOCAL_SOCKETS
 #define MAX_LOCAL_SOCKETS 4
