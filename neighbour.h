@@ -68,6 +68,7 @@ struct neighbour *find_neighbour(const unsigned char *address,
 int update_neighbour(struct neighbour *neigh, struct hello_history *hist,
                      int unicast, int hello, int hello_interval);
 unsigned check_neighbours(void);
+void flush_neighbour(struct neighbour *neigh);
 unsigned neighbour_txcost(struct neighbour *neigh);
 unsigned neighbour_rxcost(struct neighbour *neigh);
 unsigned neighbour_rttcost(struct neighbour *neigh);
