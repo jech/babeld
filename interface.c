@@ -101,6 +101,7 @@ int
 flush_interface(char *ifname)
 {
     struct interface *ifp, *prev;
+    struct neighbour *neigh;
 
     prev = NULL;
     ifp = interfaces;
@@ -113,6 +114,18 @@ flush_interface(char *ifname)
 
     if(ifp == NULL)
         return 0;
+
+    /* flush any neighbours associated with interface */
+    neigh = neighs;
+    while(neigh) {
+        if(neigh->ifp == ifp) {
+            struct neighbour *old = neigh;
+            neigh = neigh->next;
+            flush_neighbour(old);
+            continue;
+        }
+        neigh = neigh->next;
+    }
 
     interface_updown(ifp, 0);
     if(prev)
