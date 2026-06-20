@@ -1,3 +1,12 @@
+20 June 2026: babeld-1.14
+
+  * Added a test suite, due to Tomaz Mascarenha.  The test suite does not
+    necessarily test for correctness, it is designed to catch behaviour
+    changes.
+  * Allowed install filters to match on router-id.  Thanks to Gaspare Iengo.
+  * Fixed the location of the rfc6234 submodule, which has moved away from
+    GitHub.
+
 26 July 2023: babeld-1.13.1
 
   * Implemented the per-interface option "probe-mtu", which automatically
