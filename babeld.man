@@ -605,18 +605,13 @@ replies with one or more lines of data terminated by one of
 or
 .BR bad .
 
-The following requests are currently defined:
-.IP \(bu 2
-any configuration file directive, including
-.BR interface ;
+All configuration file directives are valid socket requests, including:
 .IP \(bu
-.BR "flush interface" ;
+.BR "[flush] interface"
 .IP \(bu
-.BR dump ;
+.BR "dump [neighbour|route|xroute|interface]"
 .IP \(bu
-.B monitor
-and
-.BR unmonitor ;
+.BR "[un]monitor [neighbour|route|xroute|interface]"
 .IP \(bu
 .BR quit .
 .SH EXAMPLES
