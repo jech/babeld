@@ -515,12 +515,6 @@ babel_main(char **interface_names, int num_interface_names)
         goto fail;
     }
 
-    rc = kernel_setup_socket(1);
-    if(rc < 0 || kernel_socket < 0) {
-        perror("Couldn't setup kernel socket");
-        goto fail;
-    }
-
     if(local_server_port >= 0) {
         local_server_socket = tcp_server_socket(local_server_port, 1);
         if(local_server_socket < 0) {
