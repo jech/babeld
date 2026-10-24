@@ -355,10 +355,9 @@ kernel_interface_mtu(const char *ifname, int ifindex)
     memset(&req, 0, sizeof(req));
     strncpy(req.ifr_name, ifname, sizeof(req.ifr_name));
     rc = ioctl(s, SIOCGIFMTU, &req);
-    if(rc < 0) {
-        close(s);
+    close(s);
+    if(rc < 0)
         return -1;
-    }
 
     return req.ifr_mtu;
 }
