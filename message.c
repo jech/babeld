@@ -106,6 +106,8 @@ network_prefix(int ae, int plen, unsigned int omitted,
         }
         if(pb > omitted) memcpy(prefix + omitted, p, pb - omitted);
         ret = pb - omitted;
+        if(plen >= 96 && v4mapped(prefix))
+           return -1;
         break;
     case AE_IPV6_LOCAL:
         if(pb > 8 && len < pb - 8) return -1;
