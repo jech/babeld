@@ -588,6 +588,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
     unsigned char router_id[8], v4_prefix[16], v6_prefix[16],
         v4viav6_prefix[16], v4_nh[16], v6_nh[16];
     int have_hello_rtt = 0;
+    int have_request = 0;
     /* Content of the RTT sub-TLV on IHU messages. */
     unsigned int hello_send_us = 0, hello_rtt_receive_time = 0;
 
@@ -1048,6 +1049,7 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                    format_eui64(message + 8), seqno);
             handle_request(neigh, prefix, plen, src_prefix, src_plen,
                            message[6], seqno, message + 8);
+            have_request = 1;
         } else if(type == MESSAGE_PC ||
                   type == MESSAGE_CHALLENGE_REQUEST ||
                   type == MESSAGE_CHALLENGE_REPLY) {
@@ -1065,6 +1067,15 @@ parse_packet(const unsigned char *from, struct interface *ifp,
                 message[0], message[1], format_address(from), ifp->name);
         goto done;
     }
+
+    /* A seqno request received over unicast is on the critical path of
+       a route switch: the requester has a usable but unfeasible route and
+       waits for a new seqno before it may install it.  Forward it, or
+       answer it, at once.  Requests received over multicast keep the usual
+       jitter, since on a shared medium all neighbours would otherwise
+       answer at the same time. */
+    if(have_request && to != NULL && to[0] != 0xFF)
+        flush_promptly(NULL);
 
     /* We can calculate the RTT to this neighbour. */
     if(have_hello_rtt && hello_send_us && hello_rtt_receive_time) {
@@ -2368,6 +2379,7 @@ send_request_resend(const unsigned char *prefix, unsigned char plen,
                                   seqno, id, 127);
         }
     }
+    flush_promptly(NULL);
 }
 
 void

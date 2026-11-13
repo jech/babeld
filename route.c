@@ -1004,6 +1004,7 @@ send_unfeasible_request(struct neighbour *neigh, int force,
                                       src->seqno :
                                       seqno_plus(src->seqno, 1),
                                       src->id, 127);
+        flush_promptly(neigh->ifp);
     }
 }
 
