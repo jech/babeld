@@ -36,6 +36,8 @@ struct neighbour {
     struct hello_history hello;
     struct hello_history uhello; /* for Unicast Hellos */
     unsigned short txcost;
+    /* Nonzero if we did not hear this neighbour at the last check. */
+    int unheard;
     unsigned short hello_seqno; /* for Unicast Hellos */
     struct timeval ihu_time;
     unsigned short ihu_interval;   /* in centiseconds */

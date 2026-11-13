@@ -789,6 +789,17 @@ update_route_metric(struct babel_route *route)
 void
 update_neighbour_metric(struct neighbour *neigh, int changed)
 {
+    int unheard = neighbour_rxcost(neigh) >= INFINITY;
+
+    if(unheard && !neigh->unheard && if_up(neigh->ifp)) {
+        /* We have just stopped hearing this neighbour.  It may still hear
+           us and keep sending traffic our way; tell it now rather than
+           with the next scheduled IHU.  Buffered before the retractions
+           caused by the metric change below, it goes out ahead of them. */
+        send_ihu(neigh, NULL);
+        flush_promptly(neigh->ifp);
+    }
+    neigh->unheard = unheard;
 
     if(changed) {
         int i;
@@ -1004,6 +1015,7 @@ send_unfeasible_request(struct neighbour *neigh, int force,
                                       src->seqno :
                                       seqno_plus(src->seqno, 1),
                                       src->id, 127);
+        flush_promptly(neigh->ifp);
     }
 }
 
@@ -1050,11 +1062,13 @@ consider_route(struct babel_route *route)
 
  install:
     switch_routes(installed, route);
-    if(installed && route->installed)
+    if(installed && route->installed) {
         send_triggered_update(route, installed->src, route_metric(installed));
-    else
+    } else {
         send_update(NULL, 1, route->src->prefix, route->src->plen,
                     route->src->src_prefix, route->src->src_plen);
+        flush_promptly(NULL);
+    }
     return;
 }
 
@@ -1122,9 +1136,12 @@ send_triggered_update(struct babel_route *route, struct source *oldsrc,
     if(urgent >= 2)
         send_update_resend(NULL, route->src->prefix, route->src->plen,
                            route->src->src_prefix, route->src->src_plen);
-    else
+    else {
         send_update(NULL, urgent, route->src->prefix, route->src->plen,
                     route->src->src_prefix, route->src->src_plen);
+        if(urgent)
+            flush_promptly(NULL);
+    }
 
     if(oldmetric < INFINITY) {
         if(newmetric >= oldmetric + 288) {
