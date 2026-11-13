@@ -103,6 +103,9 @@ find_neighbour(const unsigned char *address, struct interface *ifp)
     neigh->hello.seqno = neigh->uhello.seqno = -1;
     memcpy(neigh->address, address, 16);
     neigh->txcost = INFINITY;
+    /* A new neighbour's first Hello yields an infinite rxcost; this is not
+       a loss, so start out as unheard. */
+    neigh->unheard = 1;
     neigh->ihu_time = now;
     neigh->hello.time = neigh->uhello.time = zero;
     neigh->hello_rtt_receive_time = zero;

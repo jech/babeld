@@ -789,6 +789,17 @@ update_route_metric(struct babel_route *route)
 void
 update_neighbour_metric(struct neighbour *neigh, int changed)
 {
+    int unheard = neighbour_rxcost(neigh) >= INFINITY;
+
+    if(unheard && !neigh->unheard && if_up(neigh->ifp)) {
+        /* We have just stopped hearing this neighbour.  It may still hear
+           us and keep sending traffic our way; tell it now rather than
+           with the next scheduled IHU.  Buffered before the retractions
+           caused by the metric change below, it goes out ahead of them. */
+        send_ihu(neigh, NULL);
+        flush_promptly(neigh->ifp);
+    }
+    neigh->unheard = unheard;
 
     if(changed) {
         int i;
