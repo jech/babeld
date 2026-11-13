@@ -67,6 +67,7 @@ void parse_packet(const unsigned char *from, struct interface *ifp,
                   const unsigned char *to);
 void flushbuf(struct buffered *buf, struct interface *ifp);
 void flushupdates(struct interface *ifp);
+void flush_promptly(struct interface *ifp);
 int send_pc(struct buffered *buf, struct interface *ifp);
 void send_ack(struct neighbour *neigh, unsigned short nonce,
               unsigned short interval);

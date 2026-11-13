@@ -1624,6 +1624,7 @@ flushupdates(struct interface *ifp)
     unsigned char last_plen = 0xFF;
     unsigned char last_src_plen = 0xFF;
     int i;
+    int partial = 0;
 
     if(ifp == NULL) {
         struct interface *ifp_aux;
@@ -1636,9 +1637,42 @@ flushupdates(struct interface *ifp)
         struct buffered_update *b = ifp->buffered_updates;
         int n = ifp->num_buffered_updates;
 
-        ifp->buffered_updates = NULL;
-        ifp->update_bufsize = 0;
-        ifp->num_buffered_updates = 0;
+        /* Asked to flush promptly before the normal deadline: send only the
+           urgent updates now, and leave the others (a periodic dump, for
+           instance) buffered until their own deadline, so that they don't
+           get ahead of, or delay, the urgent ones. */
+        if(ifp->flush_promptly && ifp->update_flush_timeout.tv_sec != 0 &&
+           timeval_compare(&now, &ifp->update_flush_timeout) < 0) {
+            int j, m = 0;
+            for(j = 0; j < n; j++)
+                if(b[j].urgent)
+                    m++;
+            if(m == 0)
+                goto out;
+            if(m < n) {
+                struct buffered_update *u =
+                    malloc(m * sizeof(struct buffered_update));
+                if(u != NULL) {
+                    int k = 0, l = 0;
+                    for(j = 0; j < n; j++) {
+                        if(b[j].urgent)
+                            u[l++] = b[j];
+                        else
+                            b[k++] = b[j];
+                    }
+                    ifp->num_buffered_updates = k;
+                    b = u;
+                    n = m;
+                    partial = 1;
+                }
+            }
+        }
+
+        if(!partial) {
+            ifp->buffered_updates = NULL;
+            ifp->update_bufsize = 0;
+            ifp->num_buffered_updates = 0;
+        }
 
         if(!if_up(ifp))
             goto done;
@@ -1727,17 +1761,60 @@ flushupdates(struct interface *ifp)
             struct neighbour *neigh;
             FOR_ALL_NEIGHBOURS(neigh) {
                 if(neigh->ifp == ifp) {
-                    schedule_flush_now(&neigh->buf);
+                    if(ifp->flush_promptly)
+                        schedule_flush_ms(&neigh->buf, 0);
+                    else
+                        schedule_flush_now(&neigh->buf);
                 }
             }
         } else {
-            schedule_flush_now(&ifp->buf);
+            if(ifp->flush_promptly)
+                schedule_flush_ms(&ifp->buf, 0);
+            else
+                schedule_flush_now(&ifp->buf);
         }
     done:
         free(b);
     }
-    ifp->update_flush_timeout.tv_sec = 0;
-    ifp->update_flush_timeout.tv_usec = 0;
+    if(!partial) {
+        ifp->update_flush_timeout.tv_sec = 0;
+        ifp->update_flush_timeout.tv_usec = 0;
+    }
+ out:
+    ifp->flush_promptly = 0;
+}
+
+/* Arrange for the buffered urgent updates and the packets of ifp (all
+   interfaces if NULL) to be sent at the end of the current iteration of
+   the main loop, without the usual jitter; non-urgent updates keep their
+   own deadline (see flushupdates).  This is meant for messages whose delay
+   translates directly into lost traffic: an urgent update, an IHU telling
+   a neighbour that we no longer hear it, a unicast seqno request.  Since
+   all the events of one iteration are processed before the buffers are
+   flushed, the messages caused by a single event still go out together,
+   in as few packets as the MTU allows. */
+void
+flush_promptly(struct interface *ifp)
+{
+    struct neighbour *neigh;
+
+    if(ifp == NULL) {
+        struct interface *ifp_aux;
+        FOR_ALL_INTERFACES(ifp_aux)
+            flush_promptly(ifp_aux);
+        return;
+    }
+
+    if(!if_up(ifp))
+        return;
+
+    /* The main loop calls flushupdates() before flushing ifp->buf. */
+    ifp->flush_promptly = 1;
+    ifp->buf.timeout = now;
+    FOR_ALL_NEIGHBOURS(neigh) {
+        if(neigh->ifp == ifp)
+            neigh->buf.timeout = now;
+    }
 }
 
 static void
@@ -1754,7 +1831,8 @@ schedule_update_flush(struct interface *ifp, int urgent)
 static void
 buffer_update(struct interface *ifp,
               const unsigned char *prefix, unsigned char plen,
-              const unsigned char *src_prefix, unsigned char src_plen)
+              const unsigned char *src_prefix, unsigned char src_plen,
+              int urgent)
 {
     if(ifp->num_buffered_updates > 0 &&
        ifp->num_buffered_updates >= ifp->update_bufsize)
@@ -1789,6 +1867,7 @@ buffer_update(struct interface *ifp,
     memcpy(ifp->buffered_updates[ifp->num_buffered_updates].src_prefix,
            src_prefix, 16);
     ifp->buffered_updates[ifp->num_buffered_updates].src_plen = src_plen;
+    ifp->buffered_updates[ifp->num_buffered_updates].urgent = !!urgent;
     ifp->num_buffered_updates++;
 }
 
@@ -1823,7 +1902,7 @@ send_update(struct interface *ifp, int urgent,
         debugf("Sending update to %s for %s from %s.\n",
                ifp->name, format_prefix(prefix, plen),
                format_prefix(src_prefix, src_plen));
-        buffer_update(ifp, prefix, plen, src_prefix, src_plen);
+        buffer_update(ifp, prefix, plen, src_prefix, src_plen, urgent);
     } else if(prefix || src_prefix) {
         struct route_stream *routes;
         send_self_update(ifp);
@@ -1840,7 +1919,7 @@ send_update(struct interface *ifp, int urgent,
                 if((src_prefix && is_ss) || (prefix && !is_ss))
                     continue;
                 buffer_update(ifp, route->src->prefix, route->src->plen,
-                              route->src->src_prefix, route->src->src_plen);
+                              route->src->src_prefix, route->src->src_plen, 0);
             }
             route_stream_done(routes);
         } else {
@@ -1863,6 +1942,9 @@ send_update_resend(struct interface *ifp,
     assert(prefix != NULL);
 
     send_update(ifp, 1, prefix, plen, src_prefix, src_plen);
+    /* A retraction of a route that has no feasible successor: every
+       millisecond it waits is a millisecond of blackhole downstream. */
+    flush_promptly(ifp);
     record_resend(RESEND_UPDATE, prefix, plen, src_prefix, src_plen,
                   0, NULL, NULL, resend_delay);
 }

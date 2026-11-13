@@ -26,7 +26,8 @@ struct buffered_update {
     unsigned char src_prefix[16];
     unsigned char plen;
     unsigned char src_plen;
-    unsigned char pad[2];
+    unsigned char urgent;
+    unsigned char pad[1];
 };
 
 #define IF_TYPE_DEFAULT 0
@@ -129,6 +130,7 @@ struct interface {
     struct timeval hello_timeout;
     struct timeval update_timeout;
     struct timeval update_flush_timeout;
+    int flush_promptly;
     char name[IF_NAMESIZE];
     unsigned char *ipv4;
     int numll;

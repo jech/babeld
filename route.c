@@ -1050,11 +1050,13 @@ consider_route(struct babel_route *route)
 
  install:
     switch_routes(installed, route);
-    if(installed && route->installed)
+    if(installed && route->installed) {
         send_triggered_update(route, installed->src, route_metric(installed));
-    else
+    } else {
         send_update(NULL, 1, route->src->prefix, route->src->plen,
                     route->src->src_prefix, route->src->src_plen);
+        flush_promptly(NULL);
+    }
     return;
 }
 
@@ -1122,9 +1124,12 @@ send_triggered_update(struct babel_route *route, struct source *oldsrc,
     if(urgent >= 2)
         send_update_resend(NULL, route->src->prefix, route->src->plen,
                            route->src->src_prefix, route->src->src_plen);
-    else
+    else {
         send_update(NULL, urgent, route->src->prefix, route->src->plen,
                     route->src->src_prefix, route->src->src_plen);
+        if(urgent)
+            flush_promptly(NULL);
+    }
 
     if(oldmetric < INFINITY) {
         if(newmetric >= oldmetric + 288) {

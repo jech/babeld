@@ -317,6 +317,7 @@ do_resend()
                     send_update(resend->ifp, 1,
                                 resend->prefix, resend->plen,
                                 resend->src_prefix, resend->src_plen);
+                    flush_promptly(resend->ifp);
                     break;
                 default: abort();
                 }
